@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Zboun | WhatsApp Ordering Platform",
+  title: "Zboun",
   description: "Turn your menu into instant WhatsApp orders.",
   icons: {
     icon: [
