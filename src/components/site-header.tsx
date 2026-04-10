@@ -11,17 +11,18 @@ export function SiteHeader({ largeLogo = false }: SiteHeaderProps) {
     <header className="border-b border-slate-200/70 bg-white/80 backdrop-blur-md">
       <div
         className={`container flex items-center justify-between ${
-          largeLogo ? "min-h-[5.5rem] py-3 md:min-h-[6.5rem] md:py-4" : "h-16"
+          largeLogo ? "h-16" : "h-14"
         }`}
       >
         <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-90">
           <Image
-            src="/zboun_logo.png"
+            src="/zboun_logo.svg"
             alt="Zboun"
-            width={largeLogo ? 320 : 160}
-            height={largeLogo ? 96 : 48}
+            width={largeLogo ? 205 : 160}
+            height={largeLogo ? 58 : 45}
             priority
-            className="object-contain"
+            unoptimized
+            className="max-h-14 w-auto object-contain"
           />
         </Link>
         <nav className="flex items-center gap-5 text-sm font-medium text-slate-700">
