@@ -33,6 +33,20 @@ async function getUniqueSlug(baseName: string) {
   }
 }
 
+function getAppBaseUrl() {
+  const envUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (envUrl) {
+    return envUrl.replace(/\/+$/, "");
+  }
+
+  const vercelUrl = process.env.VERCEL_URL?.trim();
+  if (vercelUrl) {
+    return `https://${vercelUrl.replace(/\/+$/, "")}`;
+  }
+
+  return "http://localhost:3000";
+}
+
 export async function createRestaurantAction(formData: FormData) {
   await requireSuperAdmin();
   const name = String(formData.get("name") ?? "").trim();
@@ -46,7 +60,7 @@ export async function createRestaurantAction(formData: FormData) {
   try {
     const slug = await getUniqueSlug(name);
     const adminClient = getAdminClient();
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+    const appUrl = getAppBaseUrl();
 
     const { data: restaurantData, error: restaurantError } = await adminClient
       .from("restaurants")
