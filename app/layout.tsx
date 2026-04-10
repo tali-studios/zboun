@@ -16,8 +16,12 @@ export const metadata: Metadata = {
   title: "Zboun | WhatsApp Ordering Platform",
   description: "Turn your menu into instant WhatsApp orders.",
   icons: {
-    icon: [{ url: "/zboun_favicon.png", type: "image/png" }],
-    apple: "/zboun_favicon.png",
+    icon: [
+      { url: "/icon.png", type: "image/png", sizes: "32x32" },
+      { url: "/zboun_favicon.png", type: "image/png" },
+    ],
+    shortcut: ["/icon.png"],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
   },
 };
 
