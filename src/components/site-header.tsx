@@ -21,11 +21,7 @@ export function SiteHeader({ largeLogo = false }: SiteHeaderProps) {
             width={largeLogo ? 320 : 160}
             height={largeLogo ? 96 : 48}
             priority
-            className={
-              largeLogo
-                ? "h-16 w-auto object-contain sm:h-20 md:h-24"
-                : "h-10 w-auto object-contain"
-            }
+            className="object-contain"
           />
         </Link>
         <nav className="flex items-center gap-5 text-sm font-medium text-slate-700">
