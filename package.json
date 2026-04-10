@@ -22,6 +22,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@next/swc-win32-x64-msvc": "^16.2.3",
     "@tailwindcss/postcss": "^4.2.2",
     "@types/node": "^20",
     "@types/nodemailer": "^8.0.0",
