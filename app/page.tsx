@@ -16,7 +16,7 @@ const features = [
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-slate-50">
-      <SiteHeader />
+      <SiteHeader largeLogo />
       <main>
         <section className="container py-16 md:py-24">
           <div className="max-w-3xl space-y-6">

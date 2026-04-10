@@ -15,6 +15,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Zboun | WhatsApp Ordering Platform",
   description: "Turn your menu into instant WhatsApp orders.",
+  icons: {
+    icon: [{ url: "/zboun_favicon.png", type: "image/png" }],
+    apple: "/zboun_favicon.png",
+  },
 };
 
 export default function RootLayout({

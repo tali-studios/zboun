@@ -14,7 +14,16 @@ export default async function LoginPage({ searchParams }: Props) {
       >
         <h1 className="text-2xl font-bold text-slate-900">Dashboard login</h1>
         <p className="mt-1 text-sm text-slate-600">For super admins and restaurant admins.</p>
-        {error && <p className="mt-4 text-sm text-red-600">Invalid credentials.</p>}
+        {error === "invalid_credentials" && (
+          <p className="mt-4 text-sm text-red-600">Invalid credentials.</p>
+        )}
+        {error === "missing_profile" && (
+          <p className="mt-4 text-sm text-red-600">
+            Your account exists in Supabase Auth, but it’s missing the app profile row in{" "}
+            <code className="font-mono">public.users</code>. Create that row (role + restaurant_id)
+            and try again.
+          </p>
+        )}
         <div className="mt-4 space-y-3">
           <input
             type="email"

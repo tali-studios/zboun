@@ -42,10 +42,28 @@ npm install
 npm run dev
 ```
 
+## Super admin account (automated)
+
+Do **not** commit real passwords. In `.env.local` (gitignored), set:
+
+- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (app)
+- `SUPABASE_SERVICE_ROLE_KEY` (Dashboard → Settings → API → **service_role** — server-only)
+- `SUPERADMIN_EMAIL` — e.g. `tali-studios@outlook.com`
+- `SUPERADMIN_PASSWORD` — **must be quoted** if it contains `#` or `$`, e.g. `SUPERADMIN_PASSWORD="your-password-here"`
+- Optional: `SUPERADMIN_NAME`
+
+Then run:
+
+```bash
+npm run seed:superadmin
+```
+
+This creates or updates the Auth user, sets the password, and upserts `public.users` with `role = superadmin`. Sign in at `/dashboard/login`; you are redirected to `/dashboard/super-admin`.
+
 ## Supabase Notes
 
 - The app expects `public.users.id` to match `auth.users.id`.
-- Create auth users in Supabase Auth, then insert corresponding rows in `public.users`.
+- Restaurant admins: create in Auth + insert `public.users` with `restaurant_admin` and `restaurant_id`, or extend the seed pattern.
 - Roles supported:
   - `superadmin`
   - `restaurant_admin`

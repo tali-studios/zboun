@@ -15,7 +15,10 @@ export async function signInAction(formData: FormData) {
   }
 
   const role = await getCurrentUserRole();
-  if (role?.role === "superadmin") {
+  if (!role) {
+    redirect("/dashboard/login?error=missing_profile");
+  }
+  if (role.role === "superadmin") {
     redirect("/dashboard/super-admin");
   }
 
