@@ -8,6 +8,8 @@ import {
 import { getCurrentUserRole } from "@/lib/data";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
+export const dynamic = "force-dynamic";
+
 export default async function RestaurantDashboardPage() {
   const appUser = await getCurrentUserRole();
   if (!appUser || appUser.role !== "restaurant_admin" || !appUser.restaurant_id) {

@@ -9,6 +9,8 @@ import {
 import { getCurrentUserRole } from "@/lib/data";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
+export const dynamic = "force-dynamic";
+
 type Props = {
   searchParams: Promise<{ success?: string; error?: string; q?: string; status?: string }>;
 };
