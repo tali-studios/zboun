@@ -12,6 +12,7 @@ import {
 } from "@/app-actions/restaurant";
 import { getCurrentUserRole } from "@/lib/data";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { CopyMenuLinkButton } from "@/components/copy-menu-link-button";
 
 export const dynamic = "force-dynamic";
 
@@ -40,23 +41,65 @@ export default async function RestaurantDashboardPage() {
       .order("name"),
   ]);
 
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const menuUrl = `${appUrl.replace(/\/+$/, "")}/${restaurant?.slug ?? ""}`;
+  const totalItems = items?.length ?? 0;
+  const availableItems = items?.filter((item) => item.is_available).length ?? 0;
+  const outOfStockItems = totalItems - availableItems;
+  const sectionCount = categories?.length ?? 0;
+  const avgPrice =
+    totalItems > 0
+      ? (items?.reduce((sum, item) => sum + Number(item.price), 0) ?? 0) / totalItems
+      : 0;
+
   return (
     <main className="min-h-screen bg-slate-50 p-4 md:p-8">
       <div className="mx-auto max-w-7xl space-y-6">
-        <header className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+        <header className="rounded-2xl bg-gradient-to-r from-emerald-500 to-green-600 p-5 text-white shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-sm font-medium text-green-700">Restaurant admin</p>
-              <h1 className="text-2xl font-bold text-slate-900">{restaurant?.name} Dashboard</h1>
-              <p className="text-sm text-slate-500">Public menu URL: /{restaurant?.slug}</p>
+              <p className="text-sm font-medium text-emerald-100">Restaurant admin</p>
+              <h1 className="text-2xl font-bold">{restaurant?.name} Dashboard</h1>
+              <p className="text-sm text-emerald-100">Public menu URL: /{restaurant?.slug}</p>
             </div>
-            <form action={signOutAction}>
-              <button className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold">
-                Sign out
-              </button>
-            </form>
+            <div className="flex flex-wrap items-center gap-2">
+              <a
+                href={menuUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-green-700"
+              >
+                Open public menu
+              </a>
+              <CopyMenuLinkButton url={menuUrl} />
+              <form action={signOutAction}>
+                <button className="rounded-full border border-white/50 px-4 py-2 text-sm font-semibold">
+                  Sign out
+                </button>
+              </form>
+            </div>
           </div>
         </header>
+
+        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <article className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Sections</p>
+            <p className="mt-1 text-2xl font-bold text-slate-900">{sectionCount}</p>
+          </article>
+          <article className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Menu items</p>
+            <p className="mt-1 text-2xl font-bold text-slate-900">{totalItems}</p>
+          </article>
+          <article className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">In stock</p>
+            <p className="mt-1 text-2xl font-bold text-green-700">{availableItems}</p>
+            <p className="text-xs text-slate-500">Out of stock: {outOfStockItems}</p>
+          </article>
+          <article className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Avg item price</p>
+            <p className="mt-1 text-2xl font-bold text-slate-900">${avgPrice.toFixed(2)}</p>
+          </article>
+        </section>
 
         <section className="grid gap-4 lg:grid-cols-3">
           <form
