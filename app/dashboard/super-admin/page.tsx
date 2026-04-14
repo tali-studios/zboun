@@ -23,10 +23,53 @@ export default async function SuperAdminPage({ searchParams }: Props) {
   const supabase = await createServerSupabaseClient();
   const query = supabase
     .from("restaurants")
-    .select("id, name, slug, phone, is_active")
+    .select("id, name, slug, phone, is_active, created_at")
     .order("created_at", { ascending: false });
 
-  const { data: restaurants } = await query;
+  const [{ data: restaurants }, { data: categories }, { data: items }, { data: admins }] =
+    await Promise.all([
+      query,
+      supabase.from("categories").select("id, restaurant_id"),
+      supabase.from("menu_items").select("id, restaurant_id"),
+      supabase
+        .from("users")
+        .select("restaurant_id, email")
+        .eq("role", "restaurant_admin"),
+    ]);
+
+  const categoryCountByRestaurant = (categories ?? []).reduce<Record<string, number>>(
+    (acc, category) => {
+      acc[category.restaurant_id] = (acc[category.restaurant_id] ?? 0) + 1;
+      return acc;
+    },
+    {},
+  );
+
+  const itemCountByRestaurant = (items ?? []).reduce<Record<string, number>>((acc, item) => {
+    acc[item.restaurant_id] = (acc[item.restaurant_id] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  const adminEmailByRestaurant = (admins ?? []).reduce<Record<string, string>>((acc, admin) => {
+    if (admin.restaurant_id && admin.email) {
+      acc[admin.restaurant_id] = admin.email;
+    }
+    return acc;
+  }, {});
+
+  const restaurantsWithDetails = (restaurants ?? []).map((restaurant) => ({
+    ...restaurant,
+    category_count: categoryCountByRestaurant[restaurant.id] ?? 0,
+    item_count: itemCountByRestaurant[restaurant.id] ?? 0,
+    admin_email: adminEmailByRestaurant[restaurant.id] ?? "No admin linked",
+  }));
+
+  const stats = {
+    totalRestaurants: restaurantsWithDetails.length,
+    activeRestaurants: restaurantsWithDetails.filter((restaurant) => restaurant.is_active).length,
+    totalSections: restaurantsWithDetails.reduce((sum, restaurant) => sum + restaurant.category_count, 0),
+    totalItems: restaurantsWithDetails.reduce((sum, restaurant) => sum + restaurant.item_count, 0),
+  };
 
   return (
     <main className="min-h-screen bg-slate-50 p-4 md:p-8">
@@ -44,6 +87,33 @@ export default async function SuperAdminPage({ searchParams }: Props) {
             </form>
           </div>
         </header>
+
+        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Restaurants
+            </p>
+            <p className="mt-1 text-2xl font-bold text-slate-900">{stats.totalRestaurants}</p>
+          </div>
+          <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Active stores
+            </p>
+            <p className="mt-1 text-2xl font-bold text-green-700">{stats.activeRestaurants}</p>
+          </div>
+          <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Total sections
+            </p>
+            <p className="mt-1 text-2xl font-bold text-slate-900">{stats.totalSections}</p>
+          </div>
+          <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Total menu items
+            </p>
+            <p className="mt-1 text-2xl font-bold text-slate-900">{stats.totalItems}</p>
+          </div>
+        </section>
 
         {success === "restaurant_created_and_invited" && (
           <p className="rounded-xl border border-green-200 bg-green-50 p-3 text-sm font-medium text-green-700">
@@ -112,7 +182,7 @@ export default async function SuperAdminPage({ searchParams }: Props) {
           </p>
         </section>
 
-        <SuperAdminRestaurantsPanel restaurants={restaurants ?? []} />
+        <SuperAdminRestaurantsPanel restaurants={restaurantsWithDetails} />
       </div>
     </main>
   );

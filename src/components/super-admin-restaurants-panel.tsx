@@ -14,6 +14,10 @@ type RestaurantRow = {
   slug: string;
   phone: string;
   is_active: boolean;
+  created_at: string;
+  category_count: number;
+  item_count: number;
+  admin_email: string;
 };
 
 type Props = {
@@ -145,13 +149,16 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
       </div>
 
       <div className="mt-4 overflow-x-auto">
-        <table className="w-full min-w-[760px] text-sm">
+        <table className="w-full min-w-[980px] text-sm">
           <thead>
             <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
               <th className="py-2">Restaurant</th>
+              <th className="py-2">Admin</th>
               <th className="py-2">Slug</th>
+              <th className="py-2">Sections / Items</th>
               <th className="py-2">Phone</th>
               <th className="py-2">Status</th>
+              <th className="py-2">Created</th>
               <th className="py-2">Actions</th>
             </tr>
           </thead>
@@ -159,7 +166,11 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
             {filtered.map((restaurant) => (
               <tr key={restaurant.id} className="border-b border-slate-100">
                 <td className="py-3 font-medium text-slate-900">{restaurant.name}</td>
+                <td className="py-3 text-slate-600">{restaurant.admin_email}</td>
                 <td className="py-3 text-slate-600">/{restaurant.slug}</td>
+                <td className="py-3 text-slate-600">
+                  {restaurant.category_count} / {restaurant.item_count}
+                </td>
                 <td className="py-3 text-slate-600">{restaurant.phone}</td>
                 <td className="py-3">
                   <span
@@ -171,6 +182,9 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                   >
                     {restaurant.is_active ? "Active" : "Inactive"}
                   </span>
+                </td>
+                <td className="py-3 text-slate-600">
+                  {new Date(restaurant.created_at).toLocaleDateString()}
                 </td>
                 <td className="py-3">
                   <div className="flex flex-wrap gap-2">
