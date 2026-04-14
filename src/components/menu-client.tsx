@@ -55,16 +55,16 @@ export function MenuClient({ restaurantName, restaurantPhone, categories }: Prop
   const orderLink = `https://wa.me/${restaurantPhone.replace(/\D/g, "")}?text=${createWhatsAppMessage()}`;
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
-      <section className="space-y-6">
+    <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
+      <section className="space-y-4">
         {categories.map((category) => (
-          <div key={category.id} className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
-            <h2 className="text-xl font-bold text-slate-900">{category.name}</h2>
-            <div className="mt-4 grid gap-3">
+          <div key={category.id} className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200 md:p-5">
+            <h2 className="text-lg font-bold text-slate-900 md:text-xl">{category.name}</h2>
+            <div className="mt-3 grid gap-2">
               {category.menu_items.map((item) => (
                 <article
                   key={item.id}
-                  className="flex items-start justify-between rounded-xl border border-slate-200 p-3"
+                  className="flex items-start justify-between rounded-xl border border-slate-200 p-3 transition hover:border-green-200 hover:shadow-sm"
                 >
                   <div>
                     <h3 className="font-semibold text-slate-900">{item.name}</h3>
@@ -91,7 +91,7 @@ export function MenuClient({ restaurantName, restaurantPhone, categories }: Prop
 
       <aside className="h-fit rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200 lg:sticky lg:top-4">
         <h2 className="text-lg font-bold text-slate-900">Your cart</h2>
-        <div className="mt-3 space-y-2 text-sm">
+        <div className="mt-3 max-h-40 space-y-2 overflow-y-auto text-sm">
           {items.length === 0 ? (
             <p className="text-slate-500">No items yet.</p>
           ) : (
@@ -126,7 +126,7 @@ export function MenuClient({ restaurantName, restaurantPhone, categories }: Prop
         </div>
         <a
           href={orderLink}
-          className="mt-4 inline-flex w-full justify-center rounded-xl bg-green-600 px-4 py-3 font-semibold text-white disabled:pointer-events-none"
+          className="mt-4 inline-flex w-full justify-center rounded-xl bg-green-600 px-4 py-3 font-semibold text-white transition hover:bg-green-700 disabled:pointer-events-none"
         >
           Order via WhatsApp
         </a>

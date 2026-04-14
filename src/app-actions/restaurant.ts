@@ -25,6 +25,31 @@ export async function createCategoryAction(formData: FormData) {
   revalidatePath("/dashboard/restaurant");
 }
 
+export async function updateCategoryAction(formData: FormData) {
+  const user = await requireRestaurantAdmin();
+  const id = String(formData.get("id") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
+  if (!id || !name) return;
+
+  const supabase = await createServerSupabaseClient();
+  await supabase
+    .from("categories")
+    .update({ name })
+    .eq("id", id)
+    .eq("restaurant_id", user.restaurant_id);
+  revalidatePath("/dashboard/restaurant");
+}
+
+export async function deleteCategoryAction(formData: FormData) {
+  const user = await requireRestaurantAdmin();
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+
+  const supabase = await createServerSupabaseClient();
+  await supabase.from("categories").delete().eq("id", id).eq("restaurant_id", user.restaurant_id);
+  revalidatePath("/dashboard/restaurant");
+}
+
 export async function createMenuItemAction(formData: FormData) {
   const user = await requireRestaurantAdmin();
   const supabase = await createServerSupabaseClient();
@@ -36,6 +61,55 @@ export async function createMenuItemAction(formData: FormData) {
     price: Number(formData.get("price")),
     is_available: true,
   });
+  revalidatePath("/dashboard/restaurant");
+}
+
+export async function updateMenuItemAction(formData: FormData) {
+  const user = await requireRestaurantAdmin();
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+
+  const name = String(formData.get("name") ?? "").trim();
+  const description = String(formData.get("description") ?? "").trim();
+  const price = Number(formData.get("price") ?? 0);
+  const categoryId = String(formData.get("category_id") ?? "");
+
+  const supabase = await createServerSupabaseClient();
+  await supabase
+    .from("menu_items")
+    .update({
+      name,
+      description: description || null,
+      price,
+      category_id: categoryId || null,
+    })
+    .eq("id", id)
+    .eq("restaurant_id", user.restaurant_id);
+  revalidatePath("/dashboard/restaurant");
+}
+
+export async function toggleMenuItemAvailabilityAction(formData: FormData) {
+  const user = await requireRestaurantAdmin();
+  const id = String(formData.get("id") ?? "");
+  const isAvailable = String(formData.get("is_available")) === "true";
+  if (!id) return;
+
+  const supabase = await createServerSupabaseClient();
+  await supabase
+    .from("menu_items")
+    .update({ is_available: !isAvailable })
+    .eq("id", id)
+    .eq("restaurant_id", user.restaurant_id);
+  revalidatePath("/dashboard/restaurant");
+}
+
+export async function deleteMenuItemAction(formData: FormData) {
+  const user = await requireRestaurantAdmin();
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+
+  const supabase = await createServerSupabaseClient();
+  await supabase.from("menu_items").delete().eq("id", id).eq("restaurant_id", user.restaurant_id);
   revalidatePath("/dashboard/restaurant");
 }
 
