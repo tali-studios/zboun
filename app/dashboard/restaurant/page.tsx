@@ -134,7 +134,7 @@ export default async function RestaurantDashboardPage() {
                   <button className="rounded-lg bg-slate-900 px-4 py-2 font-semibold text-white">Save</button>
                 </form>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">Section: {item.categories?.name ?? "Uncategorized"}</span>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">Section: {item.categories?.[0]?.name ?? "Uncategorized"}</span>
                   <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">${item.price.toFixed(2)}</span>
                   <form action={toggleMenuItemAvailabilityAction}>
                     <input type="hidden" name="id" value={item.id} />
