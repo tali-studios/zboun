@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import nodemailer from "nodemailer";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { getCurrentUserRole } from "@/lib/data";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { toSlug } from "@/lib/slug";
@@ -35,7 +36,11 @@ async function getUniqueSlug(baseName: string) {
 
 function getAppBaseUrl() {
   const envUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  if (envUrl) {
+  const isVercel = process.env.VERCEL === "1" || Boolean(process.env.VERCEL_URL);
+  const looksLocalhost =
+    envUrl?.includes("localhost") || envUrl?.includes("127.0.0.1");
+
+  if (envUrl && (!isVercel || !looksLocalhost)) {
     return envUrl.replace(/\/+$/, "");
   }
 
@@ -71,6 +76,10 @@ export async function createRestaurantAction(formData: FormData) {
     if (restaurantError) throw restaurantError;
 
     const inviteAdminName = `${name} Admin`;
+    let userId: string | null = null;
+    let fallbackPassword: string | null = null;
+    let usedFallback = false;
+
     const { data: invited, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(
       email,
       {
@@ -81,9 +90,33 @@ export async function createRestaurantAction(formData: FormData) {
         },
       },
     );
-    if (inviteError) throw inviteError;
 
-    const userId = invited.user?.id;
+    if (inviteError) {
+      // If Supabase invite delivery fails/rate-limits, create account directly.
+      usedFallback = true;
+      fallbackPassword = `Zboun@${Math.random().toString(36).slice(-8)}A1`;
+
+      const { data: created, error: createError } = await adminClient.auth.admin.createUser({
+        email,
+        password: fallbackPassword,
+        email_confirm: true,
+      });
+
+      if (createError) {
+        const { data: usersList, error: listError } = await adminClient.auth.admin.listUsers({
+          page: 1,
+          perPage: 1000,
+        });
+        if (listError) throw listError;
+        userId = usersList.users.find((user) => user.email?.toLowerCase() === email)?.id ?? null;
+        if (!userId) throw new Error("Could not create or locate restaurant admin user.");
+      } else {
+        userId = created.user?.id ?? null;
+      }
+    } else {
+      userId = invited.user?.id ?? null;
+    }
+
     if (!userId) throw new Error("Invite created but no user id returned.");
 
     const { error: upsertError } = await adminClient.from("users").upsert(
@@ -98,16 +131,32 @@ export async function createRestaurantAction(formData: FormData) {
     );
     if (upsertError) throw upsertError;
 
-    await sendRestaurantOnboardingEmail({
-      to: email,
-      restaurantName: name,
-      menuUrl: `${appUrl}/${slug}`,
-      dashboardUrl: `${appUrl}/dashboard/login`,
-    });
+    let emailSent = false;
+    try {
+      await sendRestaurantOnboardingEmail({
+        to: email,
+        restaurantName: name,
+        menuUrl: `${appUrl}/${slug}`,
+        dashboardUrl: `${appUrl}/dashboard/login`,
+        fallbackPassword,
+      });
+      emailSent = true;
+    } catch {
+      emailSent = false;
+    }
 
     revalidatePath("/dashboard/super-admin");
+    if (!emailSent) {
+      redirect("/dashboard/super-admin?success=restaurant_created_email_failed");
+    }
+    if (usedFallback) {
+      redirect("/dashboard/super-admin?success=restaurant_created_with_fallback");
+    }
     redirect("/dashboard/super-admin?success=restaurant_created_and_invited");
   } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
     const message = error instanceof Error ? error.message : "unknown_error";
     redirect(`/dashboard/super-admin?error=${encodeURIComponent(message)}`);
   }
@@ -156,6 +205,7 @@ async function sendRestaurantOnboardingEmail(params: {
   restaurantName: string;
   menuUrl: string;
   dashboardUrl: string;
+  fallbackPassword: string | null;
 }) {
   const smtpUser = process.env.SMTP_USER;
   const smtpPass = process.env.SMTP_PASS;
@@ -186,6 +236,7 @@ async function sendRestaurantOnboardingEmail(params: {
       ``,
       `Menu URL: ${params.menuUrl}`,
       `Dashboard URL: ${params.dashboardUrl}`,
+      params.fallbackPassword ? `Temporary password: ${params.fallbackPassword}` : "",
       ``,
       `Please check your Supabase invite email and use its secure set-password link to activate your account.`,
       ``,

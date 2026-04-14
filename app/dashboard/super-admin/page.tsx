@@ -60,6 +60,18 @@ export default async function SuperAdminPage({ searchParams }: Props) {
             password and then login to the dashboard.
           </p>
         )}
+        {success === "restaurant_created_with_fallback" && (
+          <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-medium text-amber-700">
+            Restaurant created. Supabase invite failed, so a direct account was created and
+            onboarding email with temporary password was sent.
+          </p>
+        )}
+        {success === "restaurant_created_email_failed" && (
+          <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-medium text-amber-700">
+            Restaurant and admin account were created, but sending email failed. You can create
+            another test account or share login details manually.
+          </p>
+        )}
         {success === "subscription_renewed" && (
           <p className="rounded-xl border border-green-200 bg-green-50 p-3 text-sm font-medium text-green-700">
             Subscription renewed successfully.
