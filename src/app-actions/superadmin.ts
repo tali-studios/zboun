@@ -110,6 +110,13 @@ export async function createRestaurantAction(formData: FormData) {
         if (listError) throw listError;
         userId = usersList.users.find((user) => user.email?.toLowerCase() === email)?.id ?? null;
         if (!userId) throw new Error("Could not create or locate restaurant admin user.");
+        if (fallbackPassword) {
+          const { error: updateError } = await adminClient.auth.admin.updateUserById(userId, {
+            password: fallbackPassword,
+            email_confirm: true,
+          });
+          if (updateError) throw updateError;
+        }
       } else {
         userId = created.user?.id ?? null;
       }
@@ -183,8 +190,19 @@ export async function renewSubscriptionAction(formData: FormData) {
 export async function deleteRestaurantAction(formData: FormData) {
   await requireSuperAdmin();
   const id = String(formData.get("id"));
-  const supabase = await createServerSupabaseClient();
-  await supabase.from("restaurants").delete().eq("id", id);
+  const adminClient = getAdminClient();
+
+  const { data: linkedUsers } = await adminClient
+    .from("users")
+    .select("id")
+    .eq("restaurant_id", id)
+    .eq("role", "restaurant_admin");
+
+  for (const user of linkedUsers ?? []) {
+    await adminClient.auth.admin.deleteUser(user.id);
+  }
+
+  await adminClient.from("restaurants").delete().eq("id", id);
   revalidatePath("/dashboard/super-admin");
   redirect("/dashboard/super-admin?success=restaurant_deleted");
 }
