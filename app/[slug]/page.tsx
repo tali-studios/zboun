@@ -17,11 +17,11 @@ export default async function RestaurantMenuPage({ params }: Props) {
   const categories = await getRestaurantMenu(restaurant.id);
 
   return (
-    <main className="min-h-screen bg-slate-50 py-6">
+    <main className="min-h-screen py-6">
       <div className="container">
-        <header className="mb-6 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-          <h1 className="text-2xl font-bold text-slate-900">{restaurant.name}</h1>
-          <p className="text-sm text-slate-600">Order directly on WhatsApp</p>
+        <header className="mb-6 rounded-2xl bg-gradient-to-r from-emerald-600 to-green-600 p-5 text-white shadow-lg">
+          <h1 className="text-2xl font-bold">{restaurant.name}</h1>
+          <p className="text-sm text-emerald-50">Order directly on WhatsApp</p>
         </header>
         <MenuClient
           restaurantName={restaurant.name}

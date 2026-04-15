@@ -114,7 +114,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
   }
 
   return (
-    <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+    <section className="panel p-5">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-bold text-slate-900">Restaurants</h2>
         <div className="text-xs text-slate-500">{filtered.length} results</div>
@@ -125,12 +125,12 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
           value={q}
           onChange={(event) => setQ(event.target.value)}
           placeholder="Search by name, slug, phone"
-          className="rounded-lg border border-slate-300 px-3 py-2 md:col-span-2"
+          className="ui-input md:col-span-2"
         />
         <select
           value={status}
           onChange={(event) => setStatus(event.target.value as "all" | "active" | "inactive")}
-          className="rounded-lg border border-slate-300 px-3 py-2"
+          className="ui-select"
         >
           <option value="all">All</option>
           <option value="active">Active only</option>
@@ -142,7 +142,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
             setQ("");
             setStatus("all");
           }}
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700"
+          className="btn btn-secondary rounded-xl"
         >
           Reset
         </button>
@@ -192,7 +192,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                       type="button"
                       disabled={isPending}
                       onClick={() => renewSubscription(restaurant.id)}
-                      className="rounded-full bg-blue-600 px-3 py-1 text-xs font-semibold text-white disabled:opacity-70"
+                      className="btn bg-blue-600 text-white disabled:opacity-70"
                     >
                       Renew
                     </button>
@@ -200,7 +200,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                       type="button"
                       disabled={isPending}
                       onClick={() => openToggleModal(restaurant)}
-                      className={`rounded-full px-3 py-1 text-xs font-semibold text-white disabled:opacity-70 ${
+                      className={`btn text-white disabled:opacity-70 ${
                         restaurant.is_active ? "bg-amber-600" : "bg-green-600"
                       }`}
                     >
@@ -210,7 +210,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                       type="button"
                       disabled={isPending}
                       onClick={() => openDeleteModal(restaurant)}
-                      className="rounded-full bg-red-600 px-3 py-1 text-xs font-semibold text-white disabled:opacity-70"
+                      className="btn bg-red-600 text-white disabled:opacity-70"
                     >
                       Delete
                     </button>
@@ -231,7 +231,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
               <button
                 type="button"
                 onClick={() => setModal((prev) => ({ ...prev, open: false }))}
-                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700"
+                className="btn btn-secondary rounded-xl"
               >
                 Cancel
               </button>
@@ -239,7 +239,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                 type="button"
                 disabled={isPending}
                 onClick={confirmModalAction}
-                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-70"
+                className="btn btn-danger rounded-xl disabled:opacity-70"
               >
                 Confirm
               </button>

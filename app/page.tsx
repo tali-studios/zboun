@@ -55,9 +55,9 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200">
+            <div className="panel rounded-3xl p-6">
               <p className="text-sm font-semibold text-slate-500">Live Preview</p>
-              <div className="mt-4 rounded-2xl bg-slate-900 p-5 text-white">
+              <div className="mt-4 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 p-5 text-white">
                 <p className="text-sm text-slate-300">Sample order message</p>
                 <pre className="mt-2 whitespace-pre-wrap text-sm leading-6 text-emerald-200">
 {`Hello 👋
@@ -78,7 +78,7 @@ Address: Hadath near X`}
           <h2 className="text-2xl font-bold text-slate-900">How it works</h2>
           <div className="mt-6 grid gap-4 md:grid-cols-3">
             {steps.map((step, index) => (
-              <div key={step} className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+              <div key={step} className="panel p-5">
                 <p className="text-sm font-semibold text-orange-600">Step {index + 1}</p>
                 <p className="mt-2 font-medium text-slate-800">{step}</p>
               </div>
@@ -89,7 +89,7 @@ Address: Hadath near X`}
         <section className="container py-8">
           <div className="grid gap-4 md:grid-cols-3">
             {featureCards.map((feature) => (
-              <article key={feature.title} className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+              <article key={feature.title} className="panel rounded-3xl p-6">
                 <h3 className="text-lg font-bold text-slate-900">{feature.title}</h3>
                 <p className="mt-2 text-sm text-slate-600">{feature.description}</p>
               </article>

@@ -72,16 +72,16 @@ export default async function SuperAdminPage({ searchParams }: Props) {
   };
 
   return (
-    <main className="min-h-screen bg-slate-50 p-4 md:p-8">
+    <main className="min-h-screen p-4 md:p-8">
       <div className="mx-auto max-w-6xl space-y-6">
-        <header className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+        <header className="panel p-5">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-green-700">Platform control center</p>
               <h1 className="text-2xl font-bold text-slate-900">Super admin</h1>
             </div>
             <form action={signOutAction}>
-              <button className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold">
+              <button className="btn btn-secondary">
                 Sign out
               </button>
             </form>
@@ -89,25 +89,25 @@ export default async function SuperAdminPage({ searchParams }: Props) {
         </header>
 
         <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+          <div className="panel p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Restaurants
             </p>
             <p className="mt-1 text-2xl font-bold text-slate-900">{stats.totalRestaurants}</p>
           </div>
-          <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+          <div className="panel p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Active stores
             </p>
             <p className="mt-1 text-2xl font-bold text-green-700">{stats.activeRestaurants}</p>
           </div>
-          <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+          <div className="panel p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Total sections
             </p>
             <p className="mt-1 text-2xl font-bold text-slate-900">{stats.totalSections}</p>
           </div>
-          <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+          <div className="panel p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Total menu items
             </p>
@@ -149,30 +149,30 @@ export default async function SuperAdminPage({ searchParams }: Props) {
           </p>
         )}
 
-        <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-          <h2 className="font-bold text-slate-900">Create restaurant + admin invite</h2>
+        <section className="panel p-5">
+          <h2 className="panel-title">Create restaurant + admin invite</h2>
           <form action={createRestaurantAction} className="mt-3 grid gap-2 md:grid-cols-4">
             <input
               name="name"
               required
               placeholder="Restaurant name"
-              className="rounded-lg border border-slate-300 px-3 py-2"
+              className="ui-input"
             />
             <input
               name="email"
               type="email"
               required
               placeholder="Admin email"
-              className="rounded-lg border border-slate-300 px-3 py-2"
+              className="ui-input"
             />
             <input
               name="phone"
               type="tel"
               required
               placeholder="WhatsApp number"
-              className="rounded-lg border border-slate-300 px-3 py-2"
+              className="ui-input"
             />
-            <button className="rounded-lg bg-green-600 px-4 py-2 font-semibold text-white">
+            <button className="btn btn-success rounded-xl">
               Create restaurant
             </button>
           </form>
