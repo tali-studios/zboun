@@ -17,11 +17,16 @@ import { ImageUploadField } from "@/components/image-upload-field";
 
 export const dynamic = "force-dynamic";
 
-export default async function RestaurantDashboardPage() {
+type Props = {
+  searchParams: Promise<{ q?: string }>;
+};
+
+export default async function RestaurantDashboardPage({ searchParams }: Props) {
   const appUser = await getCurrentUserRole();
   if (!appUser || appUser.role !== "restaurant_admin" || !appUser.restaurant_id) {
     redirect("/dashboard/login");
   }
+  const { q } = await searchParams;
 
   const supabase = await createServerSupabaseClient();
   const [{ data: restaurant }, { data: categories }, { data: items }] = await Promise.all([
@@ -50,6 +55,18 @@ export default async function RestaurantDashboardPage() {
   const availableItems = items?.filter((item) => item.is_available).length ?? 0;
   const outOfStockItems = totalItems - availableItems;
   const sectionCount = categories?.length ?? 0;
+  const categoryNameById = new Map((categories ?? []).map((category) => [category.id, category.name]));
+  const normalizedQuery = (q ?? "").trim().toLowerCase();
+  const filteredItems = (items ?? []).filter((item) => {
+    if (!normalizedQuery) return true;
+    const categoryName = categoryNameById.get(item.category_id ?? "") ?? "";
+    return (
+      item.name.toLowerCase().includes(normalizedQuery) ||
+      (item.description ?? "").toLowerCase().includes(normalizedQuery) ||
+      (item.contents ?? "").toLowerCase().includes(normalizedQuery) ||
+      categoryName.toLowerCase().includes(normalizedQuery)
+    );
+  });
   const avgPrice =
     totalItems > 0
       ? (items?.reduce((sum, item) => sum + Number(item.price), 0) ?? 0) / totalItems
@@ -70,7 +87,7 @@ export default async function RestaurantDashboardPage() {
                 href={menuUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-green-700"
+                className="btn bg-white text-green-700"
               >
                 Open public menu
               </a>
@@ -189,9 +206,27 @@ export default async function RestaurantDashboardPage() {
         </section>
 
         <section className="panel p-5">
-          <h2 className="panel-title">Manage menu items</h2>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="panel-title">Manage menu items</h2>
+            <form action="/dashboard/restaurant" method="get" className="flex items-center gap-2">
+              <input
+                name="q"
+                defaultValue={q ?? ""}
+                placeholder="Search by item, section, or ingredient"
+                className="ui-input min-w-[260px]"
+              />
+              <button className="btn btn-secondary" type="submit">
+                Search
+              </button>
+            </form>
+          </div>
+          {normalizedQuery ? (
+            <p className="mt-2 text-sm text-slate-600">
+              Showing {filteredItems.length} result(s) for "<span className="font-semibold">{q}</span>".
+            </p>
+          ) : null}
           <div className="mt-3 space-y-3">
-            {items?.map((item) => (
+            {filteredItems.map((item) => (
               <div key={item.id} className="rounded-xl border border-slate-200 p-3">
                 <form
                   action={updateMenuItemAction}
@@ -220,7 +255,9 @@ export default async function RestaurantDashboardPage() {
                   <button className="btn btn-primary rounded-xl">Save</button>
                 </form>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">Section: {item.categories?.[0]?.name ?? "Uncategorized"}</span>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">
+                    Section: {categoryNameById.get(item.category_id ?? "") ?? "Uncategorized"}
+                  </span>
                   <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">${item.price.toFixed(2)}</span>
                   {item.grams ? (
                     <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">{item.grams}g</span>
