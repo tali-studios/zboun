@@ -44,9 +44,24 @@ create table if not exists public.menu_items (
   category_id uuid not null references public.categories(id) on delete cascade,
   name text not null,
   description text,
+  contents text,
+  grams int check (grams >= 0),
   price numeric(10, 2) not null check (price >= 0),
   image_url text,
   is_available boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+alter table public.menu_items add column if not exists image_url text;
+alter table public.menu_items add column if not exists contents text;
+alter table public.menu_items add column if not exists grams int check (grams >= 0);
+
+create table if not exists public.password_change_otps (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  otp_hash text not null,
+  expires_at timestamptz not null,
+  used_at timestamptz,
   created_at timestamptz not null default now()
 );
 
@@ -54,6 +69,7 @@ alter table public.restaurants enable row level security;
 alter table public.users enable row level security;
 alter table public.categories enable row level security;
 alter table public.menu_items enable row level security;
+alter table public.password_change_otps enable row level security;
 
 create policy "public can read active restaurants"
 on public.restaurants for select
@@ -159,6 +175,16 @@ with check (
   )
 );
 
+create policy "users can manage own password otps"
+on public.password_change_otps for all
+to authenticated
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);
+
+insert into storage.buckets (id, name, public)
+values ('menu-items', 'menu-items', true)
+on conflict (id) do nothing;
+
 -- ------------------------------------------------------------------
 -- Superadmin mapping (run after creating auth user in dashboard)
 -- ------------------------------------------------------------------
@@ -184,7 +210,7 @@ set
 select tablename
 from pg_tables
 where schemaname = 'public'
-  and tablename in ('restaurants', 'users', 'categories', 'menu_items')
+  and tablename in ('restaurants', 'users', 'categories', 'menu_items', 'password_change_otps')
 order by tablename;
 
 select id, email, created_at

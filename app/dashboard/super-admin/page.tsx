@@ -81,9 +81,12 @@ export default async function SuperAdminPage({ searchParams }: Props) {
               <h1 className="text-2xl font-bold text-slate-900">Super admin</h1>
             </div>
             <form action={signOutAction}>
-              <button className="btn btn-secondary">
-                Sign out
-              </button>
+              <div className="flex items-center gap-2">
+                <a href="/dashboard/change-password" className="btn btn-secondary">
+                  Change password
+                </a>
+                <button className="btn btn-secondary">Sign out</button>
+              </div>
             </form>
           </div>
         </header>
@@ -115,16 +118,10 @@ export default async function SuperAdminPage({ searchParams }: Props) {
           </div>
         </section>
 
-        {success === "restaurant_created_and_invited" && (
-          <p className="rounded-xl border border-green-200 bg-green-50 p-3 text-sm font-medium text-green-700">
-            Restaurant created and invitation email sent. The admin can use the email link to set
-            password and then login to the dashboard.
-          </p>
-        )}
-        {success === "restaurant_created_with_fallback" && (
+        {(success === "restaurant_created_and_invited" ||
+          success === "restaurant_created_with_fallback") && (
           <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-medium text-amber-700">
-            Restaurant created. Supabase invite failed, so a direct account was created and
-            onboarding email with temporary password was sent.
+            Restaurant created successfully. Admin onboarding email has been sent.
           </p>
         )}
         {success === "restaurant_created_email_failed" && (

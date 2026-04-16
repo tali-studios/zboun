@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useMemo, useState } from "react";
 import type { CategoryWithItems } from "@/lib/data";
 
@@ -66,14 +67,32 @@ export function MenuClient({ restaurantName, restaurantPhone, categories }: Prop
                   key={item.id}
                   className="flex items-start justify-between rounded-xl border border-slate-200 p-3 transition hover:border-green-200 hover:shadow-sm"
                 >
-                  <div>
+                  <div className="flex flex-1 gap-3">
+                    {item.image_url ? (
+                      <Image
+                        src={item.image_url}
+                        alt={item.name}
+                        width={72}
+                        height={72}
+                        className="h-[72px] w-[72px] rounded-lg object-cover"
+                        unoptimized
+                      />
+                    ) : null}
+                    <div>
                     <h3 className="font-semibold text-slate-900">{item.name}</h3>
                     {item.description && (
                       <p className="text-sm text-slate-600">{item.description}</p>
                     )}
+                    {item.contents && (
+                      <p className="mt-1 text-xs text-slate-500">Contains: {item.contents}</p>
+                    )}
+                    {item.grams ? (
+                      <p className="mt-1 text-xs font-medium text-slate-500">{item.grams}g</p>
+                    ) : null}
                     <p className="mt-1 text-sm font-semibold text-green-700">
                       ${item.price.toFixed(2)}
                     </p>
+                    </div>
                   </div>
                   <button
                     disabled={!item.is_available}

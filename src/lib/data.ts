@@ -8,6 +8,8 @@ export type CategoryWithItems = {
     id: string;
     name: string;
     description: string | null;
+    contents: string | null;
+    grams: number | null;
     price: number;
     image_url: string | null;
     is_available: boolean;
@@ -29,7 +31,7 @@ export async function getRestaurantMenu(restaurantId: string) {
   const { data } = await supabase
     .from("categories")
     .select(
-      "id, name, position, menu_items(id, name, description, price, image_url, is_available)",
+      "id, name, position, menu_items(id, name, description, contents, grams, price, image_url, is_available)",
     )
     .eq("restaurant_id", restaurantId)
     .order("position", { ascending: true })

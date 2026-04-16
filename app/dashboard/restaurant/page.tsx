@@ -13,6 +13,7 @@ import {
 import { getCurrentUserRole } from "@/lib/data";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { CopyMenuLinkButton } from "@/components/copy-menu-link-button";
+import { ImageUploadField } from "@/components/image-upload-field";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,9 @@ export default async function RestaurantDashboardPage() {
       .order("position"),
     supabase
       .from("menu_items")
-      .select("id, name, description, price, is_available, category_id, categories(name)")
+      .select(
+        "id, name, description, price, image_url, grams, contents, is_available, category_id, categories(name)",
+      )
       .eq("restaurant_id", appUser.restaurant_id)
       .order("name"),
   ]);
@@ -72,6 +75,9 @@ export default async function RestaurantDashboardPage() {
                 Open public menu
               </a>
               <CopyMenuLinkButton url={menuUrl} />
+              <a href="/dashboard/change-password" className="btn border border-white/50 text-white">
+                Change password
+              </a>
               <form action={signOutAction}>
                 <button className="btn border border-white/50 text-white">
                   Sign out
@@ -145,7 +151,11 @@ export default async function RestaurantDashboardPage() {
 
         <section className="panel p-5">
           <h2 className="panel-title">Add menu item</h2>
-          <form action={createMenuItemAction} className="mt-3 grid gap-2 md:grid-cols-4">
+          <form
+            action={createMenuItemAction}
+            encType="multipart/form-data"
+            className="mt-3 grid gap-2 md:grid-cols-4"
+          >
             <select name="category_id" required className="ui-select">
               <option value="">Section</option>
               {categories?.map((category) => (
@@ -155,6 +165,11 @@ export default async function RestaurantDashboardPage() {
             <input name="name" required placeholder="Item name" className="ui-input" />
             <input name="description" placeholder="Description" className="ui-input" />
             <input name="price" required placeholder="Price" type="number" step="0.01" className="ui-input" />
+            <input name="grams" placeholder="Grams (optional)" type="number" min={0} className="ui-input" />
+            <input name="contents" placeholder="Contains / ingredients" className="ui-input md:col-span-2" />
+            <div className="md:col-span-2">
+              <ImageUploadField name="image_file" />
+            </div>
             <button className="btn btn-success md:col-span-4 rounded-xl">Add item</button>
           </form>
         </section>
@@ -164,11 +179,25 @@ export default async function RestaurantDashboardPage() {
           <div className="mt-3 space-y-3">
             {items?.map((item) => (
               <div key={item.id} className="rounded-xl border border-slate-200 p-3">
-                <form action={updateMenuItemAction} className="grid gap-2 md:grid-cols-5">
+                <form
+                  action={updateMenuItemAction}
+                  encType="multipart/form-data"
+                  className="grid gap-2 md:grid-cols-5"
+                >
                   <input type="hidden" name="id" value={item.id} />
+                  <input type="hidden" name="current_image_url" value={item.image_url ?? ""} />
                   <input name="name" defaultValue={item.name} className="ui-input" />
                   <input name="description" defaultValue={item.description ?? ""} placeholder="Description" className="ui-input" />
                   <input name="price" type="number" step="0.01" defaultValue={item.price} className="ui-input" />
+                  <input name="grams" type="number" min={0} defaultValue={item.grams ?? ""} placeholder="Grams" className="ui-input" />
+                  <input name="contents" defaultValue={item.contents ?? ""} placeholder="Contains / ingredients" className="ui-input md:col-span-2" />
+                  <div className="md:col-span-2">
+                    <ImageUploadField
+                      name="image_file"
+                      initialImageUrl={item.image_url}
+                      label="Update image"
+                    />
+                  </div>
                   <select name="category_id" defaultValue={item.category_id} className="ui-select">
                     {categories?.map((category) => (
                       <option key={category.id} value={category.id}>{category.name}</option>
@@ -179,6 +208,12 @@ export default async function RestaurantDashboardPage() {
                 <div className="mt-2 flex flex-wrap gap-2">
                   <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">Section: {item.categories?.[0]?.name ?? "Uncategorized"}</span>
                   <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">${item.price.toFixed(2)}</span>
+                  {item.grams ? (
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">{item.grams}g</span>
+                  ) : null}
+                  {item.contents ? (
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">Contains: {item.contents}</span>
+                  ) : null}
                   <form action={toggleMenuItemAvailabilityAction}>
                     <input type="hidden" name="id" value={item.id} />
                     <input type="hidden" name="is_available" value={String(item.is_available)} />
