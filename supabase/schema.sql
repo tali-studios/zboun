@@ -173,3 +173,7 @@ with check (auth.uid() = user_id);
 insert into storage.buckets (id, name, public)
 values ('menu-items', 'menu-items', true)
 on conflict (id) do nothing;
+
+insert into storage.buckets (id, name, public)
+values ('restaurant-logos', 'restaurant-logos', true)
+on conflict (id) do nothing;

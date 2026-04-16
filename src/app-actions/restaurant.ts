@@ -55,6 +55,34 @@ async function uploadMenuItemImage(file: File, restaurantId: string) {
   return data.publicUrl;
 }
 
+async function uploadRestaurantLogo(file: File, restaurantId: string) {
+  if (!file || file.size === 0) {
+    return null;
+  }
+  if (!file.type.startsWith("image/")) {
+    throw new Error("Only image files are allowed.");
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    throw new Error("Image size must be under 5MB.");
+  }
+
+  const extension = file.name.includes(".") ? file.name.split(".").pop() : "jpg";
+  const filePath = `${restaurantId}/logo-${Date.now()}-${crypto.randomUUID()}.${extension}`;
+  const bucket = process.env.SUPABASE_LOGO_BUCKET ?? "restaurant-logos";
+  const adminClient = getStorageAdminClient();
+
+  const { error: uploadError } = await adminClient.storage.from(bucket).upload(filePath, file, {
+    contentType: file.type,
+    upsert: false,
+  });
+  if (uploadError) {
+    throw uploadError;
+  }
+
+  const { data } = adminClient.storage.from(bucket).getPublicUrl(filePath);
+  return data.publicUrl;
+}
+
 export async function createCategoryAction(formData: FormData) {
   const user = await requireRestaurantAdmin();
   const name = String(formData.get("name") ?? "");
@@ -173,13 +201,17 @@ export async function deleteMenuItemAction(formData: FormData) {
 
 export async function updateRestaurantSettingsAction(formData: FormData) {
   const user = await requireRestaurantAdmin();
+  const logoFile = formData.get("logo_file");
+  const currentLogoUrl = String(formData.get("current_logo_url") ?? "").trim();
+  const uploadedLogoUrl =
+    logoFile instanceof File ? await uploadRestaurantLogo(logoFile, user.restaurant_id) : null;
   const supabase = await createServerSupabaseClient();
   await supabase
     .from("restaurants")
     .update({
       name: String(formData.get("name")),
       phone: String(formData.get("phone")),
-      logo_url: String(formData.get("logo_url")),
+      logo_url: uploadedLogoUrl ?? (currentLogoUrl || null),
     })
     .eq("id", user.restaurant_id);
   revalidatePath("/dashboard/restaurant");

@@ -75,6 +75,12 @@ export default async function RestaurantDashboardPage() {
                 Open public menu
               </a>
               <CopyMenuLinkButton url={menuUrl} />
+              <a href="/dashboard/restaurant/qr" className="btn border border-white/50 text-white">
+                Menu QR
+              </a>
+              <a href="/dashboard/restaurant/flyer" className="btn border border-white/50 text-white">
+                Print flyer
+              </a>
               <a href="/dashboard/change-password" className="btn border border-white/50 text-white">
                 Change password
               </a>
@@ -110,13 +116,21 @@ export default async function RestaurantDashboardPage() {
         <section className="grid gap-4 lg:grid-cols-3">
           <form
             action={updateRestaurantSettingsAction}
+            encType="multipart/form-data"
             className="panel p-5 lg:col-span-2"
           >
             <h2 className="panel-title">Store settings</h2>
             <div className="mt-3 grid gap-2 md:grid-cols-3">
+              <input type="hidden" name="current_logo_url" value={restaurant?.logo_url ?? ""} />
               <input name="name" defaultValue={restaurant?.name} placeholder="Store name" className="ui-input" />
               <input name="phone" defaultValue={restaurant?.phone} placeholder="WhatsApp number" className="ui-input" />
-              <input name="logo_url" defaultValue={restaurant?.logo_url ?? ""} placeholder="Logo URL" className="ui-input" />
+              <div className="md:col-span-3">
+                <ImageUploadField
+                  name="logo_file"
+                  label="Restaurant logo"
+                  initialImageUrl={restaurant?.logo_url ?? null}
+                />
+              </div>
               <button className="btn btn-primary md:col-span-3 rounded-xl">Save settings</button>
             </div>
           </form>

@@ -185,6 +185,10 @@ insert into storage.buckets (id, name, public)
 values ('menu-items', 'menu-items', true)
 on conflict (id) do nothing;
 
+insert into storage.buckets (id, name, public)
+values ('restaurant-logos', 'restaurant-logos', true)
+on conflict (id) do nothing;
+
 -- ------------------------------------------------------------------
 -- Superadmin mapping (run after creating auth user in dashboard)
 -- ------------------------------------------------------------------
