@@ -162,20 +162,31 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
         </section>
 
         <section className="panel p-5">
-          <h2 className="panel-title">Manage sections</h2>
-          <div className="mt-3 grid gap-2 md:grid-cols-2">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="panel-title">Manage sections</h2>
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+              {sectionCount} sections
+            </span>
+          </div>
+          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {categories?.map((category) => (
-              <div key={category.id} className="rounded-xl border border-slate-200 p-3">
-                <form action={updateCategoryAction} className="flex flex-wrap gap-2">
+              <article
+                key={category.id}
+                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+              >
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Section details
+                </p>
+                <form action={updateCategoryAction} className="space-y-2">
                   <input type="hidden" name="id" value={category.id} />
-                  <input name="name" defaultValue={category.name} className="ui-input flex-1" />
+                  <input name="name" defaultValue={category.name} className="ui-input" />
                   <button className="btn btn-primary rounded-xl">Save</button>
                 </form>
                 <form action={deleteCategoryAction} className="mt-2">
                   <input type="hidden" name="id" value={category.id} />
-                  <button className="btn btn-danger rounded-xl">Delete section</button>
+                  <button className="btn btn-danger rounded-xl">Delete</button>
                 </form>
-              </div>
+              </article>
             ))}
           </div>
         </section>
@@ -225,13 +236,24 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
               Showing {filteredItems.length} result(s) for "<span className="font-semibold">{q}</span>".
             </p>
           ) : null}
-          <div className="mt-3 space-y-3">
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
             {filteredItems.map((item) => (
-              <div key={item.id} className="rounded-xl border border-slate-200 p-3">
+              <article
+                key={item.id}
+                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md"
+              >
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Item editor
+                  </p>
+                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+                    {categoryNameById.get(item.category_id ?? "") ?? "Uncategorized"}
+                  </span>
+                </div>
                 <form
                   action={updateMenuItemAction}
                   encType="multipart/form-data"
-                  className="grid gap-2 md:grid-cols-5"
+                  className="grid gap-2 md:grid-cols-2"
                 >
                   <input type="hidden" name="id" value={item.id} />
                   <input type="hidden" name="current_image_url" value={item.image_url ?? ""} />
@@ -252,12 +274,9 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                       <option key={category.id} value={category.id}>{category.name}</option>
                     ))}
                   </select>
-                  <button className="btn btn-primary rounded-xl">Save</button>
+                  <button className="btn btn-primary rounded-xl">Save changes</button>
                 </form>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">
-                    Section: {categoryNameById.get(item.category_id ?? "") ?? "Uncategorized"}
-                  </span>
+                <div className="mt-3 flex flex-wrap gap-2">
                   <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">${item.price.toFixed(2)}</span>
                   {item.grams ? (
                     <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">{item.grams}g</span>
@@ -265,6 +284,8 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                   {item.contents ? (
                     <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">Contains: {item.contents}</span>
                   ) : null}
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2 border-t border-slate-100 pt-3">
                   <form action={toggleMenuItemAvailabilityAction}>
                     <input type="hidden" name="id" value={item.id} />
                     <input type="hidden" name="is_available" value={String(item.is_available)} />
@@ -277,7 +298,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                     <button className="btn btn-danger">Delete item</button>
                   </form>
                 </div>
-              </div>
+              </article>
             ))}
           </div>
         </section>
