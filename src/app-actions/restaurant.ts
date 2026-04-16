@@ -27,6 +27,25 @@ function getStorageAdminClient() {
   });
 }
 
+async function ensureBucketExists(bucket: string) {
+  const adminClient = getStorageAdminClient();
+  const { data: buckets, error: listError } = await adminClient.storage.listBuckets();
+  if (listError) {
+    throw listError;
+  }
+
+  const exists = (buckets ?? []).some((item) => item.name === bucket);
+  if (exists) return;
+
+  const { error: createError } = await adminClient.storage.createBucket(bucket, {
+    public: true,
+    fileSizeLimit: 5 * 1024 * 1024,
+  });
+  if (createError) {
+    throw createError;
+  }
+}
+
 async function uploadMenuItemImage(file: File, restaurantId: string) {
   if (!file || file.size === 0) {
     return null;
@@ -41,6 +60,7 @@ async function uploadMenuItemImage(file: File, restaurantId: string) {
   const extension = file.name.includes(".") ? file.name.split(".").pop() : "jpg";
   const filePath = `${restaurantId}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
   const bucket = process.env.SUPABASE_MENU_BUCKET ?? "menu-items";
+  await ensureBucketExists(bucket);
   const adminClient = getStorageAdminClient();
 
   const { error: uploadError } = await adminClient.storage.from(bucket).upload(filePath, file, {
@@ -69,6 +89,7 @@ async function uploadRestaurantLogo(file: File, restaurantId: string) {
   const extension = file.name.includes(".") ? file.name.split(".").pop() : "jpg";
   const filePath = `${restaurantId}/logo-${Date.now()}-${crypto.randomUUID()}.${extension}`;
   const bucket = process.env.SUPABASE_LOGO_BUCKET ?? "restaurant-logos";
+  await ensureBucketExists(bucket);
   const adminClient = getStorageAdminClient();
 
   const { error: uploadError } = await adminClient.storage.from(bucket).upload(filePath, file, {
