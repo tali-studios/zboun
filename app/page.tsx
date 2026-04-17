@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { RestaurantDirectory } from "@/components/restaurant-directory";
+import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 
 const steps = [
@@ -35,7 +36,7 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50 via-slate-50 to-white">
-      <SiteHeader largeLogo />
+      <SiteHeader largeLogo showDashboardButton={false} />
       <main>
         <section className="container py-16 md:py-24">
           <div className="grid gap-8 lg:grid-cols-2 lg:items-center">
@@ -109,6 +110,7 @@ Address: Hadath near X`}
           </div>
         </section>
       </main>
+      <SiteFooter />
     </div>
   );
 }

@@ -4,9 +4,10 @@ import Link from "next/link";
 type SiteHeaderProps = {
   /** Larger logo + header height (e.g. home page hero) */
   largeLogo?: boolean;
+  showDashboardButton?: boolean;
 };
 
-export function SiteHeader({ largeLogo = false }: SiteHeaderProps) {
+export function SiteHeader({ largeLogo = false, showDashboardButton = true }: SiteHeaderProps) {
   return (
     <header className="border-b border-slate-200/70 bg-white/80 backdrop-blur-md">
       <div
@@ -29,12 +30,14 @@ export function SiteHeader({ largeLogo = false }: SiteHeaderProps) {
           <Link href="/contact" className="hover:text-slate-900">
             Contact
           </Link>
-          <Link
-            href="/dashboard/login"
-            className="rounded-full bg-slate-900 px-4 py-2 text-white hover:bg-slate-700"
-          >
-            Dashboard
-          </Link>
+          {showDashboardButton ? (
+            <Link
+              href="/dashboard/login"
+              className="rounded-full bg-slate-900 px-4 py-2 text-white hover:bg-slate-700"
+            >
+              Dashboard
+            </Link>
+          ) : null}
         </nav>
       </div>
     </header>

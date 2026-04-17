@@ -1,4 +1,5 @@
 import { SiteHeader } from "@/components/site-header";
+import { SiteFooter } from "@/components/site-footer";
 
 export default function ContactPage() {
   return (
@@ -50,6 +51,7 @@ export default function ContactPage() {
           </a>
         </div>
       </main>
+      <SiteFooter />
     </div>
   );
 }
