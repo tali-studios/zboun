@@ -18,9 +18,9 @@ export default async function RestaurantMenuPage({ params }: Props) {
   const categories = await getRestaurantMenu(restaurant.id);
 
   return (
-    <main className="min-h-screen py-6">
+    <main className="min-h-screen py-4 sm:py-6">
       <div className="container">
-        <header className="mb-6 rounded-2xl bg-gradient-to-r from-emerald-600 to-green-600 p-4 text-white shadow-lg md:p-5">
+        <header className="mb-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-green-600 p-4 text-white shadow-lg md:mb-6 md:p-5">
           <div className="flex items-center gap-3">
             {restaurant.logo_url ? (
               <Image

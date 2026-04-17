@@ -72,7 +72,7 @@ export default async function SuperAdminPage({ searchParams }: Props) {
   };
 
   return (
-    <main className="min-h-screen p-4 md:p-8">
+    <main className="min-h-screen p-3 sm:p-4 md:p-8">
       <div className="mx-auto max-w-6xl space-y-6">
         <header className="panel p-4 md:p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">

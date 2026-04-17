@@ -162,7 +162,10 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
 
       <div className="mt-4 space-y-3 lg:hidden">
         {filtered.map((restaurant) => (
-          <article key={restaurant.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <article
+            key={restaurant.id}
+            className="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm sm:p-4"
+          >
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h3 className="font-semibold text-slate-900">{restaurant.name}</h3>

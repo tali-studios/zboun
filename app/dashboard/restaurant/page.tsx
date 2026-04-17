@@ -73,7 +73,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
       : 0;
 
   return (
-    <main className="min-h-screen p-4 md:p-8">
+    <main className="min-h-screen p-3 sm:p-4 md:p-8">
       <div className="mx-auto max-w-7xl space-y-6">
         <header className="rounded-2xl bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 p-4 text-white shadow-lg md:p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">

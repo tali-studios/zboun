@@ -35,8 +35,14 @@ body {
 }
 
 .container {
-  width: min(1100px, calc(100% - 2rem));
+  width: min(1100px, calc(100% - 2.5rem));
   margin-inline: auto;
+}
+
+@media (min-width: 640px) {
+  .container {
+    width: min(1100px, calc(100% - 3rem));
+  }
 }
 
 .panel {
@@ -46,6 +52,12 @@ body {
     0 1px 2px rgba(15, 23, 42, 0.05),
     0 12px 24px rgba(15, 23, 42, 0.06);
   border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+@media (max-width: 420px) {
+  .panel {
+    border-radius: 0.9rem;
+  }
 }
 
 .panel-title {
@@ -86,6 +98,13 @@ body {
   min-height: 2.4rem;
   transition: transform 0.15s ease, opacity 0.15s ease;
   text-align: center;
+}
+
+@media (max-width: 420px) {
+  .btn {
+    width: 100%;
+    min-height: 2.5rem;
+  }
 }
 
 .btn:hover {
