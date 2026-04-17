@@ -1,5 +1,7 @@
 -- Run this once in Supabase SQL editor for existing projects.
 
+alter table public.restaurants add column if not exists show_on_home boolean not null default true;
+
 alter table public.menu_items add column if not exists contents text;
 alter table public.menu_items add column if not exists grams int;
 alter table public.menu_items add column if not exists image_url text;

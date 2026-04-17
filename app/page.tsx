@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { RestaurantDirectory } from "@/components/restaurant-directory";
 import { SiteHeader } from "@/components/site-header";
 
 const steps = [
@@ -22,7 +24,15 @@ const featureCards = [
   },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  const supabase = await createServerSupabaseClient();
+  const { data: restaurants } = await supabase
+    .from("restaurants")
+    .select("id, name, slug, logo_url")
+    .eq("is_active", true)
+    .eq("show_on_home", true)
+    .order("created_at", { ascending: false });
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50 via-slate-50 to-white">
       <SiteHeader largeLogo />
@@ -73,6 +83,8 @@ Address: Hadath near X`}
             </div>
           </div>
         </section>
+
+        <RestaurantDirectory restaurants={restaurants ?? []} />
 
         <section className="container py-8">
           <h2 className="text-2xl font-bold text-slate-900">How it works</h2>

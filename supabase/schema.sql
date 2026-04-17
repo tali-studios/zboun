@@ -7,6 +7,7 @@ create table if not exists public.restaurants (
   phone text not null,
   logo_url text,
   is_active boolean not null default true,
+  show_on_home boolean not null default true,
   created_at timestamptz not null default now()
 );
 

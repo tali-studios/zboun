@@ -176,6 +176,20 @@ export async function toggleRestaurantActiveAction(formData: FormData) {
   const supabase = await createServerSupabaseClient();
   await supabase.from("restaurants").update({ is_active: !isActive }).eq("id", id);
   revalidatePath("/dashboard/super-admin");
+  revalidatePath("/");
+}
+
+export async function toggleRestaurantHomeVisibilityAction(formData: FormData) {
+  await requireSuperAdmin();
+  const id = String(formData.get("id"));
+  const showOnHome = String(formData.get("show_on_home")) === "true";
+  const supabase = await createServerSupabaseClient();
+  await supabase
+    .from("restaurants")
+    .update({ show_on_home: !showOnHome })
+    .eq("id", id);
+  revalidatePath("/dashboard/super-admin");
+  revalidatePath("/");
 }
 
 export async function renewSubscriptionAction(formData: FormData) {
@@ -204,6 +218,7 @@ export async function deleteRestaurantAction(formData: FormData) {
 
   await adminClient.from("restaurants").delete().eq("id", id);
   revalidatePath("/dashboard/super-admin");
+  revalidatePath("/");
   redirect("/dashboard/super-admin?success=restaurant_deleted");
 }
 

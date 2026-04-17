@@ -6,6 +6,7 @@ import {
   deleteRestaurantAction,
   renewSubscriptionAction,
   toggleRestaurantActiveAction,
+  toggleRestaurantHomeVisibilityAction,
 } from "@/app-actions/superadmin";
 
 type RestaurantRow = {
@@ -14,6 +15,7 @@ type RestaurantRow = {
   slug: string;
   phone: string;
   is_active: boolean;
+  show_on_home: boolean;
   created_at: string;
   category_count: number;
   item_count: number;
@@ -113,6 +115,16 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
     });
   }
 
+  function toggleHomeVisibility(restaurantId: string, showOnHome: boolean) {
+    startTransition(async () => {
+      const formData = new FormData();
+      formData.set("id", restaurantId);
+      formData.set("show_on_home", String(showOnHome));
+      await toggleRestaurantHomeVisibilityAction(formData);
+      router.refresh();
+    });
+  }
+
   return (
     <section className="panel p-5">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -158,6 +170,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
               <th className="py-2">Sections / Items</th>
               <th className="py-2">Phone</th>
               <th className="py-2">Status</th>
+              <th className="py-2">Home</th>
               <th className="py-2">Created</th>
               <th className="py-2">Actions</th>
             </tr>
@@ -183,6 +196,17 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                     {restaurant.is_active ? "Active" : "Inactive"}
                   </span>
                 </td>
+                <td className="py-3">
+                  <span
+                    className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                      restaurant.show_on_home
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-slate-200 text-slate-700"
+                    }`}
+                  >
+                    {restaurant.show_on_home ? "Visible" : "Hidden"}
+                  </span>
+                </td>
                 <td className="py-3 text-slate-600">
                   {new Date(restaurant.created_at).toLocaleDateString()}
                 </td>
@@ -205,6 +229,16 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                       }`}
                     >
                       {restaurant.is_active ? "Deactivate" : "Activate"}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isPending}
+                      onClick={() => toggleHomeVisibility(restaurant.id, restaurant.show_on_home)}
+                      className={`btn text-white disabled:opacity-70 ${
+                        restaurant.show_on_home ? "bg-slate-700" : "bg-emerald-600"
+                      }`}
+                    >
+                      {restaurant.show_on_home ? "Hide on home" : "Show on home"}
                     </button>
                     <button
                       type="button"

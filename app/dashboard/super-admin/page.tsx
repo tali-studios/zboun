@@ -23,7 +23,7 @@ export default async function SuperAdminPage({ searchParams }: Props) {
   const supabase = await createServerSupabaseClient();
   const query = supabase
     .from("restaurants")
-    .select("id, name, slug, phone, is_active, created_at")
+    .select("id, name, slug, phone, is_active, show_on_home, created_at")
     .order("created_at", { ascending: false });
 
   const [{ data: restaurants }, { data: categories }, { data: items }, { data: admins }] =
