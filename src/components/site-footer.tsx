@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 export function SiteFooter() {
@@ -5,7 +6,17 @@ export function SiteFooter() {
     <footer className="mt-14 border-t border-slate-200/80 bg-white/80">
       <div className="container flex flex-col gap-5 py-8 text-sm text-slate-600 md:flex-row md:items-center md:justify-between">
         <div>
-          <p className="font-semibold text-slate-900">Zboun</p>
+          <div className="flex items-center gap-2">
+            <Image
+              src="/zboun_logo.svg"
+              alt="Zboun"
+              width={110}
+              height={34}
+              className="h-8 w-auto object-contain"
+              unoptimized
+            />
+            <p className="font-semibold text-slate-900">Zboun</p>
+          </div>
           <p className="mt-1">Turn your menu into instant WhatsApp orders.</p>
         </div>
         <div className="flex flex-wrap items-center gap-4">
