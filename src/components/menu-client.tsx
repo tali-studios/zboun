@@ -65,7 +65,7 @@ export function MenuClient({ restaurantName, restaurantPhone, categories }: Prop
               {category.menu_items.map((item) => (
                 <article
                   key={item.id}
-                  className="flex items-start justify-between rounded-xl border border-slate-200 p-3 transition hover:border-green-200 hover:shadow-sm"
+                  className="rounded-xl border border-slate-200 p-3 transition hover:border-green-200 hover:shadow-sm"
                 >
                   <div className="flex flex-1 gap-3">
                     {item.image_url ? (
@@ -97,9 +97,9 @@ export function MenuClient({ restaurantName, restaurantPhone, categories }: Prop
                   <button
                     disabled={!item.is_available}
                     onClick={() => addItem(item.id, item.name, item.price)}
-                    className="rounded-full bg-green-600 px-3 py-1 text-sm font-semibold text-white disabled:bg-slate-300"
+                    className="mt-3 w-full rounded-full bg-green-600 px-3 py-2 text-sm font-semibold text-white disabled:bg-slate-300 sm:mt-0 sm:w-auto"
                   >
-                    {item.is_available ? "Add" : "Out"}
+                    {item.is_available ? "Add to cart" : "Out of stock"}
                   </button>
                 </article>
               ))}
@@ -127,20 +127,20 @@ export function MenuClient({ restaurantName, restaurantPhone, categories }: Prop
             value={customerName}
             onChange={(e) => setCustomerName(e.target.value)}
             placeholder="Name"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2"
+            className="ui-input"
           />
           <input
             value={address}
             onChange={(e) => setAddress(e.target.value)}
             placeholder="Address"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2"
+            className="ui-input"
           />
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Notes (optional)"
             rows={3}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2"
+            className="ui-textarea"
           />
         </div>
         <a

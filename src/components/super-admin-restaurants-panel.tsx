@@ -160,7 +160,80 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
         </button>
       </div>
 
-      <div className="mt-4 overflow-x-auto">
+      <div className="mt-4 space-y-3 lg:hidden">
+        {filtered.map((restaurant) => (
+          <article key={restaurant.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="font-semibold text-slate-900">{restaurant.name}</h3>
+                <p className="text-xs text-slate-500">/{restaurant.slug}</p>
+                <p className="mt-1 text-xs text-slate-600">{restaurant.admin_email}</p>
+              </div>
+              <span
+                className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                  restaurant.is_active ? "bg-green-100 text-green-700" : "bg-slate-200 text-slate-700"
+                }`}
+              >
+                {restaurant.is_active ? "Active" : "Inactive"}
+              </span>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-600">
+              <span className="rounded-full bg-slate-100 px-2 py-1">{restaurant.phone}</span>
+              <span className="rounded-full bg-slate-100 px-2 py-1">
+                {restaurant.category_count} sections
+              </span>
+              <span className="rounded-full bg-slate-100 px-2 py-1">{restaurant.item_count} items</span>
+              <span
+                className={`rounded-full px-2 py-1 ${
+                  restaurant.show_on_home ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-700"
+                }`}
+              >
+                {restaurant.show_on_home ? "Visible on home" : "Hidden on home"}
+              </span>
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                disabled={isPending}
+                onClick={() => renewSubscription(restaurant.id)}
+                className="btn bg-blue-600 text-white disabled:opacity-70"
+              >
+                Renew
+              </button>
+              <button
+                type="button"
+                disabled={isPending}
+                onClick={() => openToggleModal(restaurant)}
+                className={`btn text-white disabled:opacity-70 ${
+                  restaurant.is_active ? "bg-amber-600" : "bg-green-600"
+                }`}
+              >
+                {restaurant.is_active ? "Deactivate" : "Activate"}
+              </button>
+              <button
+                type="button"
+                disabled={isPending}
+                onClick={() => toggleHomeVisibility(restaurant.id, restaurant.show_on_home)}
+                className={`btn text-white disabled:opacity-70 ${
+                  restaurant.show_on_home ? "bg-slate-700" : "bg-emerald-600"
+                }`}
+              >
+                {restaurant.show_on_home ? "Hide on home" : "Show on home"}
+              </button>
+              <button
+                type="button"
+                disabled={isPending}
+                onClick={() => openDeleteModal(restaurant)}
+                className="btn bg-red-600 text-white disabled:opacity-70"
+              >
+                Delete
+              </button>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <div className="mt-4 hidden overflow-x-auto lg:block">
         <table className="w-full min-w-[980px] text-sm">
           <thead>
             <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">

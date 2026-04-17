@@ -63,7 +63,7 @@ export function RestaurantDirectory({ restaurants }: Props) {
           </p>
         </div>
 
-        <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {filtered.map((restaurant) => (
             <article
               key={restaurant.id}

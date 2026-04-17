@@ -11,8 +11,8 @@ export function SiteHeader({ largeLogo = false, showDashboardButton = true }: Si
   return (
     <header className="border-b border-slate-200/70 bg-white/80 backdrop-blur-md">
       <div
-        className={`container flex items-center justify-between ${
-          largeLogo ? "h-16" : "h-14"
+        className={`container flex items-center justify-between gap-3 ${
+          largeLogo ? "h-16 md:h-20" : "h-14"
         }`}
       >
         <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-90">
@@ -26,7 +26,7 @@ export function SiteHeader({ largeLogo = false, showDashboardButton = true }: Si
             className="max-h-14 w-auto object-contain"
           />
         </Link>
-        <nav className="flex items-center gap-5 text-sm font-medium text-slate-700">
+        <nav className="flex items-center gap-3 text-sm font-medium text-slate-700 md:gap-5">
           <Link href="/contact" className="hover:text-slate-900">
             Contact
           </Link>

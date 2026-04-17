@@ -74,14 +74,14 @@ export default async function SuperAdminPage({ searchParams }: Props) {
   return (
     <main className="min-h-screen p-4 md:p-8">
       <div className="mx-auto max-w-6xl space-y-6">
-        <header className="panel p-5">
-          <div className="flex items-center justify-between">
+        <header className="panel p-4 md:p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-sm font-medium text-green-700">Platform control center</p>
               <h1 className="text-2xl font-bold text-slate-900">Super admin</h1>
             </div>
             <form action={signOutAction}>
-              <div className="flex items-center gap-2">
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
                 <a href="/dashboard/change-password" className="btn btn-secondary">
                   Change password
                 </a>
@@ -146,9 +146,9 @@ export default async function SuperAdminPage({ searchParams }: Props) {
           </p>
         )}
 
-        <section className="panel p-5">
+        <section className="panel p-4 md:p-5">
           <h2 className="panel-title">Create restaurant + admin invite</h2>
-          <form action={createRestaurantAction} className="mt-3 grid gap-2 md:grid-cols-4">
+          <form action={createRestaurantAction} className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
             <input
               name="name"
               required

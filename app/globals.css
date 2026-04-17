@@ -83,7 +83,9 @@ body {
   padding: 0.52rem 1rem;
   font-size: 0.8rem;
   font-weight: 700;
+  min-height: 2.4rem;
   transition: transform 0.15s ease, opacity 0.15s ease;
+  text-align: center;
 }
 
 .btn:hover {

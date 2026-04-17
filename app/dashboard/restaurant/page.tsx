@@ -75,14 +75,14 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
   return (
     <main className="min-h-screen p-4 md:p-8">
       <div className="mx-auto max-w-7xl space-y-6">
-        <header className="rounded-2xl bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 p-5 text-white shadow-lg">
+        <header className="rounded-2xl bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 p-4 text-white shadow-lg md:p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-sm font-medium text-emerald-100">Restaurant admin</p>
-              <h1 className="text-2xl font-bold">{restaurant?.name} Dashboard</h1>
-              <p className="text-sm text-emerald-100">Public menu URL: /{restaurant?.slug}</p>
+              <h1 className="text-xl font-bold md:text-2xl">{restaurant?.name} Dashboard</h1>
+              <p className="text-xs text-emerald-100 md:text-sm">Public menu URL: /{restaurant?.slug}</p>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
               <a
                 href={menuUrl}
                 target="_blank"
@@ -216,15 +216,15 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
           </form>
         </section>
 
-        <section className="panel p-5">
+        <section className="panel p-4 md:p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="panel-title">Manage menu items</h2>
-            <form action="/dashboard/restaurant" method="get" className="flex items-center gap-2">
+            <form action="/dashboard/restaurant" method="get" className="grid w-full gap-2 sm:flex sm:w-auto sm:items-center">
               <input
                 name="q"
                 defaultValue={q ?? ""}
                 placeholder="Search by item, section, or ingredient"
-                className="ui-input min-w-[260px]"
+                className="ui-input sm:min-w-[260px]"
               />
               <button className="btn btn-secondary" type="submit">
                 Search

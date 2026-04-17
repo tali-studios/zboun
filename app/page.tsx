@@ -38,28 +38,28 @@ export default async function HomePage() {
     <div className="min-h-screen bg-gradient-to-b from-emerald-50 via-slate-50 to-white">
       <SiteHeader largeLogo showDashboardButton={false} />
       <main>
-        <section className="container py-16 md:py-24">
+        <section className="container py-12 md:py-24">
           <div className="grid gap-8 lg:grid-cols-2 lg:items-center">
             <div className="max-w-3xl space-y-6">
               <span className="inline-flex rounded-full bg-green-100 px-3 py-1 text-sm font-semibold text-green-800">
                 Built for restaurants
               </span>
-              <h1 className="text-4xl font-bold tracking-tight text-slate-900 md:text-6xl">
+              <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl md:text-6xl">
                 Turn your menu into instant WhatsApp orders
               </h1>
-              <p className="max-w-2xl text-lg text-slate-600">
+              <p className="max-w-2xl text-base text-slate-600 md:text-lg">
                 No commissions. No apps. Just direct orders.
               </p>
-              <div className="flex flex-wrap gap-3">
+              <div className="grid gap-3 sm:flex sm:flex-wrap">
                 <Link
                   href="/contact"
-                  className="rounded-full bg-green-600 px-6 py-3 font-semibold text-white transition hover:-translate-y-0.5 hover:bg-green-700"
+                  className="rounded-full bg-green-600 px-6 py-3 text-center font-semibold text-white transition hover:-translate-y-0.5 hover:bg-green-700"
                 >
                   Contact us to get started
                 </Link>
                 <Link
                   href="/demo-restaurant"
-                  className="rounded-full border border-slate-300 px-6 py-3 font-semibold text-slate-800 hover:bg-slate-100"
+                  className="rounded-full border border-slate-300 px-6 py-3 text-center font-semibold text-slate-800 hover:bg-slate-100"
                 >
                   View demo menu
                 </Link>
