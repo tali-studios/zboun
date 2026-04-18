@@ -16,11 +16,23 @@ export async function signInAction(formData: FormData) {
     redirect("/dashboard/login?error=invalid_credentials");
   }
 
-  const role = await getCurrentUserRole();
-  if (!role) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    redirect("/dashboard/login?error=invalid_credentials");
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from("users")
+    .select("id, role, restaurant_id, name, email")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (profileError || !profile) {
     redirect("/dashboard/login?error=missing_profile");
   }
-  if (role.role === "superadmin") {
+  if (profile.role === "superadmin") {
     redirect("/dashboard/super-admin");
   }
 

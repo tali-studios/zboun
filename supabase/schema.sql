@@ -160,6 +160,16 @@ on public.users for select
 to authenticated
 using (auth.uid() = id);
 
+create policy "super admin can read all users"
+on public.users for select
+to authenticated
+using (
+  exists (
+    select 1 from public.users u
+    where u.id = auth.uid() and u.role = 'superadmin'
+  )
+);
+
 create policy "restaurant admin manage own categories"
 on public.categories for all
 to authenticated
