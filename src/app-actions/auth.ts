@@ -11,7 +11,7 @@ import { env } from "@/lib/env";
 function getAdminClient() {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!env.supabaseUrl || !serviceRoleKey) {
-    throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY or Supabase URL.");
+    return null;
   }
   return createClient(env.supabaseUrl, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
@@ -43,18 +43,24 @@ export async function signInAction(formData: FormData) {
   if (profileError || !profile) {
     // RLS can block this read in some policy configurations; fallback to service role lookup.
     const adminClient = getAdminClient();
-    const { data: profileByAdmin } = await adminClient
-      .from("users")
-      .select("id, role, restaurant_id, name, email")
-      .eq("id", user.id)
-      .maybeSingle();
-    profile = profileByAdmin ?? null;
+    if (adminClient) {
+      const { data: profileByAdmin } = await adminClient
+        .from("users")
+        .select("id, role, restaurant_id, name, email")
+        .eq("id", user.id)
+        .maybeSingle();
+      profile = profileByAdmin ?? null;
+    }
   }
 
   if (!profile) {
     redirect("/dashboard/login?error=missing_profile");
   }
-  if (profile.role === "superadmin") {
+  const normalizedRole = String(profile.role ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[_\s-]+/g, "");
+  if (normalizedRole === "superadmin") {
     redirect("/dashboard/super-admin");
   }
 
