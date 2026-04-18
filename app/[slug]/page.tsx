@@ -1,11 +1,44 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getRestaurantBySlug, getRestaurantMenu } from "@/lib/data";
 import { MenuClient } from "@/components/menu-client";
+import { getSiteUrl } from "@/lib/site";
 
 type Props = {
   params: Promise<{ slug: string }>;
 };
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  const restaurant = await getRestaurantBySlug(slug);
+  if (!restaurant || !restaurant.is_active) {
+    return { title: "Menu" };
+  }
+  const base = getSiteUrl();
+  const path = `/${restaurant.slug}`;
+  const title = `${restaurant.name} — menu`;
+  const description = `View the ${restaurant.name} menu and send your order on WhatsApp with Zboun.`;
+  return {
+    title,
+    description,
+    alternates: { canonical: path },
+    openGraph: {
+      title: `${restaurant.name} menu`,
+      description,
+      url: `${base}${path}`,
+      type: "website",
+      ...(restaurant.logo_url
+        ? { images: [{ url: restaurant.logo_url, alt: `${restaurant.name} logo` }] }
+        : {}),
+    },
+    twitter: {
+      card: restaurant.logo_url ? "summary_large_image" : "summary",
+      title: `${restaurant.name} menu`,
+      description,
+    },
+  };
+}
 
 export default async function RestaurantMenuPage({ params }: Props) {
   const { slug } = await params;

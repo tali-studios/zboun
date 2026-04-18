@@ -4,7 +4,7 @@ export const ZBOUN_PRICING = {
   symbol: "$",
   monthly: 25,
   /** Yearly: 2 months free vs paying monthly × 12 */
-  yearly: 250,
+  yearly: 200,
 } as const;
 
 export function yearlySavings(): number {
