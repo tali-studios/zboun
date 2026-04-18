@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { ZBOUN_PRICING, yearlySavings } from "@/lib/pricing";
+import { ZBOUN_PRICING } from "@/lib/pricing";
 
 const steps = [
   {
@@ -28,8 +28,6 @@ const includes = [
 ];
 
 export default function ForRestaurantsPage() {
-  const savings = yearlySavings();
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-emerald-50/40">
       <SiteHeader showDashboardButton={false} showForRestaurantsLink />
@@ -75,7 +73,7 @@ export default function ForRestaurantsPage() {
               One subscription covers your menu page, dashboard, and WhatsApp ordering tools.
             </p>
           </div>
-          <div className="mx-auto mt-8 grid max-w-4xl gap-4 md:grid-cols-2">
+          <div className="mx-auto mt-8 grid max-w-4xl gap-4 md:grid-cols-1">
             <article className="panel relative rounded-3xl p-6 md:p-8">
               <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Monthly</p>
               <p className="mt-2 text-4xl font-bold text-slate-900">
@@ -100,7 +98,7 @@ export default function ForRestaurantsPage() {
               </Link>
             </article>
 
-            <article className="panel relative rounded-3xl border-2 border-emerald-200/80 bg-gradient-to-b from-emerald-50/60 to-white p-6 md:p-8">
+            {/* <article className="panel relative rounded-3xl border-2 border-emerald-200/80 bg-gradient-to-b from-emerald-50/60 to-white p-6 md:p-8">
               <span className="absolute right-4 top-4 rounded-full bg-emerald-600 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
                 Best value
               </span>
@@ -128,7 +126,7 @@ export default function ForRestaurantsPage() {
               >
                 Get started — yearly
               </Link>
-            </article>
+            </article> */}
           </div>
         </section>
 

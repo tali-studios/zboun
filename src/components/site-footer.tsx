@@ -70,17 +70,6 @@ export function SiteFooter() {
                     Restaurant login
                   </Link>
                 </li>
-                <li>
-                  <a
-                    href="https://wa.me/96171212734"
-                    className="inline-flex items-center gap-1.5 font-medium text-emerald-400 transition hover:text-emerald-300"
-                  >
-                    WhatsApp
-                    <span aria-hidden className="text-emerald-500/80">
-                      ↗
-                    </span>
-                  </a>
-                </li>
               </ul>
             </div>
           </div>
