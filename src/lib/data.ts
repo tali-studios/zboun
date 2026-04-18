@@ -1,4 +1,6 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createClient } from "@supabase/supabase-js";
+import { env } from "@/lib/env";
 
 export type CategoryWithItems = {
   id: string;
@@ -48,11 +50,25 @@ export async function getCurrentUserRole() {
 
   if (!user) return null;
 
-  const { data: appUser } = await supabase
+  const { data: appUserByUserClient } = await supabase
     .from("users")
     .select("id, role, restaurant_id, name, email")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
-  return appUser;
+  if (appUserByUserClient) return appUserByUserClient;
+
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!env.supabaseUrl || !serviceRoleKey) return null;
+
+  const adminClient = createClient(env.supabaseUrl, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const { data: appUserByAdminClient } = await adminClient
+    .from("users")
+    .select("id, role, restaurant_id, name, email")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  return appUserByAdminClient ?? null;
 }

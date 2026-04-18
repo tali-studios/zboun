@@ -64,7 +64,8 @@ export async function signInAction(formData: FormData) {
     redirect("/dashboard/super-admin");
   }
 
-  redirect("/dashboard/restaurant");
+  // Route all non-superadmin users through centralized dashboard role gate.
+  redirect("/dashboard");
 }
 
 export async function signOutAction() {
