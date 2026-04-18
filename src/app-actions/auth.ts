@@ -11,14 +11,12 @@ export async function signInAction(formData: FormData) {
   const password = String(formData.get("password") ?? "");
   const supabase = await createServerSupabaseClient();
 
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
     redirect("/dashboard/login?error=invalid_credentials");
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = data.user;
   if (!user) {
     redirect("/dashboard/login?error=invalid_credentials");
   }
