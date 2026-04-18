@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import {
   deleteRestaurantAction,
   renewSubscriptionAction,
+  setNextDueDateAction,
   toggleRestaurantActiveAction,
   toggleRestaurantHomeVisibilityAction,
+  updateSubscriptionStatusAction,
 } from "@/app-actions/superadmin";
 
 type RestaurantRow = {
@@ -20,6 +22,13 @@ type RestaurantRow = {
   category_count: number;
   item_count: number;
   admin_email: string;
+  subscription_id: string | null;
+  plan_name: string | null;
+  subscription_status: string | null;
+  next_due_at: string | null;
+  billing_cycle_price: number;
+  last_payment_at: string | null;
+  outstanding_balance: number;
 };
 
 type Props = {
@@ -148,6 +157,34 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
     });
   }
 
+  function updateSubscriptionStatus(subscriptionId: string, currentStatus: string | null) {
+    const next = window.prompt(
+      "Set subscription status: trial, active, overdue, paused, cancelled",
+      currentStatus ?? "active",
+    );
+    if (!next) return;
+    startTransition(async () => {
+      const formData = new FormData();
+      formData.set("id", subscriptionId);
+      formData.set("status", next);
+      await updateSubscriptionStatusAction(formData);
+      router.refresh();
+    });
+  }
+
+  function setNextDueDate(subscriptionId: string, currentDate: string | null) {
+    const current = currentDate ? currentDate.slice(0, 10) : "";
+    const next = window.prompt("Set next due date (YYYY-MM-DD)", current);
+    if (!next) return;
+    startTransition(async () => {
+      const formData = new FormData();
+      formData.set("id", subscriptionId);
+      formData.set("next_due_at", `${next}T00:00:00.000Z`);
+      await setNextDueDateAction(formData);
+      router.refresh();
+    });
+  }
+
   return (
     <section className="panel p-5">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -209,6 +246,18 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                 {restaurant.category_count} sections
               </span>
               <span className="rounded-full bg-slate-100 px-2 py-1">{restaurant.item_count} items</span>
+              <span className="rounded-full bg-blue-50 px-2 py-1 text-blue-700">
+                {restaurant.plan_name ?? "No plan"}
+              </span>
+              <span className="rounded-full bg-slate-100 px-2 py-1">
+                {restaurant.subscription_status ?? "No subscription"}
+              </span>
+              <span className="rounded-full bg-slate-100 px-2 py-1">
+                Due: {restaurant.next_due_at ? new Date(restaurant.next_due_at).toLocaleDateString() : "—"}
+              </span>
+              <span className="rounded-full bg-amber-50 px-2 py-1 text-amber-700">
+                Outstanding: ${restaurant.outstanding_balance.toFixed(2)}
+              </span>
               <span
                 className={`rounded-full px-2 py-1 ${
                   restaurant.show_on_home ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-700"
@@ -246,6 +295,31 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                 disabled={isPending}
                 onClick={() => openDeleteModal(restaurant)}
               />
+              {restaurant.subscription_id ? (
+                <>
+                  <ActionIconButton
+                    label="Update subscription status"
+                    icon="⚙"
+                    className="bg-indigo-600 hover:bg-indigo-500"
+                    disabled={isPending}
+                    onClick={() =>
+                      updateSubscriptionStatus(
+                        restaurant.subscription_id as string,
+                        restaurant.subscription_status,
+                      )
+                    }
+                  />
+                  <ActionIconButton
+                    label="Set next due date"
+                    icon="📅"
+                    className="bg-cyan-600 hover:bg-cyan-500"
+                    disabled={isPending}
+                    onClick={() =>
+                      setNextDueDate(restaurant.subscription_id as string, restaurant.next_due_at)
+                    }
+                  />
+                </>
+              ) : null}
             </div>
           </article>
         ))}
@@ -260,6 +334,10 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
               <th className="py-2">Slug</th>
               <th className="py-2">Sections / Items</th>
               <th className="py-2">Phone</th>
+              <th className="py-2">Plan</th>
+              <th className="py-2">Sub status</th>
+              <th className="py-2">Next due</th>
+              <th className="py-2">Outstanding</th>
               <th className="py-2">Status</th>
               <th className="py-2">Home</th>
               <th className="py-2">Created</th>
@@ -276,6 +354,16 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                   {restaurant.category_count} / {restaurant.item_count}
                 </td>
                 <td className="py-3 text-slate-600">{restaurant.phone}</td>
+                <td className="py-3 text-slate-600">{restaurant.plan_name ?? "—"}</td>
+                <td className="py-3 text-slate-600">{restaurant.subscription_status ?? "—"}</td>
+                <td className="py-3 text-slate-600">
+                  {restaurant.next_due_at
+                    ? new Date(restaurant.next_due_at).toLocaleDateString()
+                    : "—"}
+                </td>
+                <td className="py-3 font-medium text-amber-700">
+                  ${restaurant.outstanding_balance.toFixed(2)}
+                </td>
                 <td className="py-3">
                   <span
                     className={`rounded-full px-2 py-1 text-xs font-semibold ${
@@ -331,6 +419,31 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                       disabled={isPending}
                       onClick={() => openDeleteModal(restaurant)}
                     />
+                    {restaurant.subscription_id ? (
+                      <>
+                        <ActionIconButton
+                          label="Update subscription status"
+                          icon="⚙"
+                          className="bg-indigo-600 hover:bg-indigo-500"
+                          disabled={isPending}
+                          onClick={() =>
+                            updateSubscriptionStatus(
+                              restaurant.subscription_id as string,
+                              restaurant.subscription_status,
+                            )
+                          }
+                        />
+                        <ActionIconButton
+                          label="Set next due date"
+                          icon="📅"
+                          className="bg-cyan-600 hover:bg-cyan-500"
+                          disabled={isPending}
+                          onClick={() =>
+                            setNextDueDate(restaurant.subscription_id as string, restaurant.next_due_at)
+                          }
+                        />
+                      </>
+                    ) : null}
                   </div>
                 </td>
               </tr>

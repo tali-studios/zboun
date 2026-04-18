@@ -3,6 +3,7 @@ import { signOutAction } from "@/app-actions/auth";
 import {
   createRestaurantAction,
 } from "@/app-actions/superadmin";
+import { SuperAdminFinancePanel } from "@/components/super-admin-finance-panel";
 import { SuperAdminRestaurantsPanel } from "@/components/super-admin-restaurants-panel";
 import { getCurrentUserRole } from "@/lib/data";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
@@ -26,7 +27,16 @@ export default async function SuperAdminPage({ searchParams }: Props) {
     .select("id, name, slug, phone, is_active, show_on_home, created_at")
     .order("created_at", { ascending: false });
 
-  const [{ data: restaurants }, { data: categories }, { data: items }, { data: admins }] =
+  const [
+    { data: restaurants },
+    { data: categories },
+    { data: items },
+    { data: admins },
+    { data: plans },
+    { data: subscriptions },
+    { data: invoices },
+    { data: payments },
+  ] =
     await Promise.all([
       query,
       supabase.from("categories").select("id, restaurant_id"),
@@ -35,6 +45,21 @@ export default async function SuperAdminPage({ searchParams }: Props) {
         .from("users")
         .select("restaurant_id, email")
         .eq("role", "restaurant_admin"),
+      supabase
+        .from("subscription_plans")
+        .select("id, name, interval, price, is_active")
+        .eq("is_active", true)
+        .order("price", { ascending: true }),
+      supabase
+        .from("restaurant_subscriptions")
+        .select("id, restaurant_id, plan_id, status, next_due_at, billing_cycle_price, created_at"),
+      supabase
+        .from("invoices")
+        .select("id, restaurant_id, subscription_id, amount_due, amount_paid, status, due_at, created_at"),
+      supabase
+        .from("payments")
+        .select("id, invoice_id, restaurant_id, amount_paid, paid_at, method, reference_note, created_at")
+        .order("paid_at", { ascending: false }),
     ]);
 
   const categoryCountByRestaurant = (categories ?? []).reduce<Record<string, number>>(
@@ -57,18 +82,109 @@ export default async function SuperAdminPage({ searchParams }: Props) {
     return acc;
   }, {});
 
+  const planById = (plans ?? []).reduce<Record<string, { name: string }>>((acc, plan) => {
+    acc[plan.id] = { name: plan.name };
+    return acc;
+  }, {});
+
+  const latestSubscriptionByRestaurant = (subscriptions ?? []).reduce<
+    Record<
+      string,
+      {
+        id: string;
+        status: string;
+        next_due_at: string | null;
+        billing_cycle_price: number;
+        created_at: string;
+        plan_name: string | null;
+      }
+    >
+  >((acc, sub) => {
+    const existing = acc[sub.restaurant_id];
+    const next = {
+      id: sub.id,
+      status: sub.status,
+      next_due_at: sub.next_due_at,
+      billing_cycle_price: Number(sub.billing_cycle_price ?? 0),
+      created_at: sub.created_at,
+      plan_name: sub.plan_id ? planById[sub.plan_id]?.name ?? null : null,
+    };
+    if (!existing || new Date(next.created_at) > new Date(existing.created_at)) {
+      acc[sub.restaurant_id] = next;
+    }
+    return acc;
+  }, {});
+
+  const lastPaymentByRestaurant = (payments ?? []).reduce<Record<string, string>>((acc, payment) => {
+    if (!acc[payment.restaurant_id]) {
+      acc[payment.restaurant_id] = payment.paid_at;
+    }
+    return acc;
+  }, {});
+
+  const outstandingByRestaurant = (invoices ?? []).reduce<Record<string, number>>((acc, invoice) => {
+    const due = Number(invoice.amount_due ?? 0);
+    const paid = Number(invoice.amount_paid ?? 0);
+    const outstanding = Math.max(0, due - paid);
+    if (invoice.status === "unpaid" || invoice.status === "partial") {
+      acc[invoice.restaurant_id] = (acc[invoice.restaurant_id] ?? 0) + outstanding;
+    }
+    return acc;
+  }, {});
+
   const restaurantsWithDetails = (restaurants ?? []).map((restaurant) => ({
     ...restaurant,
     category_count: categoryCountByRestaurant[restaurant.id] ?? 0,
     item_count: itemCountByRestaurant[restaurant.id] ?? 0,
     admin_email: adminEmailByRestaurant[restaurant.id] ?? "No admin linked",
+    subscription_id: latestSubscriptionByRestaurant[restaurant.id]?.id ?? null,
+    plan_name: latestSubscriptionByRestaurant[restaurant.id]?.plan_name ?? null,
+    subscription_status: latestSubscriptionByRestaurant[restaurant.id]?.status ?? null,
+    next_due_at: latestSubscriptionByRestaurant[restaurant.id]?.next_due_at ?? null,
+    billing_cycle_price: latestSubscriptionByRestaurant[restaurant.id]?.billing_cycle_price ?? 0,
+    last_payment_at: lastPaymentByRestaurant[restaurant.id] ?? null,
+    outstanding_balance: outstandingByRestaurant[restaurant.id] ?? 0,
   }));
+
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  monthStart.setHours(0, 0, 0, 0);
+  const now = new Date();
+
+  const expectedMonthlyRevenue = (subscriptions ?? [])
+    .filter((sub) => sub.status === "active" || sub.status === "trial" || sub.status === "overdue")
+    .reduce((sum, sub) => sum + Number(sub.billing_cycle_price ?? 0), 0);
+
+  const collectedThisMonth = (payments ?? [])
+    .filter((payment) => new Date(payment.paid_at) >= monthStart)
+    .reduce((sum, payment) => sum + Number(payment.amount_paid ?? 0), 0);
+
+  const overdueInvoices = (invoices ?? []).filter(
+    (invoice) =>
+      (invoice.status === "unpaid" || invoice.status === "partial") &&
+      new Date(invoice.due_at) < now,
+  );
+  const overdueAmount = overdueInvoices.reduce(
+    (sum, invoice) => sum + Math.max(0, Number(invoice.amount_due ?? 0) - Number(invoice.amount_paid ?? 0)),
+    0,
+  );
+  const outstandingAmount = (invoices ?? []).reduce((sum, invoice) => {
+    if (invoice.status === "unpaid" || invoice.status === "partial") {
+      return sum + Math.max(0, Number(invoice.amount_due ?? 0) - Number(invoice.amount_paid ?? 0));
+    }
+    return sum;
+  }, 0);
 
   const stats = {
     totalRestaurants: restaurantsWithDetails.length,
     activeRestaurants: restaurantsWithDetails.filter((restaurant) => restaurant.is_active).length,
     totalSections: restaurantsWithDetails.reduce((sum, restaurant) => sum + restaurant.category_count, 0),
     totalItems: restaurantsWithDetails.reduce((sum, restaurant) => sum + restaurant.item_count, 0),
+    expectedMonthlyRevenue,
+    collectedThisMonth,
+    overdueAmount,
+    overdueInvoicesCount: overdueInvoices.length,
+    outstandingAmount,
   };
 
   return (
@@ -135,6 +251,16 @@ export default async function SuperAdminPage({ searchParams }: Props) {
             Subscription renewed successfully.
           </p>
         )}
+        {success === "invoice_created" && (
+          <p className="rounded-xl border border-green-200 bg-green-50 p-3 text-sm font-medium text-green-700">
+            Invoice created successfully.
+          </p>
+        )}
+        {success === "payment_recorded" && (
+          <p className="rounded-xl border border-green-200 bg-green-50 p-3 text-sm font-medium text-green-700">
+            Cash payment recorded successfully.
+          </p>
+        )}
         {success === "restaurant_deleted" && (
           <p className="rounded-xl border border-green-200 bg-green-50 p-3 text-sm font-medium text-green-700">
             Restaurant deleted successfully.
@@ -179,7 +305,49 @@ export default async function SuperAdminPage({ searchParams }: Props) {
           </p>
         </section>
 
+        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          <div className="panel p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Expected monthly
+            </p>
+            <p className="mt-1 text-2xl font-bold text-slate-900">${stats.expectedMonthlyRevenue.toFixed(2)}</p>
+          </div>
+          <div className="panel p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Collected this month
+            </p>
+            <p className="mt-1 text-2xl font-bold text-emerald-700">${stats.collectedThisMonth.toFixed(2)}</p>
+          </div>
+          <div className="panel p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Overdue amount
+            </p>
+            <p className="mt-1 text-2xl font-bold text-amber-700">${stats.overdueAmount.toFixed(2)}</p>
+          </div>
+          <div className="panel p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Overdue invoices
+            </p>
+            <p className="mt-1 text-2xl font-bold text-amber-700">{stats.overdueInvoicesCount}</p>
+          </div>
+          <div className="panel p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Outstanding total
+            </p>
+            <p className="mt-1 text-2xl font-bold text-slate-900">${stats.outstandingAmount.toFixed(2)}</p>
+          </div>
+        </section>
+
         <SuperAdminRestaurantsPanel restaurants={restaurantsWithDetails} />
+        <SuperAdminFinancePanel
+          restaurants={restaurantsWithDetails.map((restaurant) => ({
+            id: restaurant.id,
+            name: restaurant.name,
+            subscription_id: restaurant.subscription_id,
+          }))}
+          invoices={invoices ?? []}
+          payments={payments ?? []}
+        />
       </div>
     </main>
   );
