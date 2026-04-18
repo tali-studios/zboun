@@ -26,6 +26,29 @@ type Props = {
   restaurants: RestaurantRow[];
 };
 
+type ActionIconButtonProps = {
+  label: string;
+  icon: string;
+  className: string;
+  disabled?: boolean;
+  onClick: () => void;
+};
+
+function ActionIconButton({ label, icon, className, disabled, onClick }: ActionIconButtonProps) {
+  return (
+    <button
+      type="button"
+      title={label}
+      aria-label={label}
+      disabled={disabled}
+      onClick={onClick}
+      className={`inline-flex h-9 w-9 items-center justify-center rounded-full text-base font-bold text-white shadow-sm transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70 ${className}`}
+    >
+      <span aria-hidden>{icon}</span>
+    </button>
+  );
+}
+
 type ModalState = {
   open: boolean;
   restaurantId: string;
@@ -194,43 +217,35 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                 {restaurant.show_on_home ? "Visible on home" : "Hidden on home"}
               </span>
             </div>
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <button
-                type="button"
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <ActionIconButton
+                label="Renew subscription"
+                icon="↻"
+                className="bg-blue-600 hover:bg-blue-500"
                 disabled={isPending}
                 onClick={() => renewSubscription(restaurant.id)}
-                className="btn bg-blue-600 text-white disabled:opacity-70"
-              >
-                Renew
-              </button>
-              <button
-                type="button"
+              />
+              <ActionIconButton
+                label={restaurant.is_active ? "Deactivate restaurant" : "Activate restaurant"}
+                icon={restaurant.is_active ? "⏸" : "▶"}
+                className={restaurant.is_active ? "bg-amber-600 hover:bg-amber-500" : "bg-green-600 hover:bg-green-500"}
                 disabled={isPending}
                 onClick={() => openToggleModal(restaurant)}
-                className={`btn text-white disabled:opacity-70 ${
-                  restaurant.is_active ? "bg-amber-600" : "bg-green-600"
-                }`}
-              >
-                {restaurant.is_active ? "Deactivate" : "Activate"}
-              </button>
-              <button
-                type="button"
+              />
+              <ActionIconButton
+                label={restaurant.show_on_home ? "Hide from home page" : "Show on home page"}
+                icon={restaurant.show_on_home ? "👁" : "🏠"}
+                className={restaurant.show_on_home ? "bg-slate-700 hover:bg-slate-600" : "bg-emerald-600 hover:bg-emerald-500"}
                 disabled={isPending}
                 onClick={() => toggleHomeVisibility(restaurant.id, restaurant.show_on_home)}
-                className={`btn text-white disabled:opacity-70 ${
-                  restaurant.show_on_home ? "bg-slate-700" : "bg-emerald-600"
-                }`}
-              >
-                {restaurant.show_on_home ? "Hide on home" : "Show on home"}
-              </button>
-              <button
-                type="button"
+              />
+              <ActionIconButton
+                label="Delete restaurant"
+                icon="🗑"
+                className="bg-red-600 hover:bg-red-500"
                 disabled={isPending}
                 onClick={() => openDeleteModal(restaurant)}
-                className="btn bg-red-600 text-white disabled:opacity-70"
-              >
-                Delete
-              </button>
+              />
             </div>
           </article>
         ))}
@@ -287,43 +302,35 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                   {new Date(restaurant.created_at).toLocaleDateString()}
                 </td>
                 <td className="py-3">
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
+                  <div className="flex items-center gap-2">
+                    <ActionIconButton
+                      label="Renew subscription"
+                      icon="↻"
+                      className="bg-blue-600 hover:bg-blue-500"
                       disabled={isPending}
                       onClick={() => renewSubscription(restaurant.id)}
-                      className="btn bg-blue-600 text-white disabled:opacity-70"
-                    >
-                      Renew
-                    </button>
-                    <button
-                      type="button"
+                    />
+                    <ActionIconButton
+                      label={restaurant.is_active ? "Deactivate restaurant" : "Activate restaurant"}
+                      icon={restaurant.is_active ? "⏸" : "▶"}
+                      className={restaurant.is_active ? "bg-amber-600 hover:bg-amber-500" : "bg-green-600 hover:bg-green-500"}
                       disabled={isPending}
                       onClick={() => openToggleModal(restaurant)}
-                      className={`btn text-white disabled:opacity-70 ${
-                        restaurant.is_active ? "bg-amber-600" : "bg-green-600"
-                      }`}
-                    >
-                      {restaurant.is_active ? "Deactivate" : "Activate"}
-                    </button>
-                    <button
-                      type="button"
+                    />
+                    <ActionIconButton
+                      label={restaurant.show_on_home ? "Hide from home page" : "Show on home page"}
+                      icon={restaurant.show_on_home ? "👁" : "🏠"}
+                      className={restaurant.show_on_home ? "bg-slate-700 hover:bg-slate-600" : "bg-emerald-600 hover:bg-emerald-500"}
                       disabled={isPending}
                       onClick={() => toggleHomeVisibility(restaurant.id, restaurant.show_on_home)}
-                      className={`btn text-white disabled:opacity-70 ${
-                        restaurant.show_on_home ? "bg-slate-700" : "bg-emerald-600"
-                      }`}
-                    >
-                      {restaurant.show_on_home ? "Hide on home" : "Show on home"}
-                    </button>
-                    <button
-                      type="button"
+                    />
+                    <ActionIconButton
+                      label="Delete restaurant"
+                      icon="🗑"
+                      className="bg-red-600 hover:bg-red-500"
                       disabled={isPending}
                       onClick={() => openDeleteModal(restaurant)}
-                      className="btn bg-red-600 text-white disabled:opacity-70"
-                    >
-                      Delete
-                    </button>
+                    />
                   </div>
                 </td>
               </tr>
