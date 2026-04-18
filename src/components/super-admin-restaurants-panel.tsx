@@ -72,6 +72,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
   const [isPending, startTransition] = useTransition();
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<"all" | "active" | "inactive">("all");
+  const [infoRestaurant, setInfoRestaurant] = useState<RestaurantRow | null>(null);
   const [modal, setModal] = useState<ModalState>({
     open: false,
     restaurantId: "",
@@ -230,7 +231,6 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
               <div>
                 <h3 className="font-semibold text-slate-900">{restaurant.name}</h3>
                 <p className="text-xs text-slate-500">/{restaurant.slug}</p>
-                <p className="mt-1 text-xs text-slate-600">{restaurant.admin_email}</p>
               </div>
               <span
                 className={`rounded-full px-2 py-1 text-xs font-semibold ${
@@ -241,14 +241,6 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
               </span>
             </div>
             <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-600">
-              <span className="rounded-full bg-slate-100 px-2 py-1">{restaurant.phone}</span>
-              <span className="rounded-full bg-slate-100 px-2 py-1">
-                {restaurant.category_count} sections
-              </span>
-              <span className="rounded-full bg-slate-100 px-2 py-1">{restaurant.item_count} items</span>
-              <span className="rounded-full bg-blue-50 px-2 py-1 text-blue-700">
-                {restaurant.plan_name ?? "No plan"}
-              </span>
               <span className="rounded-full bg-slate-100 px-2 py-1">
                 {restaurant.subscription_status ?? "No subscription"}
               </span>
@@ -295,6 +287,13 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                 disabled={isPending}
                 onClick={() => openDeleteModal(restaurant)}
               />
+              <ActionIconButton
+                label="View more info"
+                icon="ℹ"
+                className="bg-slate-600 hover:bg-slate-500"
+                disabled={isPending}
+                onClick={() => setInfoRestaurant(restaurant)}
+              />
               {restaurant.subscription_id ? (
                 <>
                   <ActionIconButton
@@ -326,45 +325,35 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
       </div>
 
       <div className="mt-4 hidden overflow-x-auto lg:block">
-        <table className="w-full min-w-[980px] text-sm">
+        <table className="w-full min-w-[980px] text-xs">
           <thead>
-            <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
-              <th className="py-2">Restaurant</th>
-              <th className="py-2">Admin</th>
-              <th className="py-2">Slug</th>
-              <th className="py-2">Sections / Items</th>
-              <th className="py-2">Phone</th>
-              <th className="py-2">Plan</th>
-              <th className="py-2">Sub status</th>
-              <th className="py-2">Next due</th>
-              <th className="py-2">Outstanding</th>
-              <th className="py-2">Status</th>
-              <th className="py-2">Home</th>
-              <th className="py-2">Created</th>
-              <th className="py-2">Actions</th>
+            <tr className="border-b border-slate-200 text-left text-[11px] uppercase tracking-wide text-slate-500">
+              <th className="py-2 whitespace-nowrap">Restaurant</th>
+              <th className="py-2 whitespace-nowrap">Slug</th>
+              <th className="py-2 whitespace-nowrap">Sub status</th>
+              <th className="py-2 whitespace-nowrap">Next due</th>
+              <th className="py-2 whitespace-nowrap">Outstanding</th>
+              <th className="py-2 whitespace-nowrap">Status</th>
+              <th className="py-2 whitespace-nowrap">Home</th>
+              <th className="py-2 whitespace-nowrap">Created</th>
+              <th className="py-2 whitespace-nowrap">Actions</th>
             </tr>
           </thead>
           <tbody>
             {filtered.map((restaurant) => (
               <tr key={restaurant.id} className="border-b border-slate-100">
-                <td className="py-3 font-medium text-slate-900">{restaurant.name}</td>
-                <td className="py-3 text-slate-600">{restaurant.admin_email}</td>
-                <td className="py-3 text-slate-600">/{restaurant.slug}</td>
-                <td className="py-3 text-slate-600">
-                  {restaurant.category_count} / {restaurant.item_count}
-                </td>
-                <td className="py-3 text-slate-600">{restaurant.phone}</td>
-                <td className="py-3 text-slate-600">{restaurant.plan_name ?? "—"}</td>
-                <td className="py-3 text-slate-600">{restaurant.subscription_status ?? "—"}</td>
-                <td className="py-3 text-slate-600">
+                <td className="py-3 whitespace-nowrap font-medium text-slate-900">{restaurant.name}</td>
+                <td className="py-3 whitespace-nowrap text-slate-600">/{restaurant.slug}</td>
+                <td className="py-3 whitespace-nowrap text-slate-600">{restaurant.subscription_status ?? "—"}</td>
+                <td className="py-3 whitespace-nowrap text-slate-600">
                   {restaurant.next_due_at
                     ? new Date(restaurant.next_due_at).toLocaleDateString()
                     : "—"}
                 </td>
-                <td className="py-3 font-medium text-amber-700">
+                <td className="py-3 whitespace-nowrap font-medium text-amber-700">
                   ${restaurant.outstanding_balance.toFixed(2)}
                 </td>
-                <td className="py-3">
+                <td className="py-3 whitespace-nowrap">
                   <span
                     className={`rounded-full px-2 py-1 text-xs font-semibold ${
                       restaurant.is_active
@@ -375,7 +364,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                     {restaurant.is_active ? "Active" : "Inactive"}
                   </span>
                 </td>
-                <td className="py-3">
+                <td className="py-3 whitespace-nowrap">
                   <span
                     className={`rounded-full px-2 py-1 text-xs font-semibold ${
                       restaurant.show_on_home
@@ -386,10 +375,10 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                     {restaurant.show_on_home ? "Visible" : "Hidden"}
                   </span>
                 </td>
-                <td className="py-3 text-slate-600">
+                <td className="py-3 whitespace-nowrap text-slate-600">
                   {new Date(restaurant.created_at).toLocaleDateString()}
                 </td>
-                <td className="py-3">
+                <td className="py-3 whitespace-nowrap">
                   <div className="flex items-center gap-2">
                     <ActionIconButton
                       label="Renew subscription"
@@ -418,6 +407,13 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                       className="bg-red-600 hover:bg-red-500"
                       disabled={isPending}
                       onClick={() => openDeleteModal(restaurant)}
+                    />
+                    <ActionIconButton
+                      label="View more info"
+                      icon="ℹ"
+                      className="bg-slate-600 hover:bg-slate-500"
+                      disabled={isPending}
+                      onClick={() => setInfoRestaurant(restaurant)}
                     />
                     {restaurant.subscription_id ? (
                       <>
@@ -472,6 +468,47 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                 className="btn btn-danger rounded-xl disabled:opacity-70"
               >
                 Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {infoRestaurant && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/40 p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-xl ring-1 ring-slate-200">
+            <h3 className="text-lg font-bold text-slate-900">Restaurant details</h3>
+            <div className="mt-3 grid gap-2 text-sm text-slate-700 sm:grid-cols-2">
+              <p><span className="font-semibold">Name:</span> {infoRestaurant.name}</p>
+              <p><span className="font-semibold">Slug:</span> /{infoRestaurant.slug}</p>
+              <p><span className="font-semibold">Admin email:</span> {infoRestaurant.admin_email}</p>
+              <p><span className="font-semibold">Phone:</span> {infoRestaurant.phone}</p>
+              <p><span className="font-semibold">Sections:</span> {infoRestaurant.category_count}</p>
+              <p><span className="font-semibold">Items:</span> {infoRestaurant.item_count}</p>
+              <p><span className="font-semibold">Plan:</span> {infoRestaurant.plan_name ?? "No plan"}</p>
+              <p><span className="font-semibold">Sub status:</span> {infoRestaurant.subscription_status ?? "—"}</p>
+              <p>
+                <span className="font-semibold">Last payment:</span>{" "}
+                {infoRestaurant.last_payment_at
+                  ? new Date(infoRestaurant.last_payment_at).toLocaleDateString()
+                  : "—"}
+              </p>
+              <p>
+                <span className="font-semibold">Next due:</span>{" "}
+                {infoRestaurant.next_due_at
+                  ? new Date(infoRestaurant.next_due_at).toLocaleDateString()
+                  : "—"}
+              </p>
+              <p><span className="font-semibold">Outstanding:</span> ${infoRestaurant.outstanding_balance.toFixed(2)}</p>
+              <p><span className="font-semibold">Created:</span> {new Date(infoRestaurant.created_at).toLocaleDateString()}</p>
+            </div>
+            <div className="mt-4 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setInfoRestaurant(null)}
+                className="btn btn-secondary rounded-xl"
+              >
+                Close
               </button>
             </div>
           </div>
