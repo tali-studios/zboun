@@ -139,8 +139,10 @@ body {
 
 .flyer-a4 {
   width: 210mm;
+  height: 297mm;
   min-height: 297mm;
   border-radius: 1rem;
+  box-sizing: border-box;
 }
 
 @media print {
@@ -157,11 +159,28 @@ body {
 
   .flyer-a4 {
     width: 210mm;
+    height: 297mm;
     min-height: 297mm;
     border-radius: 0 !important;
     border: none !important;
     box-shadow: none !important;
     margin: 0 !important;
-    padding: 14mm !important;
+    padding: 10mm !important;
+    overflow: hidden !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .flyer-print-page {
+    padding: 0 !important;
+    min-height: auto !important;
+  }
+
+  .flyer-print-wrap {
+    max-width: none !important;
+    margin: 0 !important;
+    width: 210mm !important;
+    padding: 0 !important;
+    gap: 0 !important;
   }
 }

@@ -53,21 +53,23 @@ export default async function RestaurantMenuPage({ params }: Props) {
   return (
     <main className="min-h-screen py-4 sm:py-6">
       <div className="container">
-        <header className="mb-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-green-600 p-4 text-white shadow-lg md:mb-6 md:p-5">
+        <header className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 md:mb-5 md:p-5">
           <div className="flex items-center gap-3">
             {restaurant.logo_url ? (
               <Image
                 src={restaurant.logo_url}
                 alt={`${restaurant.name} logo`}
-                width={56}
-                height={56}
-                className="h-12 w-12 rounded-xl bg-white/90 p-1 object-contain md:h-14 md:w-14"
+                width={54}
+                height={54}
+                className="h-12 w-12 rounded-xl border border-slate-200 bg-white p-1 object-contain"
                 unoptimized
               />
             ) : null}
-            <h1 className="text-xl font-bold md:text-2xl">{restaurant.name}</h1>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900">{restaurant.name}</h1>
+              <p className="text-sm text-slate-600">Order directly on WhatsApp</p>
+            </div>
           </div>
-          <p className="text-sm text-emerald-50">Order directly on WhatsApp</p>
         </header>
         <MenuClient
           restaurantName={restaurant.name}

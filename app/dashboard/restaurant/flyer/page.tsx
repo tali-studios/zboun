@@ -23,8 +23,8 @@ export default async function RestaurantFlyerPage() {
   const menuUrl = `${appUrl.replace(/\/+$/, "")}/${restaurant?.slug ?? ""}`;
 
   return (
-    <main className="min-h-screen p-4 md:p-8">
-      <div className="mx-auto max-w-6xl space-y-6">
+    <main className="flyer-print-page min-h-screen p-4 md:p-8">
+      <div className="flyer-print-wrap mx-auto max-w-6xl space-y-6">
         <header className="panel flex items-center justify-between rounded-2xl p-5 print:hidden">
           <div>
             <p className="text-sm font-medium text-emerald-700">Restaurant admin</p>
