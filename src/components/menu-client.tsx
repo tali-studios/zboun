@@ -97,9 +97,10 @@ export function MenuClient({ restaurantName, restaurantPhone, categories }: Prop
                     <button
                       disabled={!item.is_available}
                       onClick={() => addItem(item.id, item.name, item.price)}
-                      className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                      className="flex h-11 w-11 items-center justify-center rounded-full bg-emerald-600 text-2xl font-bold leading-none text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                      aria-label={item.is_available ? `Add ${item.name}` : `${item.name} out of stock`}
                     >
-                      {item.is_available ? "Add" : "Out of stock"}
+                      {item.is_available ? "+" : "−"}
                     </button>
                   </div>
                 </article>
