@@ -3,8 +3,20 @@
 import crypto from "node:crypto";
 import { redirect } from "next/navigation";
 import nodemailer from "nodemailer";
+import { createClient } from "@supabase/supabase-js";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getCurrentUserRole } from "@/lib/data";
+import { env } from "@/lib/env";
+
+function getAdminClient() {
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!env.supabaseUrl || !serviceRoleKey) {
+    throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY or Supabase URL.");
+  }
+  return createClient(env.supabaseUrl, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
 
 export async function signInAction(formData: FormData) {
   const email = String(formData.get("email") ?? "");
@@ -21,13 +33,25 @@ export async function signInAction(formData: FormData) {
     redirect("/dashboard/login?error=invalid_credentials");
   }
 
-  const { data: profile, error: profileError } = await supabase
+  const { data: profileByUserClient, error: profileError } = await supabase
     .from("users")
     .select("id, role, restaurant_id, name, email")
     .eq("id", user.id)
     .maybeSingle();
 
+  let profile = profileByUserClient;
   if (profileError || !profile) {
+    // RLS can block this read in some policy configurations; fallback to service role lookup.
+    const adminClient = getAdminClient();
+    const { data: profileByAdmin } = await adminClient
+      .from("users")
+      .select("id, role, restaurant_id, name, email")
+      .eq("id", user.id)
+      .maybeSingle();
+    profile = profileByAdmin ?? null;
+  }
+
+  if (!profile) {
     redirect("/dashboard/login?error=missing_profile");
   }
   if (profile.role === "superadmin") {
