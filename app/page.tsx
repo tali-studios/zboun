@@ -4,27 +4,6 @@ import { RestaurantDirectory } from "@/components/restaurant-directory";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 
-const steps = [
-  "Customer scans QR or opens your menu link",
-  "They pick items and review cart in seconds",
-  "Order goes directly to your WhatsApp number",
-];
-
-const featureCards = [
-  {
-    title: "Digital menu pages",
-    description: "Each restaurant gets a unique link and QR-ready menu page.",
-  },
-  {
-    title: "Structured WhatsApp orders",
-    description: "No more messy chats. Orders are clear, itemized, and readable.",
-  },
-  {
-    title: "Easy menu management",
-    description: "Restaurant admins update sections, items, prices, and availability in minutes.",
-  },
-];
-
 export default async function HomePage() {
   const supabase = await createServerSupabaseClient();
   const { data: restaurants } = await supabase
@@ -34,79 +13,88 @@ export default async function HomePage() {
     .eq("show_on_home", true)
     .order("created_at", { ascending: false });
 
+  const count = restaurants?.length ?? 0;
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-emerald-50 via-slate-50 to-white">
-      <SiteHeader largeLogo showDashboardButton={false} />
+    <div className="min-h-screen bg-gradient-to-b from-emerald-50/90 via-white to-slate-50/80">
+      <SiteHeader largeLogo showDashboardButton={false} showForRestaurantsLink />
       <main>
-        <section className="container py-10 md:py-24">
-          <div className="grid gap-8 lg:grid-cols-2 lg:items-center">
-            <div className="max-w-3xl space-y-6">
-              <span className="inline-flex rounded-full bg-green-100 px-3 py-1 text-sm font-semibold text-green-800">
-                Built for restaurants
-              </span>
-              <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl md:text-6xl">
-                Turn your menu into instant WhatsApp orders
-              </h1>
-              <p className="max-w-2xl text-base text-slate-600 md:text-lg">
-                No commissions. No apps. Just direct orders.
+        <section className="container pt-6 pb-2 md:pt-10 md:pb-4">
+          <div className="relative overflow-hidden rounded-3xl border border-emerald-200/40 bg-white/90 px-5 py-8 shadow-[0_24px_60px_-28px_rgba(15,118,110,0.35)] md:px-10 md:py-10">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-emerald-400/15 blur-3xl"
+            />
+            <div
+              aria-hidden
+              className="pointer-events-none absolute -bottom-20 -left-16 h-56 w-56 rounded-full bg-slate-400/10 blur-3xl"
+            />
+            <div className="relative max-w-2xl space-y-4">
+              <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-emerald-700">
+                Order on WhatsApp
               </p>
-              <div className="grid gap-3 sm:flex sm:flex-wrap">
-                <Link
-                  href="/contact"
-                  className="rounded-full bg-green-600 px-6 py-3 text-center font-semibold text-white transition hover:-translate-y-0.5 hover:bg-green-700"
-                >
-                  Contact us to get started
-                </Link>
+              <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl md:text-5xl">
+                Browse restaurants. Open a menu. Order in seconds.
+              </h1>
+              <p className="text-base text-slate-600 md:text-lg">
+                No app download — pick a place below, build your cart, and send a clear message to
+                the restaurant on WhatsApp.
+              </p>
+              <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:flex-wrap sm:items-center">
+                <p className="text-sm text-slate-500">
+                  {count > 0 ? (
+                    <>
+                      <span className="font-semibold text-slate-800">{count}</span> listed
+                      {count === 1 ? " restaurant" : " restaurants"} right now.
+                    </>
+                  ) : (
+                    <>New restaurants join every week — check back soon.</>
+                  )}
+                </p>
+                <span className="hidden h-4 w-px bg-slate-200 sm:block" aria-hidden />
                 <Link
                   href="/demo-restaurant"
-                  className="rounded-full border border-slate-300 px-6 py-3 text-center font-semibold text-slate-800 hover:bg-slate-100"
+                  className="text-sm font-semibold text-emerald-700 underline-offset-4 hover:underline"
                 >
-                  View demo menu
+                  See a demo menu →
                 </Link>
               </div>
             </div>
+          </div>
+        </section>
 
-            <div className="panel rounded-3xl p-5 sm:p-6">
-              <p className="text-sm font-semibold text-slate-500">Live Preview</p>
-              <div className="mt-4 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 p-5 text-white">
-                <p className="text-sm text-slate-300">Sample order message</p>
-                <pre className="mt-2 whitespace-pre-wrap text-sm leading-6 text-emerald-200">
-{`Hello 👋
-I'd like to order:
-- 2x Chicken Burger
-- 1x Fries
+        <RestaurantDirectory
+          restaurants={restaurants ?? []}
+          eyebrow="Discover"
+          title="Restaurants on Zboun"
+          subtitle="Search by name, open the customer menu, then send your order on WhatsApp."
+        />
 
-Total: $12.00
-Name: Ahmad
-Address: Hadath near X`}
-                </pre>
-              </div>
+        <section className="container pb-12 pt-2 md:pb-16">
+          <div className="flex flex-col items-stretch justify-between gap-4 rounded-2xl border border-slate-200/90 bg-slate-900 px-5 py-5 text-white shadow-lg sm:flex-row sm:items-center sm:px-8">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300/90">
+                For restaurant owners
+              </p>
+              <p className="mt-1 text-sm text-slate-300 md:text-base">
+                Get your own menu page, QR tools, and dashboard — from{" "}
+                <span className="font-semibold text-white">$25/month</span>.
+              </p>
             </div>
-          </div>
-        </section>
-
-        <RestaurantDirectory restaurants={restaurants ?? []} />
-
-        <section className="container py-6 sm:py-8">
-          <h2 className="text-2xl font-bold text-slate-900">How it works</h2>
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
-            {steps.map((step, index) => (
-              <div key={step} className="panel p-5">
-                <p className="text-sm font-semibold text-orange-600">Step {index + 1}</p>
-                <p className="mt-2 font-medium text-slate-800">{step}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="container py-6 sm:py-8">
-          <div className="grid gap-4 md:grid-cols-3">
-            {featureCards.map((feature) => (
-              <article key={feature.title} className="panel rounded-3xl p-6">
-                <h3 className="text-lg font-bold text-slate-900">{feature.title}</h3>
-                <p className="mt-2 text-sm text-slate-600">{feature.description}</p>
-              </article>
-            ))}
+            <div className="flex flex-col gap-2 sm:flex-row sm:shrink-0">
+              <Link
+                href="/for-restaurants"
+                className="rounded-xl bg-emerald-500 px-5 py-3 text-center text-sm font-semibold text-slate-950 transition hover:bg-emerald-400"
+              >
+                Plans & subscribe
+              </Link>
+              <Link
+                href="/contact"
+                className="rounded-xl border border-white/20 bg-white/5 px-5 py-3 text-center text-sm font-semibold text-white hover:bg-white/10"
+              >
+                Contact
+              </Link>
+            </div>
           </div>
         </section>
       </main>

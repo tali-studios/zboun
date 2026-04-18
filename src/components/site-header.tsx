@@ -5,9 +5,15 @@ type SiteHeaderProps = {
   /** Larger logo + header height (e.g. home page hero) */
   largeLogo?: boolean;
   showDashboardButton?: boolean;
+  /** Link to marketing / pricing for restaurant owners */
+  showForRestaurantsLink?: boolean;
 };
 
-export function SiteHeader({ largeLogo = false, showDashboardButton = true }: SiteHeaderProps) {
+export function SiteHeader({
+  largeLogo = false,
+  showDashboardButton = true,
+  showForRestaurantsLink = false,
+}: SiteHeaderProps) {
   return (
     <header className="border-b border-slate-200/70 bg-white/80 backdrop-blur-md">
       <div
@@ -26,7 +32,12 @@ export function SiteHeader({ largeLogo = false, showDashboardButton = true }: Si
             className="max-h-14 w-auto object-contain"
           />
         </Link>
-        <nav className="flex items-center gap-3 text-sm font-medium text-slate-700 md:gap-5">
+        <nav className="flex flex-wrap items-center justify-end gap-2 text-sm font-medium text-slate-700 sm:gap-3 md:gap-5">
+          {showForRestaurantsLink ? (
+            <Link href="/for-restaurants" className="hover:text-slate-900">
+              For restaurants
+            </Link>
+          ) : null}
           <Link href="/contact" className="hover:text-slate-900">
             Contact
           </Link>

@@ -4,7 +4,7 @@ import { SiteFooter } from "@/components/site-footer";
 export default function ContactPage() {
   return (
     <div className="min-h-screen">
-      <SiteHeader />
+      <SiteHeader showForRestaurantsLink />
       <main className="container py-14">
         <div className="panel mx-auto max-w-2xl rounded-3xl p-8">
           <h1 className="text-3xl font-bold text-slate-900">Contact us</h1>

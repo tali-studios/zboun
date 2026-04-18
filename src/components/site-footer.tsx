@@ -23,6 +23,9 @@ export function SiteFooter() {
           <Link href="/" className="hover:text-slate-900">
             Home
           </Link>
+          <Link href="/for-restaurants" className="hover:text-slate-900">
+            For restaurants
+          </Link>
           <Link href="/contact" className="hover:text-slate-900">
             Contact
           </Link>
