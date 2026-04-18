@@ -57,6 +57,12 @@ export default async function LoginPage({ searchParams }: Props) {
             and try again.
           </p>
         )}
+        {error === "missing_restaurant_link" && (
+          <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            Your user is restaurant admin, but no restaurant is linked yet. Set{" "}
+            <code className="font-mono">restaurant_id</code> in <code className="font-mono">public.users</code>.
+          </p>
+        )}
         <div className="mt-4 space-y-3">
           <input
             type="email"

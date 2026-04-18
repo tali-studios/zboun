@@ -3,10 +3,12 @@ import { signOutAction } from "@/app-actions/auth";
 import {
   createRestaurantAction,
 } from "@/app-actions/superadmin";
+import { createClient } from "@supabase/supabase-js";
 import { SuperAdminFinancePanel } from "@/components/super-admin-finance-panel";
 import { SuperAdminRestaurantsPanel } from "@/components/super-admin-restaurants-panel";
 import { getCurrentUserRole } from "@/lib/data";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { env } from "@/lib/env";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +24,14 @@ export default async function SuperAdminPage({ searchParams }: Props) {
   }
 
   const supabase = await createServerSupabaseClient();
-  const query = supabase
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const dataClient =
+    env.supabaseUrl && serviceRoleKey
+      ? createClient(env.supabaseUrl, serviceRoleKey, {
+          auth: { autoRefreshToken: false, persistSession: false },
+        })
+      : supabase;
+  const query = dataClient
     .from("restaurants")
     .select("id, name, slug, phone, is_active, show_on_home, created_at")
     .order("created_at", { ascending: false });
@@ -39,24 +48,24 @@ export default async function SuperAdminPage({ searchParams }: Props) {
   ] =
     await Promise.all([
       query,
-      supabase.from("categories").select("id, restaurant_id"),
-      supabase.from("menu_items").select("id, restaurant_id"),
-      supabase
+      dataClient.from("categories").select("id, restaurant_id"),
+      dataClient.from("menu_items").select("id, restaurant_id"),
+      dataClient
         .from("users")
         .select("restaurant_id, email")
         .eq("role", "restaurant_admin"),
-      supabase
+      dataClient
         .from("subscription_plans")
         .select("id, name, interval, price, is_active")
         .eq("is_active", true)
         .order("price", { ascending: true }),
-      supabase
+      dataClient
         .from("restaurant_subscriptions")
         .select("id, restaurant_id, plan_id, status, next_due_at, billing_cycle_price, created_at"),
-      supabase
+      dataClient
         .from("invoices")
         .select("id, restaurant_id, subscription_id, amount_due, amount_paid, status, due_at, created_at"),
-      supabase
+      dataClient
         .from("payments")
         .select("id, invoice_id, restaurant_id, amount_paid, paid_at, method, reference_note, created_at")
         .order("paid_at", { ascending: false }),

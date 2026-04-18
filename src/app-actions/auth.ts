@@ -63,9 +63,13 @@ export async function signInAction(formData: FormData) {
   if (normalizedRole === "superadmin") {
     redirect("/dashboard/super-admin");
   }
-
-  // Route all non-superadmin users through centralized dashboard role gate.
-  redirect("/dashboard");
+  if (normalizedRole === "restaurantadmin") {
+    if (!profile.restaurant_id) {
+      redirect("/dashboard/login?error=missing_restaurant_link");
+    }
+    redirect("/dashboard/restaurant");
+  }
+  redirect("/dashboard/login?error=missing_profile");
 }
 
 export async function signOutAction() {
