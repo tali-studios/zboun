@@ -18,7 +18,7 @@ type CartLine = {
   qty: number;
   unitPrice: number;
   removedIngredients: string[];
-  addedIngredients: Array<{ name: string; price: number }>;
+  addedIngredients: Array<{ name: string; price: number; qty: number }>;
   specialInstructions: string;
 };
 
@@ -26,7 +26,7 @@ type AddIngredientOption = { name: string; price: number };
 type CustomizationState = {
   item: CategoryWithItems["menu_items"][number];
   remove: string[];
-  add: string[];
+  add: Record<string, number>;
   note: string;
   qty: number;
 };
@@ -59,7 +59,7 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
     setCustomizing({
       item,
       remove: [],
-      add: [],
+      add: {},
       note: "",
       qty: 1,
     });
@@ -72,13 +72,22 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
   function addCustomizedItem() {
     if (!customizing) return;
     const addOptions = normalizeAddIngredients(customizing.item.add_ingredients);
-    const selectedAdd = addOptions.filter((option) => customizing.add.includes(option.name));
-    const addCost = selectedAdd.reduce((sum, option) => sum + option.price, 0);
+    const selectedAdd = addOptions
+      .map((option) => {
+        const qty = customizing.add[option.name] ?? 0;
+        return qty > 0 ? { ...option, qty } : null;
+      })
+      .filter((option): option is AddIngredientOption & { qty: number } => Boolean(option));
+    const addCost = selectedAdd.reduce((sum, option) => sum + option.price * option.qty, 0);
     const unitPrice = Math.max(0, Number(customizing.item.price) + addCost);
     const lineKey = [
       customizing.item.id,
       [...customizing.remove].sort().join("|"),
-      [...customizing.add].sort().join("|"),
+      Object.entries(customizing.add)
+        .filter(([, qty]) => qty > 0)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([name, qty]) => `${name}:${qty}`)
+        .join("|"),
       customizing.note.trim(),
     ].join("::");
 
@@ -133,7 +142,7 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
         if (item.addedIngredients.length > 0) {
           modifiers.push(
             `add: ${item.addedIngredients
-              .map((add) => `${add.name}${add.price > 0 ? ` (+${formatUsd(add.price)})` : ""}`)
+              .map((add) => `${add.name} x${add.qty}`)
               .join(", ")}`,
           );
         }
@@ -141,9 +150,7 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
           modifiers.push(`note: ${item.specialInstructions}`);
         }
         const modifierText = modifiers.length > 0 ? ` [${modifiers.join(" | ")}]` : "";
-        return `- ${item.qty}x ${item.name}${modifierText} — ${formatUsd(lineTotal)} (${formatLbp(
-          lineTotal,
-        )})`;
+        return `- ${item.qty}x ${item.name}${modifierText}`;
       }),
       "",
       `Total: ${formatUsd(total)} (${formatLbp(total)})`,
@@ -244,7 +251,12 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
                   <p className="text-xs text-slate-500">
                     Add:{" "}
                     {item.addedIngredients
-                      .map((add) => `${add.name}${add.price > 0 ? ` (+${formatUsd(add.price)})` : ""}`)
+                      .map(
+                        (add) =>
+                          `${add.name} x${add.qty}${
+                            add.price > 0 ? ` (+${formatUsd(add.price * add.qty)})` : ""
+                          }`,
+                      )
                       .join(", ")}
                   </p>
                 ) : null}
@@ -351,24 +363,7 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
                 <h4 className="text-lg font-semibold text-slate-900">Add ingredients</h4>
                 <div className="mt-2 space-y-2">
                   {(customizing.item.add_ingredients ?? []).map((ingredient) => (
-                    <label key={`add-${ingredient.name}`} className="flex items-center gap-2 text-sm text-slate-700">
-                      <input
-                        type="checkbox"
-                        checked={customizing.add.includes(ingredient.name)}
-                        onChange={(event) => {
-                          const checked = event.target.checked;
-                          setCustomizing((prev) =>
-                            prev
-                              ? {
-                                  ...prev,
-                                  add: checked
-                                    ? [...prev.add, ingredient.name]
-                                    : prev.add.filter((item) => item !== ingredient.name),
-                                }
-                              : prev,
-                          );
-                        }}
-                      />
+                    <div key={`add-${ingredient.name}`} className="flex items-center justify-between gap-2 text-sm text-slate-700">
                       <span>
                         {ingredient.name}
                         {Number(ingredient.price ?? 0) > 0 ? (
@@ -379,7 +374,45 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
                           </span>
                         ) : null}
                       </span>
-                    </label>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-300 text-slate-700"
+                          onClick={() =>
+                            setCustomizing((prev) => {
+                              if (!prev) return prev;
+                              const current = prev.add[ingredient.name] ?? 0;
+                              const next = Math.max(0, current - 1);
+                              return {
+                                ...prev,
+                                add: { ...prev.add, [ingredient.name]: next },
+                              };
+                            })
+                          }
+                        >
+                          −
+                        </button>
+                        <span className="min-w-6 text-center font-semibold">
+                          {customizing.add[ingredient.name] ?? 0}
+                        </span>
+                        <button
+                          type="button"
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-300 text-slate-700"
+                          onClick={() =>
+                            setCustomizing((prev) => {
+                              if (!prev) return prev;
+                              const current = prev.add[ingredient.name] ?? 0;
+                              return {
+                                ...prev,
+                                add: { ...prev.add, [ingredient.name]: current + 1 },
+                              };
+                            })
+                          }
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
