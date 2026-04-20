@@ -22,7 +22,7 @@ export async function getRestaurantBySlug(slug: string) {
   const supabase = await createServerSupabaseClient();
   const { data } = await supabase
     .from("restaurants")
-    .select("id, name, slug, phone, logo_url, is_active")
+    .select("id, name, slug, phone, logo_url, lbp_rate, is_active")
     .eq("slug", slug)
     .single();
   return data;

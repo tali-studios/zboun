@@ -3,6 +3,8 @@ export const ZBOUN_PRICING = {
   currency: "USD",
   symbol: "$",
   monthly: 25,
+  /** Optional one-time onboarding service: we enter your menu data for you. */
+  oneTimeDataEntry: 100,
   /** Yearly: 2 months free vs paying monthly × 12 */
   yearly: 200,
 } as const;

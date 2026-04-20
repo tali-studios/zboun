@@ -7,12 +7,13 @@ import type { CategoryWithItems } from "@/lib/data";
 type Props = {
   restaurantName: string;
   restaurantPhone: string;
+  lbpRate: number;
   categories: CategoryWithItems[];
 };
 
 type CartState = Record<string, { id: string; name: string; price: number; qty: number }>;
 
-export function MenuClient({ restaurantName, restaurantPhone, categories }: Props) {
+export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categories }: Props) {
   const [cart, setCart] = useState<CartState>({});
   const [customerName, setCustomerName] = useState("");
   const [address, setAddress] = useState("");
@@ -36,14 +37,28 @@ export function MenuClient({ restaurantName, restaurantPhone, categories }: Prop
     }));
   }
 
+  function formatUsd(amount: number) {
+    return `$${amount.toFixed(2)}`;
+  }
+
+  function formatLbp(amountUsd: number) {
+    const lbp = Math.round(amountUsd * lbpRate);
+    return `L.L ${lbp.toLocaleString()}`;
+  }
+
   function createWhatsAppMessage() {
     const lines = [
       "Hello 👋",
       `I'd like to order from ${restaurantName}:`,
       "",
-      ...items.map((item) => `- ${item.qty}x ${item.name}`),
+      ...items.map((item) => {
+        const lineTotal = item.qty * item.price;
+        return `- ${item.qty}x ${item.name} — ${formatUsd(item.price)} (${formatLbp(
+          item.price,
+        )}) = ${formatUsd(lineTotal)} (${formatLbp(lineTotal)})`;
+      }),
       "",
-      `Total: $${total.toFixed(2)}`,
+      `Total: ${formatUsd(total)} (${formatLbp(total)})`,
       "",
       `Name: ${customerName}`,
       `Address: ${address}`,
@@ -89,7 +104,10 @@ export function MenuClient({ restaurantName, restaurantPhone, categories }: Prop
                       {item.grams ? (
                         <p className="mt-0.5 text-xs text-slate-500">{item.grams}g</p>
                       ) : null}
-                      <p className="mt-1.5 text-lg font-bold text-emerald-700">${item.price.toFixed(2)}</p>
+                      <div className="mt-1.5 flex items-baseline gap-2">
+                        <p className="text-lg font-bold text-emerald-700">{formatUsd(item.price)}</p>
+                        <p className="text-sm font-medium text-slate-400">{formatLbp(item.price)}</p>
+                      </div>
                     </div>
                   </div>
 
@@ -117,13 +135,21 @@ export function MenuClient({ restaurantName, restaurantPhone, categories }: Prop
             <p className="text-slate-500">No items yet.</p>
           ) : (
             items.map((item) => (
-              <p key={item.id} className="text-slate-700">
-                {item.qty}x {item.name}
-              </p>
+              <div key={item.id} className="text-slate-700">
+                <p>
+                  {item.qty}x {item.name}
+                </p>
+                <p className="text-xs text-slate-500">
+                  {formatUsd(item.qty * item.price)} ({formatLbp(item.qty * item.price)})
+                </p>
+              </div>
             ))
           )}
         </div>
-        <p className="mt-3 text-sm font-semibold text-slate-900">Total: ${total.toFixed(2)}</p>
+        <p className="mt-3 text-sm font-semibold text-slate-900">
+          Total: {formatUsd(total)}{" "}
+          <span className="font-medium text-slate-500">({formatLbp(total)})</span>
+        </p>
         <div className="mt-4 space-y-2">
           <input
             value={customerName}

@@ -27,6 +27,13 @@ const includes = [
   "Optional listing on the Zboun home discovery page (super admin controlled)",
 ];
 
+const onboardingRequirements = [
+  "Full menu items list",
+  "Ingredients / contents for each item",
+  "Item photos / logo files",
+  "Prices and section structure",
+];
+
 export default function ForRestaurantsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-emerald-50/40">
@@ -90,6 +97,23 @@ export default function ForRestaurantsPage() {
                   </li>
                 ))}
               </ul>
+              <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50/70 p-4">
+                <p className="text-xs font-bold uppercase tracking-wide text-amber-800">
+                  Optional add-on
+                </p>
+                <p className="mt-1 text-sm font-semibold text-slate-900">
+                  One-time data entry service: {ZBOUN_PRICING.symbol}
+                  {ZBOUN_PRICING.oneTimeDataEntry}
+                </p>
+                <p className="mt-1 text-xs text-slate-600">
+                  We can enter your menu for you if you provide:
+                </p>
+                <ul className="mt-2 space-y-1 text-xs text-slate-700">
+                  {onboardingRequirements.map((item) => (
+                    <li key={item}>• {item}</li>
+                  ))}
+                </ul>
+              </div>
               <Link
                 href="/contact"
                 className="mt-8 block w-full rounded-xl bg-slate-900 py-3 text-center text-sm font-semibold text-white hover:bg-slate-800"

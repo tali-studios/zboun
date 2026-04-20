@@ -32,7 +32,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
   const [{ data: restaurant }, { data: categories }, { data: items }] = await Promise.all([
     supabase
       .from("restaurants")
-      .select("name, slug, phone, logo_url")
+      .select("name, slug, phone, logo_url, lbp_rate")
       .eq("id", appUser.restaurant_id)
       .single(),
     supabase
@@ -141,6 +141,15 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
               <input type="hidden" name="current_logo_url" value={restaurant?.logo_url ?? ""} />
               <input name="name" defaultValue={restaurant?.name} placeholder="Store name" className="ui-input" />
               <input name="phone" defaultValue={restaurant?.phone} placeholder="WhatsApp number" className="ui-input" />
+              <input
+                name="lbp_rate"
+                type="number"
+                step="0.01"
+                min={1}
+                defaultValue={restaurant?.lbp_rate ?? 89500}
+                placeholder="L.L rate per $1"
+                className="ui-input"
+              />
               <div className="md:col-span-3">
                 <ImageUploadField
                   name="logo_file"

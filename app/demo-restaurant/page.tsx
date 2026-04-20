@@ -70,6 +70,7 @@ export default function DemoRestaurantPage() {
         <MenuClient
           restaurantName="Demo Restaurant"
           restaurantPhone="96171212734"
+          lbpRate={89500}
           categories={demoCategories}
         />
       </div>

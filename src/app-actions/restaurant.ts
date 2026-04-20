@@ -224,6 +224,11 @@ export async function updateRestaurantSettingsAction(formData: FormData) {
   const user = await requireRestaurantAdmin();
   const logoFile = formData.get("logo_file");
   const currentLogoUrl = String(formData.get("current_logo_url") ?? "").trim();
+  const lbpRateRaw = String(formData.get("lbp_rate") ?? "").trim();
+  const lbpRate = Number(lbpRateRaw);
+  if (!Number.isFinite(lbpRate) || lbpRate <= 0) {
+    redirect("/dashboard/restaurant?q=invalid_lbp_rate");
+  }
   const uploadedLogoUrl =
     logoFile instanceof File ? await uploadRestaurantLogo(logoFile, user.restaurant_id) : null;
   const supabase = await createServerSupabaseClient();
@@ -232,6 +237,7 @@ export async function updateRestaurantSettingsAction(formData: FormData) {
     .update({
       name: String(formData.get("name")),
       phone: String(formData.get("phone")),
+      lbp_rate: Math.round(lbpRate * 100) / 100,
       logo_url: uploadedLogoUrl ?? (currentLogoUrl || null),
     })
     .eq("id", user.restaurant_id);

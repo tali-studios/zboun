@@ -74,6 +74,7 @@ export default async function RestaurantMenuPage({ params }: Props) {
         <MenuClient
           restaurantName={restaurant.name}
           restaurantPhone={restaurant.phone}
+          lbpRate={Number(restaurant.lbp_rate ?? 89500)}
           categories={categories}
         />
       </div>
