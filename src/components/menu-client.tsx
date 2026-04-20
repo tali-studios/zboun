@@ -29,6 +29,7 @@ type CustomizationState = {
   add: Record<string, number>;
   note: string;
   qty: number;
+  editingKey?: string;
 };
 
 export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categories }: Props) {
@@ -65,6 +66,25 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
     });
   }
 
+  function openEditCustomization(line: CartLine) {
+    const item = categories
+      .flatMap((category) => category.menu_items)
+      .find((candidate) => candidate.id === line.itemId);
+    if (!item) return;
+    const add: Record<string, number> = {};
+    line.addedIngredients.forEach((ingredient) => {
+      add[ingredient.name] = ingredient.qty;
+    });
+    setCustomizing({
+      item,
+      remove: [...line.removedIngredients],
+      add,
+      note: line.specialInstructions,
+      qty: line.qty,
+      editingKey: line.key,
+    });
+  }
+
   function closeCustomization() {
     setCustomizing(null);
   }
@@ -92,15 +112,28 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
     ].join("::");
 
     setCart((prev) => {
+      const baseCart =
+        customizing.editingKey && prev[customizing.editingKey]
+          ? Object.fromEntries(
+              Object.entries(prev).filter(([key]) => key !== customizing.editingKey),
+            )
+          : prev;
       const existing = prev[lineKey];
       if (existing) {
         return {
-          ...prev,
-          [lineKey]: { ...existing, qty: existing.qty + customizing.qty },
+          ...baseCart,
+          [lineKey]: {
+            ...existing,
+            qty: customizing.editingKey ? customizing.qty : existing.qty + customizing.qty,
+            specialInstructions: customizing.note.trim(),
+            removedIngredients: [...customizing.remove],
+            addedIngredients: selectedAdd,
+            unitPrice,
+          },
         };
       }
       return {
-        ...prev,
+        ...baseCart,
         [lineKey]: {
           key: lineKey,
           itemId: customizing.item.id,
@@ -115,6 +148,10 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
     });
 
     closeCustomization();
+  }
+
+  function removeCartLine(key: string) {
+    setCart((prev) => Object.fromEntries(Object.entries(prev).filter(([lineKey]) => lineKey !== key)));
   }
 
   function formatUsd(amount: number) {
@@ -266,6 +303,22 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
                 <p className="text-xs text-slate-500">
                   {formatUsd(item.qty * item.unitPrice)} ({formatLbp(item.qty * item.unitPrice)})
                 </p>
+                <div className="mt-1 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => openEditCustomization(item)}
+                    className="text-xs font-semibold text-emerald-700 hover:underline"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeCartLine(item.key)}
+                    className="text-xs font-semibold text-red-600 hover:underline"
+                  >
+                    Remove
+                  </button>
+                </div>
               </div>
             ))
           )}
