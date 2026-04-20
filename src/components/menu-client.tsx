@@ -118,6 +118,8 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
   }
 
   function createWhatsAppMessage() {
+    const cleanName = customerName.trim();
+    const cleanAddress = address.trim();
     const lines = [
       "Hello 👋",
       `I'd like to order from ${restaurantName}:`,
@@ -139,15 +141,15 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
           modifiers.push(`note: ${item.specialInstructions}`);
         }
         const modifierText = modifiers.length > 0 ? ` [${modifiers.join(" | ")}]` : "";
-        return `- ${item.qty}x ${item.name}${modifierText} — ${formatUsd(item.unitPrice)} (${formatLbp(
-          item.unitPrice,
-        )}) = ${formatUsd(lineTotal)} (${formatLbp(lineTotal)})`;
+        return `- ${item.qty}x ${item.name}${modifierText} — ${formatUsd(lineTotal)} (${formatLbp(
+          lineTotal,
+        )})`;
       }),
       "",
       `Total: ${formatUsd(total)} (${formatLbp(total)})`,
       "",
-      `Name: ${customerName}`,
-      `Address: ${address}`,
+      `Name: ${cleanName}`,
+      `Address: ${cleanAddress}`,
       notes ? `Notes: ${notes}` : "",
     ].filter(Boolean);
 
@@ -155,6 +157,19 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
   }
 
   const orderLink = `https://wa.me/${restaurantPhone.replace(/\D/g, "")}?text=${createWhatsAppMessage()}`;
+  const canOrder = items.length > 0 && customerName.trim().length > 0 && address.trim().length > 0;
+
+  function handleOrderClick() {
+    if (!customerName.trim() || !address.trim()) {
+      window.alert("Please fill both Name and Address before ordering.");
+      return;
+    }
+    if (items.length === 0) {
+      window.alert("Please add at least one item to your cart.");
+      return;
+    }
+    window.location.href = orderLink;
+  }
 
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
@@ -268,12 +283,14 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
             className="ui-textarea"
           />
         </div>
-        <a
-          href={orderLink}
-          className="mt-4 inline-flex w-full justify-center rounded-xl bg-emerald-600 px-4 py-3 font-semibold text-white transition hover:bg-emerald-700"
+        <button
+          type="button"
+          onClick={handleOrderClick}
+          disabled={!canOrder}
+          className="mt-4 inline-flex w-full justify-center rounded-xl bg-emerald-600 px-4 py-3 font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
         >
           Order via WhatsApp
-        </a>
+        </button>
       </aside>
 
       {customizing ? (
