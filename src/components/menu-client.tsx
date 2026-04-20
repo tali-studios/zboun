@@ -378,8 +378,13 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
                   </p>
                 </div>
               </div>
-              <button type="button" onClick={closeCustomization} className="btn btn-secondary rounded-xl">
-                Close
+              <button
+                type="button"
+                onClick={closeCustomization}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-red-600 text-lg font-bold leading-none text-white transition hover:bg-red-500"
+                aria-label="Close customization"
+              >
+                ×
               </button>
             </div>
 
