@@ -41,6 +41,8 @@ create table if not exists public.menu_items (
   contents text,
   grams int check (grams >= 0),
   price numeric(10, 2) not null check (price >= 0),
+  removable_ingredients jsonb not null default '[]'::jsonb,
+  add_ingredients jsonb not null default '[]'::jsonb,
   image_url text,
   is_available boolean not null default true,
   created_at timestamptz not null default now()
@@ -49,6 +51,8 @@ create table if not exists public.menu_items (
 alter table public.menu_items add column if not exists image_url text;
 alter table public.menu_items add column if not exists contents text;
 alter table public.menu_items add column if not exists grams int check (grams >= 0);
+alter table public.menu_items add column if not exists removable_ingredients jsonb not null default '[]'::jsonb;
+alter table public.menu_items add column if not exists add_ingredients jsonb not null default '[]'::jsonb;
 
 create table if not exists public.password_change_otps (
   id uuid primary key default gen_random_uuid(),

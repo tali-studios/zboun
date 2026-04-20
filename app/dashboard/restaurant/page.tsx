@@ -14,6 +14,7 @@ import { getCurrentUserRole } from "@/lib/data";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { CopyMenuLinkButton } from "@/components/copy-menu-link-button";
 import { ImageUploadField } from "@/components/image-upload-field";
+import { IngredientListField } from "@/components/ingredient-list-field";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +44,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
     supabase
       .from("menu_items")
       .select(
-        "id, name, description, price, image_url, grams, contents, is_available, category_id, categories(name)",
+        "id, name, description, price, image_url, grams, contents, removable_ingredients, add_ingredients, is_available, category_id, categories(name)",
       )
       .eq("restaurant_id", appUser.restaurant_id)
       .order("name"),
@@ -218,6 +219,15 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
             <input name="price" required placeholder="Price" type="number" step="0.01" className="ui-input" />
             <input name="grams" placeholder="Grams (optional)" type="number" min={0} className="ui-input" />
             <input name="contents" placeholder="Contains / ingredients" className="ui-input md:col-span-2" />
+            <IngredientListField
+              name="removable_ingredients"
+              label="Remove ingredients (one by one)"
+            />
+            <IngredientListField
+              name="add_ingredients"
+              label="Add ingredients (+ optional price)"
+              withPrice
+            />
             <div className="md:col-span-2">
               <ImageUploadField name="image_file" />
             </div>
@@ -271,6 +281,17 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                   <input name="price" type="number" step="0.01" defaultValue={item.price} className="ui-input" />
                   <input name="grams" type="number" min={0} defaultValue={item.grams ?? ""} placeholder="Grams" className="ui-input" />
                   <input name="contents" defaultValue={item.contents ?? ""} placeholder="Contains / ingredients" className="ui-input md:col-span-2" />
+                  <IngredientListField
+                    name="removable_ingredients"
+                    label="Remove ingredients (one by one)"
+                    defaultItems={item.removable_ingredients ?? []}
+                  />
+                  <IngredientListField
+                    name="add_ingredients"
+                    label="Add ingredients (+ optional price)"
+                    withPrice
+                    defaultItems={item.add_ingredients ?? []}
+                  />
                   <div className="md:col-span-2">
                     <ImageUploadField
                       name="image_file"

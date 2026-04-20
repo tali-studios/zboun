@@ -11,30 +11,101 @@ type Props = {
   categories: CategoryWithItems[];
 };
 
-type CartState = Record<string, { id: string; name: string; price: number; qty: number }>;
+type CartLine = {
+  key: string;
+  itemId: string;
+  name: string;
+  qty: number;
+  unitPrice: number;
+  removedIngredients: string[];
+  addedIngredients: Array<{ name: string; price: number }>;
+  specialInstructions: string;
+};
+
+type AddIngredientOption = { name: string; price: number };
+type CustomizationState = {
+  item: CategoryWithItems["menu_items"][number];
+  remove: string[];
+  add: string[];
+  note: string;
+  qty: number;
+};
 
 export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categories }: Props) {
-  const [cart, setCart] = useState<CartState>({});
+  const [cart, setCart] = useState<Record<string, CartLine>>({});
+  const [customizing, setCustomizing] = useState<CustomizationState | null>(null);
   const [customerName, setCustomerName] = useState("");
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
 
   const items = useMemo(() => Object.values(cart), [cart]);
   const total = useMemo(
-    () => items.reduce((sum, item) => sum + item.qty * item.price, 0),
+    () => items.reduce((sum, item) => sum + item.qty * item.unitPrice, 0),
     [items],
   );
 
-  function addItem(id: string, name: string, price: number) {
-    setCart((prev) => ({
-      ...prev,
-      [id]: {
-        id,
-        name,
-        price,
-        qty: (prev[id]?.qty ?? 0) + 1,
-      },
-    }));
+  function normalizeAddIngredients(
+    addIngredients: CategoryWithItems["menu_items"][number]["add_ingredients"] | null | undefined,
+  ): AddIngredientOption[] {
+    return (addIngredients ?? [])
+      .map((item) => ({
+        name: String(item?.name ?? "").trim(),
+        price: Number(item?.price ?? 0),
+      }))
+      .filter((item) => item.name);
+  }
+
+  function openCustomization(item: CategoryWithItems["menu_items"][number]) {
+    setCustomizing({
+      item,
+      remove: [],
+      add: [],
+      note: "",
+      qty: 1,
+    });
+  }
+
+  function closeCustomization() {
+    setCustomizing(null);
+  }
+
+  function addCustomizedItem() {
+    if (!customizing) return;
+    const addOptions = normalizeAddIngredients(customizing.item.add_ingredients);
+    const selectedAdd = addOptions.filter((option) => customizing.add.includes(option.name));
+    const addCost = selectedAdd.reduce((sum, option) => sum + option.price, 0);
+    const unitPrice = Math.max(0, Number(customizing.item.price) + addCost);
+    const lineKey = [
+      customizing.item.id,
+      [...customizing.remove].sort().join("|"),
+      [...customizing.add].sort().join("|"),
+      customizing.note.trim(),
+    ].join("::");
+
+    setCart((prev) => {
+      const existing = prev[lineKey];
+      if (existing) {
+        return {
+          ...prev,
+          [lineKey]: { ...existing, qty: existing.qty + customizing.qty },
+        };
+      }
+      return {
+        ...prev,
+        [lineKey]: {
+          key: lineKey,
+          itemId: customizing.item.id,
+          name: customizing.item.name,
+          qty: customizing.qty,
+          unitPrice,
+          removedIngredients: [...customizing.remove],
+          addedIngredients: selectedAdd,
+          specialInstructions: customizing.note.trim(),
+        },
+      };
+    });
+
+    closeCustomization();
   }
 
   function formatUsd(amount: number) {
@@ -52,9 +123,24 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
       `I'd like to order from ${restaurantName}:`,
       "",
       ...items.map((item) => {
-        const lineTotal = item.qty * item.price;
-        return `- ${item.qty}x ${item.name} — ${formatUsd(item.price)} (${formatLbp(
-          item.price,
+        const lineTotal = item.qty * item.unitPrice;
+        const modifiers: string[] = [];
+        if (item.removedIngredients.length > 0) {
+          modifiers.push(`remove: ${item.removedIngredients.join(", ")}`);
+        }
+        if (item.addedIngredients.length > 0) {
+          modifiers.push(
+            `add: ${item.addedIngredients
+              .map((add) => `${add.name}${add.price > 0 ? ` (+${formatUsd(add.price)})` : ""}`)
+              .join(", ")}`,
+          );
+        }
+        if (item.specialInstructions) {
+          modifiers.push(`note: ${item.specialInstructions}`);
+        }
+        const modifierText = modifiers.length > 0 ? ` [${modifiers.join(" | ")}]` : "";
+        return `- ${item.qty}x ${item.name}${modifierText} — ${formatUsd(item.unitPrice)} (${formatLbp(
+          item.unitPrice,
         )}) = ${formatUsd(lineTotal)} (${formatLbp(lineTotal)})`;
       }),
       "",
@@ -78,10 +164,7 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
             <h2 className="text-xl font-bold tracking-tight text-slate-900">{category.name}</h2>
             <div className="mt-3 space-y-2.5">
               {category.menu_items.map((item) => (
-                <article
-                  key={item.id}
-                  className="rounded-xl border border-slate-200 bg-white p-3"
-                >
+                <article key={item.id} className="rounded-xl border border-slate-200 bg-white p-3">
                   <div className="flex items-start gap-3">
                     {item.image_url ? (
                       <Image
@@ -114,9 +197,9 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
                   <div className="mt-2.5 flex justify-end">
                     <button
                       disabled={!item.is_available}
-                      onClick={() => addItem(item.id, item.name, item.price)}
+                      onClick={() => openCustomization(item)}
                       className="flex h-11 w-11 items-center justify-center rounded-full bg-emerald-600 text-2xl font-bold leading-none text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
-                      aria-label={item.is_available ? `Add ${item.name}` : `${item.name} out of stock`}
+                      aria-label={item.is_available ? `Customize ${item.name}` : `${item.name} out of stock`}
                     >
                       {item.is_available ? "+" : "−"}
                     </button>
@@ -135,12 +218,26 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
             <p className="text-slate-500">No items yet.</p>
           ) : (
             items.map((item) => (
-              <div key={item.id} className="text-slate-700">
+              <div key={item.key} className="text-slate-700">
                 <p>
                   {item.qty}x {item.name}
                 </p>
+                {item.removedIngredients.length > 0 ? (
+                  <p className="text-xs text-slate-500">Remove: {item.removedIngredients.join(", ")}</p>
+                ) : null}
+                {item.addedIngredients.length > 0 ? (
+                  <p className="text-xs text-slate-500">
+                    Add:{" "}
+                    {item.addedIngredients
+                      .map((add) => `${add.name}${add.price > 0 ? ` (+${formatUsd(add.price)})` : ""}`)
+                      .join(", ")}
+                  </p>
+                ) : null}
+                {item.specialInstructions ? (
+                  <p className="text-xs text-slate-500">Note: {item.specialInstructions}</p>
+                ) : null}
                 <p className="text-xs text-slate-500">
-                  {formatUsd(item.qty * item.price)} ({formatLbp(item.qty * item.price)})
+                  {formatUsd(item.qty * item.unitPrice)} ({formatLbp(item.qty * item.unitPrice)})
                 </p>
               </div>
             ))
@@ -178,6 +275,143 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
           Order via WhatsApp
         </a>
       </aside>
+
+      {customizing ? (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/40 p-4">
+          <div className="w-full max-w-xl rounded-2xl bg-white p-5 shadow-xl ring-1 ring-slate-200">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-2xl font-bold tracking-tight text-slate-900">
+                  {customizing.item.name}
+                </h3>
+                {customizing.item.description ? (
+                  <p className="mt-1 text-sm text-slate-600">{customizing.item.description}</p>
+                ) : null}
+                <p className="mt-1 text-sm font-semibold text-emerald-700">
+                  {formatUsd(customizing.item.price)}{" "}
+                  <span className="font-medium text-slate-400">
+                    ({formatLbp(customizing.item.price)})
+                  </span>
+                </p>
+              </div>
+              <button type="button" onClick={closeCustomization} className="btn btn-secondary rounded-xl">
+                Close
+              </button>
+            </div>
+
+            {(customizing.item.removable_ingredients?.length ?? 0) > 0 ? (
+              <div className="mt-4 border-t border-slate-100 pt-4">
+                <h4 className="text-lg font-semibold text-slate-900">Remove</h4>
+                <div className="mt-2 space-y-2">
+                  {(customizing.item.removable_ingredients ?? []).map((ingredient) => (
+                    <label key={`remove-${ingredient.name}`} className="flex items-center gap-2 text-sm text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={customizing.remove.includes(ingredient.name)}
+                        onChange={(event) => {
+                          const checked = event.target.checked;
+                          setCustomizing((prev) =>
+                            prev
+                              ? {
+                                  ...prev,
+                                  remove: checked
+                                    ? [...prev.remove, ingredient.name]
+                                    : prev.remove.filter((item) => item !== ingredient.name),
+                                }
+                              : prev,
+                          );
+                        }}
+                      />
+                      <span>{ingredient.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {(customizing.item.add_ingredients?.length ?? 0) > 0 ? (
+              <div className="mt-4 border-t border-slate-100 pt-4">
+                <h4 className="text-lg font-semibold text-slate-900">Add ingredients</h4>
+                <div className="mt-2 space-y-2">
+                  {(customizing.item.add_ingredients ?? []).map((ingredient) => (
+                    <label key={`add-${ingredient.name}`} className="flex items-center gap-2 text-sm text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={customizing.add.includes(ingredient.name)}
+                        onChange={(event) => {
+                          const checked = event.target.checked;
+                          setCustomizing((prev) =>
+                            prev
+                              ? {
+                                  ...prev,
+                                  add: checked
+                                    ? [...prev.add, ingredient.name]
+                                    : prev.add.filter((item) => item !== ingredient.name),
+                                }
+                              : prev,
+                          );
+                        }}
+                      />
+                      <span>
+                        {ingredient.name}
+                        {Number(ingredient.price ?? 0) > 0 ? (
+                          <span className="text-slate-500">
+                            {" "}
+                            + {formatUsd(Number(ingredient.price ?? 0))} (
+                            {formatLbp(Number(ingredient.price ?? 0))})
+                          </span>
+                        ) : null}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            <div className="mt-4 border-t border-slate-100 pt-4">
+              <h4 className="text-lg font-semibold text-slate-900">Special instructions</h4>
+              <textarea
+                value={customizing.note}
+                onChange={(event) =>
+                  setCustomizing((prev) => (prev ? { ...prev, note: event.target.value } : prev))
+                }
+                rows={3}
+                placeholder="Tell us here."
+                className="ui-textarea mt-2"
+              />
+            </div>
+
+            <div className="mt-4 flex items-center justify-between gap-3 border-t border-slate-100 pt-4">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className="btn btn-secondary rounded-xl"
+                  onClick={() =>
+                    setCustomizing((prev) =>
+                      prev ? { ...prev, qty: Math.max(1, prev.qty - 1) } : prev,
+                    )
+                  }
+                >
+                  −
+                </button>
+                <span className="min-w-8 text-center font-semibold text-slate-900">{customizing.qty}</span>
+                <button
+                  type="button"
+                  className="btn btn-secondary rounded-xl"
+                  onClick={() =>
+                    setCustomizing((prev) => (prev ? { ...prev, qty: prev.qty + 1 } : prev))
+                  }
+                >
+                  +
+                </button>
+              </div>
+              <button type="button" onClick={addCustomizedItem} className="btn btn-success rounded-xl">
+                Add to cart
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

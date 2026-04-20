@@ -16,6 +16,27 @@ async function requireRestaurantAdmin() {
   return user;
 }
 
+function parseIngredientJson(raw: FormDataEntryValue | null): Array<{ name: string; price?: number }> {
+  const value = String(raw ?? "").trim();
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((item) => {
+        if (!item || typeof item !== "object") return null;
+        const name = String((item as { name?: unknown }).name ?? "").trim();
+        if (!name) return null;
+        const priceRaw = Number((item as { price?: unknown }).price ?? 0);
+        const price = Number.isFinite(priceRaw) && priceRaw > 0 ? Math.round(priceRaw * 100) / 100 : 0;
+        return { name, price };
+      })
+      .filter((item): item is { name: string; price: number } => Boolean(item));
+  } catch {
+    return [];
+  }
+}
+
 function getStorageAdminClient() {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!env.supabaseUrl || !serviceRoleKey) {
@@ -148,6 +169,13 @@ export async function createMenuItemAction(formData: FormData) {
   const imageFile = formData.get("image_file");
   const imageUrl =
     imageFile instanceof File ? await uploadMenuItemImage(imageFile, user.restaurant_id) : null;
+  const removableIngredients = parseIngredientJson(formData.get("removable_ingredients")).map(
+    (item) => ({ name: item.name }),
+  );
+  const addIngredients = parseIngredientJson(formData.get("add_ingredients")).map((item) => ({
+    name: item.name,
+    price: item.price ?? 0,
+  }));
   await supabase.from("menu_items").insert({
     restaurant_id: user.restaurant_id,
     category_id: String(formData.get("category_id")),
@@ -157,6 +185,8 @@ export async function createMenuItemAction(formData: FormData) {
     image_url: imageUrl,
     grams: gramsValue ? Number(gramsValue) : null,
     contents: String(formData.get("contents") ?? "").trim() || null,
+    removable_ingredients: removableIngredients,
+    add_ingredients: addIngredients,
     is_available: true,
   });
   revalidatePath("/dashboard/restaurant");
@@ -177,6 +207,13 @@ export async function updateMenuItemAction(formData: FormData) {
     imageFile instanceof File ? await uploadMenuItemImage(imageFile, user.restaurant_id) : null;
   const gramsValue = String(formData.get("grams") ?? "").trim();
   const contents = String(formData.get("contents") ?? "").trim();
+  const removableIngredients = parseIngredientJson(formData.get("removable_ingredients")).map(
+    (item) => ({ name: item.name }),
+  );
+  const addIngredients = parseIngredientJson(formData.get("add_ingredients")).map((item) => ({
+    name: item.name,
+    price: item.price ?? 0,
+  }));
 
   const supabase = await createServerSupabaseClient();
   await supabase
@@ -189,6 +226,8 @@ export async function updateMenuItemAction(formData: FormData) {
       image_url: uploadedImageUrl ?? (currentImageUrl || null),
       grams: gramsValue ? Number(gramsValue) : null,
       contents: contents || null,
+      removable_ingredients: removableIngredients,
+      add_ingredients: addIngredients,
     })
     .eq("id", id)
     .eq("restaurant_id", user.restaurant_id);
