@@ -369,12 +369,14 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
                 {customizing.item.description ? (
                   <p className="mt-1 text-sm text-slate-600">{customizing.item.description}</p>
                 ) : null}
-                <p className="mt-1 text-sm font-semibold text-emerald-700">
-                  {formatUsd(customizing.item.price)}{" "}
-                  <span className="font-medium text-slate-400">
-                    ({formatLbp(customizing.item.price)})
-                  </span>
-                </p>
+                <div className="mt-1">
+                  <p className="text-sm font-semibold text-emerald-700">
+                    {formatUsd(customizing.item.price)}
+                  </p>
+                  <p className="text-sm font-medium text-slate-400">
+                    {formatLbp(customizing.item.price)}
+                  </p>
+                </div>
               </div>
               <button type="button" onClick={closeCustomization} className="btn btn-secondary rounded-xl">
                 Close
