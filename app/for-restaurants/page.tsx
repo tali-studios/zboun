@@ -182,12 +182,12 @@ export default function ForRestaurantsPage() {
               >
                 Contact us
               </Link>
-              <a
+              {/* <a
                 href="https://wa.me/96171212734"
                 className="rounded-full border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-800 hover:bg-slate-50"
               >
                 WhatsApp us
-              </a>
+              </a> */}
             </div>
           </div>
         </section>
