@@ -26,7 +26,10 @@ export function ContactWhatsAppForm() {
   const submit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
-      if (!name.trim() || !phone.trim() || !message.trim()) return;
+      if (!name.trim() || !phone.trim() || !message.trim()) {
+        window.alert("Please fill Name, Phone, and Message.");
+        return;
+      }
       const text = buildMessage(name, phone, message);
       const url = `https://wa.me/${ZBOUN_WHATSAPP_DIGITS}?text=${encodeURIComponent(text)}`;
       window.location.assign(url);
@@ -44,6 +47,8 @@ export function ContactWhatsAppForm() {
         value={name}
         onChange={(ev) => setName(ev.target.value)}
         required
+        pattern=".*\\S.*"
+        title="Please enter your name."
         autoComplete="name"
       />
       <input
@@ -64,6 +69,7 @@ export function ContactWhatsAppForm() {
         value={message}
         onChange={(ev) => setMessage(ev.target.value)}
         required
+        minLength={2}
       />
       <button type="submit" className="btn btn-success w-full rounded-xl py-3">
         Send message
