@@ -39,6 +39,7 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
   const [customerName, setCustomerName] = useState("");
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
+  const [isOrderConfirmed, setIsOrderConfirmed] = useState(false);
 
   const items = useMemo(() => Object.values(cart), [cart]);
   const filteredCategories = useMemo(() => {
@@ -218,11 +219,19 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
   }
 
   const orderLink = `https://wa.me/${restaurantPhone.replace(/\D/g, "")}?text=${createWhatsAppMessage()}`;
-  const canOrder = items.length > 0 && customerName.trim().length > 0 && address.trim().length > 0;
+  const canOrder =
+    items.length > 0 &&
+    customerName.trim().length > 0 &&
+    address.trim().length > 0 &&
+    isOrderConfirmed;
 
   function handleOrderClick() {
     if (!customerName.trim() || !address.trim()) {
       window.alert("Please fill both Name and Address before ordering.");
+      return;
+    }
+    if (!isOrderConfirmed) {
+      window.alert("Please confirm your order before ordering via WhatsApp.");
       return;
     }
     if (items.length === 0) {
@@ -379,6 +388,22 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
             className="ui-textarea"
           />
         </div>
+        <label className="mt-4 block rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+          <div className="flex items-start gap-2">
+            <input
+              type="checkbox"
+              checked={isOrderConfirmed}
+              onChange={(event) => setIsOrderConfirmed(event.target.checked)}
+              className="mt-1"
+            />
+            <div>
+              <p className="font-semibold">I confirm my order listed above.</p>
+              <p className="text-slate-600">
+                The price I have to pay is <span className="font-semibold">{formatUsd(total)}</span>.
+              </p>
+            </div>
+          </div>
+        </label>
         <button
           type="button"
           onClick={handleOrderClick}
