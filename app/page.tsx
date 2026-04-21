@@ -53,7 +53,7 @@ export default async function HomePage() {
                 </p>
                 <span className="hidden h-4 w-px bg-slate-200 sm:block" aria-hidden />
                 <Link
-                  href="/"
+                  href="/#restaurants"
                   className="text-sm font-semibold text-emerald-700 underline-offset-4 hover:underline"
                 >
                   Browse restaurants →
@@ -63,12 +63,14 @@ export default async function HomePage() {
           </div>
         </section>
 
-        <RestaurantDirectory
-          restaurants={restaurants ?? []}
-          eyebrow="Discover"
-          title="Restaurants on Zboun"
-          subtitle="Search by name, open the customer menu, then send your order on WhatsApp."
-        />
+        <section id="restaurants">
+          <RestaurantDirectory
+            restaurants={restaurants ?? []}
+            eyebrow="Discover"
+            title="Restaurants on Zboun"
+            subtitle="Search by name, open the customer menu, then send your order on WhatsApp."
+          />
+        </section>
 
         <section className="container pb-12 pt-2 md:pb-16">
           <div className="flex flex-col items-stretch justify-between gap-4 rounded-2xl border border-slate-200/90 bg-slate-900 px-5 py-5 text-white shadow-lg sm:flex-row sm:items-center sm:px-8">
