@@ -60,10 +60,10 @@ export default function ForRestaurantsPage() {
                   Contact us to subscribe
                 </Link>
                 <Link
-                  href="/demo-restaurant"
+                  href="/"
                   className="rounded-full border border-slate-300 bg-white px-6 py-3 text-center text-sm font-semibold text-slate-800 hover:bg-slate-50"
                 >
-                  View demo customer menu
+                  View live restaurant menus
                 </Link>
                 <Link href="/" className="text-center text-sm font-semibold text-emerald-700 hover:underline">
                   ← Back to restaurants

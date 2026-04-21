@@ -53,10 +53,10 @@ export default async function HomePage() {
                 </p>
                 <span className="hidden h-4 w-px bg-slate-200 sm:block" aria-hidden />
                 <Link
-                  href="/demo-restaurant"
+                  href="/"
                   className="text-sm font-semibold text-emerald-700 underline-offset-4 hover:underline"
                 >
-                  See a demo menu →
+                  Browse restaurants →
                 </Link>
               </div>
             </div>

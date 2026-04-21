@@ -44,11 +44,6 @@ export function SiteFooter() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="/demo-restaurant" className="text-slate-300 transition hover:text-white">
-                    Demo menu
-                  </Link>
-                </li>
-                <li>
                   <Link href="/contact" className="text-slate-300 transition hover:text-white">
                     Contact
                   </Link>
