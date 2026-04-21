@@ -35,11 +35,28 @@ type CustomizationState = {
 export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categories }: Props) {
   const [cart, setCart] = useState<Record<string, CartLine>>({});
   const [customizing, setCustomizing] = useState<CustomizationState | null>(null);
+  const [query, setQuery] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
 
   const items = useMemo(() => Object.values(cart), [cart]);
+  const filteredCategories = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    if (!normalized) return categories;
+    return categories
+      .map((category) => ({
+        ...category,
+        menu_items: category.menu_items.filter((item) => {
+          return (
+            item.name.toLowerCase().includes(normalized) ||
+            (item.description ?? "").toLowerCase().includes(normalized) ||
+            (item.contents ?? "").toLowerCase().includes(normalized)
+          );
+        }),
+      }))
+      .filter((category) => category.menu_items.length > 0);
+  }, [categories, query]);
   const total = useMemo(
     () => items.reduce((sum, item) => sum + item.qty * item.unitPrice, 0),
     [items],
@@ -218,7 +235,15 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
       <section className="space-y-4">
-        {categories.map((category) => (
+        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search items..."
+            className="ui-input"
+          />
+        </div>
+        {filteredCategories.map((category) => (
           <div key={category.id} className="rounded-2xl border border-slate-200 bg-white p-4 md:p-5">
             <h2 className="text-xl font-bold tracking-tight text-slate-900">{category.name}</h2>
             <div className="mt-3 space-y-2.5">
@@ -268,6 +293,12 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
             </div>
           </div>
         ))}
+        {filteredCategories.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+            <p className="font-semibold text-slate-800">No items found</p>
+            <p className="mt-1 text-sm text-slate-500">Try a different keyword.</p>
+          </div>
+        ) : null}
       </section>
 
       <aside className="h-fit rounded-2xl border border-slate-200 bg-white p-4 lg:sticky lg:top-4">
