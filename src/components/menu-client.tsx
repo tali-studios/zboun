@@ -341,8 +341,15 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
       link.download = filename;
       link.click();
       URL.revokeObjectURL(url);
-      window.alert("Order PDF downloaded. Please attach it in WhatsApp and send.");
-      window.location.href = orderLink;
+      const fallbackText = encodeURIComponent(
+        `Hello 👋\nPlease find my order in the attached PDF.\nName: ${customerName.trim()}\nAddress: ${address.trim()}`,
+      );
+      window.open(
+        `https://wa.me/${restaurantPhone.replace(/\D/g, "")}?text=${fallbackText}`,
+        "_blank",
+        "noopener,noreferrer",
+      );
+      window.alert("PDF downloaded. WhatsApp opened — please attach the downloaded PDF and send.");
     } finally {
       setIsSendingOrder(false);
     }
@@ -517,7 +524,7 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
           disabled={!canOrder || isSendingOrder}
           className="mt-4 inline-flex w-full justify-center rounded-xl bg-emerald-600 px-4 py-3 font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
         >
-          {isSendingOrder ? "Preparing PDF..." : "Send order as PDF"}
+          {isSendingOrder ? "Preparing PDF..." : "Share order PDF on WhatsApp"}
         </button>
       </aside>
 
