@@ -1,4 +1,5 @@
 import { MenuClient } from "@/components/menu-client";
+import Image from "next/image";
 
 const demoCategories = [
   {
@@ -70,10 +71,22 @@ export default function DemoRestaurantPage() {
     <main className="min-h-screen bg-slate-50 py-6">
       <div className="container">
         <header className="mb-6 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-          <h1 className="text-2xl font-bold text-slate-900">Demo Restaurant</h1>
-          <p className="text-sm text-slate-600">
-            This is a sample customer menu preview powered by Zboun.
-          </p>
+          <div className="flex items-center gap-3">
+            <Image
+              src="/demo_restaurant_logo.svg"
+              alt="Demo Restaurant logo"
+              width={56}
+              height={56}
+              className="h-12 w-12 rounded-xl border border-slate-200 bg-white object-contain p-1"
+              unoptimized
+            />
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900">Demo Restaurant</h1>
+              <p className="text-sm text-slate-600">
+                This is a sample customer menu preview powered by Zboun.
+              </p>
+            </div>
+          </div>
         </header>
         <MenuClient
           restaurantName="Demo Restaurant"
