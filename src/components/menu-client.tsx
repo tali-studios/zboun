@@ -208,8 +208,6 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
         return `- ${item.qty}x ${item.name}${modifierText}`;
       }),
       "",
-      `Total: ${formatUsd(total)} (${formatLbp(total)})`,
-      "",
       `Name: ${cleanName}`,
       `Address: ${cleanAddress}`,
       notes ? `Notes: ${notes}` : "",
