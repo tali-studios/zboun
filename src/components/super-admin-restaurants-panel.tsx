@@ -8,8 +8,10 @@ import {
   setNextDueDateAction,
   toggleRestaurantActiveAction,
   toggleRestaurantHomeVisibilityAction,
+  updateRestaurantBrowseSectionsAction,
   updateSubscriptionStatusAction,
 } from "@/app-actions/superadmin";
+import { BROWSE_SECTION_OPTIONS, normalizeBrowseSections } from "@/lib/browse-sections";
 
 type RestaurantRow = {
   id: string;
@@ -18,6 +20,7 @@ type RestaurantRow = {
   phone: string;
   is_active: boolean;
   show_on_home: boolean;
+  browse_sections: string[] | null;
   created_at: string;
   category_count: number;
   item_count: number;
@@ -158,6 +161,26 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
     });
   }
 
+  function updateBrowseSections(restaurantId: string, currentSections: string[] | null) {
+    const current = normalizeBrowseSections(currentSections ?? []);
+    const nextRaw = window.prompt(
+      `Set browse sections (comma separated)\nAvailable: ${BROWSE_SECTION_OPTIONS.join(", ")}`,
+      current.join(", "),
+    );
+    if (nextRaw === null) return;
+    const chosen = nextRaw
+      .split(",")
+      .map((part) => part.trim())
+      .filter(Boolean);
+    startTransition(async () => {
+      const formData = new FormData();
+      formData.set("id", restaurantId);
+      chosen.forEach((section) => formData.append("browse_sections", section));
+      await updateRestaurantBrowseSectionsAction(formData);
+      router.refresh();
+    });
+  }
+
   function updateSubscriptionStatus(subscriptionId: string, currentStatus: string | null) {
     const next = window.prompt(
       "Set subscription status: trial, active, overdue, paused, cancelled",
@@ -257,6 +280,9 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
               >
                 {restaurant.show_on_home ? "Visible on home" : "Hidden on home"}
               </span>
+              <span className="rounded-full bg-slate-100 px-2 py-1">
+                Sections: {normalizeBrowseSections(restaurant.browse_sections ?? []).join(", ") || "Lunch"}
+              </span>
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <ActionIconButton
@@ -279,6 +305,13 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                 className={restaurant.show_on_home ? "bg-slate-700 hover:bg-slate-600" : "bg-violet-600 hover:bg-violet-500"}
                 disabled={isPending}
                 onClick={() => toggleHomeVisibility(restaurant.id, restaurant.show_on_home)}
+              />
+              <ActionIconButton
+                label="Update browse sections"
+                icon="🧭"
+                className="bg-violet-600 hover:bg-violet-500"
+                disabled={isPending}
+                onClick={() => updateBrowseSections(restaurant.id, restaurant.browse_sections)}
               />
               <ActionIconButton
                 label="Delete restaurant"
@@ -335,6 +368,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
               <th className="py-2 whitespace-nowrap">Outstanding</th>
               <th className="py-2 whitespace-nowrap">Status</th>
               <th className="py-2 whitespace-nowrap">Home</th>
+              <th className="py-2 whitespace-nowrap">Browse sections</th>
               <th className="py-2 whitespace-nowrap">Created</th>
               <th className="py-2 whitespace-nowrap">Actions</th>
             </tr>
@@ -376,6 +410,9 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                   </span>
                 </td>
                 <td className="py-3 whitespace-nowrap text-slate-600">
+                  {normalizeBrowseSections(restaurant.browse_sections ?? []).join(", ") || "Lunch"}
+                </td>
+                <td className="py-3 whitespace-nowrap text-slate-600">
                   {new Date(restaurant.created_at).toLocaleDateString()}
                 </td>
                 <td className="py-3 whitespace-nowrap">
@@ -400,6 +437,13 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                       className={restaurant.show_on_home ? "bg-slate-700 hover:bg-slate-600" : "bg-violet-600 hover:bg-violet-500"}
                       disabled={isPending}
                       onClick={() => toggleHomeVisibility(restaurant.id, restaurant.show_on_home)}
+                    />
+                    <ActionIconButton
+                      label="Update browse sections"
+                      icon="🧭"
+                      className="bg-violet-600 hover:bg-violet-500"
+                      disabled={isPending}
+                      onClick={() => updateBrowseSections(restaurant.id, restaurant.browse_sections)}
                     />
                     <ActionIconButton
                       label="Delete restaurant"
@@ -501,6 +545,10 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
               </p>
               <p><span className="font-semibold">Outstanding:</span> ${infoRestaurant.outstanding_balance.toFixed(2)}</p>
               <p><span className="font-semibold">Created:</span> {new Date(infoRestaurant.created_at).toLocaleDateString()}</p>
+              <p className="sm:col-span-2">
+                <span className="font-semibold">Browse sections:</span>{" "}
+                {normalizeBrowseSections(infoRestaurant.browse_sections ?? []).join(", ") || "Lunch"}
+              </p>
             </div>
             <div className="mt-4 flex justify-end">
               <button

@@ -6,6 +6,7 @@ import {
 import { createClient } from "@supabase/supabase-js";
 import { SuperAdminFinancePanel } from "@/components/super-admin-finance-panel";
 import { SuperAdminRestaurantsPanel } from "@/components/super-admin-restaurants-panel";
+import { BROWSE_SECTION_OPTIONS } from "@/lib/browse-sections";
 import { getCurrentUserRole } from "@/lib/data";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { env } from "@/lib/env";
@@ -33,7 +34,7 @@ export default async function SuperAdminPage({ searchParams }: Props) {
       : supabase;
   const query = dataClient
     .from("restaurants")
-    .select("id, name, slug, phone, is_active, show_on_home, created_at")
+    .select("id, name, slug, phone, is_active, show_on_home, browse_sections, created_at")
     .order("created_at", { ascending: false });
 
   const [
@@ -304,6 +305,28 @@ export default async function SuperAdminPage({ searchParams }: Props) {
               placeholder="WhatsApp number"
               className="ui-input"
             />
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 md:col-span-2 xl:col-span-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Browse sections
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {BROWSE_SECTION_OPTIONS.map((section) => (
+                  <label
+                    key={section}
+                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700"
+                  >
+                    <input
+                      type="checkbox"
+                      name="browse_sections"
+                      value={section}
+                      defaultChecked={section === "Lunch"}
+                      className="h-4 w-4 accent-violet-600"
+                    />
+                    <span>{section}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
             <button className="btn btn-success rounded-xl">
               Create restaurant
             </button>

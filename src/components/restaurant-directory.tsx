@@ -3,12 +3,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { BROWSE_SECTION_OPTIONS, normalizeBrowseSections } from "@/lib/browse-sections";
 
 type RestaurantCard = {
   id: string;
   name: string;
   slug: string;
   logo_url: string | null;
+  browse_sections?: string[] | null;
 };
 
 type Props = {
@@ -25,21 +27,24 @@ export function RestaurantDirectory({
   subtitle = "Search by name, then open a menu and order on WhatsApp.",
 }: Props) {
   const [query, setQuery] = useState("");
+  const [activeSection, setActiveSection] = useState<string>("all");
 
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    if (!normalized) return restaurants;
-    return restaurants.filter(
-      (r) =>
+    return restaurants.filter((r) => {
+      const matchesQuery =
+        !normalized ||
         r.name.toLowerCase().includes(normalized) ||
-        r.slug.toLowerCase().includes(normalized),
-    );
-  }, [restaurants, query]);
+        r.slug.toLowerCase().includes(normalized);
+      const sections = normalizeBrowseSections(r.browse_sections ?? []);
+      const matchesSection = activeSection === "all" || sections.includes(activeSection as never);
+      return matchesQuery && matchesSection;
+    });
+  }, [restaurants, query, activeSection]);
 
   return (
     <section className="container py-4 md:py-6">
-      {/* Section header */}
-      <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="mb-5">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-widest text-violet-600">
             {eyebrow}
@@ -50,26 +55,54 @@ export function RestaurantDirectory({
           <p className="mt-1 text-sm text-slate-500">{subtitle}</p>
         </div>
 
+      </div>
+
+      <div className="mb-4 rounded-2xl border border-slate-200/70 bg-white p-3">
         {/* Search */}
-        <div className="w-full sm:max-w-xs">
-          <div className="relative">
-            <svg
-              className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-              aria-hidden
+        <div className="relative">
+          <svg
+            className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+            aria-hidden
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+          </svg>
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search restaurants..."
+            className="ui-input ui-input-search h-12 text-base"
+          />
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setActiveSection("all")}
+            className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+              activeSection === "all"
+                ? "bg-violet-600 text-white"
+                : "border border-slate-200 bg-white text-slate-500 hover:bg-slate-100"
+            }`}
+          >
+            All
+          </button>
+          {BROWSE_SECTION_OPTIONS.map((section) => (
+            <button
+              key={section}
+              type="button"
+              onClick={() => setActiveSection(section)}
+              className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                activeSection === section
+                  ? "bg-violet-600 text-white"
+                  : "border border-slate-200 bg-white text-slate-500 hover:bg-slate-100"
+              }`}
             >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
-            </svg>
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search restaurants…"
-              className="ui-input ui-input-search"
-            />
-          </div>
+              {section}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -115,7 +148,14 @@ export function RestaurantDirectory({
                   <h3 className="truncate text-base font-bold text-slate-900 group-hover:text-violet-800">
                     {restaurant.name}
                   </h3>
-                  <p className="truncate text-xs text-slate-400">zboun.com/{restaurant.slug}</p>
+                  <p className="truncate text-xs text-slate-400">/{restaurant.slug}</p>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {normalizeBrowseSections(restaurant.browse_sections ?? []).slice(0, 2).map((section) => (
+                      <span key={`${restaurant.id}-${section}`} className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
+                        {section}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -125,7 +165,7 @@ export function RestaurantDirectory({
                   href={`/${restaurant.slug}`}
                   className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 py-3 text-sm font-semibold text-white shadow-sm shadow-violet-400/20 transition hover:shadow-violet-400/40"
                 >
-                  Open menu
+                  Order now
                   <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                   </svg>

@@ -15,6 +15,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { CopyMenuLinkButton } from "@/components/copy-menu-link-button";
 import { ImageUploadField } from "@/components/image-upload-field";
 import { IngredientListField } from "@/components/ingredient-list-field";
+import { BROWSE_SECTION_OPTIONS, normalizeBrowseSections } from "@/lib/browse-sections";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +34,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
   const [{ data: restaurant }, { data: categories }, { data: items }] = await Promise.all([
     supabase
       .from("restaurants")
-      .select("name, slug, phone, logo_url, lbp_rate")
+      .select("name, slug, phone, logo_url, lbp_rate, browse_sections")
       .eq("id", appUser.restaurant_id)
       .single(),
     supabase
@@ -72,6 +73,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
     totalItems > 0
       ? (items?.reduce((sum, item) => sum + Number(item.price), 0) ?? 0) / totalItems
       : 0;
+  const selectedBrowseSections = normalizeBrowseSections(restaurant?.browse_sections ?? []);
 
   return (
     <main className="min-h-screen bg-[#f8f8ff] p-3 sm:p-4 md:p-8">
@@ -159,6 +161,28 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                 placeholder="L.L rate per $1"
                 className="ui-input"
               />
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 md:col-span-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Browse sections (home page)
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {BROWSE_SECTION_OPTIONS.map((section) => (
+                    <label
+                      key={section}
+                      className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700"
+                    >
+                      <input
+                        type="checkbox"
+                        name="browse_sections"
+                        value={section}
+                        defaultChecked={selectedBrowseSections.includes(section)}
+                        className="h-4 w-4 accent-violet-600"
+                      />
+                      <span>{section}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
               <div className="md:col-span-3">
                 <ImageUploadField
                   name="logo_file"

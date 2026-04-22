@@ -20,11 +20,14 @@ create table if not exists public.restaurants (
   lbp_rate numeric(12, 2) not null default 89500 check (lbp_rate >= 0),
   is_active boolean not null default true,
   show_on_home boolean not null default true,
+  browse_sections text[] not null default array['Lunch']::text[],
   created_at timestamptz not null default now()
 );
 
 alter table public.restaurants
   add column if not exists lbp_rate numeric(12, 2) not null default 89500 check (lbp_rate >= 0);
+alter table public.restaurants
+  add column if not exists browse_sections text[] not null default array['Lunch']::text[];
 
 create table if not exists public.users (
   id uuid primary key references auth.users(id) on delete cascade,

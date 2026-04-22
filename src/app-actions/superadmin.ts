@@ -7,6 +7,7 @@ import nodemailer from "nodemailer";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { getCurrentUserRole } from "@/lib/data";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { parseBrowseSectionsFromForm } from "@/lib/browse-sections";
 import { toSlug } from "@/lib/slug";
 import { env } from "@/lib/env";
 
@@ -75,6 +76,7 @@ export async function createRestaurantAction(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const phone = String(formData.get("phone") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const browseSections = parseBrowseSectionsFromForm(formData);
 
   if (!name || !phone || !email) {
     redirect("/dashboard/super-admin?error=missing_restaurant_fields");
@@ -87,7 +89,13 @@ export async function createRestaurantAction(formData: FormData) {
 
     const { data: restaurantData, error: restaurantError } = await adminClient
       .from("restaurants")
-      .insert({ name, phone, slug, is_active: true })
+      .insert({
+        name,
+        phone,
+        slug,
+        is_active: true,
+        browse_sections: browseSections.length > 0 ? browseSections : ["Lunch"],
+      })
       .select("id")
       .single();
 
@@ -185,6 +193,20 @@ export async function createRestaurantAction(formData: FormData) {
     const message = error instanceof Error ? error.message : "unknown_error";
     redirect(`/dashboard/super-admin?error=${encodeURIComponent(message)}`);
   }
+}
+
+export async function updateRestaurantBrowseSectionsAction(formData: FormData) {
+  await requireSuperAdmin();
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) return;
+  const browseSections = parseBrowseSectionsFromForm(formData);
+  const supabase = await createServerSupabaseClient();
+  await supabase
+    .from("restaurants")
+    .update({ browse_sections: browseSections.length > 0 ? browseSections : ["Lunch"] })
+    .eq("id", id);
+  revalidatePath("/dashboard/super-admin");
+  revalidatePath("/");
 }
 
 export async function toggleRestaurantActiveAction(formData: FormData) {

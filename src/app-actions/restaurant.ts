@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import { getCurrentUserRole } from "@/lib/data";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { parseBrowseSectionsFromForm } from "@/lib/browse-sections";
 import { env } from "@/lib/env";
 
 async function requireRestaurantAdmin() {
@@ -277,6 +278,10 @@ export async function updateRestaurantSettingsAction(formData: FormData) {
       name: String(formData.get("name")),
       phone: String(formData.get("phone")),
       lbp_rate: Math.round(lbpRate * 100) / 100,
+      browse_sections: (() => {
+        const sections = parseBrowseSectionsFromForm(formData);
+        return sections.length > 0 ? sections : ["Lunch"];
+      })(),
       logo_url: uploadedLogoUrl ?? (currentLogoUrl || null),
     })
     .eq("id", user.restaurant_id);
