@@ -44,24 +44,29 @@ export function RestaurantDirectory({
 
   return (
     <section className="container py-4 md:py-6">
-      <div className="mb-5">
-        <div>
-          <p className="text-[11px] font-bold uppercase tracking-widest text-violet-600">
-            {eyebrow}
-          </p>
-          <h2 className="mt-1.5 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-            {title}
-          </h2>
-          <p className="mt-1 text-sm text-slate-500">{subtitle}</p>
+      {eyebrow || title || subtitle ? (
+        <div className="mb-4">
+          <div>
+            {eyebrow ? (
+              <p className="text-[11px] font-bold uppercase tracking-widest text-violet-600/90">
+                {eyebrow}
+              </p>
+            ) : null}
+            {title ? (
+              <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+                {title}
+              </h2>
+            ) : null}
+            {subtitle ? <p className="mt-1 text-sm text-slate-500">{subtitle}</p> : null}
+          </div>
         </div>
+      ) : null}
 
-      </div>
-
-      <div className="mb-4 rounded-2xl border border-slate-200/70 bg-white p-3">
+      <div className="mb-5 rounded-3xl border border-slate-200/80 bg-white/95 p-3.5 shadow-sm">
         {/* Search */}
         <div className="relative">
           <svg
-            className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400"
+            className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -74,10 +79,10 @@ export function RestaurantDirectory({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search restaurants..."
-            className="ui-input ui-input-search h-12 text-base"
+            className="ui-input ui-input-search h-12 rounded-2xl text-base"
           />
         </div>
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-3.5 flex flex-wrap gap-2">
           <button
             type="button"
             onClick={() => setActiveSection("all")}
@@ -120,16 +125,16 @@ export function RestaurantDirectory({
           <p className="mt-1 text-sm text-slate-400">Try a different search term.</p>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {filtered.map((restaurant) => (
             <article
               key={restaurant.id}
-              className="group flex flex-col rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-violet-200 hover:shadow-[0_8px_30px_rgba(120,84,255,0.12)]"
+              className="group flex flex-col rounded-3xl border border-slate-200/85 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-violet-200 hover:shadow-[0_10px_28px_rgba(120,84,255,0.12)]"
             >
               {/* Logo + Name */}
               <div className="flex items-center gap-4">
                 {restaurant.logo_url ? (
-                  <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-slate-100 bg-white">
+                  <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
                     <Image
                       src={restaurant.logo_url}
                       alt={`${restaurant.name} logo`}
@@ -140,7 +145,7 @@ export function RestaurantDirectory({
                     />
                   </div>
                 ) : (
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-100 to-fuchsia-100 text-base font-bold text-violet-700">
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-100 to-fuchsia-100 text-base font-bold text-violet-700 shadow-sm">
                     {restaurant.name.slice(0, 2).toUpperCase()}
                   </div>
                 )}
@@ -149,9 +154,9 @@ export function RestaurantDirectory({
                     {restaurant.name}
                   </h3>
                   <p className="truncate text-xs text-slate-400">/{restaurant.slug}</p>
-                  <div className="mt-2 flex flex-wrap gap-1">
+                  <div className="mt-2 flex flex-wrap gap-1.5">
                     {normalizeBrowseSections(restaurant.browse_sections ?? []).slice(0, 2).map((section) => (
-                      <span key={`${restaurant.id}-${section}`} className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
+                      <span key={`${restaurant.id}-${section}`} className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-medium text-slate-500">
                         {section}
                       </span>
                     ))}
@@ -163,7 +168,7 @@ export function RestaurantDirectory({
               <div className="mt-5">
                 <Link
                   href={`/${restaurant.slug}`}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 py-3 text-sm font-semibold text-white shadow-sm shadow-violet-400/20 transition hover:shadow-violet-400/40"
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 py-3 text-sm font-semibold text-white shadow-sm shadow-violet-400/20 transition hover:shadow-violet-400/40"
                 >
                   Order now
                   <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden>

@@ -18,13 +18,24 @@ export default async function HomePage() {
       <SiteHeader largeLogo />
 
       <main className="flex-1">
+        <section className="container pt-6 sm:pt-8">
+          <div className="rounded-3xl border border-violet-100/70 bg-white/70 px-4 py-5 shadow-[0_10px_30px_rgba(120,84,255,0.08)] backdrop-blur-sm sm:px-6">
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+              Discover Restaurants
+            </h1>
+            <p className="mt-1.5 text-sm text-slate-500 sm:text-base">
+              Find your favorite place quickly, browse by category, and order in one tap.
+            </p>
+          </div>
+        </section>
+
         {/* ── Restaurant directory ─────────────────────────────────────────── */}
-        <section id="restaurants" className="pt-4 pb-4 sm:pt-6">
+        <section id="restaurants" className="pt-4 pb-4 sm:pt-5">
           <RestaurantDirectory
             restaurants={restaurants ?? []}
-            eyebrow="Discover"
-            title="Restaurants on Zboun"
-            subtitle="Search by name, open the menu, and send your order on WhatsApp."
+            eyebrow=""
+            title=""
+            subtitle=""
           />
         </section>
 
