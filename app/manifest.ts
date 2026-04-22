@@ -12,8 +12,8 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: "#f8f8ff",
     theme_color: "#7854ff",
     icons: [
-      { src: "/Favicon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
-      { src: "/Favicon.svg", sizes: "any", type: "image/svg+xml", purpose: "maskable" },
+      { src: "/Favicon.svg?v=2", sizes: "any", type: "image/svg+xml", purpose: "any" },
+      { src: "/Favicon.svg?v=2", sizes: "any", type: "image/svg+xml", purpose: "maskable" },
     ],
     categories: ["food", "business"],
     id: base,

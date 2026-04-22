@@ -73,7 +73,7 @@ export const metadata: Metadata = {
       { url: "/Favicon.svg", type: "image/svg+xml", sizes: "any" },
     ],
     shortcut: ["/Favicon.svg"],
-    apple: [{ url: "/Favicon.svg" }],
+    apple: [{ url: "/Favicon.svg?v=2" }],
   },
   manifest: "/manifest.webmanifest",
   ...(env.googleSiteVerification
@@ -94,7 +94,8 @@ export default function RootLayout({
       <head>
         <link rel="icon" href="/Favicon.svg" type="image/svg+xml" />
         <link rel="shortcut icon" href="/Favicon.svg" type="image/svg+xml" />
-        <link rel="apple-touch-icon" href="/Favicon.svg" />
+        <link rel="apple-touch-icon" href="/Favicon.svg?v=2" />
+        <link rel="apple-touch-icon-precomposed" href="/Favicon.svg?v=2" />
       </head>
       <body className="flex min-h-full flex-col">
         <SiteJsonLd />
