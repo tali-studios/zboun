@@ -67,7 +67,7 @@ export function RestaurantDirectory({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search restaurants…"
-              className="ui-input pl-10"
+              className="ui-input ui-input-search"
             />
           </div>
         </div>

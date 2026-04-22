@@ -393,7 +393,7 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search menu items…"
-              className="ui-input pl-10"
+              className="ui-input ui-input-search"
             />
           </div>
 

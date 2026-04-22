@@ -104,6 +104,11 @@ body {
   box-shadow: 0 0 0 4px rgba(120, 84, 255, 0.14);
 }
 
+/* Search fields with a leading icon */
+.ui-input-search {
+  padding-left: 2.5rem;
+}
+
 /* ─── Buttons ───────────────────────────────────────────────────────────────── */
 .btn {
   display: inline-flex;
