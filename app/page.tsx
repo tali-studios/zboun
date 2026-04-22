@@ -17,7 +17,7 @@ export default async function HomePage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-[#f8f8ff]">
-      <SiteHeader largeLogo showDashboardButton={false} showForRestaurantsLink />
+      <SiteHeader largeLogo />
 
       <main className="flex-1">
 

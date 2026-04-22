@@ -1,20 +1,26 @@
+ "use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 type SiteHeaderProps = {
   largeLogo?: boolean;
-  showDashboardButton?: boolean;
-  showForRestaurantsLink?: boolean;
 };
 
 export function SiteHeader({
   largeLogo = false,
-  showDashboardButton = true,
-  showForRestaurantsLink = false,
 }: SiteHeaderProps) {
+  const pathname = usePathname();
+  const tabs = [
+    { href: "/", label: "Browse", isActive: pathname === "/" },
+    { href: "/for-restaurants", label: "Join Us", isActive: pathname === "/for-restaurants" },
+    { href: "/contact", label: "Contact", isActive: pathname === "/contact" },
+  ];
+
   return (
     <header className="sticky top-0 z-50 border-b border-violet-100/80 bg-white/80 backdrop-blur-2xl">
-      <div className="container flex items-center justify-between gap-4 py-3 md:py-3.5">
+      <div className="container flex flex-col items-center gap-3 py-3 md:flex-row md:justify-between md:py-3.5">
 
         {/* Logo */}
         <Link
@@ -32,32 +38,24 @@ export function SiteHeader({
           />
         </Link>
 
-        {/* Nav */}
-        <nav className="flex items-center gap-1 sm:gap-1.5" aria-label="Main">
-          {showForRestaurantsLink ? (
+        {/* Unified 3-tab navbar */}
+        <nav
+          className="grid w-full max-w-[460px] grid-cols-3 gap-1 rounded-full bg-slate-100/80 p-1"
+          aria-label="Main"
+        >
+          {tabs.map((tab) => (
             <Link
-              href="/for-restaurants"
-              className="rounded-full bg-violet-50 px-4 py-2 text-sm font-semibold text-violet-700 transition hover:bg-violet-100 focus-visible:outline-2 focus-visible:outline-violet-600"
+              key={tab.href}
+              href={tab.href}
+              className={`rounded-full px-3 py-2 text-center text-sm font-semibold transition ${
+                tab.isActive
+                  ? "bg-violet-600 text-white"
+                  : "text-slate-600 hover:bg-slate-200 hover:text-slate-900"
+              }`}
             >
-              For restaurants
+              {tab.label}
             </Link>
-          ) : null}
-
-          <Link
-            href="/contact"
-            className="rounded-full px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-violet-600"
-          >
-            Contact
-          </Link>
-
-          {showDashboardButton ? (
-            <Link
-              href="/dashboard/login"
-              className="rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-600 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-violet-400/30 transition hover:shadow-violet-400/50 hover:brightness-105 sm:px-5 focus-visible:outline-2 focus-visible:outline-violet-700"
-            >
-              Dashboard
-            </Link>
-          ) : null}
+          ))}
         </nav>
       </div>
     </header>

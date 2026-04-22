@@ -40,7 +40,7 @@ const onboardingRequirements = [
 export default function ForRestaurantsPage() {
   return (
     <div className="flex min-h-screen flex-col bg-[#f8f8ff]">
-      <SiteHeader showDashboardButton={false} showForRestaurantsLink />
+      <SiteHeader />
 
       <main className="flex-1">
 
