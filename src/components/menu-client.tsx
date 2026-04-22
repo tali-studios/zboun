@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState, type TouchEvent } from "react";
 import type { CategoryWithItems } from "@/lib/data";
 
 type Props = {
@@ -41,6 +41,10 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
   const [notes, setNotes] = useState("");
   const [isOrderConfirmed, setIsOrderConfirmed] = useState(false);
   const [showMobileCart, setShowMobileCart] = useState(false);
+  const [customSheetOffsetY, setCustomSheetOffsetY] = useState(0);
+  const [isDraggingCustomSheet, setIsDraggingCustomSheet] = useState(false);
+  const customSheetStartYRef = useRef<number | null>(null);
+  const customSheetRef = useRef<HTMLDivElement | null>(null);
 
   const items = useMemo(() => Object.values(cart), [cart]);
   const filteredCategories = useMemo(() => {
@@ -101,6 +105,36 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
 
   function closeCustomization() {
     setCustomizing(null);
+    setCustomSheetOffsetY(0);
+    setIsDraggingCustomSheet(false);
+    customSheetStartYRef.current = null;
+  }
+
+  function onCustomSheetTouchStart(event: TouchEvent<HTMLDivElement>) {
+    const sheetEl = customSheetRef.current;
+    if (!sheetEl) return;
+    if (sheetEl.scrollTop > 0) return;
+    customSheetStartYRef.current = event.touches[0]?.clientY ?? null;
+    setIsDraggingCustomSheet(true);
+  }
+
+  function onCustomSheetTouchMove(event: TouchEvent<HTMLDivElement>) {
+    if (!isDraggingCustomSheet || customSheetStartYRef.current === null) return;
+    const currentY = event.touches[0]?.clientY ?? customSheetStartYRef.current;
+    const deltaY = Math.max(0, currentY - customSheetStartYRef.current);
+    setCustomSheetOffsetY(Math.min(deltaY, 260));
+  }
+
+  function onCustomSheetTouchEnd() {
+    if (!isDraggingCustomSheet) return;
+    const shouldClose = customSheetOffsetY > 120;
+    setIsDraggingCustomSheet(false);
+    customSheetStartYRef.current = null;
+    if (shouldClose) {
+      closeCustomization();
+      return;
+    }
+    setCustomSheetOffsetY(0);
   }
 
   function addCustomizedItem() {
@@ -518,9 +552,25 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
       {/* ── Customization modal ────────────────────────────────────────── */}
       {customizing ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/50 backdrop-blur-sm p-0 sm:items-center sm:p-4">
-          <div className="w-full max-h-[95dvh] overflow-y-auto rounded-t-3xl bg-white px-5 pb-6 pt-4 shadow-2xl sm:max-h-[90vh] sm:max-w-xl sm:rounded-3xl sm:px-6 sm:pb-6 sm:pt-5">
+          <div
+            ref={customSheetRef}
+            onTouchStart={onCustomSheetTouchStart}
+            onTouchMove={onCustomSheetTouchMove}
+            onTouchEnd={onCustomSheetTouchEnd}
+            onTouchCancel={onCustomSheetTouchEnd}
+            style={{
+              transform: `translateY(${customSheetOffsetY}px)`,
+              transition: isDraggingCustomSheet ? "none" : "transform 180ms ease",
+            }}
+            className="w-full max-h-[95dvh] overflow-y-auto rounded-t-3xl bg-white px-5 pb-6 pt-4 shadow-2xl sm:max-h-[90vh] sm:max-w-xl sm:rounded-3xl sm:px-6 sm:pb-6 sm:pt-5"
+          >
             {/* Pull handle (mobile) */}
-            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-200 sm:hidden" />
+            <button
+              type="button"
+              onClick={closeCustomization}
+              aria-label="Close customization sheet"
+              className="mx-auto mb-3 block h-1 w-10 rounded-full bg-slate-200 sm:hidden"
+            />
 
             {/* Header */}
             <div className="flex items-start justify-between gap-3">
