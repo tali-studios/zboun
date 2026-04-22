@@ -2,18 +2,10 @@ import Image from "next/image";
 import Link from "next/link";
 
 type SiteHeaderProps = {
-  /** Larger logo + header height (e.g. home page hero) */
   largeLogo?: boolean;
   showDashboardButton?: boolean;
-  /** Link to marketing / pricing for restaurant owners */
   showForRestaurantsLink?: boolean;
 };
-
-const navLinkClass =
-  "rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-emerald-50 hover:text-emerald-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600";
-
-const navLinkPrimaryClass =
-  "rounded-lg px-3 py-2 text-sm font-semibold text-emerald-800 transition-colors hover:bg-emerald-100/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600";
 
 export function SiteHeader({
   largeLogo = false,
@@ -21,46 +13,47 @@ export function SiteHeader({
   showForRestaurantsLink = false,
 }: SiteHeaderProps) {
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-200/90 bg-white/85 shadow-[0_1px_0_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.12)] backdrop-blur-xl">
-      <div
-        aria-hidden
-        className="pointer-events-none h-px w-full bg-gradient-to-r from-transparent via-emerald-400/50 to-transparent"
-      />
-      <div
-        className={`container flex items-center justify-between gap-3 ${
-          largeLogo ? "min-h-[3.75rem] py-2 md:min-h-[4.5rem] md:py-2.5" : "min-h-14 py-1.5 md:min-h-16"
-        }`}
-      >
+    <header className="sticky top-0 z-50 border-b border-violet-100/80 bg-white/80 backdrop-blur-2xl">
+      <div className="container flex items-center justify-between gap-4 py-3 md:py-3.5">
+
+        {/* Logo */}
         <Link
           href="/"
-          className="flex shrink-0 items-center gap-2 rounded-lg outline-offset-4 transition-opacity hover:opacity-90"
+          className="flex shrink-0 items-center outline-none transition-opacity hover:opacity-85 focus-visible:opacity-85"
         >
           <Image
-            src="/zboun_logo.svg"
+            src="/Logo.svg"
             alt="Zboun"
-            width={largeLogo ? 205 : 168}
-            height={largeLogo ? 58 : 48}
+            width={largeLogo ? 200 : 160}
+            height={largeLogo ? 56 : 44}
             priority
             unoptimized
-            className={`w-auto object-contain ${largeLogo ? "h-10 sm:h-11 md:h-12" : "h-9 sm:h-10"}`}
+            className={`w-auto object-contain ${largeLogo ? "h-9 sm:h-10 md:h-11" : "h-8 sm:h-9"}`}
           />
         </Link>
-        <nav
-          className="flex max-w-[calc(100%-8rem)] flex-wrap items-center justify-end gap-x-1 gap-y-1 sm:gap-x-2"
-          aria-label="Main"
-        >
+
+        {/* Nav */}
+        <nav className="flex items-center gap-1 sm:gap-1.5" aria-label="Main">
           {showForRestaurantsLink ? (
-            <Link href="/for-restaurants" className={navLinkPrimaryClass}>
+            <Link
+              href="/for-restaurants"
+              className="rounded-full bg-violet-50 px-4 py-2 text-sm font-semibold text-violet-700 transition hover:bg-violet-100 focus-visible:outline-2 focus-visible:outline-violet-600"
+            >
               For restaurants
             </Link>
           ) : null}
-          <Link href="/contact" className={navLinkClass}>
+
+          <Link
+            href="/contact"
+            className="rounded-full px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-violet-600"
+          >
             Contact
           </Link>
+
           {showDashboardButton ? (
             <Link
               href="/dashboard/login"
-              className="ml-0.5 rounded-full bg-slate-900 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 sm:px-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+              className="rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-600 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-violet-400/30 transition hover:shadow-violet-400/50 hover:brightness-105 sm:px-5 focus-visible:outline-2 focus-visible:outline-violet-700"
             >
               Dashboard
             </Link>

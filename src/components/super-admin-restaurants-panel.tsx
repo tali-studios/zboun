@@ -234,7 +234,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
               </div>
               <span
                 className={`rounded-full px-2 py-1 text-xs font-semibold ${
-                  restaurant.is_active ? "bg-green-100 text-green-700" : "bg-slate-200 text-slate-700"
+                  restaurant.is_active ? "bg-violet-100 text-violet-700" : "bg-slate-200 text-slate-700"
                 }`}
               >
                 {restaurant.is_active ? "Active" : "Inactive"}
@@ -252,7 +252,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
               </span>
               <span
                 className={`rounded-full px-2 py-1 ${
-                  restaurant.show_on_home ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-700"
+                  restaurant.show_on_home ? "bg-violet-100 text-violet-700" : "bg-slate-200 text-slate-700"
                 }`}
               >
                 {restaurant.show_on_home ? "Visible on home" : "Hidden on home"}
@@ -269,14 +269,14 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
               <ActionIconButton
                 label={restaurant.is_active ? "Deactivate restaurant" : "Activate restaurant"}
                 icon={restaurant.is_active ? "⏸" : "▶"}
-                className={restaurant.is_active ? "bg-amber-600 hover:bg-amber-500" : "bg-green-600 hover:bg-green-500"}
+                className={restaurant.is_active ? "bg-amber-600 hover:bg-amber-500" : "bg-violet-600 hover:bg-violet-500"}
                 disabled={isPending}
                 onClick={() => openToggleModal(restaurant)}
               />
               <ActionIconButton
                 label={restaurant.show_on_home ? "Hide from home page" : "Show on home page"}
                 icon={restaurant.show_on_home ? "👁" : "🏠"}
-                className={restaurant.show_on_home ? "bg-slate-700 hover:bg-slate-600" : "bg-emerald-600 hover:bg-emerald-500"}
+                className={restaurant.show_on_home ? "bg-slate-700 hover:bg-slate-600" : "bg-violet-600 hover:bg-violet-500"}
                 disabled={isPending}
                 onClick={() => toggleHomeVisibility(restaurant.id, restaurant.show_on_home)}
               />
@@ -357,7 +357,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                   <span
                     className={`rounded-full px-2 py-1 text-xs font-semibold ${
                       restaurant.is_active
-                        ? "bg-green-100 text-green-700"
+                        ? "bg-violet-100 text-violet-700"
                         : "bg-slate-200 text-slate-700"
                     }`}
                   >
@@ -368,7 +368,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                   <span
                     className={`rounded-full px-2 py-1 text-xs font-semibold ${
                       restaurant.show_on_home
-                        ? "bg-emerald-100 text-emerald-700"
+                        ? "bg-violet-100 text-violet-700"
                         : "bg-slate-200 text-slate-700"
                     }`}
                   >
@@ -390,14 +390,14 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                     <ActionIconButton
                       label={restaurant.is_active ? "Deactivate restaurant" : "Activate restaurant"}
                       icon={restaurant.is_active ? "⏸" : "▶"}
-                      className={restaurant.is_active ? "bg-amber-600 hover:bg-amber-500" : "bg-green-600 hover:bg-green-500"}
+                      className={restaurant.is_active ? "bg-amber-600 hover:bg-amber-500" : "bg-violet-600 hover:bg-violet-500"}
                       disabled={isPending}
                       onClick={() => openToggleModal(restaurant)}
                     />
                     <ActionIconButton
                       label={restaurant.show_on_home ? "Hide from home page" : "Show on home page"}
                       icon={restaurant.show_on_home ? "👁" : "🏠"}
-                      className={restaurant.show_on_home ? "bg-slate-700 hover:bg-slate-600" : "bg-emerald-600 hover:bg-emerald-500"}
+                      className={restaurant.show_on_home ? "bg-slate-700 hover:bg-slate-600" : "bg-violet-600 hover:bg-violet-500"}
                       disabled={isPending}
                       onClick={() => toggleHomeVisibility(restaurant.id, restaurant.show_on_home)}
                     />

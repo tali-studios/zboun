@@ -23,39 +23,47 @@ export default async function ChangePasswordPage({ searchParams }: Props) {
     appUser.role === "superadmin" ? "/dashboard/super-admin" : "/dashboard/restaurant";
 
   return (
-    <main className="flex min-h-screen items-center justify-center p-4">
-      <div className="panel w-full max-w-lg rounded-3xl p-6">
+    <main className="flex min-h-screen items-center justify-center bg-[#f8f8ff] px-4 py-12">
+      <div className="w-full max-w-md rounded-3xl border border-violet-100 bg-white p-7 shadow-[0_12px_40px_rgba(120,84,255,0.14)] sm:p-8">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-slate-900">Change password</h1>
-          <Link href={dashboardHref} className="btn btn-secondary">
-            Back
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Change password</h1>
+          <Link href={dashboardHref} className="btn btn-secondary text-xs">
+            ← Back
           </Link>
         </div>
-        <p className="mt-1 text-sm text-slate-600">
-          For security, request a one-time code by email, then confirm it to set a new password.
+        <p className="mt-1.5 text-sm text-slate-500">
+          Request a one-time code by email, then use it to set a new password.
         </p>
 
         {success === "otp_sent" && (
-          <p className="mt-4 rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-700">
-            OTP sent to your email.
-          </p>
+          <div className="mt-4 rounded-xl border border-violet-100 bg-violet-50 px-3.5 py-3 text-sm text-violet-800">
+            OTP sent to your email address.
+          </div>
         )}
         {success === "password_changed" && (
-          <p className="mt-4 rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-700">
+          <div className="mt-4 rounded-xl border border-violet-100 bg-violet-50 px-3.5 py-3 text-sm text-violet-800">
             Password changed successfully.
-          </p>
+          </div>
         )}
         {error && (
-          <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          <div className="mt-4 rounded-xl border border-red-100 bg-red-50 px-3.5 py-3 text-sm text-red-700">
             {decodeURIComponent(error).replaceAll("_", " ")}
-          </p>
+          </div>
         )}
 
-        <form action={requestPasswordChangeOtpAction} className="mt-5">
-          <button className="btn btn-primary w-full rounded-xl py-3">Send OTP to email</button>
+        <form action={requestPasswordChangeOtpAction} className="mt-6">
+          <button className="btn btn-secondary w-full rounded-2xl py-3 text-sm">
+            Send OTP to my email
+          </button>
         </form>
 
-        <form action={verifyOtpAndChangePasswordAction} className="mt-4 space-y-3">
+        <div className="my-5 flex items-center gap-3">
+          <div className="h-px flex-1 bg-slate-100" />
+          <span className="text-xs text-slate-400">then verify below</span>
+          <div className="h-px flex-1 bg-slate-100" />
+        </div>
+
+        <form action={verifyOtpAndChangePasswordAction} className="space-y-3">
           <input
             name="otp"
             required
@@ -80,7 +88,9 @@ export default async function ChangePasswordPage({ searchParams }: Props) {
             placeholder="Confirm new password"
             className="ui-input"
           />
-          <button className="btn btn-success w-full rounded-xl py-3">Verify OTP and change password</button>
+          <button className="btn btn-primary w-full rounded-2xl py-3.5 text-sm">
+            Verify OTP &amp; change password
+          </button>
         </form>
       </div>
     </main>

@@ -21,8 +21,8 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ecfdf5" },
-    { media: "(prefers-color-scheme: dark)", color: "#0f172a" },
+    { media: "(prefers-color-scheme: light)", color: "#f6f7ff" },
+    { media: "(prefers-color-scheme: dark)", color: "#090c1b" },
   ],
 };
 
@@ -69,11 +69,11 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/icon.png", type: "image/png", sizes: "32x32" },
-      { url: "/zboun_favicon.png", type: "image/png" },
+      { url: "/Favicon.svg", type: "image/svg+xml" },
+      { url: "/Favicon.svg", type: "image/svg+xml", sizes: "any" },
     ],
-    shortcut: ["/icon.png"],
-    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
+    shortcut: ["/Favicon.svg"],
+    apple: [{ url: "/Favicon.svg" }],
   },
   manifest: "/manifest.webmanifest",
   ...(env.googleSiteVerification
@@ -91,6 +91,11 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <link rel="icon" href="/Favicon.svg" type="image/svg+xml" />
+        <link rel="shortcut icon" href="/Favicon.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/Favicon.svg" />
+      </head>
       <body className="flex min-h-full flex-col">
         <SiteJsonLd />
         {children}

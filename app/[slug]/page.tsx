@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getRestaurantBySlug, getRestaurantMenu } from "@/lib/data";
 import { MenuClient } from "@/components/menu-client";
@@ -51,33 +52,45 @@ export default async function RestaurantMenuPage({ params }: Props) {
   const categories = await getRestaurantMenu(restaurant.id);
 
   return (
-    <main className="min-h-screen py-4 sm:py-6">
-      <div className="container">
-        <header className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 md:mb-5 md:p-5">
+    <div className="min-h-screen bg-[#f8f8ff]">
+      {/* Minimal sticky top bar */}
+      <header className="sticky top-0 z-40 border-b border-violet-100/80 bg-white/85 backdrop-blur-xl">
+        <div className="container flex items-center justify-between gap-3 py-3">
           <div className="flex items-center gap-3">
             {restaurant.logo_url ? (
-              <Image
-                src={restaurant.logo_url}
-                alt={`${restaurant.name} logo`}
-                width={54}
-                height={54}
-                className="h-12 w-12 rounded-xl border border-slate-200 bg-white p-1 object-contain"
-                unoptimized
-              />
+              <div className="h-9 w-9 shrink-0 overflow-hidden rounded-xl border border-slate-100 bg-white">
+                <Image
+                  src={restaurant.logo_url}
+                  alt={`${restaurant.name} logo`}
+                  width={36}
+                  height={36}
+                  className="h-full w-full object-contain p-0.5"
+                  unoptimized
+                />
+              </div>
             ) : null}
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900">{restaurant.name}</h1>
-              <p className="text-sm text-slate-600">Order directly on WhatsApp</p>
+              <p className="text-sm font-bold leading-tight text-slate-900">{restaurant.name}</p>
+              <p className="text-xs text-slate-400">Order via WhatsApp</p>
             </div>
           </div>
-        </header>
+          <Link
+            href="/"
+            className="rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-violet-300 hover:text-violet-700"
+          >
+            ← All restaurants
+          </Link>
+        </div>
+      </header>
+
+      <main className="container py-4 sm:py-6 pb-24 lg:pb-6">
         <MenuClient
           restaurantName={restaurant.name}
           restaurantPhone={restaurant.phone}
           lbpRate={Number(restaurant.lbp_rate ?? 89500)}
           categories={categories}
         />
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }

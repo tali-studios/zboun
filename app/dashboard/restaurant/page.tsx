@@ -74,36 +74,43 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
       : 0;
 
   return (
-    <main className="min-h-screen p-3 sm:p-4 md:p-8">
-      <div className="mx-auto max-w-7xl space-y-6">
-        <header className="rounded-2xl bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 p-4 text-white shadow-lg md:p-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+    <main className="min-h-screen bg-[#f8f8ff] p-3 sm:p-4 md:p-8">
+      <div className="mx-auto max-w-7xl space-y-5">
+        {/* Dashboard header */}
+        <header className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-violet-700 via-violet-600 to-fuchsia-600 p-5 text-white shadow-lg shadow-violet-600/30 md:p-6">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-white/10 blur-3xl"
+          />
+          <div className="relative flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-sm font-medium text-emerald-100">Restaurant admin</p>
-              <h1 className="text-xl font-bold md:text-2xl">{restaurant?.name} Dashboard</h1>
-              <p className="text-xs text-emerald-100 md:text-sm">Public menu URL: /{restaurant?.slug}</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-violet-200">Restaurant admin</p>
+              <h1 className="mt-1 text-xl font-bold md:text-2xl">{restaurant?.name}</h1>
+              <p className="mt-0.5 text-xs text-violet-200 md:text-sm">
+                Menu: <span className="font-medium text-white">/{restaurant?.slug}</span>
+              </p>
             </div>
-            <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
+            <div className="flex flex-wrap gap-2">
               <a
                 href={menuUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="btn bg-white text-green-700"
+                className="btn rounded-full bg-white text-violet-700 shadow-sm hover:bg-violet-50"
               >
-                Open public menu
+                Open menu
               </a>
               <CopyMenuLinkButton url={menuUrl} />
-              <a href="/dashboard/restaurant/qr" className="btn border border-white/50 text-white">
-                Menu QR
+              <a href="/dashboard/restaurant/qr" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">
+                QR code
               </a>
-              <a href="/dashboard/restaurant/flyer" className="btn border border-white/50 text-white">
+              <a href="/dashboard/restaurant/flyer" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">
                 Print flyer
               </a>
-              <a href="/dashboard/change-password" className="btn border border-white/50 text-white">
-                Change password
+              <a href="/dashboard/change-password" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">
+                Password
               </a>
               <form action={signOutAction}>
-                <button className="btn border border-white/50 text-white">
+                <button className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">
                   Sign out
                 </button>
               </form>
@@ -111,23 +118,24 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
           </div>
         </header>
 
+        {/* Stats */}
         <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <article className="panel p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Sections</p>
-            <p className="mt-1 text-2xl font-bold text-slate-900">{sectionCount}</p>
+          <article className="panel p-5">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Sections</p>
+            <p className="mt-2 text-3xl font-bold tracking-tight text-slate-900">{sectionCount}</p>
           </article>
-          <article className="panel p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Menu items</p>
-            <p className="mt-1 text-2xl font-bold text-slate-900">{totalItems}</p>
+          <article className="panel p-5">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Menu items</p>
+            <p className="mt-2 text-3xl font-bold tracking-tight text-slate-900">{totalItems}</p>
           </article>
-          <article className="panel p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">In stock</p>
-            <p className="mt-1 text-2xl font-bold text-green-700">{availableItems}</p>
-            <p className="text-xs text-slate-500">Out of stock: {outOfStockItems}</p>
+          <article className="panel p-5">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">In stock</p>
+            <p className="mt-2 text-3xl font-bold tracking-tight text-violet-700">{availableItems}</p>
+            <p className="mt-1 text-xs text-slate-400">{outOfStockItems} out of stock</p>
           </article>
-          <article className="panel p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Avg item price</p>
-            <p className="mt-1 text-2xl font-bold text-slate-900">${avgPrice.toFixed(2)}</p>
+          <article className="panel p-5">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Avg price</p>
+            <p className="mt-2 text-3xl font-bold tracking-tight text-slate-900">${avgPrice.toFixed(2)}</p>
           </article>
         </section>
 

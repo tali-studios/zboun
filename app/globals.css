@@ -1,11 +1,17 @@
 @import "tailwindcss";
 
+/* ─── Brand tokens ──────────────────────────────────────────────────────────── */
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  --brand-green: #16a34a;
-  --brand-orange: #f97316;
-  --muted: #64748b;
+  --background: #f8f8ff;
+  --foreground: #0f1126;
+  --surface: rgba(255, 255, 255, 0.80);
+  --surface-mid: rgba(255, 255, 255, 0.92);
+  --surface-strong: #ffffff;
+  --brand: #7854ff;
+  --brand-2: #9f3bfe;
+  --muted: #5f6785;
+  --border: rgba(120, 84, 255, 0.18);
+  --border-subtle: rgba(120, 84, 255, 0.1);
 }
 
 @theme inline {
@@ -15,128 +21,167 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #020617;
-    --foreground: #e2e8f0;
-    --muted: #94a3b8;
-  }
-}
-
+/* ─── Body ──────────────────────────────────────────────────────────────────── */
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
-  background-image: radial-gradient(
-    circle at top,
-    rgba(16, 185, 129, 0.08) 0%,
-    rgba(255, 255, 255, 0) 42%
-  );
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
+/* ─── Layout ────────────────────────────────────────────────────────────────── */
 .container {
-  width: min(1100px, calc(100% - 2.5rem));
+  width: min(1120px, calc(100% - 2rem));
   margin-inline: auto;
 }
 
 @media (min-width: 640px) {
   .container {
-    width: min(1100px, calc(100% - 3rem));
+    width: min(1120px, calc(100% - 3rem));
   }
 }
 
+/* ─── Surfaces ──────────────────────────────────────────────────────────────── */
 .panel {
-  border-radius: 1rem;
-  background: #fff;
+  border-radius: 1.25rem;
+  background: var(--surface-strong);
   box-shadow:
-    0 1px 2px rgba(15, 23, 42, 0.05),
-    0 12px 24px rgba(15, 23, 42, 0.06);
-  border: 1px solid rgba(148, 163, 184, 0.2);
+    0 0 0 1px rgba(120, 84, 255, 0.1),
+    0 2px 4px rgba(15, 17, 38, 0.04),
+    0 12px 32px rgba(79, 46, 190, 0.07);
 }
 
 @media (max-width: 420px) {
   .panel {
-    border-radius: 0.9rem;
+    border-radius: 1rem;
   }
 }
 
-.panel-title {
-  font-size: 1rem;
-  font-weight: 700;
-  color: #0f172a;
+.panel-glass {
+  border-radius: 1.25rem;
+  background: var(--surface);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow:
+    0 0 0 1px rgba(120, 84, 255, 0.14),
+    0 2px 4px rgba(15, 17, 38, 0.04),
+    0 16px 40px rgba(79, 46, 190, 0.1);
 }
 
+.panel-title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #0f1126;
+  letter-spacing: -0.01em;
+}
+
+/* ─── Form controls ─────────────────────────────────────────────────────────── */
 .ui-input,
 .ui-select,
 .ui-textarea {
   width: 100%;
-  border-radius: 0.75rem;
-  border: 1px solid #cbd5e1;
-  background: #fff;
-  padding: 0.6rem 0.8rem;
-  font-size: 0.9rem;
-  color: #0f172a;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  border-radius: 0.85rem;
+  border: 1.5px solid #e2e5f5;
+  background: var(--surface-strong);
+  padding: 0.72rem 0.9rem;
+  font-size: 0.9375rem;
+  color: #0f1126;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  min-height: 2.75rem;
+}
+
+.ui-input::placeholder,
+.ui-select::placeholder,
+.ui-textarea::placeholder {
+  color: #a0a8c4;
 }
 
 .ui-input:focus,
 .ui-select:focus,
 .ui-textarea:focus {
   outline: none;
-  border-color: #10b981;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+  border-color: var(--brand);
+  box-shadow: 0 0 0 4px rgba(120, 84, 255, 0.14);
 }
 
+/* ─── Buttons ───────────────────────────────────────────────────────────────── */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 0.4rem;
   border-radius: 9999px;
-  padding: 0.52rem 1rem;
-  font-size: 0.8rem;
-  font-weight: 700;
-  min-height: 2.4rem;
-  transition: transform 0.15s ease, opacity 0.15s ease;
+  padding: 0.62rem 1.1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  min-height: 2.6rem;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
   text-align: center;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  white-space: nowrap;
 }
 
-@media (max-width: 420px) {
+@media (max-width: 400px) {
   .btn {
     width: 100%;
-    min-height: 2.5rem;
+    min-height: 2.75rem;
   }
 }
 
-.btn:hover {
+.btn:hover:not(:disabled) {
   transform: translateY(-1px);
 }
 
+.btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
 .btn-primary {
-  background: linear-gradient(135deg, #0f172a, #1f2937);
-  color: white;
+  background: linear-gradient(135deg, #7854ff, #9f3bfe);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(120, 84, 255, 0.32);
+}
+
+.btn-primary:hover:not(:disabled) {
+  box-shadow: 0 8px 24px rgba(120, 84, 255, 0.42);
 }
 
 .btn-success {
-  background: linear-gradient(135deg, #16a34a, #059669);
-  color: white;
+  background: linear-gradient(135deg, #7854ff, #7842f5);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(120, 84, 255, 0.28);
+}
+
+.btn-success:hover:not(:disabled) {
+  box-shadow: 0 8px 24px rgba(120, 84, 255, 0.38);
 }
 
 .btn-danger {
-  background: linear-gradient(135deg, #dc2626, #b91c1c);
-  color: white;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.22);
 }
 
 .btn-warning {
   background: linear-gradient(135deg, #f59e0b, #d97706);
-  color: white;
+  color: #fff;
 }
 
 .btn-secondary {
-  border: 1px solid #cbd5e1;
-  background: #fff;
-  color: #334155;
+  border: 1.5px solid #e2e5f5;
+  background: var(--surface-strong);
+  color: #3b4270;
+  box-shadow: 0 1px 3px rgba(15, 17, 38, 0.06);
 }
 
+.btn-secondary:hover:not(:disabled) {
+  border-color: #c9b8ff;
+  background: #f8f4ff;
+  box-shadow: 0 4px 12px rgba(120, 84, 255, 0.12);
+}
+
+/* ─── Flyer / print ─────────────────────────────────────────────────────────── */
 .flyer-a4 {
   width: 210mm;
   height: 297mm;

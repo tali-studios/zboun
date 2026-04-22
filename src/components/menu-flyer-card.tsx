@@ -127,7 +127,7 @@ export function MenuFlyerCard({ menuUrl, restaurantName, logoUrl }: Props) {
                 unoptimized
               />
             ) : null}
-            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-700">ZBOUN</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-violet-700">ZBOUN</p>
             <h2 className="text-4xl font-extrabold">{restaurantName}</h2>
             <p className="text-lg text-slate-600">Scan to Order</p>
           </div>
@@ -164,7 +164,7 @@ export function MenuFlyerCard({ menuUrl, restaurantName, logoUrl }: Props) {
                   unoptimized
                 />
               ) : null}
-              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-700">ZBOUN</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-violet-700">ZBOUN</p>
               <h2 className="text-4xl font-extrabold">{restaurantName}</h2>
               <p className="text-lg text-slate-600">Scan to Order</p>
             </div>

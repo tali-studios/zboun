@@ -197,13 +197,13 @@ export default async function SuperAdminPage({ searchParams }: Props) {
   };
 
   return (
-    <main className="min-h-screen p-3 sm:p-4 md:p-8">
+    <main className="min-h-screen bg-[#f8f8ff] p-3 sm:p-4 md:p-8">
       <div className="mx-auto max-w-6xl space-y-6">
-        <header className="panel p-4 md:p-5">
+        <header className="panel p-5 md:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-sm font-medium text-green-700">Platform control center</p>
-              <h1 className="text-2xl font-bold text-slate-900">Super admin</h1>
+              <p className="text-[11px] font-bold uppercase tracking-widest text-violet-600">Platform control</p>
+              <h1 className="mt-1 text-2xl font-bold text-slate-900">Super admin</h1>
             </div>
             <form action={signOutAction}>
               <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
@@ -227,7 +227,7 @@ export default async function SuperAdminPage({ searchParams }: Props) {
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Active stores
             </p>
-            <p className="mt-1 text-2xl font-bold text-green-700">{stats.activeRestaurants}</p>
+            <p className="mt-1 text-2xl font-bold text-violet-700">{stats.activeRestaurants}</p>
           </div>
           <div className="panel p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -256,22 +256,22 @@ export default async function SuperAdminPage({ searchParams }: Props) {
           </p>
         )}
         {success === "subscription_renewed" && (
-          <p className="rounded-xl border border-green-200 bg-green-50 p-3 text-sm font-medium text-green-700">
+          <p className="rounded-xl border border-violet-200 bg-violet-50 p-3 text-sm font-medium text-violet-700">
             Subscription renewed successfully.
           </p>
         )}
         {success === "invoice_created" && (
-          <p className="rounded-xl border border-green-200 bg-green-50 p-3 text-sm font-medium text-green-700">
+          <p className="rounded-xl border border-violet-200 bg-violet-50 p-3 text-sm font-medium text-violet-700">
             Invoice created successfully.
           </p>
         )}
         {success === "payment_recorded" && (
-          <p className="rounded-xl border border-green-200 bg-green-50 p-3 text-sm font-medium text-green-700">
+          <p className="rounded-xl border border-violet-200 bg-violet-50 p-3 text-sm font-medium text-violet-700">
             Cash payment recorded successfully.
           </p>
         )}
         {success === "restaurant_deleted" && (
-          <p className="rounded-xl border border-green-200 bg-green-50 p-3 text-sm font-medium text-green-700">
+          <p className="rounded-xl border border-violet-200 bg-violet-50 p-3 text-sm font-medium text-violet-700">
             Restaurant deleted successfully.
           </p>
         )}
@@ -325,7 +325,7 @@ export default async function SuperAdminPage({ searchParams }: Props) {
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Collected this month
             </p>
-            <p className="mt-1 text-2xl font-bold text-emerald-700">${stats.collectedThisMonth.toFixed(2)}</p>
+            <p className="mt-1 text-2xl font-bold text-violet-700">${stats.collectedThisMonth.toFixed(2)}</p>
           </div>
           <div className="panel p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">

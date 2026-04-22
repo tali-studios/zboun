@@ -9,76 +9,86 @@ type Props = {
 export default async function LoginPage({ searchParams }: Props) {
   const { error } = await searchParams;
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-b from-emerald-50/80 via-white to-slate-100 px-4 py-10">
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#f8f8ff] px-4 py-12">
+      {/* Background gradient blobs */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -left-20 top-8 h-56 w-56 rounded-full bg-emerald-400/20 blur-3xl"
+        className="pointer-events-none absolute -top-32 left-1/2 -translate-x-1/2 h-[420px] w-[700px] rounded-full bg-gradient-to-br from-violet-300/35 via-fuchsia-200/20 to-transparent blur-3xl"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute -right-20 bottom-8 h-56 w-56 rounded-full bg-slate-400/20 blur-3xl"
+        className="pointer-events-none absolute bottom-0 right-0 h-64 w-64 rounded-full bg-fuchsia-300/20 blur-3xl"
       />
 
       <form
         action={signInAction}
-        className="relative w-full max-w-md rounded-3xl border border-slate-200/80 bg-white/95 p-6 shadow-[0_24px_60px_-28px_rgba(15,23,42,0.28)] backdrop-blur-sm sm:p-8"
+        className="relative w-full max-w-sm rounded-3xl border border-violet-100 bg-white p-7 shadow-[0_20px_60px_rgba(120,84,255,0.16)] sm:p-8"
       >
-        <div className="mb-5 flex items-center justify-between">
-          <Link
-            href="/"
-            className="inline-flex rounded-xl bg-white px-2 py-1.5 shadow-sm ring-1 ring-slate-200 transition hover:opacity-90"
-          >
+        {/* Logo + back link */}
+        <div className="mb-7 flex items-center justify-between">
+          <Link href="/" className="flex rounded-xl outline-none transition-opacity hover:opacity-80">
             <Image
-              src="/zboun_logo.svg"
+              src="/Logo.svg"
               alt="Zboun"
-              width={130}
-              height={38}
+              width={120}
+              height={36}
               className="h-8 w-auto object-contain"
               priority
               unoptimized
             />
           </Link>
-          <Link href="/" className="text-sm font-medium text-slate-500 hover:text-slate-800">
-            Back to website
+          <Link
+            href="/"
+            className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-500 transition hover:border-violet-300 hover:text-violet-700"
+          >
+            ← Home
           </Link>
         </div>
 
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Dashboard login</h1>
-        <p className="mt-1 text-sm text-slate-600">For super admins and restaurant admins.</p>
+        {/* Heading */}
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Sign in</h1>
+        <p className="mt-1 text-sm text-slate-500">Restaurant &amp; super admin dashboard.</p>
+
+        {/* Errors */}
         {error === "invalid_credentials" && (
-          <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
-            Invalid credentials.
-          </p>
+          <div className="mt-4 rounded-xl border border-red-100 bg-red-50 px-3.5 py-2.5 text-sm font-medium text-red-700">
+            Invalid credentials. Please try again.
+          </div>
         )}
         {error === "missing_profile" && (
-          <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            Your account exists in Supabase Auth, but it’s missing the app profile row in{" "}
-            <code className="font-mono">public.users</code>. Create that row (role + restaurant_id)
-            and try again.
-          </p>
+          <div className="mt-4 rounded-xl border border-red-100 bg-red-50 px-3.5 py-2.5 text-sm text-red-700">
+            Account exists but is missing an app profile row in{" "}
+            <code className="font-mono">public.users</code>. Please contact your admin.
+          </div>
         )}
         {error === "missing_restaurant_link" && (
-          <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            Your user is restaurant admin, but no restaurant is linked yet. Set{" "}
-            <code className="font-mono">restaurant_id</code> in <code className="font-mono">public.users</code>.
-          </p>
+          <div className="mt-4 rounded-xl border border-red-100 bg-red-50 px-3.5 py-2.5 text-sm text-red-700">
+            No restaurant linked to your account. Set{" "}
+            <code className="font-mono">restaurant_id</code> in{" "}
+            <code className="font-mono">public.users</code>.
+          </div>
         )}
-        <div className="mt-4 space-y-3">
+
+        {/* Fields */}
+        <div className="mt-5 space-y-3">
           <input
             type="email"
             name="email"
             required
-            placeholder="Email"
-            className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+            placeholder="Email address"
+            className="ui-input"
           />
           <input
             type="password"
             name="password"
             required
             placeholder="Password"
-            className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+            className="ui-input"
           />
-          <button className="w-full rounded-xl bg-slate-900 py-3 font-semibold text-white transition hover:bg-slate-800">
+          <button
+            type="submit"
+            className="mt-1 flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 py-3.5 text-sm font-bold text-white shadow-md shadow-violet-400/30 transition hover:brightness-110"
+          >
             Sign in
           </button>
         </div>

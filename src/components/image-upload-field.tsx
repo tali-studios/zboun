@@ -52,7 +52,7 @@ export function ImageUploadField({ name, label = "Item image", initialImageUrl =
         onDragLeave={() => setIsDragging(false)}
         onDrop={onDrop}
         className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed p-3 transition ${
-          isDragging ? "border-emerald-500 bg-emerald-50" : "border-slate-300 bg-white"
+          isDragging ? "border-violet-500 bg-violet-50" : "border-slate-300 bg-white"
         }`}
       >
         {previewUrl ? (
@@ -73,7 +73,7 @@ export function ImageUploadField({ name, label = "Item image", initialImageUrl =
         <div className="min-w-0">
           <p className="text-sm font-semibold text-slate-800">Drag & drop or click to upload</p>
           <p className="text-xs text-slate-500">PNG/JPG/WebP, max 5MB</p>
-          {file ? <p className="mt-1 truncate text-xs text-emerald-700">{file.name}</p> : null}
+          {file ? <p className="mt-1 truncate text-xs text-violet-700">{file.name}</p> : null}
         </div>
 
         <input

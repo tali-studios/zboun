@@ -5,63 +5,67 @@ export function SiteFooter() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="mt-16 border-t border-emerald-500/25 bg-slate-900 text-slate-300 md:mt-20">
+    <footer className="mt-20 border-t border-slate-100 bg-slate-950">
+      {/* Purple accent line */}
       <div
         aria-hidden
-        className="h-0.5 w-full bg-gradient-to-r from-emerald-600/80 via-emerald-400/60 to-teal-500/50"
+        className="h-[2px] w-full bg-gradient-to-r from-violet-600 via-fuchsia-500 to-violet-600/40"
       />
-      <div className="container py-10 md:py-14">
-        <div className="grid gap-10 md:grid-cols-12 md:gap-8 lg:gap-12">
-          <div className="md:col-span-5 lg:col-span-5">
+
+      <div className="container py-12 md:py-16">
+        <div className="grid gap-10 sm:grid-cols-2 md:grid-cols-12 md:gap-8">
+
+          {/* Brand */}
+          <div className="sm:col-span-2 md:col-span-5">
             <Link
               href="/"
-              className="inline-flex items-center gap-2.5 rounded-xl bg-white/95 p-2.5 shadow-sm ring-1 ring-white/10 outline-offset-4 transition hover:bg-white"
+              className="inline-flex rounded-2xl bg-white/90 p-2.5 ring-1 ring-white/20 transition hover:bg-white"
             >
               <Image
-                src="/zboun_logo.svg"
+                src="/Logo.svg"
                 alt="Zboun"
-                width={120}
-                height={36}
-                className="h-8 w-auto object-contain"
+                width={108}
+                height={32}
+                className="h-7 w-auto object-contain"
                 unoptimized
               />
             </Link>
-            <p className="mt-4 max-w-sm text-sm leading-relaxed text-slate-400">
-              Digital menus and clear WhatsApp orders for restaurants — simple for guests, easy for
-              your team.
+            <p className="mt-4 max-w-xs text-sm leading-relaxed text-slate-400">
+              Digital menus and WhatsApp ordering for restaurants — simple for guests, easy for your team.
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-8 sm:grid-cols-2 md:col-span-4 md:col-start-6 lg:col-span-3 lg:col-start-6">
+          {/* Links */}
+          <div className="grid grid-cols-2 gap-8 md:col-span-4 md:col-start-7">
             <div>
-              <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">
+              <p className="mb-4 text-[11px] font-bold uppercase tracking-widest text-slate-600">
                 Explore
-              </h2>
-              <ul className="mt-4 space-y-3 text-sm">
+              </p>
+              <ul className="space-y-3 text-sm">
                 <li>
-                  <Link href="/" className="text-slate-300 transition hover:text-white">
+                  <Link href="/" className="text-slate-400 transition hover:text-violet-300">
                     Home
                   </Link>
                 </li>
                 <li>
-                  <Link href="/contact" className="text-slate-300 transition hover:text-white">
+                  <Link href="/contact" className="text-slate-400 transition hover:text-violet-300">
                     Contact
                   </Link>
                 </li>
               </ul>
             </div>
             <div>
-              <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">
+              <p className="mb-4 text-[11px] font-bold uppercase tracking-widest text-slate-600">
                 Restaurants
-              </h2>
-              <ul className="mt-4 space-y-3 text-sm">
+              </p>
+              <ul className="space-y-3 text-sm">
                 <li>
-                  <Link href="/for-restaurants" className="text-slate-300 transition hover:text-white">
+                  <Link href="/for-restaurants" className="text-slate-400 transition hover:text-violet-300">
                     Plans &amp; pricing
                   </Link>
                 </li>
                 <li>
-                  <Link href="/dashboard/login" className="text-slate-300 transition hover:text-white">
+                  <Link href="/dashboard/login" className="text-slate-400 transition hover:text-violet-300">
                     Restaurant login
                   </Link>
                 </li>
@@ -69,22 +73,28 @@ export function SiteFooter() {
             </div>
           </div>
 
-          <div className="flex flex-col justify-end md:col-span-3 md:col-start-10 lg:col-span-4 lg:col-start-9">
+          {/* WhatsApp CTA */}
+          <div className="sm:col-span-2 md:col-span-3 md:col-start-11 md:flex md:flex-col md:justify-center">
             <a
               href="https://wa.me/96171212734"
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-center text-sm font-semibold text-white shadow-lg shadow-emerald-950/30 transition hover:bg-emerald-500 sm:w-auto md:justify-center"
+              className="flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-violet-900/40 transition hover:brightness-110"
             >
-              Message us on WhatsApp
+              <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                <path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.124 1.532 5.859L.054 23.285a.75.75 0 00.916.916l5.437-1.478A11.954 11.954 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.89 0-3.67-.5-5.21-1.374l-.374-.213-3.867 1.051 1.052-3.843-.226-.386A9.956 9.956 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
+              </svg>
+              WhatsApp us
             </a>
-            <p className="mt-3 text-center text-xs text-slate-500 md:text-left">
-              Quick replies for onboarding and support.
+            <p className="mt-2.5 text-center text-xs text-slate-600">
+              Quick support &amp; onboarding
             </p>
           </div>
         </div>
 
-        <div className="mt-10 flex flex-col gap-4 border-t border-slate-800/80 pt-8 text-xs text-slate-500 md:flex-row md:items-center md:justify-between">
+        {/* Bottom row */}
+        <div className="mt-12 flex flex-col items-center gap-2 border-t border-slate-800 pt-8 text-xs text-slate-600 sm:flex-row sm:justify-between">
           <p>© {year} Zboun. All rights reserved.</p>
-          <p className="md:text-right">Menus · QR · WhatsApp ordering</p>
+          <p>Menus · QR codes · WhatsApp ordering</p>
         </div>
       </div>
     </footer>

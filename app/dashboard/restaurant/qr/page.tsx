@@ -23,19 +23,19 @@ export default async function RestaurantQrPage() {
   const menuUrl = `${appUrl.replace(/\/+$/, "")}/${restaurant?.slug ?? ""}`;
 
   return (
-    <main className="min-h-screen p-4 md:p-8">
+    <main className="min-h-screen bg-[#f8f8ff] p-4 md:p-8">
       <div className="mx-auto max-w-5xl space-y-6">
-        <header className="panel flex items-center justify-between rounded-2xl p-5">
+        <header className="panel flex flex-wrap items-center justify-between gap-3 rounded-2xl p-5">
           <div>
-            <p className="text-sm font-medium text-emerald-700">Restaurant admin</p>
-            <h1 className="text-2xl font-bold text-slate-900">Menu QR</h1>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-violet-600">Restaurant admin</p>
+            <h1 className="mt-1 text-2xl font-bold text-slate-900">Menu QR code</h1>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Link href="/dashboard/restaurant/flyer" className="btn btn-primary">
               Print flyer
             </Link>
             <Link href="/dashboard/restaurant" className="btn btn-secondary">
-              Back to dashboard
+              ← Dashboard
             </Link>
           </div>
         </header>
