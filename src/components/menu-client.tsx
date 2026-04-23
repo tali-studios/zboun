@@ -235,7 +235,7 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
   }
 
   /* ─── Cart panel (shared between desktop sidebar and mobile sheet) ─── */
-  function CartPanel({ onClose }: { onClose?: () => void }) {
+  function renderCartPanel({ onClose }: { onClose?: () => void }) {
     return (
       <div className="flex h-full flex-col">
         <div className="flex items-center justify-between">
@@ -477,7 +477,7 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
 
         {/* ── Desktop cart sidebar ───────────────────────────────────── */}
         <aside className="hidden h-fit rounded-2xl border border-slate-100 bg-white p-5 shadow-sm lg:block lg:sticky lg:top-[76px]">
-          <CartPanel />
+          {renderCartPanel({})}
         </aside>
       </div>
 
@@ -510,7 +510,7 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
           <div className="absolute bottom-0 left-0 right-0 max-h-[90dvh] overflow-y-auto rounded-t-3xl bg-white px-5 pb-8 pt-4 shadow-2xl">
             {/* Pull handle */}
             <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-slate-200" />
-            <CartPanel onClose={() => setShowMobileCart(false)} />
+            {renderCartPanel({ onClose: () => setShowMobileCart(false) })}
           </div>
         </div>
       ) : null}
