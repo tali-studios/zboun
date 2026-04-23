@@ -19,7 +19,9 @@ function getAdminClient() {
 }
 
 export async function signInAction(formData: FormData) {
-  const email = String(formData.get("email") ?? "");
+  const email = String(formData.get("email") ?? "")
+    .trim()
+    .toLowerCase();
   const password = String(formData.get("password") ?? "");
   const supabase = await createServerSupabaseClient();
 

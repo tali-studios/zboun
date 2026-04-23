@@ -76,6 +76,10 @@ export default async function LoginPage({ searchParams }: Props) {
             name="email"
             required
             placeholder="Email address"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            autoComplete="username"
             className="ui-input"
           />
           <input
@@ -83,6 +87,7 @@ export default async function LoginPage({ searchParams }: Props) {
             name="password"
             required
             placeholder="Password"
+            autoComplete="current-password"
             className="ui-input"
           />
           <button

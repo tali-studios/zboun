@@ -103,51 +103,30 @@ export async function createRestaurantAction(formData: FormData) {
 
     const inviteAdminName = `${name} Admin`;
     let userId: string | null = null;
-    let fallbackPassword: string | null = null;
-    let usedFallback = false;
+    const initialPassword = `Zboun@${Math.random().toString(36).slice(-8)}A1`;
 
-    const { data: invited, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(
+    const { data: created, error: createError } = await adminClient.auth.admin.createUser({
       email,
-      {
-        redirectTo: `${appUrl}/auth/set-password`,
-        data: {
-          restaurant_slug: slug,
-          dashboard_url: `${appUrl}/dashboard/login`,
-        },
-      },
-    );
+      password: initialPassword,
+      email_confirm: true,
+    });
 
-    if (inviteError) {
-      // If Supabase invite delivery fails/rate-limits, create account directly.
-      usedFallback = true;
-      fallbackPassword = `Zboun@${Math.random().toString(36).slice(-8)}A1`;
+    if (createError) {
+      const { data: usersList, error: listError } = await adminClient.auth.admin.listUsers({
+        page: 1,
+        perPage: 1000,
+      });
+      if (listError) throw listError;
+      userId = usersList.users.find((user) => user.email?.toLowerCase() === email)?.id ?? null;
+      if (!userId) throw new Error("Could not create or locate restaurant admin user.");
 
-      const { data: created, error: createError } = await adminClient.auth.admin.createUser({
-        email,
-        password: fallbackPassword,
+      const { error: updateError } = await adminClient.auth.admin.updateUserById(userId, {
+        password: initialPassword,
         email_confirm: true,
       });
-
-      if (createError) {
-        const { data: usersList, error: listError } = await adminClient.auth.admin.listUsers({
-          page: 1,
-          perPage: 1000,
-        });
-        if (listError) throw listError;
-        userId = usersList.users.find((user) => user.email?.toLowerCase() === email)?.id ?? null;
-        if (!userId) throw new Error("Could not create or locate restaurant admin user.");
-        if (fallbackPassword) {
-          const { error: updateError } = await adminClient.auth.admin.updateUserById(userId, {
-            password: fallbackPassword,
-            email_confirm: true,
-          });
-          if (updateError) throw updateError;
-        }
-      } else {
-        userId = created.user?.id ?? null;
-      }
+      if (updateError) throw updateError;
     } else {
-      userId = invited.user?.id ?? null;
+      userId = created.user?.id ?? null;
     }
 
     if (!userId) throw new Error("Invite created but no user id returned.");
@@ -171,7 +150,7 @@ export async function createRestaurantAction(formData: FormData) {
         restaurantName: name,
         menuUrl: `${appUrl}/${slug}`,
         dashboardUrl: `${appUrl}/dashboard/login`,
-        fallbackPassword,
+        initialPassword,
       });
       emailSent = true;
     } catch {
@@ -182,10 +161,7 @@ export async function createRestaurantAction(formData: FormData) {
     if (!emailSent) {
       redirect("/dashboard/super-admin?success=restaurant_created_email_failed");
     }
-    if (usedFallback) {
-      redirect("/dashboard/super-admin?success=restaurant_created_with_fallback");
-    }
-    redirect("/dashboard/super-admin?success=restaurant_created_and_invited");
+    redirect("/dashboard/super-admin?success=restaurant_created_with_fallback");
   } catch (error) {
     if (isRedirectError(error)) {
       throw error;
@@ -423,7 +399,7 @@ async function sendRestaurantOnboardingEmail(params: {
   restaurantName: string;
   menuUrl: string;
   dashboardUrl: string;
-  fallbackPassword: string | null;
+  initialPassword: string;
 }) {
   const smtpUser = process.env.SMTP_USER;
   const smtpPass = process.env.SMTP_PASS;
@@ -454,9 +430,9 @@ async function sendRestaurantOnboardingEmail(params: {
       ``,
       `Menu URL: ${params.menuUrl}`,
       `Dashboard URL: ${params.dashboardUrl}`,
-      params.fallbackPassword ? `Temporary password: ${params.fallbackPassword}` : "",
+      `Password: ${params.initialPassword}`,
       ``,
-      `Please check your Supabase invite email and use its secure set-password link to activate your account.`,
+      `Use this password to sign in. The restaurant admin can change it later from the dashboard.`,
       ``,
       `- Zboun Team`,
     ].join("\n"),
