@@ -12,8 +12,9 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: "#f8f8ff",
     theme_color: "#7854ff",
     icons: [
-      { src: "/Favicon.svg?v=2", sizes: "any", type: "image/svg+xml", purpose: "any" },
-      { src: "/Favicon.svg?v=2", sizes: "any", type: "image/svg+xml", purpose: "maskable" },
+      { src: "/icon.png?v=3", sizes: "512x512", type: "image/png", purpose: "any" },
+      { src: "/icon.png?v=3", sizes: "512x512", type: "image/png", purpose: "maskable" },
+      { src: "/apple-icon.png?v=3", sizes: "180x180", type: "image/png", purpose: "any" },
     ],
     categories: ["food", "business"],
     id: base,
