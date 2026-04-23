@@ -38,7 +38,7 @@ export function ContactWhatsAppForm() {
   );
 
   return (
-    <form className="mt-6 space-y-4" onSubmit={submit}>
+    <form className="mt-6 space-y-4" onSubmit={submit} noValidate>
       <input
         type="text"
         name="name"
@@ -47,8 +47,6 @@ export function ContactWhatsAppForm() {
         value={name}
         onChange={(ev) => setName(ev.target.value)}
         required
-        pattern=".*\\S.*"
-        title="Please enter your name."
         autoComplete="name"
       />
       <input
