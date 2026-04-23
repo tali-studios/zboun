@@ -222,11 +222,17 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                 <form action={updateCategoryAction} className="space-y-2">
                   <input type="hidden" name="id" value={category.id} />
                   <input name="name" defaultValue={category.name} className="ui-input" />
-                  <button className="btn btn-primary rounded-xl">Save</button>
+                  <button className="inline-flex h-9 items-center gap-1.5 rounded-full bg-violet-600 px-3 text-xs font-semibold text-white shadow-sm transition hover:bg-violet-700">
+                    <span aria-hidden>💾</span>
+                    Save
+                  </button>
                 </form>
                 <form action={deleteCategoryAction} className="mt-2">
                   <input type="hidden" name="id" value={category.id} />
-                  <button className="btn btn-danger rounded-xl">Delete</button>
+                  <button className="inline-flex h-9 items-center gap-1.5 rounded-full bg-red-600 px-3 text-xs font-semibold text-white shadow-sm transition hover:bg-red-700">
+                    <span aria-hidden>🗑</span>
+                    Delete
+                  </button>
                 </form>
               </article>
             ))}
@@ -351,13 +357,23 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                   <form action={toggleMenuItemAvailabilityAction}>
                     <input type="hidden" name="id" value={item.id} />
                     <input type="hidden" name="is_available" value={String(item.is_available)} />
-                    <button className={`btn ${item.is_available ? "btn-warning" : "btn-success"}`}>
-                      {item.is_available ? "Mark out of stock" : "Mark in stock"}
+                    <button
+                      className={`inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-semibold text-white shadow-sm transition ${
+                        item.is_available
+                          ? "bg-amber-500 hover:bg-amber-600"
+                          : "bg-violet-600 hover:bg-violet-700"
+                      }`}
+                    >
+                      <span aria-hidden>{item.is_available ? "⏸" : "▶"}</span>
+                      {item.is_available ? "Out of stock" : "In stock"}
                     </button>
                   </form>
                   <form action={deleteMenuItemAction}>
                     <input type="hidden" name="id" value={item.id} />
-                    <button className="btn btn-danger">Delete item</button>
+                    <button className="inline-flex h-9 items-center gap-1.5 rounded-full bg-red-600 px-3 text-xs font-semibold text-white shadow-sm transition hover:bg-red-700">
+                      <span aria-hidden>🗑</span>
+                      Delete
+                    </button>
                   </form>
                 </div>
               </article>
