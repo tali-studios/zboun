@@ -150,17 +150,31 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
             <h2 className="panel-title">Store settings</h2>
             <div className="mt-3 grid gap-2 md:grid-cols-3">
               <input type="hidden" name="current_logo_url" value={restaurant?.logo_url ?? ""} />
-              <input name="name" defaultValue={restaurant?.name} placeholder="Store name" className="ui-input" />
-              <input name="phone" defaultValue={restaurant?.phone} placeholder="WhatsApp number" className="ui-input" />
-              <input
-                name="lbp_rate"
-                type="number"
-                step="0.01"
-                min={1}
-                defaultValue={restaurant?.lbp_rate ?? 89500}
-                placeholder="L.L rate per $1"
-                className="ui-input"
-              />
+              <label className="space-y-1">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Store Name</span>
+                <input name="name" defaultValue={restaurant?.name} placeholder="Store name" className="ui-input" />
+              </label>
+              <label className="space-y-1">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Phone Number</span>
+                <input
+                  name="phone"
+                  defaultValue={restaurant?.phone}
+                  placeholder="WhatsApp number"
+                  className="ui-input"
+                />
+              </label>
+              <label className="space-y-1">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Dollar Rate</span>
+                <input
+                  name="lbp_rate"
+                  type="number"
+                  step="0.01"
+                  min={1}
+                  defaultValue={restaurant?.lbp_rate ?? 89500}
+                  placeholder="L.L rate per $1"
+                  className="ui-input"
+                />
+              </label>
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 md:col-span-3">
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Browse sections (home page)
