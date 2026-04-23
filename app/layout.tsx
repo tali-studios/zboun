@@ -69,12 +69,12 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/Favicon.svg?v=5", type: "image/svg+xml", sizes: "any" },
-      { url: "/icon-192.png?v=5", type: "image/png", sizes: "192x192" },
-      { url: "/icon-512.png?v=5", type: "image/png", sizes: "512x512" },
+      { url: "/Favicon.svg?v=6", type: "image/svg+xml", sizes: "any" },
+      { url: "/icon-192.png?v=6", type: "image/png", sizes: "192x192" },
+      { url: "/icon-512.png?v=6", type: "image/png", sizes: "512x512" },
     ],
-    shortcut: ["/icon-192.png?v=5"],
-    apple: [{ url: "/apple-touch-icon.png?v=5", sizes: "180x180", type: "image/png" }],
+    shortcut: ["/icon-192.png?v=6"],
+    apple: [{ url: "/apple-touch-icon.png?v=6", sizes: "180x180", type: "image/png" }],
   },
   manifest: "/manifest.webmanifest",
   ...(env.googleSiteVerification
@@ -93,10 +93,10 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
-        <link rel="icon" href="/Favicon.svg?v=5" type="image/svg+xml" />
-        <link rel="shortcut icon" href="/icon-192.png?v=5" type="image/png" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=5" />
-        <link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png?v=5" />
+        <link rel="icon" href="/Favicon.svg?v=6" type="image/svg+xml" />
+        <link rel="shortcut icon" href="/icon-192.png?v=6" type="image/png" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=6" />
+        <link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png?v=6" />
       </head>
       <body className="flex min-h-full flex-col">
         <SiteJsonLd />
