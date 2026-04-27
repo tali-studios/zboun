@@ -69,16 +69,12 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/Favicon.svg?v=6", type: "image/svg+xml", sizes: "any" },
-      { url: "/Icon-whitebg.svg?v=1", type: "image/svg+xml", sizes: "any" },
-      { url: "/icon-192.png?v=6", type: "image/png", sizes: "192x192" },
-      { url: "/icon-512.png?v=6", type: "image/png", sizes: "512x512" },
+      { url: "/Icon-whitebg.svg?v=2", type: "image/svg+xml", sizes: "any" },
+      { url: "/icon-192.png?v=7", type: "image/png", sizes: "192x192" },
+      { url: "/icon-512.png?v=7", type: "image/png", sizes: "512x512" },
     ],
-    shortcut: ["/Icon-whitebg.svg?v=1", "/icon-192.png?v=6"],
-    apple: [
-      { url: "/Icon-whitebg.svg?v=1", sizes: "any", type: "image/svg+xml" },
-      { url: "/apple-touch-icon.png?v=6", sizes: "180x180", type: "image/png" },
-    ],
+    shortcut: ["/icon-192.png?v=7", "/Icon-whitebg.svg?v=2"],
+    apple: [{ url: "/apple-touch-icon.png?v=7", sizes: "180x180", type: "image/png" }],
   },
   manifest: "/manifest.webmanifest",
   ...(env.googleSiteVerification
@@ -97,11 +93,11 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
-        <link rel="icon" href="/Favicon.svg?v=6" type="image/svg+xml" />
-        <link rel="icon" href="/Icon-whitebg.svg?v=1" type="image/svg+xml" />
-        <link rel="shortcut icon" href="/Icon-whitebg.svg?v=1" type="image/svg+xml" />
-        <link rel="apple-touch-icon" href="/Icon-whitebg.svg?v=1" />
-        <link rel="apple-touch-icon-precomposed" href="/Icon-whitebg.svg?v=1" />
+        <link rel="icon" href="/Icon-whitebg.svg?v=2" type="image/svg+xml" />
+        <link rel="icon" href="/icon-192.png?v=7" type="image/png" sizes="192x192" />
+        <link rel="shortcut icon" href="/icon-192.png?v=7" type="image/png" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=7" />
+        <link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png?v=7" />
       </head>
       <body className="flex min-h-full flex-col">
         <SiteJsonLd />
