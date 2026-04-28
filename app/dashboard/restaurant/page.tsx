@@ -20,7 +20,7 @@ import { BROWSE_SECTION_OPTIONS, normalizeBrowseSections } from "@/lib/browse-se
 export const dynamic = "force-dynamic";
 
 type Props = {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; category?: string; stock?: string; jump?: string }>;
 };
 
 export default async function RestaurantDashboardPage({ searchParams }: Props) {
@@ -28,10 +28,10 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
   if (!appUser || appUser.role !== "restaurant_admin" || !appUser.restaurant_id) {
     redirect("/dashboard/login");
   }
-  const { q } = await searchParams;
+  const { q, category, stock } = await searchParams;
 
   const supabase = await createServerSupabaseClient();
-  const [{ data: restaurant }, { data: categories }, { data: items }] = await Promise.all([
+  const [{ data: restaurant }, { data: categories }] = await Promise.all([
     supabase
       .from("restaurants")
       .select("name, slug, phone, logo_url, lbp_rate, browse_sections")
@@ -42,36 +42,82 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
       .select("id, name, position")
       .eq("restaurant_id", appUser.restaurant_id)
       .order("position"),
-    supabase
-      .from("menu_items")
-      .select(
-        "id, name, description, price, image_url, grams, contents, removable_ingredients, add_ingredients, is_available, category_id, categories(name)",
-      )
-      .eq("restaurant_id", appUser.restaurant_id)
-      .order("name"),
   ]);
+
+  const itemsSelectWithOptions =
+    "id, name, description, price, image_url, grams, contents, removable_ingredients, add_ingredients, option_label, option_values, is_available, category_id, categories(name)";
+  const itemsSelectLegacy =
+    "id, name, description, price, image_url, grams, contents, removable_ingredients, add_ingredients, is_available, category_id, categories(name)";
+
+  const { data: itemsWithOptions, error: itemsWithOptionsError } = await supabase
+    .from("menu_items")
+    .select(itemsSelectWithOptions)
+    .eq("restaurant_id", appUser.restaurant_id)
+    .order("name");
+
+  const { data: legacyItems } =
+    itemsWithOptionsError &&
+    /option_label|option_values/i.test(itemsWithOptionsError.message ?? "")
+      ? await supabase
+          .from("menu_items")
+          .select(itemsSelectLegacy)
+          .eq("restaurant_id", appUser.restaurant_id)
+          .order("name")
+      : { data: null };
+
+  const items = (itemsWithOptions ??
+    legacyItems ??
+    []) as Array<{
+    id: string;
+    name: string;
+    description: string | null;
+    price: number;
+    image_url: string | null;
+    grams: number | null;
+    contents: string | null;
+    removable_ingredients: Array<{ name?: string }>;
+    add_ingredients: Array<{ name?: string; price?: number }>;
+    option_label?: string | null;
+    option_values?: Array<{ name?: string; price?: number }>;
+    is_available: boolean;
+    category_id: string | null;
+    categories?: { name?: string } | null;
+  }>;
+
+  const normalizedItems = items.map((item) => ({
+    ...item,
+    option_label: item.option_label ?? null,
+    option_values: Array.isArray(item.option_values) ? item.option_values : [],
+  }));
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const menuUrl = `${appUrl.replace(/\/+$/, "")}/${restaurant?.slug ?? ""}`;
-  const totalItems = items?.length ?? 0;
-  const availableItems = items?.filter((item) => item.is_available).length ?? 0;
+  const totalItems = normalizedItems.length;
+  const availableItems = normalizedItems.filter((item) => item.is_available).length;
   const outOfStockItems = totalItems - availableItems;
   const sectionCount = categories?.length ?? 0;
   const categoryNameById = new Map((categories ?? []).map((category) => [category.id, category.name]));
   const normalizedQuery = (q ?? "").trim().toLowerCase();
-  const filteredItems = (items ?? []).filter((item) => {
+  const selectedCategory = (category ?? "").trim();
+  const selectedStock = (stock ?? "").trim();
+  const filteredItems = normalizedItems.filter((item) => {
+    if (selectedCategory && item.category_id !== selectedCategory) return false;
+    if (selectedStock === "in" && !item.is_available) return false;
+    if (selectedStock === "out" && item.is_available) return false;
     if (!normalizedQuery) return true;
     const categoryName = categoryNameById.get(item.category_id ?? "") ?? "";
+    const optionText = `${item.option_label ?? ""} ${JSON.stringify(item.option_values ?? [])}`.toLowerCase();
     return (
       item.name.toLowerCase().includes(normalizedQuery) ||
       (item.description ?? "").toLowerCase().includes(normalizedQuery) ||
       (item.contents ?? "").toLowerCase().includes(normalizedQuery) ||
-      categoryName.toLowerCase().includes(normalizedQuery)
+      categoryName.toLowerCase().includes(normalizedQuery) ||
+      optionText.includes(normalizedQuery)
     );
   });
   const avgPrice =
     totalItems > 0
-      ? (items?.reduce((sum, item) => sum + Number(item.price), 0) ?? 0) / totalItems
+      ? (normalizedItems.reduce((sum, item) => sum + Number(item.price), 0) ?? 0) / totalItems
       : 0;
   const selectedBrowseSections = normalizeBrowseSections(restaurant?.browse_sections ?? []);
 
@@ -153,6 +199,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
               <label className="space-y-1">
                 <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Store Name</span>
                 <input name="name" defaultValue={restaurant?.name} placeholder="Store name" className="ui-input" />
+                <p className="text-xs text-slate-500">Public name shown at the top of your menu.</p>
               </label>
               <label className="space-y-1">
                 <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Phone Number</span>
@@ -162,6 +209,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                   placeholder="WhatsApp number"
                   className="ui-input"
                 />
+                <p className="text-xs text-slate-500">Used for customer WhatsApp contact actions.</p>
               </label>
               <label className="space-y-1">
                 <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Dollar Rate</span>
@@ -174,6 +222,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                   placeholder="L.L rate per $1"
                   className="ui-input"
                 />
+                <p className="text-xs text-slate-500">Exchange rate used to display LBP conversions.</p>
               </label>
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 md:col-span-3">
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -212,6 +261,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
             <h2 className="panel-title">Add section</h2>
             <div className="mt-3 space-y-2">
               <input name="name" required placeholder="Section name" className="ui-input" />
+              <p className="text-xs text-slate-500">Examples: Burgers, Drinks, Desserts, Grocery.</p>
               <button className="btn btn-success w-full rounded-xl">Add section</button>
             </div>
           </form>
@@ -224,32 +274,57 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
               {sectionCount} sections
             </span>
           </div>
-          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {categories?.map((category) => (
-              <article
-                key={category.id}
-                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
-              >
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Section details
-                </p>
-                <form action={updateCategoryAction} className="space-y-2">
-                  <input type="hidden" name="id" value={category.id} />
-                  <input name="name" defaultValue={category.name} className="ui-input" />
-                  <button className="inline-flex h-9 items-center gap-1.5 rounded-full bg-violet-600 px-3 text-xs font-semibold text-white shadow-sm transition hover:bg-violet-700">
-                    <span aria-hidden>💾</span>
-                    Save
-                  </button>
-                </form>
-                <form action={deleteCategoryAction} className="mt-2">
-                  <input type="hidden" name="id" value={category.id} />
-                  <button className="inline-flex h-9 items-center gap-1.5 rounded-full bg-red-600 px-3 text-xs font-semibold text-white shadow-sm transition hover:bg-red-700">
-                    <span aria-hidden>🗑</span>
-                    Delete
-                  </button>
-                </form>
-              </article>
-            ))}
+          <div className="-mx-4 mt-4 overflow-x-auto sm:mx-0 sm:rounded-2xl sm:border sm:border-slate-200 sm:bg-white sm:shadow-sm">
+            <table className="min-w-[560px] text-sm md:min-w-full">
+              <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="px-4 py-3">Section name</th>
+                  <th className="px-4 py-3">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {categories?.map((category) => (
+                  <tr key={category.id}>
+                    <td className="px-4 py-3">
+                      <input type="hidden" name="id" value={category.id} form={`update-category-${category.id}`} />
+                      <input
+                        name="name"
+                        defaultValue={category.name}
+                        placeholder="Section name shown to customers"
+                        className="ui-input max-w-md"
+                        aria-label={`Section name for ${category.name}`}
+                        form={`update-category-${category.id}`}
+                      />
+                    </td>
+                    <td className="w-[1%] whitespace-nowrap px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <form id={`update-category-${category.id}`} action={updateCategoryAction}>
+                          <button
+                            type="submit"
+                            title="Save section"
+                            aria-label={`Save ${category.name}`}
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-violet-600 text-sm text-white shadow-sm transition hover:bg-violet-700"
+                          >
+                            💾
+                          </button>
+                        </form>
+                        <form action={deleteCategoryAction}>
+                          <input type="hidden" name="id" value={category.id} />
+                          <button
+                            type="submit"
+                            title="Delete section"
+                            aria-label={`Delete ${category.name}`}
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-red-600 text-sm text-white shadow-sm transition hover:bg-red-700"
+                          >
+                            🗑
+                          </button>
+                        </form>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </section>
 
@@ -258,19 +333,67 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
           <form
             action={createMenuItemAction}
             encType="multipart/form-data"
-            className="mt-3 grid gap-2 md:grid-cols-4"
+            className="mt-3 grid gap-3 md:grid-cols-4"
+            id="add-item"
           >
-            <select name="category_id" required className="ui-select">
-              <option value="">Section</option>
-              {categories?.map((category) => (
-                <option key={category.id} value={category.id}>{category.name}</option>
-              ))}
-            </select>
-            <input name="name" required placeholder="Item name" className="ui-input" />
-            <input name="description" placeholder="Description" className="ui-input" />
-            <input name="price" required placeholder="Price" type="number" step="0.01" className="ui-input" />
-            <input name="grams" placeholder="Grams (optional)" type="number" min={0} className="ui-input" />
-            <input name="contents" placeholder="Contains / ingredients" className="ui-input md:col-span-2" />
+            <label className="space-y-1">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Section</span>
+              <select name="category_id" required className="ui-select">
+                <option value="">Section</option>
+                {categories?.map((category) => (
+                  <option key={category.id} value={category.id}>{category.name}</option>
+                ))}
+              </select>
+              <p className="text-xs text-slate-500">Where this item appears in your menu.</p>
+            </label>
+            <label className="space-y-1">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Item name</span>
+              <input name="name" required placeholder="Item name" className="ui-input" />
+              <p className="text-xs text-slate-500">Customer-facing product name.</p>
+            </label>
+            <label className="space-y-1">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Price</span>
+              <input name="price" required placeholder="Price" type="number" step="0.01" className="ui-input" />
+              <p className="text-xs text-slate-500">Base price before optional add-ons.</p>
+            </label>
+            <label className="space-y-1">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Weight (grams)</span>
+              <input name="grams" placeholder="Optional" type="number" min={0} className="ui-input" />
+              <p className="text-xs text-slate-500">Optional for weighted items.</p>
+            </label>
+            <label className="space-y-1 md:col-span-2">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Description (what this item is)
+              </span>
+              <input
+                name="description"
+                placeholder="Example: Grilled chicken burger with sauce and fries"
+                className="ui-input"
+              />
+            </label>
+            <label className="space-y-1 md:col-span-2">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Contains / ingredients (allergens or key ingredients)
+              </span>
+              <input
+                name="contents"
+                placeholder="Example: wheat, milk, sesame, nuts"
+                className="ui-input"
+              />
+            </label>
+            <label className="space-y-1 md:col-span-2">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Option type (optional)
+              </span>
+              <input
+                name="option_label"
+                placeholder="Examples: Size, Quantity, Type, Packing"
+                className="ui-input"
+              />
+              <p className="text-xs text-slate-500">
+                Add one option type, then add values and optional extra prices below.
+              </p>
+            </label>
             <IngredientListField
               name="removable_ingredients"
               label="Remove ingredients (one by one)"
@@ -278,6 +401,11 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
             <IngredientListField
               name="add_ingredients"
               label="Add ingredients (+ optional price)"
+              withPrice
+            />
+            <IngredientListField
+              name="option_values"
+              label="Options values (Small / Large, 1kg / 2kg, etc.)"
               withPrice
             />
             <div className="md:col-span-2">
@@ -288,110 +416,284 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
         </section>
 
         <section className="panel p-4 md:p-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3" id="items-toolbar">
             <h2 className="panel-title">Manage menu items</h2>
-            <form action="/dashboard/restaurant" method="get" className="grid w-full gap-2 sm:flex sm:w-auto sm:items-center">
+            <div className="grid w-full gap-2 sm:flex sm:w-auto sm:flex-wrap" >
+              <a href="#add-item" className="btn btn-secondary rounded-xl text-center">
+                + Add item
+              </a>
+              <a href="#items-toolbar" className="btn btn-secondary rounded-xl text-center">
+                Toolbar
+              </a>
+            </div>
+          </div>
+          <form action="/dashboard/restaurant" method="get" className="mt-3 grid gap-2 lg:grid-cols-12 lg:items-end">
+            <div className="lg:col-span-5">
+              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Search</p>
               <input
                 name="q"
                 defaultValue={q ?? ""}
-                placeholder="Search by item, section, or ingredient"
-                className="ui-input sm:min-w-[260px]"
+                placeholder="Search by item, section, ingredient, option"
+                className="ui-input"
               />
-              <button className="btn btn-secondary" type="submit">
-                Search
+              <p className="mt-1 text-xs text-slate-500">Search item names, descriptions, ingredients, and options.</p>
+            </div>
+            <label className="space-y-1 lg:col-span-3">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Section</span>
+              <select name="category" defaultValue={selectedCategory} className="ui-select">
+                <option value="">All sections</option>
+                {categories?.map((category) => (
+                  <option key={category.id} value={category.id}>{category.name}</option>
+                ))}
+              </select>
+              <p className="text-xs text-slate-500">Filter items by one section.</p>
+            </label>
+            <label className="space-y-1 lg:col-span-2">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Stock</span>
+              <select name="stock" defaultValue={selectedStock} className="ui-select">
+                <option value="">All</option>
+                <option value="in">In stock</option>
+                <option value="out">Out of stock</option>
+              </select>
+              <p className="text-xs text-slate-500">Show only available or unavailable items.</p>
+            </label>
+            <div className="grid grid-cols-2 gap-2 lg:col-span-2">
+              <button className="btn btn-secondary flex-1" type="submit">
+                Apply
               </button>
-            </form>
-          </div>
+              <a href="/dashboard/restaurant" className="btn btn-secondary flex-1 text-center">
+                Clear
+              </a>
+            </div>
+          </form>
           {normalizedQuery ? (
             <p className="mt-2 text-sm text-slate-600">
               Showing {filteredItems.length} result(s) for "<span className="font-semibold">{q}</span>".
             </p>
           ) : null}
-          <div className="mt-4 grid gap-4 lg:grid-cols-2">
-            {filteredItems.map((item) => (
-              <article
-                key={item.id}
-                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md"
-              >
-                <div className="mb-2 flex items-center justify-between">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Item editor
-                  </p>
-                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
-                    {categoryNameById.get(item.category_id ?? "") ?? "Uncategorized"}
-                  </span>
-                </div>
-                <form
-                  action={updateMenuItemAction}
-                  encType="multipart/form-data"
-                  className="grid gap-2 md:grid-cols-2"
-                >
-                  <input type="hidden" name="id" value={item.id} />
-                  <input type="hidden" name="current_image_url" value={item.image_url ?? ""} />
-                  <input name="name" defaultValue={item.name} className="ui-input" />
-                  <input name="description" defaultValue={item.description ?? ""} placeholder="Description" className="ui-input" />
-                  <input name="price" type="number" step="0.01" defaultValue={item.price} className="ui-input" />
-                  <input name="grams" type="number" min={0} defaultValue={item.grams ?? ""} placeholder="Grams" className="ui-input" />
-                  <input name="contents" defaultValue={item.contents ?? ""} placeholder="Contains / ingredients" className="ui-input md:col-span-2" />
-                  <IngredientListField
-                    name="removable_ingredients"
-                    label="Remove ingredients (one by one)"
-                    defaultItems={item.removable_ingredients ?? []}
-                  />
-                  <IngredientListField
-                    name="add_ingredients"
-                    label="Add ingredients (+ optional price)"
-                    withPrice
-                    defaultItems={item.add_ingredients ?? []}
-                  />
-                  <div className="md:col-span-2">
-                    <ImageUploadField
-                      name="image_file"
-                      initialImageUrl={item.image_url}
-                      label="Update image"
-                    />
-                  </div>
-                  <select name="category_id" defaultValue={item.category_id} className="ui-select">
-                    {categories?.map((category) => (
-                      <option key={category.id} value={category.id}>{category.name}</option>
-                    ))}
-                  </select>
-                  <button className="btn btn-primary rounded-xl">Save changes</button>
-                </form>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">${item.price.toFixed(2)}</span>
-                  {item.grams ? (
-                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">{item.grams}g</span>
-                  ) : null}
-                  {item.contents ? (
-                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">Contains: {item.contents}</span>
-                  ) : null}
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2 border-t border-slate-100 pt-3">
-                  <form action={toggleMenuItemAvailabilityAction}>
-                    <input type="hidden" name="id" value={item.id} />
-                    <input type="hidden" name="is_available" value={String(item.is_available)} />
-                    <button
-                      className={`inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-semibold text-white shadow-sm transition ${
-                        item.is_available
-                          ? "bg-amber-500 hover:bg-amber-600"
-                          : "bg-violet-600 hover:bg-violet-700"
-                      }`}
-                    >
-                      <span aria-hidden>{item.is_available ? "⏸" : "▶"}</span>
-                      {item.is_available ? "Out of stock" : "In stock"}
-                    </button>
-                  </form>
-                  <form action={deleteMenuItemAction}>
-                    <input type="hidden" name="id" value={item.id} />
-                    <button className="inline-flex h-9 items-center gap-1.5 rounded-full bg-red-600 px-3 text-xs font-semibold text-white shadow-sm transition hover:bg-red-700">
-                      <span aria-hidden>🗑</span>
-                      Delete
-                    </button>
-                  </form>
-                </div>
-              </article>
-            ))}
+          <div className="-mx-4 mt-4 overflow-x-auto sm:mx-0 sm:rounded-2xl sm:border sm:border-slate-200 sm:bg-white sm:shadow-sm">
+            <table className="min-w-[760px] text-sm md:min-w-full">
+              <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="px-4 py-3">Item</th>
+                  <th className="px-4 py-3">Section</th>
+                  <th className="px-4 py-3">Price</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredItems.map((item) => (
+                  <tr key={item.id}>
+                    <td className="px-4 py-3 font-medium text-slate-900">{item.name}</td>
+                    <td className="px-4 py-3 text-slate-600">
+                      {categoryNameById.get(item.category_id ?? "") ?? "Uncategorized"}
+                    </td>
+                    <td className="px-4 py-3 text-slate-700">${item.price.toFixed(2)}</td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          item.is_available
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-amber-100 text-amber-700"
+                        }`}
+                      >
+                        {item.is_available ? "In stock" : "Out of stock"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+                        <div className="relative">
+                          <input id={`view-${item.id}`} type="checkbox" className="peer hidden" />
+                          <label htmlFor={`view-${item.id}`} className="block cursor-pointer rounded-full border border-slate-200 px-2.5 py-1.5 text-center text-[11px] font-semibold text-slate-700 hover:bg-slate-50 sm:text-xs">
+                            View
+                          </label>
+                          <div className="pointer-events-none fixed inset-0 z-40 hidden items-center justify-center bg-slate-900/50 p-4 peer-checked:flex peer-checked:pointer-events-auto">
+                            <label htmlFor={`view-${item.id}`} className="absolute inset-0 cursor-pointer" />
+                            <div className="relative z-10 w-full max-w-2xl rounded-2xl bg-white p-4 shadow-xl sm:p-5">
+                              <h3 className="text-lg font-bold text-slate-900">{item.name}</h3>
+                              <p className="mt-1 text-sm text-slate-600">
+                                Section: {categoryNameById.get(item.category_id ?? "") ?? "Uncategorized"}
+                              </p>
+                              <div className="mt-4 space-y-2 text-sm text-slate-700">
+                                <p><span className="font-semibold">Price:</span> ${item.price.toFixed(2)}</p>
+                                {item.description ? <p><span className="font-semibold">Description:</span> {item.description}</p> : null}
+                                {item.contents ? <p><span className="font-semibold">Contains / ingredients:</span> {item.contents}</p> : null}
+                                {item.option_label && Array.isArray(item.option_values) && item.option_values.length > 0 ? (
+                                  <p>
+                                    <span className="font-semibold">{item.option_label} options:</span>{" "}
+                                    {item.option_values.map((v: { name?: string; price?: number }) =>
+                                      `${v.name ?? ""}${Number(v.price ?? 0) > 0 ? ` (+$${Number(v.price).toFixed(2)})` : ""}`,
+                                    ).join(", ")}
+                                  </p>
+                                ) : null}
+                              </div>
+                              <div className="mt-4 text-right">
+                                <label htmlFor={`view-${item.id}`} className="inline-flex cursor-pointer rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                                  Close
+                                </label>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="relative">
+                          <input id={`edit-${item.id}`} type="checkbox" className="peer hidden" />
+                          <label htmlFor={`edit-${item.id}`} className="block cursor-pointer rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1.5 text-center text-[11px] font-semibold text-violet-700 hover:bg-violet-100 sm:text-xs">
+                            Edit
+                          </label>
+                          <div className="pointer-events-none fixed inset-0 z-40 hidden items-center justify-center bg-slate-900/50 p-4 peer-checked:flex peer-checked:pointer-events-auto">
+                            <label htmlFor={`edit-${item.id}`} className="absolute inset-0 cursor-pointer" />
+                            <div className="relative z-10 max-h-[90vh] w-full max-w-3xl overflow-auto rounded-2xl bg-white p-4 shadow-xl sm:p-5">
+                              <h3 className="text-lg font-bold text-slate-900">Edit: {item.name}</h3>
+                              <p className="mt-1 text-sm text-slate-600">
+                                Section: {categoryNameById.get(item.category_id ?? "") ?? "Uncategorized"}
+                              </p>
+                              <form action={updateMenuItemAction} encType="multipart/form-data" className="mt-4 grid gap-2 md:grid-cols-2">
+                                <input type="hidden" name="id" value={item.id} />
+                                <input type="hidden" name="current_image_url" value={item.image_url ?? ""} />
+                                <label className="space-y-1">
+                                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Item name</span>
+                                  <input name="name" defaultValue={item.name} placeholder="Item name" className="ui-input" />
+                                  <p className="text-xs text-slate-500">Displayed to customers in the menu.</p>
+                                </label>
+                                <label className="space-y-1">
+                                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Description</span>
+                                  <input name="description" defaultValue={item.description ?? ""} placeholder="Description (what this item is)" className="ui-input" />
+                                  <p className="text-xs text-slate-500">Explain what the item is.</p>
+                                </label>
+                                <label className="space-y-1">
+                                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Price</span>
+                                  <input name="price" type="number" step="0.01" defaultValue={item.price} placeholder="Price" className="ui-input" />
+                                  <p className="text-xs text-slate-500">Base price before add-ons.</p>
+                                </label>
+                                <label className="space-y-1">
+                                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Weight (grams)</span>
+                                  <input name="grams" type="number" min={0} defaultValue={item.grams ?? ""} placeholder="Weight in grams" className="ui-input" />
+                                  <p className="text-xs text-slate-500">Optional for weighted products.</p>
+                                </label>
+                                <label className="space-y-1 md:col-span-2">
+                                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Contains / ingredients</span>
+                                  <input name="contents" defaultValue={item.contents ?? ""} placeholder="Contains / ingredients (allergens, key contents)" className="ui-input" />
+                                  <p className="text-xs text-slate-500">Useful for allergens and key components.</p>
+                                </label>
+                                <label className="space-y-1 md:col-span-2">
+                                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Option type</span>
+                                  <input name="option_label" defaultValue={item.option_label ?? ""} placeholder="Option type (Size, Quantity, Type...)" className="ui-input" />
+                                  <p className="text-xs text-slate-500">Example: Size, Quantity, Type, or Pack.</p>
+                                </label>
+                                <IngredientListField
+                                  name="removable_ingredients"
+                                  label={`Remove ingredients (${categoryNameById.get(item.category_id ?? "") ?? "section"})`}
+                                  defaultItems={item.removable_ingredients ?? []}
+                                />
+                                <IngredientListField
+                                  name="add_ingredients"
+                                  label={`Add ingredients (${categoryNameById.get(item.category_id ?? "") ?? "section"}) + optional price`}
+                                  withPrice
+                                  defaultItems={item.add_ingredients ?? []}
+                                />
+                                <IngredientListField
+                                  name="option_values"
+                                  label={`Option values for ${item.option_label || "item"} (+ optional price)`}
+                                  withPrice
+                                  defaultItems={item.option_values ?? []}
+                                />
+                                <div className="md:col-span-2">
+                                  <ImageUploadField name="image_file" initialImageUrl={item.image_url} label="Update image" />
+                                </div>
+                                <label className="space-y-1">
+                                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Section</span>
+                                  <select name="category_id" defaultValue={item.category_id ?? ""} className="ui-select">
+                                    {categories?.map((category) => (
+                                      <option key={category.id} value={category.id}>{category.name}</option>
+                                    ))}
+                                  </select>
+                                  <p className="text-xs text-slate-500">Move item to another section if needed.</p>
+                                </label>
+                                <div className="flex items-end">
+                                  <button className="btn btn-primary w-full rounded-xl">Save changes</button>
+                                </div>
+                              </form>
+                              <div className="mt-4 text-right">
+                                <label htmlFor={`edit-${item.id}`} className="inline-flex cursor-pointer rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                                  Close
+                                </label>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="relative">
+                          <input id={`delete-${item.id}`} type="checkbox" className="peer hidden" />
+                          <label htmlFor={`delete-${item.id}`} className="block cursor-pointer rounded-full border border-red-200 bg-red-50 px-2.5 py-1.5 text-center text-[11px] font-semibold text-red-700 hover:bg-red-100 sm:text-xs">
+                            Delete
+                          </label>
+                          <div className="pointer-events-none fixed inset-0 z-40 hidden items-center justify-center bg-slate-900/50 p-4 peer-checked:flex peer-checked:pointer-events-auto">
+                            <label htmlFor={`delete-${item.id}`} className="absolute inset-0 cursor-pointer" />
+                            <div className="relative z-10 w-full max-w-md rounded-2xl bg-white p-4 shadow-xl sm:p-5">
+                              <h3 className="text-lg font-bold text-slate-900">Delete item?</h3>
+                              <p className="mt-2 text-sm text-slate-600">
+                                Please confirm deleting <span className="font-semibold">{item.name}</span>. This cannot be undone.
+                              </p>
+                              <div className="mt-4 flex justify-end gap-2">
+                                <label htmlFor={`delete-${item.id}`} className="inline-flex cursor-pointer rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                                  Cancel
+                                </label>
+                                <form action={deleteMenuItemAction}>
+                                  <input type="hidden" name="id" value={item.id} />
+                                  <button className="inline-flex rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700">
+                                    Yes, delete
+                                  </button>
+                                </form>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="relative">
+                          <input id={`stock-${item.id}`} type="checkbox" className="peer hidden" />
+                          <label
+                            htmlFor={`stock-${item.id}`}
+                            className={`block cursor-pointer rounded-full px-2.5 py-1.5 text-center text-[11px] font-semibold text-white sm:text-xs ${
+                              item.is_available ? "bg-amber-500 hover:bg-amber-600" : "bg-violet-600 hover:bg-violet-700"
+                            }`}
+                          >
+                            {item.is_available ? "Out of Stock" : "In Stock"}
+                          </label>
+                          <div className="pointer-events-none fixed inset-0 z-40 hidden items-center justify-center bg-slate-900/50 p-4 peer-checked:flex peer-checked:pointer-events-auto">
+                            <label htmlFor={`stock-${item.id}`} className="absolute inset-0 cursor-pointer" />
+                            <div className="relative z-10 w-full max-w-md rounded-2xl bg-white p-4 shadow-xl sm:p-5">
+                              <h3 className="text-lg font-bold text-slate-900">Confirm stock change</h3>
+                              <p className="mt-2 text-sm text-slate-600">
+                                {item.is_available
+                                  ? `Mark ${item.name} as out of stock?`
+                                  : `Mark ${item.name} as in stock?`}
+                              </p>
+                              <div className="mt-4 flex justify-end gap-2">
+                                <label htmlFor={`stock-${item.id}`} className="inline-flex cursor-pointer rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                                  Cancel
+                                </label>
+                                <form action={toggleMenuItemAvailabilityAction}>
+                                  <input type="hidden" name="id" value={item.id} />
+                                  <input type="hidden" name="is_available" value={String(item.is_available)} />
+                                  <button className="inline-flex rounded-xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700">
+                                    Confirm
+                                  </button>
+                                </form>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {filteredItems.length === 0 ? (
+              <p className="p-4 text-sm text-slate-500">No items found for current filters.</p>
+            ) : null}
           </div>
         </section>
       </div>

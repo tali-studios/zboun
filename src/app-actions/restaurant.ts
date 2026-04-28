@@ -177,6 +177,11 @@ export async function createMenuItemAction(formData: FormData) {
     name: item.name,
     price: item.price ?? 0,
   }));
+  const optionLabel = String(formData.get("option_label") ?? "").trim();
+  const optionValues = parseIngredientJson(formData.get("option_values")).map((item) => ({
+    name: item.name,
+    price: item.price ?? 0,
+  }));
   await supabase.from("menu_items").insert({
     restaurant_id: user.restaurant_id,
     category_id: String(formData.get("category_id")),
@@ -188,6 +193,8 @@ export async function createMenuItemAction(formData: FormData) {
     contents: String(formData.get("contents") ?? "").trim() || null,
     removable_ingredients: removableIngredients,
     add_ingredients: addIngredients,
+    option_label: optionLabel || null,
+    option_values: optionValues,
     is_available: true,
   });
   revalidatePath("/dashboard/restaurant");
@@ -215,6 +222,11 @@ export async function updateMenuItemAction(formData: FormData) {
     name: item.name,
     price: item.price ?? 0,
   }));
+  const optionLabel = String(formData.get("option_label") ?? "").trim();
+  const optionValues = parseIngredientJson(formData.get("option_values")).map((item) => ({
+    name: item.name,
+    price: item.price ?? 0,
+  }));
 
   const supabase = await createServerSupabaseClient();
   await supabase
@@ -229,6 +241,8 @@ export async function updateMenuItemAction(formData: FormData) {
       contents: contents || null,
       removable_ingredients: removableIngredients,
       add_ingredients: addIngredients,
+      option_label: optionLabel || null,
+      option_values: optionValues,
     })
     .eq("id", id)
     .eq("restaurant_id", user.restaurant_id);
