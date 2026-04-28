@@ -41,26 +41,26 @@ export default async function HomePage() {
 
         {/* ── Owners CTA banner ────────────────────────────────────────────── */}
         <section className="container pb-16 pt-4">
-          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-violet-900 via-slate-900 to-slate-950 px-6 py-8 text-white sm:px-10 md:py-10">
+          <div className="relative overflow-hidden rounded-3xl border border-violet-400/25 bg-gradient-to-br from-violet-800 via-[#2b3257] to-[#202a4a] px-6 py-8 text-white shadow-[0_14px_38px_rgba(58,40,122,0.35)] sm:px-10 md:py-10">
             {/* Decorative orb */}
             <div
               aria-hidden
-              className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-violet-500/20 blur-3xl"
+              className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-violet-300/25 blur-3xl"
             />
             <div
               aria-hidden
-              className="pointer-events-none absolute -bottom-12 -left-12 h-44 w-44 rounded-full bg-fuchsia-500/15 blur-3xl"
+              className="pointer-events-none absolute -bottom-12 -left-12 h-44 w-44 rounded-full bg-fuchsia-400/20 blur-3xl"
             />
 
             <div className="relative flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
               <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-violet-400">
+                <p className="text-xs font-bold uppercase tracking-widest text-violet-300">
                   For restaurant owners
                 </p>
                 <h2 className="mt-2 text-xl font-bold text-white md:text-2xl">
                   Your menu. Your WhatsApp. Zero commission.
                 </h2>
-                <p className="mt-1 text-sm text-slate-400">
+                <p className="mt-1 text-sm text-slate-300">
                   Get your own menu page, QR code, and dashboard from{" "}
                   <span className="font-semibold text-white">$25/month</span>.
                 </p>
@@ -74,7 +74,7 @@ export default async function HomePage() {
                 </Link>
                 <Link
                   href="/contact"
-                  className="rounded-full border border-white/20 bg-white/8 px-6 py-3 text-center text-sm font-semibold text-white transition hover:bg-white/15"
+                  className="rounded-full border border-white/20 bg-white/10 px-6 py-3 text-center text-sm font-semibold text-white transition hover:bg-white/15"
                 >
                   Contact us
                 </Link>
