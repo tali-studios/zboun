@@ -585,19 +585,40 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                                 <IngredientListField
                                   name="removable_ingredients"
                                   label={`Remove ingredients (${categoryNameById.get(item.category_id ?? "") ?? "section"})`}
-                                  defaultItems={item.removable_ingredients ?? []}
+                                  defaultItems={(item.removable_ingredients ?? [])
+                                    .filter(
+                                      (entry): entry is { name: string } =>
+                                        Boolean(entry && typeof entry.name === "string" && entry.name.trim()),
+                                    )
+                                    .map((entry) => ({ name: entry.name }))}
                                 />
                                 <IngredientListField
                                   name="add_ingredients"
                                   label={`Add ingredients (${categoryNameById.get(item.category_id ?? "") ?? "section"}) + optional price`}
                                   withPrice
-                                  defaultItems={item.add_ingredients ?? []}
+                                  defaultItems={(item.add_ingredients ?? [])
+                                    .filter(
+                                      (entry): entry is { name: string; price?: number } =>
+                                        Boolean(entry && typeof entry.name === "string" && entry.name.trim()),
+                                    )
+                                    .map((entry) => ({
+                                      name: entry.name,
+                                      price: Number.isFinite(Number(entry.price)) ? Number(entry.price) : 0,
+                                    }))}
                                 />
                                 <IngredientListField
                                   name="option_values"
                                   label={`Option values for ${item.option_label || "item"} (+ optional price)`}
                                   withPrice
-                                  defaultItems={item.option_values ?? []}
+                                  defaultItems={(item.option_values ?? [])
+                                    .filter(
+                                      (entry): entry is { name: string; price?: number } =>
+                                        Boolean(entry && typeof entry.name === "string" && entry.name.trim()),
+                                    )
+                                    .map((entry) => ({
+                                      name: entry.name,
+                                      price: Number.isFinite(Number(entry.price)) ? Number(entry.price) : 0,
+                                    }))}
                                 />
                                 <div className="md:col-span-2">
                                   <ImageUploadField name="image_file" initialImageUrl={item.image_url} label="Update image" />
