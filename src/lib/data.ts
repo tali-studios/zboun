@@ -1,6 +1,7 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createClient } from "@supabase/supabase-js";
 import { env } from "@/lib/env";
+import { unstable_cache } from "next/cache";
 
 export type CategoryWithItems = {
   id: string;
@@ -43,6 +44,32 @@ export async function getRestaurantMenu(restaurantId: string) {
 
   return (data ?? []) as CategoryWithItems[];
 }
+
+type HomeRestaurantCard = {
+  id: string;
+  name: string;
+  slug: string;
+  logo_url: string | null;
+  browse_sections?: string[] | null;
+};
+
+export const getHomeRestaurants = unstable_cache(
+  async (): Promise<HomeRestaurantCard[]> => {
+    if (!env.supabaseUrl || !env.supabaseAnonKey) return [];
+    const supabase = createClient(env.supabaseUrl, env.supabaseAnonKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data } = await supabase
+      .from("restaurants")
+      .select("id, name, slug, logo_url, browse_sections")
+      .eq("is_active", true)
+      .eq("show_on_home", true)
+      .order("created_at", { ascending: false });
+    return (data ?? []) as HomeRestaurantCard[];
+  },
+  ["home-restaurants"],
+  { revalidate: 60 },
+);
 
 export async function getCurrentUserRole() {
   const supabase = await createServerSupabaseClient();

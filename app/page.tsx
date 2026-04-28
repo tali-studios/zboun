@@ -1,17 +1,11 @@
 import Link from "next/link";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getHomeRestaurants } from "@/lib/data";
 import { RestaurantDirectory } from "@/components/restaurant-directory";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 
 export default async function HomePage() {
-  const supabase = await createServerSupabaseClient();
-  const { data: restaurants } = await supabase
-    .from("restaurants")
-    .select("id, name, slug, logo_url, browse_sections")
-    .eq("is_active", true)
-    .eq("show_on_home", true)
-    .order("created_at", { ascending: false });
+  const restaurants = await getHomeRestaurants();
 
   return (
     <div className="flex min-h-screen flex-col bg-[#f8f8ff]">
@@ -32,7 +26,7 @@ export default async function HomePage() {
         {/* ── Restaurant directory ─────────────────────────────────────────── */}
         <section id="restaurants" className="pt-4 pb-4 sm:pt-5">
           <RestaurantDirectory
-            restaurants={restaurants ?? []}
+            restaurants={restaurants}
             eyebrow=""
             title=""
             subtitle=""
