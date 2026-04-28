@@ -126,6 +126,35 @@ async function uploadRestaurantLogo(file: File, restaurantId: string) {
   return data.publicUrl;
 }
 
+async function uploadRestaurantBanner(file: File, restaurantId: string) {
+  if (!file || file.size === 0) {
+    return null;
+  }
+  if (!file.type.startsWith("image/")) {
+    throw new Error("Only image files are allowed.");
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    throw new Error("Image size must be under 5MB.");
+  }
+
+  const extension = file.name.includes(".") ? file.name.split(".").pop() : "jpg";
+  const filePath = `${restaurantId}/banner-${Date.now()}-${crypto.randomUUID()}.${extension}`;
+  const bucket = process.env.SUPABASE_LOGO_BUCKET ?? "restaurant-logos";
+  await ensureBucketExists(bucket);
+  const adminClient = getStorageAdminClient();
+
+  const { error: uploadError } = await adminClient.storage.from(bucket).upload(filePath, file, {
+    contentType: file.type,
+    upsert: false,
+  });
+  if (uploadError) {
+    throw uploadError;
+  }
+
+  const { data } = adminClient.storage.from(bucket).getPublicUrl(filePath);
+  return data.publicUrl;
+}
+
 export async function createCategoryAction(formData: FormData) {
   const user = await requireRestaurantAdmin();
   const name = String(formData.get("name") ?? "");
@@ -277,7 +306,9 @@ export async function deleteMenuItemAction(formData: FormData) {
 export async function updateRestaurantSettingsAction(formData: FormData) {
   const user = await requireRestaurantAdmin();
   const logoFile = formData.get("logo_file");
+  const bannerFile = formData.get("banner_file");
   const currentLogoUrl = String(formData.get("current_logo_url") ?? "").trim();
+  const currentBannerUrl = String(formData.get("current_banner_url") ?? "").trim();
   const lbpRateRaw = String(formData.get("lbp_rate") ?? "").trim();
   const lbpRate = Number(lbpRateRaw);
   if (!Number.isFinite(lbpRate) || lbpRate <= 0) {
@@ -285,11 +316,14 @@ export async function updateRestaurantSettingsAction(formData: FormData) {
   }
   const uploadedLogoUrl =
     logoFile instanceof File ? await uploadRestaurantLogo(logoFile, user.restaurant_id) : null;
+  const uploadedBannerUrl =
+    bannerFile instanceof File ? await uploadRestaurantBanner(bannerFile, user.restaurant_id) : null;
   const supabase = await createServerSupabaseClient();
   await supabase
     .from("restaurants")
     .update({
       name: String(formData.get("name")),
+      description: String(formData.get("description") ?? "").trim() || null,
       phone: String(formData.get("phone")),
       lbp_rate: Math.round(lbpRate * 100) / 100,
       browse_sections: (() => {
@@ -297,6 +331,7 @@ export async function updateRestaurantSettingsAction(formData: FormData) {
         return sections.length > 0 ? sections : ["Lunch"];
       })(),
       logo_url: uploadedLogoUrl ?? (currentLogoUrl || null),
+      banner_url: uploadedBannerUrl ?? (currentBannerUrl || null),
     })
     .eq("id", user.restaurant_id);
   revalidatePath("/dashboard/restaurant");

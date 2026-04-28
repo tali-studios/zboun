@@ -34,7 +34,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
   const [{ data: restaurant }, { data: categories }] = await Promise.all([
     supabase
       .from("restaurants")
-      .select("name, slug, phone, logo_url, lbp_rate, browse_sections")
+      .select("name, slug, phone, logo_url, banner_url, description, lbp_rate, browse_sections")
       .eq("id", appUser.restaurant_id)
       .single(),
     supabase
@@ -190,16 +190,26 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
         <section className="grid gap-4 lg:grid-cols-3">
           <form
             action={updateRestaurantSettingsAction}
-            encType="multipart/form-data"
             className="panel p-5 lg:col-span-2"
           >
             <h2 className="panel-title">Store settings</h2>
             <div className="mt-3 grid gap-2 md:grid-cols-3">
               <input type="hidden" name="current_logo_url" value={restaurant?.logo_url ?? ""} />
+              <input type="hidden" name="current_banner_url" value={restaurant?.banner_url ?? ""} />
               <label className="space-y-1">
                 <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Store Name</span>
                 <input name="name" defaultValue={restaurant?.name} placeholder="Store name" className="ui-input" />
                 <p className="text-xs text-slate-500">Public name shown at the top of your menu.</p>
+              </label>
+              <label className="space-y-1 md:col-span-3">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Store Description</span>
+                <textarea
+                  name="description"
+                  defaultValue={restaurant?.description ?? ""}
+                  placeholder="Short about text shown under your restaurant name on menu page"
+                  className="ui-input min-h-24"
+                />
+                <p className="text-xs text-slate-500">Example: Fresh pasta and handmade sauces since 2015.</p>
               </label>
               <label className="space-y-1">
                 <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Phone Number</span>
@@ -252,6 +262,14 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                   label="Restaurant logo"
                   initialImageUrl={restaurant?.logo_url ?? null}
                 />
+              </div>
+              <div className="md:col-span-3">
+                <ImageUploadField
+                  name="banner_file"
+                  label="Restaurant banner image"
+                  initialImageUrl={restaurant?.banner_url ?? null}
+                />
+                <p className="mt-1 text-xs text-slate-500">Recommended wide image (for top profile header on menu page).</p>
               </div>
               <button className="btn btn-primary md:col-span-3 rounded-xl">Save settings</button>
             </div>
@@ -332,7 +350,6 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
           <h2 className="panel-title">Add menu item</h2>
           <form
             action={createMenuItemAction}
-            encType="multipart/form-data"
             className="mt-3 grid gap-3 md:grid-cols-4"
             id="add-item"
           >
@@ -549,7 +566,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                               <p className="mt-1 text-sm text-slate-600">
                                 Section: {categoryNameById.get(item.category_id ?? "") ?? "Uncategorized"}
                               </p>
-                              <form action={updateMenuItemAction} encType="multipart/form-data" className="mt-4 grid gap-2 md:grid-cols-2">
+                              <form action={updateMenuItemAction} className="mt-4 grid gap-2 md:grid-cols-2">
                                 <input type="hidden" name="id" value={item.id} />
                                 <input type="hidden" name="current_image_url" value={item.image_url ?? ""} />
                                 <label className="space-y-1">
