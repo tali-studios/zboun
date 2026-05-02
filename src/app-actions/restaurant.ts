@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import { getCurrentUserRole } from "@/lib/data";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { parseBrowseSectionsFromForm } from "@/lib/browse-sections";
+import { parseBrowseSectionFromForm } from "@/lib/browse-sections";
 import { env } from "@/lib/env";
 
 async function requireRestaurantAdmin() {
@@ -318,6 +318,9 @@ export async function updateRestaurantSettingsAction(formData: FormData) {
     logoFile instanceof File ? await uploadRestaurantLogo(logoFile, user.restaurant_id) : null;
   const uploadedBannerUrl =
     bannerFile instanceof File ? await uploadRestaurantBanner(bannerFile, user.restaurant_id) : null;
+  const location = String(formData.get("location") ?? "").trim() || null;
+  const eta_label = String(formData.get("eta_label") ?? "").trim() || null;
+
   const supabase = await createServerSupabaseClient();
   await supabase
     .from("restaurants")
@@ -326,13 +329,13 @@ export async function updateRestaurantSettingsAction(formData: FormData) {
       description: String(formData.get("description") ?? "").trim() || null,
       phone: String(formData.get("phone")),
       lbp_rate: Math.round(lbpRate * 100) / 100,
-      browse_sections: (() => {
-        const sections = parseBrowseSectionsFromForm(formData);
-        return sections.length > 0 ? sections : ["Lunch"];
-      })(),
+      browse_sections: [parseBrowseSectionFromForm(formData)],
       logo_url: uploadedLogoUrl ?? (currentLogoUrl || null),
       banner_url: uploadedBannerUrl ?? (currentBannerUrl || null),
+      location,
+      eta_label,
     })
     .eq("id", user.restaurant_id);
   revalidatePath("/dashboard/restaurant");
+  revalidatePath("/");
 }

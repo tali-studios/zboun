@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getHomeRestaurants } from "@/lib/data";
+import { ZBOUN_PRICING } from "@/lib/pricing";
 import { RestaurantDirectory } from "@/components/restaurant-directory";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
@@ -8,29 +9,12 @@ export default async function HomePage() {
   const restaurants = await getHomeRestaurants();
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#f8f8ff]">
+    <div className="flex min-h-screen flex-col bg-[#F9FAFB]">
       <SiteHeader largeLogo />
 
       <main className="flex-1">
-        <section className="container pt-6 sm:pt-8">
-          <div className="rounded-3xl border border-violet-100/70 bg-white/70 px-4 py-5 shadow-[0_10px_30px_rgba(120,84,255,0.08)] backdrop-blur-sm sm:px-6">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-              Discover Restaurants
-            </h1>
-            <p className="mt-1.5 text-sm text-slate-500 sm:text-base">
-              Find your favorite place quickly, browse by category, and order in one tap.
-            </p>
-          </div>
-        </section>
-
-        {/* ── Restaurant directory ─────────────────────────────────────────── */}
-        <section id="restaurants" className="pt-4 pb-4 sm:pt-5">
-          <RestaurantDirectory
-            restaurants={restaurants}
-            eyebrow=""
-            title=""
-            subtitle=""
-          />
+        <section id="restaurants" className="pt-4 pb-2 sm:pt-6">
+          <RestaurantDirectory restaurants={restaurants} />
         </section>
 
         {/* ── Owners CTA banner ────────────────────────────────────────────── */}
@@ -56,7 +40,11 @@ export default async function HomePage() {
                 </h2>
                 <p className="mt-1 text-sm text-slate-300">
                   Get your own menu page, QR code, and dashboard from{" "}
-                  <span className="font-semibold text-white">$25/month</span>.
+                  <span className="font-semibold text-white">
+                    {ZBOUN_PRICING.symbol}
+                    {ZBOUN_PRICING.monthly}/month
+                  </span>
+                  .
                 </p>
               </div>
               <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row">

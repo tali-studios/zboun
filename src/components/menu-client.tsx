@@ -3,10 +3,18 @@
 import Image from "next/image";
 import { useMemo, useState } from "react";
 import type { CategoryWithItems } from "@/lib/data";
+import { MenuRestaurantRating } from "@/components/menu-restaurant-rating";
+
+const BRAND = "#272F54";
+const WHATSAPP_GREEN = "#25D366";
 
 type Props = {
   restaurantName: string;
   restaurantPhone: string;
+  restaurantId: string;
+  restaurantSlug: string;
+  avgRating: number | null;
+  ratingCount: number;
   lbpRate: number;
   categories: CategoryWithItems[];
 };
@@ -32,10 +40,20 @@ type CustomizationState = {
   editingKey?: string;
 };
 
-export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categories }: Props) {
+export function MenuClient({
+  restaurantName,
+  restaurantPhone,
+  restaurantId,
+  restaurantSlug,
+  avgRating,
+  ratingCount,
+  lbpRate,
+  categories,
+}: Props) {
   const [cart, setCart] = useState<Record<string, CartLine>>({});
   const [customizing, setCustomizing] = useState<CustomizationState | null>(null);
   const [query, setQuery] = useState("");
+  const [menuCategoryFilter, setMenuCategoryFilter] = useState<string>("all");
   const [customerName, setCustomerName] = useState("");
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
@@ -59,6 +77,11 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
       }))
       .filter((category) => category.menu_items.length > 0);
   }, [categories, query]);
+
+  const displayCategories = useMemo(() => {
+    if (menuCategoryFilter === "all") return filteredCategories;
+    return filteredCategories.filter((c) => c.id === menuCategoryFilter);
+  }, [filteredCategories, menuCategoryFilter]);
   const total = useMemo(
     () => items.reduce((sum, item) => sum + item.qty * item.unitPrice, 0),
     [items],
@@ -266,7 +289,7 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
                   <p className="text-sm font-semibold text-slate-800">
                     {item.qty}× {item.name}
                   </p>
-                  <p className="shrink-0 text-xs font-semibold text-violet-700">
+                  <p className="shrink-0 text-xs font-semibold" style={{ color: BRAND }}>
                     {formatUsd(item.qty * item.unitPrice)}
                   </p>
                 </div>
@@ -290,7 +313,8 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
                   <button
                     type="button"
                     onClick={() => openEditCustomization(item)}
-                    className="text-xs font-semibold text-violet-600 hover:underline"
+                    className="text-xs font-semibold hover:underline"
+                    style={{ color: BRAND }}
                   >
                     Edit
                   </button>
@@ -312,7 +336,9 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
           <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
             <p className="text-sm font-bold text-slate-900">Total</p>
             <div className="text-right">
-              <p className="text-base font-bold text-violet-700">{formatUsd(total)}</p>
+              <p className="text-base font-bold" style={{ color: BRAND }}>
+                {formatUsd(total)}
+              </p>
               <p className="text-xs text-slate-400">{formatLbp(total)}</p>
             </div>
           </div>
@@ -347,7 +373,7 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
             type="checkbox"
             checked={isOrderConfirmed}
             onChange={(e) => setIsOrderConfirmed(e.target.checked)}
-            className="mt-0.5 h-4 w-4 accent-violet-600"
+            className="mt-0.5 h-4 w-4 accent-[#272F54]"
           />
           <div>
             <p className="font-semibold text-slate-800">I confirm my order above.</p>
@@ -357,104 +383,159 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
           </div>
         </label>
 
+        <MenuRestaurantRating
+          variant="cart"
+          restaurantId={restaurantId}
+          slug={restaurantSlug}
+          avgRating={avgRating}
+          ratingCount={ratingCount}
+        />
+
         {/* Order button */}
         <button
           type="button"
           onClick={handleOrderClick}
           disabled={!canOrder}
-          className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 py-3.5 text-sm font-bold text-white shadow-md shadow-violet-400/30 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-sm font-bold text-[#111827] shadow-md transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40"
+          style={{ backgroundColor: WHATSAPP_GREEN }}
         >
           <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
             <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
             <path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.124 1.532 5.859L.054 23.285a.75.75 0 00.916.916l5.437-1.478A11.954 11.954 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.89 0-3.67-.5-5.21-1.374l-.374-.213-3.867 1.051 1.052-3.843-.226-.386A9.956 9.956 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
           </svg>
-          Order via WhatsApp
+          Order on WhatsApp
         </button>
       </div>
     );
   }
 
+  function openReviewSheet() {
+    setShowMobileCart(true);
+  }
+
   /* ─── Render ────────────────────────────────────────────────────────── */
   return (
     <>
-      <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
-
+      <div
+        className={`grid gap-4 lg:grid-cols-[1fr_360px] ${items.length > 0 ? "pb-[120px] lg:pb-0" : ""}`}
+      >
         {/* ── Menu items column ──────────────────────────────────────── */}
-        <section className="space-y-3">
+        <section className="space-y-4">
           {/* Search */}
           <div className="relative">
             <svg
-              className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
-              fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden
+              className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+              aria-hidden
             >
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
             </svg>
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search menu items…"
-              className="ui-input ui-input-search"
+              placeholder="Search this menu"
+              className="ui-input ui-input-search h-12 w-full rounded-full border border-slate-200 bg-white text-base shadow-sm"
             />
           </div>
 
+          {/* Category pills (menu sections) */}
+          <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <button
+              type="button"
+              onClick={() => setMenuCategoryFilter("all")}
+              className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition ${
+                menuCategoryFilter === "all" ? "text-white shadow-md" : "bg-slate-100 text-slate-600"
+              }`}
+              style={menuCategoryFilter === "all" ? { backgroundColor: BRAND } : undefined}
+            >
+              All
+            </button>
+            {categories.map((category) => {
+              const active = menuCategoryFilter === category.id;
+              return (
+                <button
+                  key={category.id}
+                  type="button"
+                  onClick={() => setMenuCategoryFilter(category.id)}
+                  className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition ${
+                    active ? "text-white shadow-md" : "bg-slate-100 text-slate-600"
+                  }`}
+                  style={active ? { backgroundColor: BRAND } : undefined}
+                >
+                  {category.name}
+                </button>
+              );
+            })}
+          </div>
+
           {/* No results */}
-          {filteredCategories.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 py-12 text-center">
+          {displayCategories.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-white py-12 text-center shadow-sm">
               <p className="font-semibold text-slate-700">No items found</p>
-              <p className="mt-1 text-sm text-slate-400">Try a different keyword.</p>
+              <p className="mt-1 text-sm text-slate-400">Try a different search or category.</p>
             </div>
           ) : null}
 
           {/* Categories */}
-          {filteredCategories.map((category) => (
-            <div key={category.id} className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm md:p-5">
-              <h2 className="text-lg font-bold tracking-tight text-slate-900">{category.name}</h2>
+          {displayCategories.map((category) => (
+            <div key={category.id} className="space-y-3">
+              {menuCategoryFilter === "all" ? (
+                <h2 className="text-lg font-bold tracking-tight text-slate-900">{category.name}</h2>
+              ) : (
+                <h2 className="sr-only">{category.name}</h2>
+              )}
 
-              <div className="mt-3 space-y-2.5">
+              <div className="space-y-3">
                 {category.menu_items.map((item) => (
                   <article
                     key={item.id}
-                    className={`flex items-start gap-3 rounded-xl border bg-white p-3 transition ${
-                      item.is_available
-                        ? "border-slate-100 hover:border-violet-200 hover:shadow-sm"
-                        : "border-slate-100 opacity-60"
+                    className={`relative flex gap-3 rounded-2xl bg-white p-3 shadow-md ring-1 ring-black/[0.06] transition ${
+                      item.is_available ? "" : "opacity-60"
                     }`}
                   >
                     {/* Image */}
-                    {item.image_url ? (
-                      <div className="h-[72px] w-[72px] shrink-0 overflow-hidden rounded-xl border border-slate-100">
+                    <div className="h-[88px] w-[88px] shrink-0 overflow-hidden rounded-2xl bg-slate-100">
+                      {item.image_url ? (
                         <Image
                           src={item.image_url}
-                          alt={item.name}
-                          width={72}
-                          height={72}
+                          alt=""
+                          width={88}
+                          height={88}
                           className="h-full w-full object-cover"
                           unoptimized
                         />
-                      </div>
-                    ) : null}
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-2xl text-slate-300" aria-hidden>
+                          ···
+                        </div>
+                      )}
+                    </div>
 
                     {/* Info */}
-                    <div className="min-w-0 flex-1">
-                      <h3 className="text-sm font-bold leading-snug text-slate-900 sm:text-base">
+                    <div className="flex min-h-[88px] min-w-0 flex-1 flex-col pr-12">
+                      <h3 className="text-[15px] font-bold leading-snug sm:text-base" style={{ color: BRAND }}>
                         {item.name}
                         {!item.is_available ? (
-                          <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-500">
-                            Out of stock
+                          <span className="ml-2 align-middle text-[10px] font-bold uppercase tracking-wide text-slate-400">
+                            — Out
                           </span>
                         ) : null}
                       </h3>
                       {item.description ? (
-                        <p className="mt-0.5 text-xs text-slate-500 sm:text-sm">{item.description}</p>
+                        <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-slate-500 sm:text-sm">
+                          {item.description}
+                        </p>
+                      ) : item.contents ? (
+                        <p className="mt-1 line-clamp-2 text-xs text-slate-500 sm:text-sm">{item.contents}</p>
                       ) : null}
-                      {item.contents ? (
-                        <p className="mt-0.5 text-xs text-slate-400">Contains: {item.contents}</p>
-                      ) : null}
-                      {item.grams ? (
-                        <p className="text-xs text-slate-400">{item.grams}g</p>
-                      ) : null}
-                      <div className="mt-2 flex items-center gap-2">
-                        <span className="text-base font-bold text-violet-700">{formatUsd(item.price)}</span>
+                      {item.grams ? <p className="mt-0.5 text-[11px] text-slate-400">{item.grams} g</p> : null}
+                      <div className="mt-auto flex flex-wrap items-end gap-x-2 pt-2">
+                        <span className="text-base font-bold" style={{ color: BRAND }}>
+                          {formatUsd(item.price)}
+                        </span>
                         <span className="text-xs text-slate-400">{formatLbp(item.price)}</span>
                       </div>
                     </div>
@@ -463,7 +544,8 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
                     <button
                       disabled={!item.is_available}
                       onClick={() => openCustomization(item)}
-                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-600 to-fuchsia-600 text-xl font-bold text-white shadow-sm shadow-violet-400/30 transition hover:shadow-violet-400/50 disabled:cursor-not-allowed disabled:from-slate-300 disabled:to-slate-300 disabled:shadow-none"
+                      className="absolute bottom-3 right-3 flex h-10 w-10 items-center justify-center rounded-full text-xl font-light leading-none text-white shadow-md transition hover:brightness-110 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
+                      style={{ backgroundColor: item.is_available ? BRAND : undefined }}
                       aria-label={item.is_available ? `Add ${item.name}` : `${item.name} unavailable`}
                     >
                       +
@@ -476,27 +558,46 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
         </section>
 
         {/* ── Desktop cart sidebar ───────────────────────────────────── */}
-        <aside className="hidden h-fit rounded-2xl border border-slate-100 bg-white p-5 shadow-sm lg:block lg:sticky lg:top-[76px]">
+        <aside
+          className="hidden h-fit rounded-2xl border border-slate-200/80 bg-white p-5 shadow-md lg:block lg:sticky lg:top-6"
+          style={{ boxShadow: "0 8px 30px rgba(39, 47, 84, 0.08)" }}
+        >
           {renderCartPanel({})}
         </aside>
       </div>
 
-      {/* ── Mobile sticky cart bar ─────────────────────────────────────── */}
+      {/* ── Mobile checkout bar (mock: summary + Review + WhatsApp) ───── */}
       {items.length > 0 ? (
-        <div className="fixed bottom-4 left-4 right-4 z-30 lg:hidden">
-          <button
-            type="button"
-            onClick={() => setShowMobileCart(true)}
-            className="flex w-full items-center justify-between rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-5 py-4 text-white shadow-xl shadow-violet-600/40"
-          >
-            <span className="flex items-center gap-2 text-sm font-semibold">
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/20 text-xs font-bold">
-                {itemCount}
+        <div className="fixed bottom-0 left-0 right-0 z-30 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 lg:hidden">
+          <div className="rounded-2xl px-4 py-3 text-white shadow-2xl" style={{ backgroundColor: BRAND }}>
+            <div className="flex items-center justify-between gap-3">
+              <span className="flex items-center gap-2 text-sm font-semibold">
+                <svg className="h-5 w-5 shrink-0 opacity-95" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+                {itemCount} {itemCount === 1 ? "item" : "items"}
               </span>
-              View cart
-            </span>
-            <span className="text-sm font-bold">{formatUsd(total)}</span>
-          </button>
+              <span className="text-base font-bold tabular-nums">{formatUsd(total)}</span>
+            </div>
+            <div className="mt-3 flex gap-2">
+              <button
+                type="button"
+                onClick={openReviewSheet}
+                className="flex-1 rounded-full bg-white/15 py-3 text-sm font-semibold text-white ring-1 ring-white/25 transition hover:bg-white/20"
+              >
+                Review
+              </button>
+              <button
+                type="button"
+                onClick={handleOrderClick}
+                disabled={!canOrder}
+                className="min-w-0 flex-[1.35] rounded-full py-3 text-sm font-bold text-[#111827] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45"
+                style={{ backgroundColor: WHATSAPP_GREEN }}
+              >
+                Order on WhatsApp
+              </button>
+            </div>
+          </div>
         </div>
       ) : null}
 
@@ -530,7 +631,9 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
                   <p className="mt-0.5 text-sm text-slate-500">{customizing.item.description}</p>
                 ) : null}
                 <div className="mt-1.5 flex items-baseline gap-2">
-                  <span className="text-base font-bold text-violet-700">{formatUsd(customizing.item.price)}</span>
+                  <span className="text-base font-bold" style={{ color: BRAND }}>
+                    {formatUsd(customizing.item.price)}
+                  </span>
                   <span className="text-sm text-slate-400">{formatLbp(customizing.item.price)}</span>
                 </div>
               </div>
@@ -552,7 +655,7 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
                   {(customizing.item.removable_ingredients ?? []).map((ingredient) => (
                     <label
                       key={`remove-${ingredient.name}`}
-                      className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3 text-sm text-slate-700 transition hover:border-violet-200"
+                      className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3 text-sm text-slate-700 transition hover:border-[#272F54]/30"
                     >
                       <input
                         type="checkbox"
@@ -570,7 +673,7 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
                               : prev,
                           );
                         }}
-                        className="h-4 w-4 accent-violet-600"
+                        className="h-4 w-4 accent-[#272F54]"
                       />
                       <span>{ingredient.name}</span>
                     </label>
@@ -600,7 +703,7 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
-                          className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:border-violet-300"
+                          className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:border-[#272F54]/40"
                           onClick={() =>
                             setCustomizing((prev) => {
                               if (!prev) return prev;
@@ -616,7 +719,7 @@ export function MenuClient({ restaurantName, restaurantPhone, lbpRate, categorie
                         </span>
                         <button
                           type="button"
-                          className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:border-violet-300"
+                          className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:border-[#272F54]/40"
                           onClick={() =>
                             setCustomizing((prev) => {
                               if (!prev) return prev;

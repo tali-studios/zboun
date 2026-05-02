@@ -74,7 +74,7 @@ type BrowseSectionsEditorState = {
   open: boolean;
   restaurantId: string;
   restaurantName: string;
-  sections: string[];
+  section: string;
 };
 
 export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
@@ -95,7 +95,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
     open: false,
     restaurantId: "",
     restaurantName: "",
-    sections: [],
+    section: "Lunch",
   });
 
   const filtered = useMemo(() => {
@@ -179,25 +179,15 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
       open: true,
       restaurantId: restaurant.id,
       restaurantName: restaurant.name,
-      sections: normalizeBrowseSections(restaurant.browse_sections ?? []),
+      section: normalizeBrowseSections(restaurant.browse_sections ?? [])[0] ?? "Lunch",
     });
   }
 
-  function toggleBrowseSection(section: string, checked: boolean) {
-    setBrowseSectionsEditor((prev) => ({
-      ...prev,
-      sections: checked
-        ? Array.from(new Set([...prev.sections, section]))
-        : prev.sections.filter((item) => item !== section),
-    }));
-  }
-
   function saveBrowseSections() {
-    const chosen = browseSectionsEditor.sections;
     startTransition(async () => {
       const formData = new FormData();
       formData.set("id", browseSectionsEditor.restaurantId);
-      chosen.forEach((section) => formData.append("browse_sections", section));
+      formData.set("browse_section", browseSectionsEditor.section);
       await updateRestaurantBrowseSectionsAction(formData);
       setBrowseSectionsEditor((prev) => ({ ...prev, open: false }));
       router.refresh();
@@ -304,7 +294,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                 {restaurant.show_on_home ? "Visible on home" : "Hidden on home"}
               </span>
               <span className="rounded-full bg-slate-100 px-2 py-1">
-                Sections: {normalizeBrowseSections(restaurant.browse_sections ?? []).join(", ") || "Lunch"}
+                Home category: {normalizeBrowseSections(restaurant.browse_sections ?? [])[0] ?? "Lunch"}
               </span>
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -330,7 +320,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                 onClick={() => toggleHomeVisibility(restaurant.id, restaurant.show_on_home)}
               />
               <ActionIconButton
-                label="Update browse sections"
+                label="Home browse category"
                 icon="🧭"
                 className="bg-violet-600 hover:bg-violet-500"
                 disabled={isPending}
@@ -391,7 +381,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
               <th className="py-2 whitespace-nowrap">Outstanding</th>
               <th className="py-2 whitespace-nowrap">Status</th>
               <th className="py-2 whitespace-nowrap">Home</th>
-              <th className="py-2 whitespace-nowrap">Browse sections</th>
+              <th className="py-2 whitespace-nowrap">Home category</th>
               <th className="py-2 whitespace-nowrap">Created</th>
               <th className="py-2 whitespace-nowrap">Actions</th>
             </tr>
@@ -433,7 +423,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                   </span>
                 </td>
                 <td className="py-3 whitespace-nowrap text-slate-600">
-                  {normalizeBrowseSections(restaurant.browse_sections ?? []).join(", ") || "Lunch"}
+                  {normalizeBrowseSections(restaurant.browse_sections ?? [])[0] ?? "Lunch"}
                 </td>
                 <td className="py-3 whitespace-nowrap text-slate-600">
                   {new Date(restaurant.created_at).toLocaleDateString()}
@@ -462,7 +452,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                       onClick={() => toggleHomeVisibility(restaurant.id, restaurant.show_on_home)}
                     />
                     <ActionIconButton
-                      label="Update browse sections"
+                      label="Home browse category"
                       icon="🧭"
                       className="bg-violet-600 hover:bg-violet-500"
                       disabled={isPending}
@@ -569,8 +559,8 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
               <p><span className="font-semibold">Outstanding:</span> ${infoRestaurant.outstanding_balance.toFixed(2)}</p>
               <p><span className="font-semibold">Created:</span> {new Date(infoRestaurant.created_at).toLocaleDateString()}</p>
               <p className="sm:col-span-2">
-                <span className="font-semibold">Browse sections:</span>{" "}
-                {normalizeBrowseSections(infoRestaurant.browse_sections ?? []).join(", ") || "Lunch"}
+                <span className="font-semibold">Home browse category:</span>{" "}
+                {normalizeBrowseSections(infoRestaurant.browse_sections ?? [])[0] ?? "Lunch"}
               </p>
             </div>
             <div className="mt-4 flex justify-end">
@@ -589,9 +579,9 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
       {browseSectionsEditor.open && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/40 p-4">
           <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-xl ring-1 ring-slate-200">
-            <h3 className="text-lg font-bold text-slate-900">Browse sections</h3>
+            <h3 className="text-lg font-bold text-slate-900">Home browse category</h3>
             <p className="mt-1 text-sm text-slate-600">
-              Select where <span className="font-semibold">{browseSectionsEditor.restaurantName}</span> appears on the home page.
+              Pick one section where <span className="font-semibold">{browseSectionsEditor.restaurantName}</span> appears on the home page.
             </p>
             <div className="mt-4 grid gap-2 sm:grid-cols-2">
               {BROWSE_SECTION_OPTIONS.map((section) => (
@@ -600,18 +590,18 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                   className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700"
                 >
                   <input
-                    type="checkbox"
-                    checked={browseSectionsEditor.sections.includes(section)}
-                    onChange={(event) => toggleBrowseSection(section, event.target.checked)}
+                    type="radio"
+                    name="browse_section_super_admin"
+                    checked={browseSectionsEditor.section === section}
+                    onChange={() =>
+                      setBrowseSectionsEditor((prev) => ({ ...prev, section }))
+                    }
                     className="h-4 w-4 accent-violet-600"
                   />
                   <span>{section}</span>
                 </label>
               ))}
             </div>
-            <p className="mt-3 text-xs text-slate-500">
-              If none are selected, we default to <span className="font-semibold">Lunch</span>.
-            </p>
             <div className="mt-4 flex justify-end gap-2">
               <button
                 type="button"
@@ -626,7 +616,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                 onClick={saveBrowseSections}
                 className="btn btn-primary rounded-xl disabled:opacity-70"
               >
-                Save sections
+                Save category
               </button>
             </div>
           </div>

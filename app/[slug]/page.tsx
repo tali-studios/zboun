@@ -5,6 +5,11 @@ import { notFound } from "next/navigation";
 import { getRestaurantBySlug, getRestaurantMenu } from "@/lib/data";
 import { MenuClient } from "@/components/menu-client";
 import { getSiteUrl } from "@/lib/site";
+import { normalizeBrowseSections } from "@/lib/browse-sections";
+
+const BRAND = "#272F54";
+/** Menu hero category label (vibrant blue-violet, per design mock) */
+const HERO_CATEGORY_COLOR = "#5D5DFF";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -59,108 +64,203 @@ export default async function RestaurantMenuPage({ params }: Props) {
   }
 
   const categories = await getRestaurantMenu(restaurant.id);
+  const browseSections = normalizeBrowseSections(restaurant.browse_sections ?? []);
+  const heroEyebrow = (browseSections[0] ?? "Menu").toUpperCase();
+  const avgRating =
+    restaurant.user_avg_rating != null && Number.isFinite(Number(restaurant.user_avg_rating))
+      ? Math.round(Number(restaurant.user_avg_rating) * 10) / 10
+      : null;
+  const ratingCount = restaurant.user_rating_count ?? 0;
+
+  const tagline = restaurant.description?.trim() || "Browse the menu and send your order on WhatsApp.";
+
+  const heroPills = (
+    <div className="mt-3 flex flex-wrap justify-start gap-2">
+      {avgRating != null ? (
+        <span className="inline-flex items-center gap-1 rounded-full bg-black/50 px-3 py-1.5 text-xs font-semibold text-white">
+          <svg className="h-3.5 w-3.5 text-white" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+          </svg>
+          {avgRating.toFixed(1)}
+        </span>
+      ) : null}
+      {restaurant.eta_label?.trim() ? (
+        <span className="rounded-full bg-black/50 px-3 py-1.5 text-xs font-semibold text-white">
+          {restaurant.eta_label.trim()}
+        </span>
+      ) : null}
+      {restaurant.location?.trim() ? (
+        <span className="inline-flex max-w-full truncate rounded-full bg-black/50 px-3 py-1.5 text-xs font-semibold text-white">
+          {restaurant.location.trim()}
+        </span>
+      ) : null}
+    </div>
+  );
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#f8f8ff]">
-      <header className="sticky top-0 z-40 border-b border-violet-100/80 bg-white/90 backdrop-blur-xl">
-        <div className="container flex items-center justify-between gap-3 py-3">
-          <div className="flex items-center gap-2.5">
-            {restaurant.logo_url ? (
-              <div className="h-8 w-8 overflow-hidden rounded-lg border border-slate-200 bg-white">
-                <Image
-                  src={restaurant.logo_url}
-                  alt={`${restaurant.name} logo`}
-                  width={32}
-                  height={32}
-                  className="h-full w-full object-contain p-0.5"
-                  unoptimized
-                />
+    <div className="min-h-screen overflow-x-hidden bg-[#F9FAFB]">
+      {/* Hero — phone: left-aligned row (logo + text), mock-style pills */}
+      <header className="relative z-0 w-full">
+        <div
+          className="relative h-[min(48vh,360px)] w-full sm:h-[min(42vh,380px)]"
+          style={{ background: `linear-gradient(135deg, ${BRAND} 0%, #3d4a7a 100%)` }}
+        >
+          {restaurant.banner_url ? (
+            <>
+              <input id="banner-preview-toggle" type="checkbox" className="peer hidden" />
+              <label htmlFor="banner-preview-toggle" className="absolute inset-0 z-10 cursor-zoom-in">
+                <span className="sr-only">Open banner image</span>
+              </label>
+              <Image
+                src={restaurant.banner_url}
+                alt=""
+                fill
+                className="object-cover"
+                sizes="100vw"
+                priority
+                unoptimized
+              />
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/45 via-black/35 to-black/70" />
+              <div className="pointer-events-none fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/80 p-4 peer-checked:flex peer-checked:pointer-events-auto">
+                <label htmlFor="banner-preview-toggle" className="absolute inset-0 cursor-pointer" />
+                <div className="relative z-10 max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-2xl bg-black shadow-2xl">
+                  <Image
+                    src={restaurant.banner_url}
+                    alt={`${restaurant.name} banner enlarged`}
+                    width={1600}
+                    height={900}
+                    className="h-auto w-full object-contain"
+                    unoptimized
+                  />
+                </div>
               </div>
-            ) : null}
-            <p className="text-sm font-bold leading-tight text-slate-900">{restaurant.name}</p>
-          </div>
+            </>
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-br from-[#272F54] via-[#3d4a7a] to-[#1a1f38]" />
+          )}
+
           <Link
             href="/"
-            className="rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-violet-300 hover:text-violet-700"
+            className="absolute left-3 top-[max(0.75rem,env(safe-area-inset-top))] z-30 flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-md ring-1 ring-black/5 transition hover:bg-slate-50 sm:left-5 sm:top-5"
+            aria-label="Back to restaurants"
           >
-            ← All restaurants
+            <svg className="h-5 w-5 text-slate-800" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
           </Link>
-        </div>
-      </header>
 
-      <main className="container py-4 sm:py-6 pb-24 lg:pb-6">
-        <section className="mb-4 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <div className="relative h-36 w-full bg-gradient-to-r from-violet-700 via-violet-600 to-fuchsia-600 sm:h-44">
-            {restaurant.banner_url ? (
-              <>
-                <input id="banner-preview-toggle" type="checkbox" className="peer hidden" />
-                <label htmlFor="banner-preview-toggle" className="absolute inset-0 z-10 cursor-zoom-in">
-                  <span className="sr-only">Open banner image</span>
-                </label>
-                <Image
-                  src={restaurant.banner_url}
-                  alt={`${restaurant.name} banner`}
-                  fill
-                  className="object-cover"
-                  unoptimized
-                />
-                <div className="pointer-events-none fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/80 p-4 peer-checked:flex peer-checked:pointer-events-auto">
-                  <label htmlFor="banner-preview-toggle" className="absolute inset-0 cursor-pointer" />
-                  <div className="relative z-10 max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-2xl bg-black shadow-2xl">
-                    <Image
-                      src={restaurant.banner_url}
-                      alt={`${restaurant.name} banner enlarged`}
-                      width={1600}
-                      height={900}
-                      className="h-auto w-full object-contain"
-                      unoptimized
-                    />
-                  </div>
-                </div>
-              </>
-            ) : null}
-          </div>
-          <div className="relative px-4 pb-4 pt-16 sm:px-6 sm:pt-20">
+          {/* Mobile: bottom band — logo + left-aligned text (matches mock) */}
+          <div className="absolute inset-0 z-20 flex flex-col justify-end sm:hidden">
             {restaurant.logo_url ? (
-              <>
-                <input id="logo-preview-toggle" type="checkbox" className="peer hidden" />
+              <input id="logo-preview-toggle" type="checkbox" className="peer hidden" />
+            ) : null}
+            <div className="flex items-end gap-3 px-4 pb-6 pt-20">
+              {restaurant.logo_url ? (
                 <label
                   htmlFor="logo-preview-toggle"
-                  className="absolute -top-10 left-4 z-10 h-20 w-20 cursor-zoom-in overflow-hidden rounded-2xl border-4 border-white bg-white shadow sm:left-6 sm:h-24 sm:w-24"
+                  className="relative z-30 h-16 w-16 shrink-0 cursor-zoom-in overflow-hidden rounded-2xl border-[3px] border-white bg-white shadow-lg"
                 >
                   <Image
                     src={restaurant.logo_url}
                     alt={`${restaurant.name} logo`}
-                    fill
-                    className="object-contain p-1"
+                    width={64}
+                    height={64}
+                    className="h-full w-full object-cover"
                     unoptimized
                   />
                 </label>
-                <div className="pointer-events-none fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/80 p-4 peer-checked:flex peer-checked:pointer-events-auto">
-                  <label htmlFor="logo-preview-toggle" className="absolute inset-0 cursor-pointer" />
-                  <div className="relative z-10 max-h-[90vh] w-full max-w-xl overflow-hidden rounded-2xl bg-white p-4 shadow-2xl">
-                    <Image
-                      src={restaurant.logo_url}
-                      alt={`${restaurant.name} logo enlarged`}
-                      width={800}
-                      height={800}
-                      className="h-auto w-full object-contain"
-                      unoptimized
-                    />
-                  </div>
+              ) : null}
+              <div className="min-w-0 flex-1 text-left">
+                <p
+                  className="text-[11px] font-bold uppercase tracking-[0.2em]"
+                  style={{ color: HERO_CATEGORY_COLOR }}
+                >
+                  {heroEyebrow}
+                </p>
+                <h1 className="mt-2 text-[1.65rem] font-bold leading-tight tracking-tight text-white">
+                  {restaurant.name}
+                </h1>
+                <p className="mt-2 text-[15px] font-normal leading-relaxed text-white">{tagline}</p>
+                {heroPills}
+              </div>
+            </div>
+            {restaurant.logo_url ? (
+              <div className="pointer-events-none fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/80 p-4 peer-checked:flex peer-checked:pointer-events-auto">
+                <label htmlFor="logo-preview-toggle" className="absolute inset-0 cursor-pointer" />
+                <div className="relative z-10 max-h-[90vh] w-full max-w-xl overflow-hidden rounded-2xl bg-white p-4 shadow-2xl">
+                  <Image
+                    src={restaurant.logo_url}
+                    alt={`${restaurant.name} logo enlarged`}
+                    width={800}
+                    height={800}
+                    className="h-auto w-full object-contain"
+                    unoptimized
+                  />
                 </div>
-              </>
-            ) : null}
-            <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">{restaurant.name}</h1>
-            <p className="mt-1 text-sm text-slate-500">Order via WhatsApp</p>
-            {restaurant.description ? (
-              <p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate-700">{restaurant.description}</p>
+              </div>
             ) : null}
           </div>
-        </section>
+
+          {/* Desktop: row + frosted panel for contrast past banner */}
+          <div className="absolute inset-0 z-20 hidden sm:flex sm:flex-col sm:justify-end">
+            <div className="relative -mb-1 px-6 pb-6 pt-10">
+              <div className="mx-auto flex max-w-6xl flex-row items-end gap-5 rounded-3xl border border-white/10 bg-slate-950/65 p-5 shadow-xl backdrop-blur-md">
+                {restaurant.logo_url ? (
+                  <>
+                    <input id="logo-preview-toggle-desktop" type="checkbox" className="peer hidden" />
+                    <label
+                      htmlFor="logo-preview-toggle-desktop"
+                      className="relative z-10 h-[72px] w-[72px] shrink-0 cursor-zoom-in overflow-hidden rounded-2xl border-[3px] border-white bg-white shadow-lg"
+                    >
+                      <Image
+                        src={restaurant.logo_url}
+                        alt={`${restaurant.name} logo`}
+                        width={72}
+                        height={72}
+                        className="h-full w-full object-cover"
+                        unoptimized
+                      />
+                    </label>
+                    <div className="pointer-events-none fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/80 p-4 peer-checked:flex peer-checked:pointer-events-auto">
+                      <label htmlFor="logo-preview-toggle-desktop" className="absolute inset-0 cursor-pointer" />
+                      <div className="relative z-10 max-h-[90vh] w-full max-w-xl overflow-hidden rounded-2xl bg-white p-4 shadow-2xl">
+                        <Image
+                          src={restaurant.logo_url}
+                          alt={`${restaurant.name} logo enlarged`}
+                          width={800}
+                          height={800}
+                          className="h-auto w-full object-contain"
+                          unoptimized
+                        />
+                      </div>
+                    </div>
+                  </>
+                ) : null}
+                <div className="min-w-0 flex-1 text-left text-white">
+                  <p
+                    className="text-[11px] font-bold uppercase tracking-[0.2em]"
+                    style={{ color: HERO_CATEGORY_COLOR }}
+                  >
+                    {heroEyebrow}
+                  </p>
+                  <h1 className="mt-1 text-3xl font-bold leading-tight tracking-tight">{restaurant.name}</h1>
+                  <p className="mt-2 text-base font-normal leading-relaxed text-white">{tagline}</p>
+                  {heroPills}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main className="container px-3 py-3 sm:px-6 sm:py-6 lg:pb-8">
         <MenuClient
           restaurantName={restaurant.name}
           restaurantPhone={restaurant.phone}
+          restaurantId={restaurant.id}
+          restaurantSlug={restaurant.slug}
+          avgRating={avgRating}
+          ratingCount={ratingCount}
           lbpRate={Number(restaurant.lbp_rate ?? 89500)}
           categories={categories}
         />

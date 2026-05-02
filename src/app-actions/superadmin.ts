@@ -94,7 +94,7 @@ export async function createRestaurantAction(formData: FormData) {
         phone,
         slug,
         is_active: true,
-        browse_sections: browseSections.length > 0 ? browseSections : ["Lunch"],
+        browse_sections: browseSections,
       })
       .select("id")
       .single();
@@ -179,7 +179,7 @@ export async function updateRestaurantBrowseSectionsAction(formData: FormData) {
   const supabase = await createServerSupabaseClient();
   await supabase
     .from("restaurants")
-    .update({ browse_sections: browseSections.length > 0 ? browseSections : ["Lunch"] })
+    .update({ browse_sections: browseSections })
     .eq("id", id);
   revalidatePath("/dashboard/super-admin");
   revalidatePath("/");

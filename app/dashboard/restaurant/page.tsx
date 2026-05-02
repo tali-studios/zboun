@@ -34,7 +34,9 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
   const [{ data: restaurant }, { data: categories }] = await Promise.all([
     supabase
       .from("restaurants")
-      .select("name, slug, phone, logo_url, banner_url, description, lbp_rate, browse_sections")
+      .select(
+        "name, slug, phone, logo_url, banner_url, description, lbp_rate, browse_sections, location, eta_label",
+      )
       .eq("id", appUser.restaurant_id)
       .single(),
     supabase
@@ -119,7 +121,8 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
     totalItems > 0
       ? (normalizedItems.reduce((sum, item) => sum + Number(item.price), 0) ?? 0) / totalItems
       : 0;
-  const selectedBrowseSections = normalizeBrowseSections(restaurant?.browse_sections ?? []);
+  const selectedBrowseSection =
+    normalizeBrowseSections(restaurant?.browse_sections ?? [])[0] ?? "Lunch";
 
   return (
     <main className="min-h-screen bg-[#f8f8ff] p-3 sm:p-4 md:p-8">
@@ -211,6 +214,28 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                 />
                 <p className="text-xs text-slate-500">Example: Fresh pasta and handmade sauces since 2015.</p>
               </label>
+              <label className="space-y-1 md:col-span-2">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Location / area</span>
+                <input
+                  name="location"
+                  defaultValue={restaurant?.location ?? ""}
+                  placeholder="e.g. Mar Mikhael"
+                  className="ui-input"
+                />
+                <p className="text-xs text-slate-500">Neighborhood or short address label for customers.</p>
+              </label>
+              <label className="space-y-1 md:col-span-3">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Prep / delivery time label
+                </span>
+                <input
+                  name="eta_label"
+                  defaultValue={restaurant?.eta_label ?? ""}
+                  placeholder="e.g. 20–30 min"
+                  className="ui-input"
+                />
+                <p className="text-xs text-slate-500">Short text for the time pill on home cards (optional).</p>
+              </label>
               <label className="space-y-1">
                 <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Phone Number</span>
                 <input
@@ -236,7 +261,10 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
               </label>
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 md:col-span-3">
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Browse sections (home page)
+                  Home browse category
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Pick one section where your restaurant appears on the home page.
                 </p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {BROWSE_SECTION_OPTIONS.map((section) => (
@@ -245,10 +273,10 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                       className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700"
                     >
                       <input
-                        type="checkbox"
-                        name="browse_sections"
+                        type="radio"
+                        name="browse_section"
                         value={section}
-                        defaultChecked={selectedBrowseSections.includes(section)}
+                        defaultChecked={section === selectedBrowseSection}
                         className="h-4 w-4 accent-violet-600"
                       />
                       <span>{section}</span>

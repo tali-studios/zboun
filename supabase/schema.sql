@@ -23,6 +23,42 @@ alter table public.restaurants
   add column if not exists banner_url text;
 alter table public.restaurants
   add column if not exists description text;
+alter table public.restaurants
+  add column if not exists rating numeric(2, 1) check (rating is null or (rating >= 0 and rating <= 5));
+alter table public.restaurants
+  add column if not exists location text;
+alter table public.restaurants
+  add column if not exists eta_label text;
+
+-- Visitor ratings (one value per anonymous rater id per restaurant; rater_id from browser localStorage)
+create table if not exists public.restaurant_ratings (
+  id uuid primary key default gen_random_uuid(),
+  restaurant_id uuid not null references public.restaurants(id) on delete cascade,
+  rater_id text not null,
+  rating numeric(2, 1) not null check (rating >= 1 and rating <= 5),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (restaurant_id, rater_id)
+);
+
+create index if not exists idx_restaurant_ratings_restaurant_id on public.restaurant_ratings (restaurant_id);
+
+create or replace function public.restaurant_rating_stats(p_ids uuid[])
+returns table (restaurant_id uuid, avg_rating numeric, rating_count bigint)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select r.restaurant_id,
+         round(avg(r.rating)::numeric, 1) as avg_rating,
+         count(*)::bigint as rating_count
+  from public.restaurant_ratings r
+  where r.restaurant_id = any(p_ids)
+  group by r.restaurant_id;
+$$;
+
+grant execute on function public.restaurant_rating_stats(uuid[]) to anon, authenticated;
 
 create table if not exists public.users (
   id uuid primary key references auth.users(id) on delete cascade,
@@ -152,6 +188,16 @@ alter table public.subscription_plans enable row level security;
 alter table public.restaurant_subscriptions enable row level security;
 alter table public.invoices enable row level security;
 alter table public.payments enable row level security;
+alter table public.restaurant_ratings enable row level security;
+
+create policy "public read restaurant ratings for active restaurants"
+on public.restaurant_ratings for select
+using (
+  exists (
+    select 1 from public.restaurants x
+    where x.id = restaurant_ratings.restaurant_id and x.is_active = true
+  )
+);
 
 create policy "public can read active restaurants"
 on public.restaurants for select

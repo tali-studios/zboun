@@ -307,7 +307,10 @@ export default async function SuperAdminPage({ searchParams }: Props) {
             />
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 md:col-span-2 xl:col-span-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Browse sections
+                Home browse category
+              </p>
+              <p className="mt-1 text-xs text-slate-500">
+                Each restaurant appears in exactly one home section.
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {BROWSE_SECTION_OPTIONS.map((section) => (
@@ -316,8 +319,8 @@ export default async function SuperAdminPage({ searchParams }: Props) {
                     className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700"
                   >
                     <input
-                      type="checkbox"
-                      name="browse_sections"
+                      type="radio"
+                      name="browse_section"
                       value={section}
                       defaultChecked={section === "Lunch"}
                       className="h-4 w-4 accent-violet-600"
