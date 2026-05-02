@@ -110,10 +110,6 @@ export default async function RestaurantMenuPage({ params }: Props) {
         >
           {restaurant.banner_url ? (
             <>
-              <input id="banner-preview-toggle" type="checkbox" className="peer hidden" />
-              <label htmlFor="banner-preview-toggle" className="absolute inset-0 z-10 cursor-zoom-in">
-                <span className="sr-only">Open banner image</span>
-              </label>
               <Image
                 src={restaurant.banner_url}
                 alt=""
@@ -124,19 +120,6 @@ export default async function RestaurantMenuPage({ params }: Props) {
                 unoptimized
               />
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/45 via-black/35 to-black/70" />
-              <div className="pointer-events-none fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/80 p-4 peer-checked:flex peer-checked:pointer-events-auto">
-                <label htmlFor="banner-preview-toggle" className="absolute inset-0 cursor-pointer" />
-                <div className="relative z-10 max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-2xl bg-black shadow-2xl">
-                  <Image
-                    src={restaurant.banner_url}
-                    alt={`${restaurant.name} banner enlarged`}
-                    width={1600}
-                    height={900}
-                    className="h-auto w-full object-contain"
-                    unoptimized
-                  />
-                </div>
-              </div>
             </>
           ) : (
             <div
@@ -157,15 +140,9 @@ export default async function RestaurantMenuPage({ params }: Props) {
 
           {/* Mobile: bottom band — logo + left-aligned text (matches mock) */}
           <div className="absolute inset-0 z-20 flex flex-col justify-end sm:hidden">
-            {restaurant.logo_url ? (
-              <input id="logo-preview-toggle" type="checkbox" className="peer hidden" />
-            ) : null}
             <div className="flex items-end gap-3 px-4 pb-6 pt-20">
               {restaurant.logo_url ? (
-                <label
-                  htmlFor="logo-preview-toggle"
-                  className="relative z-30 h-16 w-16 shrink-0 cursor-zoom-in overflow-hidden rounded-2xl border-[3px] border-white bg-white shadow-lg"
-                >
+                <div className="relative z-30 h-16 w-16 shrink-0 overflow-hidden rounded-2xl border-[3px] border-white bg-white shadow-lg">
                   <Image
                     src={restaurant.logo_url}
                     alt={`${restaurant.name} logo`}
@@ -174,7 +151,7 @@ export default async function RestaurantMenuPage({ params }: Props) {
                     className="h-full w-full object-cover"
                     unoptimized
                   />
-                </label>
+                </div>
               ) : null}
               <div className="min-w-0 flex-1 text-left">
                 <p
@@ -190,21 +167,6 @@ export default async function RestaurantMenuPage({ params }: Props) {
                 {heroPills}
               </div>
             </div>
-            {restaurant.logo_url ? (
-              <div className="pointer-events-none fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/80 p-4 peer-checked:flex peer-checked:pointer-events-auto">
-                <label htmlFor="logo-preview-toggle" className="absolute inset-0 cursor-pointer" />
-                <div className="relative z-10 max-h-[90vh] w-full max-w-xl overflow-hidden rounded-2xl bg-white p-4 shadow-2xl">
-                  <Image
-                    src={restaurant.logo_url}
-                    alt={`${restaurant.name} logo enlarged`}
-                    width={800}
-                    height={800}
-                    className="h-auto w-full object-contain"
-                    unoptimized
-                  />
-                </div>
-              </div>
-            ) : null}
           </div>
 
           {/* Desktop: row + frosted panel for contrast past banner */}
@@ -212,35 +174,16 @@ export default async function RestaurantMenuPage({ params }: Props) {
             <div className="relative -mb-1 px-6 pb-6 pt-10">
               <div className="mx-auto flex max-w-6xl flex-row items-end gap-5 rounded-3xl border border-white/10 bg-slate-950/65 p-5 shadow-xl backdrop-blur-md">
                 {restaurant.logo_url ? (
-                  <>
-                    <input id="logo-preview-toggle-desktop" type="checkbox" className="peer hidden" />
-                    <label
-                      htmlFor="logo-preview-toggle-desktop"
-                      className="relative z-10 h-[72px] w-[72px] shrink-0 cursor-zoom-in overflow-hidden rounded-2xl border-[3px] border-white bg-white shadow-lg"
-                    >
-                      <Image
-                        src={restaurant.logo_url}
-                        alt={`${restaurant.name} logo`}
-                        width={72}
-                        height={72}
-                        className="h-full w-full object-cover"
-                        unoptimized
-                      />
-                    </label>
-                    <div className="pointer-events-none fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/80 p-4 peer-checked:flex peer-checked:pointer-events-auto">
-                      <label htmlFor="logo-preview-toggle-desktop" className="absolute inset-0 cursor-pointer" />
-                      <div className="relative z-10 max-h-[90vh] w-full max-w-xl overflow-hidden rounded-2xl bg-white p-4 shadow-2xl">
-                        <Image
-                          src={restaurant.logo_url}
-                          alt={`${restaurant.name} logo enlarged`}
-                          width={800}
-                          height={800}
-                          className="h-auto w-full object-contain"
-                          unoptimized
-                        />
-                      </div>
-                    </div>
-                  </>
+                  <div className="relative z-10 h-[72px] w-[72px] shrink-0 overflow-hidden rounded-2xl border-[3px] border-white bg-white shadow-lg">
+                    <Image
+                      src={restaurant.logo_url}
+                      alt={`${restaurant.name} logo`}
+                      width={72}
+                      height={72}
+                      className="h-full w-full object-cover"
+                      unoptimized
+                    />
+                  </div>
                 ) : null}
                 <div className="min-w-0 flex-1 text-left text-white">
                   <p
