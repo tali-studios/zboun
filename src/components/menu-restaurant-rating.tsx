@@ -70,23 +70,41 @@ export function MenuRestaurantRating({
   const isCart = variant === "cart";
 
   const shell = isCart
-    ? "mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3"
-    : "mt-3 rounded-2xl bg-black/35 px-3 py-3 backdrop-blur-md sm:mt-4 sm:px-4";
+    ? "mt-3 rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm ring-1 ring-slate-100/80"
+    : "mt-3 rounded-2xl bg-black/35 px-4 py-4 backdrop-blur-md sm:mt-4";
+
+  const starBtnBase =
+    "flex h-11 w-11 shrink-0 items-center justify-center rounded-lg transition hover:scale-105 active:scale-95 disabled:opacity-45 disabled:hover:scale-100";
 
   return (
     <div className={shell}>
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-col gap-3">
+        <header className="min-w-0">
+          <p
+            className={`text-[11px] font-bold uppercase tracking-[0.12em] ${
+              isCart ? "text-slate-600" : "text-white/90"
+            }`}
+          >
+            Rate this restaurant
+          </p>
+          <p className={`mt-1 text-xs leading-snug ${isCart ? "text-slate-500" : "text-white/70"}`}>
+            Tap a star to save (you can change it anytime).
+          </p>
+        </header>
+
+        <div
+          className={`min-h-[1.5rem] text-sm leading-snug ${isCart ? "text-slate-600" : "text-white/85"}`}
+        >
           {avgRating != null && ratingCount > 0 ? (
             <span
               className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${
                 isCart
-                  ? "border border-amber-200 bg-amber-50 text-amber-950"
+                  ? "border border-amber-200/90 bg-amber-50 text-amber-950"
                   : "bg-black/30 text-white"
               }`}
             >
               <svg
-                className={`h-4 w-4 ${isCart ? "text-amber-500" : "text-amber-300"}`}
+                className={`h-4 w-4 shrink-0 ${isCart ? "text-amber-500" : "text-amber-300"}`}
                 viewBox="0 0 24 24"
                 fill="currentColor"
                 aria-hidden
@@ -94,29 +112,25 @@ export function MenuRestaurantRating({
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
               </svg>
               {avgRating.toFixed(1)}
-              <span className={`font-normal ${isCart ? "text-amber-800/80" : "text-white/75"}`}>
+              <span className={`font-normal ${isCart ? "text-amber-900/75" : "text-white/75"}`}>
                 ({ratingCount})
               </span>
             </span>
           ) : (
-            <span className={`text-xs font-medium ${isCart ? "text-slate-600" : "text-white/80"}`}>
+            <span className={isCart ? "font-medium text-slate-600" : "font-medium text-white/85"}>
               No ratings yet — tap a star below.
             </span>
           )}
         </div>
-        <div className="min-w-0 flex-1 sm:max-w-md">
-          <p
-            className={`text-[11px] font-bold uppercase tracking-wide ${
-              isCart ? "text-slate-500" : "text-white/85"
-            }`}
-          >
-            Rate this restaurant
-          </p>
-          <p className={`mt-0.5 text-[11px] ${isCart ? "text-slate-500" : "text-white/65"}`}>
-            Tap a star to save (you can change it anytime).
-          </p>
-          <div className="mt-2 flex gap-0.5">
-            {[1, 2, 3, 4, 5].map((n) => (
+
+        <div
+          className={`flex w-full max-w-full flex-wrap justify-center gap-1 border-t pt-3 sm:justify-start ${
+            isCart ? "border-slate-100" : "border-white/10"
+          }`}
+        >
+          {[1, 2, 3, 4, 5].map((n) => {
+            const filled = n <= highlight;
+            return (
               <button
                 key={n}
                 type="button"
@@ -124,27 +138,23 @@ export function MenuRestaurantRating({
                 onMouseEnter={() => setHover(n)}
                 onMouseLeave={() => setHover(null)}
                 onClick={() => submit(n)}
-                className={`rounded-md p-1 transition hover:scale-110 disabled:opacity-50 ${
-                  isCart ? "text-amber-400" : "text-amber-300"
+                className={`${starBtnBase} ${
+                  isCart
+                    ? filled
+                      ? "text-amber-500 hover:text-amber-400"
+                      : "text-slate-400 hover:text-amber-400/90"
+                    : filled
+                      ? "text-amber-400 hover:text-amber-300"
+                      : "text-white/50 hover:text-amber-200/90"
                 }`}
                 aria-label={`Rate ${n} out of 5`}
               >
-                <svg
-                  viewBox="0 0 24 24"
-                  className={`h-8 w-8 sm:h-7 sm:w-7 ${
-                    n <= highlight
-                      ? "fill-current"
-                      : isCart
-                        ? "fill-slate-200"
-                        : "fill-white/25"
-                  }`}
-                  aria-hidden
-                >
+                <svg viewBox="0 0 24 24" className="h-8 w-8 fill-current" aria-hidden>
                   <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                 </svg>
               </button>
-            ))}
-          </div>
+            );
+          })}
         </div>
       </div>
     </div>
