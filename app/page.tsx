@@ -1,19 +1,35 @@
+import Image from "next/image";
 import Link from "next/link";
 import { getHomeRestaurants } from "@/lib/data";
 import { ZBOUN_PRICING } from "@/lib/pricing";
 import { RestaurantDirectory } from "@/components/restaurant-directory";
 import { SiteFooter } from "@/components/site-footer";
-import { SiteHeader } from "@/components/site-header";
 
 export default async function HomePage() {
   const restaurants = await getHomeRestaurants();
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#F9FAFB]">
-      <SiteHeader largeLogo />
-
+    <div className="flex min-h-screen flex-col bg-white">
       <main className="flex-1">
-        <section id="restaurants" className="pt-4 pb-2 sm:pt-6">
+        <div className="container pt-8 sm:pt-10">
+          <Link
+            href="/"
+            className="inline-flex items-center outline-none transition-opacity hover:opacity-85 focus-visible:opacity-85"
+            aria-label="Zboun home"
+          >
+            <Image
+              src="/Logo.svg"
+              alt="Zboun"
+              width={500}
+              height={142}
+              priority
+              unoptimized
+              className="h-16 w-auto object-contain sm:h-20 md:h-24 lg:h-28"
+            />
+          </Link>
+        </div>
+
+        <section id="restaurants" className="pb-2 pt-2 sm:pt-4">
           <RestaurantDirectory restaurants={restaurants} />
         </section>
 

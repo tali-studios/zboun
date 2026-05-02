@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { SiteFooter } from "@/components/site-footer";
-import { SiteHeader } from "@/components/site-header";
 import { ZBOUN_PRICING } from "@/lib/pricing";
 
 const steps = [
@@ -40,8 +39,6 @@ const onboardingRequirements = [
 export default function ForRestaurantsPage() {
   return (
     <div className="flex min-h-screen flex-col bg-[#f8f8ff]">
-      <SiteHeader />
-
       <main className="flex-1">
 
         {/* ── Pricing ──────────────────────────────────────────────────────── */}

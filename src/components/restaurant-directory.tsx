@@ -8,6 +8,7 @@ import {
   CupSoda,
   Flame,
   Package,
+  SlidersHorizontal,
   Sparkles,
   Utensils,
   Zap,
@@ -125,23 +126,21 @@ export function RestaurantDirectory({ restaurants }: Props) {
     setFilterOpen(false);
   };
 
+  const filterButtonLabel = activeSection === "all" ? "All" : activeSection;
+
   return (
-    <section className="container pb-10 pt-2 md:pt-4" style={{ color: PAGE.ink }}>
-      {/* Hero */}
-      <header className="mb-6 md:mb-8">
-        <p className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: PAGE.purple }}>
-          Discover
-        </p>
-        <h1 className="mt-2 max-w-3xl text-3xl font-bold leading-tight tracking-tight md:text-4xl lg:text-5xl">
+    <section className="container pb-10 pt-4 md:pt-6" style={{ color: PAGE.ink }}>
+      <header className="mb-8 md:mb-10">
+        <h1 className="max-w-3xl text-3xl font-bold leading-[1.15] tracking-tight sm:text-4xl md:text-5xl">
           Every menu, one tap away.
         </h1>
-        <p className="mt-3 max-w-xl text-base md:text-lg" style={{ color: PAGE.muted }}>
+        <p className="mt-4 max-w-xl text-base leading-relaxed md:text-lg" style={{ color: PAGE.muted }}>
           Discover restaurants, browse clean menus, and send your order straight to WhatsApp.
         </p>
       </header>
 
-      {/* Search + filter trigger */}
-      <div className="mb-6 flex gap-3">
+      {/* Search + category (opens filter sheet) */}
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-stretch">
         <div className="relative min-w-0 flex-1">
           <svg
             className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2"
@@ -157,24 +156,18 @@ export function RestaurantDirectory({ restaurants }: Props) {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search…"
+            placeholder="Search..."
             className="ui-input ui-input-search h-12 w-full rounded-full border border-slate-200/90 bg-white text-base shadow-sm"
           />
         </div>
         <button
           type="button"
           onClick={() => setFilterOpen(true)}
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border-2 bg-white shadow-sm transition hover:bg-slate-50"
-          style={{ borderColor: PAGE.purpleLight, color: PAGE.purple }}
-          aria-label="Open filters"
+          className="flex h-12 shrink-0 items-center justify-center gap-2 rounded-full bg-violet-600 px-4 text-sm font-semibold text-white shadow-md shadow-violet-600/25 transition hover:bg-violet-700 sm:min-w-[9.5rem] sm:px-5"
+          aria-label={`Category: ${filterButtonLabel}. Open filters`}
         >
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
-            />
-          </svg>
+          <SlidersHorizontal className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
+          <span className="truncate">{filterButtonLabel}</span>
         </button>
       </div>
 

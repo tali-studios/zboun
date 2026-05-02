@@ -44,7 +44,12 @@ export function SiteFooter() {
               <ul className="space-y-3 text-sm">
                 <li>
                   <Link href="/" className="text-slate-100 transition hover:text-violet-100">
-                    Home
+                    Browse
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/for-restaurants" className="text-slate-100 transition hover:text-violet-100">
+                    Join us
                   </Link>
                 </li>
                 <li>

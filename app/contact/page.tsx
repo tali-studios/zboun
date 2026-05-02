@@ -1,13 +1,10 @@
 import { ContactWhatsAppForm } from "@/components/contact-whatsapp-form";
 import { SiteFooter } from "@/components/site-footer";
-import { SiteHeader } from "@/components/site-header";
 
 export default function ContactPage() {
   return (
     <div className="flex min-h-screen flex-col bg-[#f8f8ff]">
-      <SiteHeader />
-
-      <main className="container flex flex-1 flex-col items-center justify-center py-12 md:py-16">
+      <main className="container flex flex-1 flex-col items-center justify-center py-12 pt-16 md:py-16 md:pt-20">
         <div className="w-full max-w-xl">
           {/* Header */}
           <div className="mb-8 text-center">
