@@ -41,6 +41,27 @@ body {
   }
 }
 
+/* Rating / ETA / location pills on hero & listing cards */
+.meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.meta-row span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  font-size: 0.78rem;
+  font-weight: 780;
+  color: #fff;
+}
+
 /* ─── Surfaces ──────────────────────────────────────────────────────────────── */
 .panel {
   border-radius: 1.25rem;

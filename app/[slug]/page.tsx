@@ -76,24 +76,18 @@ export default async function RestaurantMenuPage({ params }: Props) {
   const tagline = restaurant.description?.trim() || "Browse the menu and send your order on WhatsApp.";
 
   const heroPills = (
-    <div className="mt-3 flex flex-wrap justify-start gap-2">
+    <div className="meta-row mt-3">
       {avgRating != null ? (
-        <span className="inline-flex items-center gap-1 rounded-full bg-black/50 px-3 py-1.5 text-xs font-semibold text-white">
-          <svg className="h-3.5 w-3.5 text-white" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+        <span>
+          <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
           </svg>
           {avgRating.toFixed(1)}
         </span>
       ) : null}
-      {restaurant.eta_label?.trim() ? (
-        <span className="rounded-full bg-black/50 px-3 py-1.5 text-xs font-semibold text-white">
-          {restaurant.eta_label.trim()}
-        </span>
-      ) : null}
+      {restaurant.eta_label?.trim() ? <span>{restaurant.eta_label.trim()}</span> : null}
       {restaurant.location?.trim() ? (
-        <span className="inline-flex max-w-full truncate rounded-full bg-black/50 px-3 py-1.5 text-xs font-semibold text-white">
-          {restaurant.location.trim()}
-        </span>
+        <span className="max-w-full min-w-0 truncate">{restaurant.location.trim()}</span>
       ) : null}
     </div>
   );
