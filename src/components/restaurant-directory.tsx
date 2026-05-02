@@ -331,7 +331,7 @@ export function RestaurantDirectory({ restaurants }: Props) {
                         />
                       </div>
                     ) : (
-                      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border-2 border-white bg-white/95 text-base font-bold text-[#272F54] shadow-lg">
+                      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border-2 border-white bg-white/95 text-base font-bold text-[#7854ff] shadow-lg">
                         {restaurant.name.slice(0, 2).toUpperCase()}
                       </div>
                     )}

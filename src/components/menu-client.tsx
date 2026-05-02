@@ -4,8 +4,9 @@ import Image from "next/image";
 import { useMemo, useState } from "react";
 import type { CategoryWithItems } from "@/lib/data";
 import { MenuRestaurantRating } from "@/components/menu-restaurant-rating";
+import { BRAND_HEX } from "@/lib/brand";
 
-const BRAND = "#272F54";
+const BRAND = BRAND_HEX;
 const WHATSAPP_GREEN = "#25D366";
 
 type Props = {
@@ -373,7 +374,7 @@ export function MenuClient({
             type="checkbox"
             checked={isOrderConfirmed}
             onChange={(e) => setIsOrderConfirmed(e.target.checked)}
-            className="mt-0.5 h-4 w-4 accent-[#272F54]"
+            className="mt-0.5 h-4 w-4 accent-[#7854ff]"
           />
           <div>
             <p className="font-semibold text-slate-800">I confirm my order above.</p>
@@ -516,7 +517,7 @@ export function MenuClient({
 
                     {/* Info */}
                     <div className="flex min-h-[88px] min-w-0 flex-1 flex-col pr-12">
-                      <h3 className="text-[15px] font-bold leading-snug sm:text-base" style={{ color: BRAND }}>
+                      <h3 className="text-[15px] font-bold leading-snug text-slate-900 sm:text-base">
                         {item.name}
                         {!item.is_available ? (
                           <span className="ml-2 align-middle text-[10px] font-bold uppercase tracking-wide text-slate-400">
@@ -544,7 +545,7 @@ export function MenuClient({
                     <button
                       disabled={!item.is_available}
                       onClick={() => openCustomization(item)}
-                      className="absolute bottom-3 right-3 flex h-10 w-10 items-center justify-center rounded-full text-xl font-light leading-none text-white shadow-md transition hover:brightness-110 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
+                      className="absolute bottom-3 right-3 flex h-10 w-10 items-center justify-center rounded-full text-xl font-light leading-none text-white shadow-md shadow-violet-500/35 transition hover:brightness-110 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
                       style={{ backgroundColor: item.is_available ? BRAND : undefined }}
                       aria-label={item.is_available ? `Add ${item.name}` : `${item.name} unavailable`}
                     >
@@ -560,7 +561,7 @@ export function MenuClient({
         {/* ── Desktop cart sidebar ───────────────────────────────────── */}
         <aside
           className="hidden h-fit rounded-2xl border border-slate-200/80 bg-white p-5 shadow-md lg:block lg:sticky lg:top-6"
-          style={{ boxShadow: "0 8px 30px rgba(39, 47, 84, 0.08)" }}
+          style={{ boxShadow: "0 8px 30px rgba(120, 84, 255, 0.12)" }}
         >
           {renderCartPanel({})}
         </aside>
@@ -655,7 +656,7 @@ export function MenuClient({
                   {(customizing.item.removable_ingredients ?? []).map((ingredient) => (
                     <label
                       key={`remove-${ingredient.name}`}
-                      className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3 text-sm text-slate-700 transition hover:border-[#272F54]/30"
+                      className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3 text-sm text-slate-700 transition hover:border-[#7854ff]/35"
                     >
                       <input
                         type="checkbox"
@@ -673,7 +674,7 @@ export function MenuClient({
                               : prev,
                           );
                         }}
-                        className="h-4 w-4 accent-[#272F54]"
+                        className="h-4 w-4 accent-[#7854ff]"
                       />
                       <span>{ingredient.name}</span>
                     </label>
@@ -703,7 +704,7 @@ export function MenuClient({
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
-                          className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:border-[#272F54]/40"
+                          className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:border-[#7854ff]/45"
                           onClick={() =>
                             setCustomizing((prev) => {
                               if (!prev) return prev;
@@ -719,7 +720,7 @@ export function MenuClient({
                         </span>
                         <button
                           type="button"
-                          className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:border-[#272F54]/40"
+                          className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:border-[#7854ff]/45"
                           onClick={() =>
                             setCustomizing((prev) => {
                               if (!prev) return prev;

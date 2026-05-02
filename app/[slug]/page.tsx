@@ -6,10 +6,11 @@ import { getRestaurantBySlug, getRestaurantMenu } from "@/lib/data";
 import { MenuClient } from "@/components/menu-client";
 import { getSiteUrl } from "@/lib/site";
 import { normalizeBrowseSections } from "@/lib/browse-sections";
+import { BRAND_HEX, BRAND_HEX_ACCENT, BRAND_HEX_DEEP } from "@/lib/brand";
 
-const BRAND = "#272F54";
-/** Menu hero category label (vibrant blue-violet, per design mock) */
-const HERO_CATEGORY_COLOR = "#5D5DFF";
+const BRAND = BRAND_HEX;
+/** Eyebrow on hero — light violet for contrast on purple gradient */
+const HERO_CATEGORY_COLOR = "#e9d5ff";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -103,7 +104,9 @@ export default async function RestaurantMenuPage({ params }: Props) {
       <header className="relative z-0 w-full">
         <div
           className="relative h-[min(48vh,360px)] w-full sm:h-[min(42vh,380px)]"
-          style={{ background: `linear-gradient(135deg, ${BRAND} 0%, #3d4a7a 100%)` }}
+          style={{
+            background: `linear-gradient(135deg, ${BRAND} 0%, ${BRAND_HEX_ACCENT} 48%, ${BRAND_HEX_DEEP} 100%)`,
+          }}
         >
           {restaurant.banner_url ? (
             <>
@@ -136,7 +139,10 @@ export default async function RestaurantMenuPage({ params }: Props) {
               </div>
             </>
           ) : (
-            <div className="absolute inset-0 bg-gradient-to-br from-[#272F54] via-[#3d4a7a] to-[#1a1f38]" />
+            <div
+              className="absolute inset-0 bg-gradient-to-br from-[#7854ff] via-[#9f3bfe] to-[#5b21b6]"
+              aria-hidden
+            />
           )}
 
           <Link
