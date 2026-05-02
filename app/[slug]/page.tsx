@@ -9,8 +9,8 @@ import { normalizeBrowseSections } from "@/lib/browse-sections";
 import { BRAND_HEX, BRAND_HEX_ACCENT, BRAND_HEX_DEEP } from "@/lib/brand";
 
 const BRAND = BRAND_HEX;
-/** Eyebrow on hero — light violet for contrast on purple gradient */
-const HERO_CATEGORY_COLOR = "#e9d5ff";
+/** Category label on hero — purple-violet on dark imagery */
+const HERO_CATEGORY_COLOR = "#c4b5fd";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -97,7 +97,7 @@ export default async function RestaurantMenuPage({ params }: Props) {
       {/* Hero — phone: left-aligned row (logo + text), mock-style pills */}
       <header className="relative z-0 w-full">
         <div
-          className="relative h-[min(48vh,360px)] w-full sm:h-[min(42vh,380px)]"
+          className="relative h-[min(48vh,360px)] w-full sm:h-[min(44vh,440px)] lg:h-[min(46vh,480px)]"
           style={{
             background: `linear-gradient(135deg, ${BRAND} 0%, ${BRAND_HEX_ACCENT} 48%, ${BRAND_HEX_DEEP} 100%)`,
           }}
@@ -113,7 +113,7 @@ export default async function RestaurantMenuPage({ params }: Props) {
                 priority
                 unoptimized
               />
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/45 via-black/35 to-black/70" />
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/75 sm:from-black/35 sm:via-black/25 sm:to-black/70" />
             </>
           ) : (
             <div
@@ -132,64 +132,35 @@ export default async function RestaurantMenuPage({ params }: Props) {
             </svg>
           </Link>
 
-          {/* Mobile: bottom band — logo + left-aligned text (matches mock) */}
-          <div className="absolute inset-0 z-20 flex flex-col justify-end sm:hidden">
-            <div className="flex items-end gap-3 px-4 pb-6 pt-20">
+          {/* Bottom-left band — same layout on mobile & desktop (no frosted panel on web) */}
+          <div className="absolute inset-0 z-20 flex flex-col justify-end">
+            <div className="container flex items-end gap-3 pb-6 pt-20 sm:gap-5 sm:pb-8 sm:pt-24 lg:pb-10 lg:pt-28">
               {restaurant.logo_url ? (
-                <div className="relative z-30 h-16 w-16 shrink-0 overflow-hidden rounded-2xl border-[3px] border-white bg-white shadow-lg">
+                <div className="relative z-30 h-16 w-16 shrink-0 overflow-hidden rounded-2xl border-[3px] border-white bg-white shadow-lg sm:h-[4.75rem] sm:w-[4.75rem] lg:h-20 lg:w-20">
                   <Image
                     src={restaurant.logo_url}
                     alt={`${restaurant.name} logo`}
-                    width={64}
-                    height={64}
+                    width={80}
+                    height={80}
                     className="h-full w-full object-cover"
                     unoptimized
                   />
                 </div>
               ) : null}
-              <div className="min-w-0 flex-1 text-left">
+              <div className="min-w-0 flex-1 pb-0.5 text-left text-white">
                 <p
-                  className="text-[11px] font-bold uppercase tracking-[0.2em]"
+                  className="text-[11px] font-bold uppercase tracking-[0.18em] sm:text-xs sm:tracking-[0.2em]"
                   style={{ color: HERO_CATEGORY_COLOR }}
                 >
                   {heroEyebrow}
                 </p>
-                <h1 className="mt-2 text-[1.65rem] font-bold leading-tight tracking-tight text-white">
+                <h1 className="mt-1.5 text-[1.65rem] font-bold leading-[1.1] tracking-tight text-white sm:mt-2 sm:text-4xl lg:text-5xl">
                   {restaurant.name}
                 </h1>
-                <p className="mt-2 text-[15px] font-normal leading-relaxed text-white">{tagline}</p>
+                <p className="mt-2 max-w-2xl text-[15px] font-normal leading-relaxed text-white/95 sm:text-lg lg:text-[1.05rem]">
+                  {tagline}
+                </p>
                 {heroPills}
-              </div>
-            </div>
-          </div>
-
-          {/* Desktop: row + frosted panel for contrast past banner */}
-          <div className="absolute inset-0 z-20 hidden sm:flex sm:flex-col sm:justify-end">
-            <div className="relative -mb-1 px-6 pb-6 pt-10">
-              <div className="mx-auto flex max-w-6xl flex-row items-end gap-5 rounded-3xl border border-white/10 bg-slate-950/65 p-5 shadow-xl backdrop-blur-md">
-                {restaurant.logo_url ? (
-                  <div className="relative z-10 h-[72px] w-[72px] shrink-0 overflow-hidden rounded-2xl border-[3px] border-white bg-white shadow-lg">
-                    <Image
-                      src={restaurant.logo_url}
-                      alt={`${restaurant.name} logo`}
-                      width={72}
-                      height={72}
-                      className="h-full w-full object-cover"
-                      unoptimized
-                    />
-                  </div>
-                ) : null}
-                <div className="min-w-0 flex-1 text-left text-white">
-                  <p
-                    className="text-[11px] font-bold uppercase tracking-[0.2em]"
-                    style={{ color: HERO_CATEGORY_COLOR }}
-                  >
-                    {heroEyebrow}
-                  </p>
-                  <h1 className="mt-1 text-3xl font-bold leading-tight tracking-tight">{restaurant.name}</h1>
-                  <p className="mt-2 text-base font-normal leading-relaxed text-white">{tagline}</p>
-                  {heroPills}
-                </div>
               </div>
             </div>
           </div>
