@@ -16,7 +16,11 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
+  BROWSE_FILTER_ALL_ACCENT,
+  BROWSE_SECTION_ACCENTS,
   BROWSE_SECTION_OPTIONS,
+  BROWSE_CHIP_LABEL_COLOR,
+  browseSectionChipBackground,
   normalizeBrowseSections,
   type BrowseSection,
 } from "@/lib/browse-sections";
@@ -29,30 +33,18 @@ const PAGE = {
   purpleLight: "#EDE9FE",
 } as const;
 
-/** Top card badges: pastel fills so every label can use black type (same rule for all sections). */
-const SECTION_BADGE_TEXT = "#111827";
-const SECTION_BADGE: Record<BrowseSection, { bg: string; text: string }> = {
-  Breakfast: { bg: "#FBBF24", text: SECTION_BADGE_TEXT },
-  Lunch: { bg: "#BBF7D0", text: SECTION_BADGE_TEXT },
-  Dinner: { bg: "#FF8C69", text: SECTION_BADGE_TEXT },
-  "Quick Bites": { bg: "#DDD6FE", text: SECTION_BADGE_TEXT },
-  Drinks: { bg: "#BFDBFE", text: SECTION_BADGE_TEXT },
-  Desserts: { bg: "#FBCFE8", text: SECTION_BADGE_TEXT },
-  Groceries: { bg: "#99F6E4", text: SECTION_BADGE_TEXT },
-};
-
-/** Filter sheet: Lucide icons + brand colors (per design spec). */
+/** Filter sheet: Lucide icons + accent colors (shared with `BROWSE_SECTION_ACCENTS`). */
 type QuickFilterKey = "all" | BrowseSection;
 
 const FILTER_STYLES: Record<QuickFilterKey, { Icon: LucideIcon; color: string }> = {
-  all: { Icon: Sparkles, color: "#5f4be8" },
-  Breakfast: { Icon: Croissant, color: "#ffb238" },
-  Lunch: { Icon: Utensils, color: "#22b573" },
-  Dinner: { Icon: Flame, color: "#ff6b4a" },
-  "Quick Bites": { Icon: Zap, color: "#7c5cff" },
-  Drinks: { Icon: CupSoda, color: "#22a7f0" },
-  Desserts: { Icon: Cookie, color: "#ff5c8a" },
-  Groceries: { Icon: Package, color: "#17a398" },
+  all: { Icon: Sparkles, color: BROWSE_FILTER_ALL_ACCENT },
+  Breakfast: { Icon: Croissant, color: BROWSE_SECTION_ACCENTS.Breakfast },
+  Lunch: { Icon: Utensils, color: BROWSE_SECTION_ACCENTS.Lunch },
+  Dinner: { Icon: Flame, color: BROWSE_SECTION_ACCENTS.Dinner },
+  "Quick Bites": { Icon: Zap, color: BROWSE_SECTION_ACCENTS["Quick Bites"] },
+  Drinks: { Icon: CupSoda, color: BROWSE_SECTION_ACCENTS.Drinks },
+  Desserts: { Icon: Cookie, color: BROWSE_SECTION_ACCENTS.Desserts },
+  Groceries: { Icon: Package, color: BROWSE_SECTION_ACCENTS.Groceries },
 };
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } {
@@ -283,7 +275,7 @@ export function RestaurantDirectory({ restaurants }: Props) {
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
           {filtered.map((restaurant) => {
             const section = primarySection(restaurant.browse_sections ?? []);
-            const badge = SECTION_BADGE[section];
+            const sectionAccent = BROWSE_SECTION_ACCENTS[section];
             const rating =
               restaurant.rating != null && Number.isFinite(Number(restaurant.rating))
                 ? Math.round(Number(restaurant.rating) * 10) / 10
@@ -312,7 +304,10 @@ export function RestaurantDirectory({ restaurants }: Props) {
 
                   <div
                     className="absolute left-3 top-3 z-10 inline-flex min-h-[1.75rem] items-center justify-center rounded-full px-3 py-1.5 text-[11px] font-bold uppercase leading-none tracking-wide shadow-sm"
-                    style={{ backgroundColor: badge.bg, color: badge.text }}
+                    style={{
+                      backgroundColor: browseSectionChipBackground(sectionAccent),
+                      color: BROWSE_CHIP_LABEL_COLOR,
+                    }}
                   >
                     {section}
                   </div>
