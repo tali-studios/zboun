@@ -44,47 +44,8 @@ export default function ForRestaurantsPage() {
 
       <main className="flex-1">
 
-        {/* ── Hero ─────────────────────────────────────────────────────────── */}
-        <section className="relative overflow-hidden py-16 sm:py-20 md:py-28">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 h-[420px] w-[800px] rounded-full bg-gradient-to-br from-violet-300/30 via-fuchsia-200/20 to-transparent blur-3xl"
-          />
-          <div className="container relative">
-            <div className="mx-auto max-w-2xl text-center">
-              <div className="inline-flex items-center gap-2 rounded-full border border-violet-200/70 bg-white/80 px-4 py-1.5 text-xs font-semibold text-violet-700 shadow-sm">
-                <span className="h-1.5 w-1.5 rounded-full bg-violet-500" aria-hidden />
-                For restaurants
-              </div>
-              <h1 className="mt-5 text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl md:text-6xl">
-                Your menu.{" "}
-                <span className="bg-gradient-to-r from-violet-600 to-fuchsia-600 bg-clip-text text-transparent">
-                  Zero commission.
-                </span>
-              </h1>
-              <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-slate-500 sm:text-lg">
-                Zboun gives you a beautiful customer menu, QR tools, and a simple dashboard — so guests order clearly, and you stay in full control.
-              </p>
-              <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                <Link
-                  href="/contact"
-                  className="w-full rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-600 px-7 py-3.5 text-center text-sm font-semibold text-white shadow-lg shadow-violet-400/30 transition hover:-translate-y-0.5 hover:shadow-violet-400/50 sm:w-auto"
-                >
-                  Get started — contact us
-                </Link>
-                <Link
-                  href="/"
-                  className="w-full rounded-full border border-slate-200 bg-white px-7 py-3.5 text-center text-sm font-semibold text-slate-700 transition hover:border-violet-300 hover:text-violet-700 sm:w-auto"
-                >
-                  See live menus
-                </Link>
-              </div>
-            </div>
-          </div>
-        </section>
-
         {/* ── Pricing ──────────────────────────────────────────────────────── */}
-        <section className="container py-10 md:py-14">
+        <section className="container py-12 pt-16 md:py-16 md:pt-20">
           <div className="mx-auto max-w-lg text-center">
             <p className="text-[11px] font-bold uppercase tracking-widest text-violet-600">Pricing</p>
             <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">Simple, flat pricing</h2>
