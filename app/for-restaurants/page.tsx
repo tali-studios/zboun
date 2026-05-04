@@ -158,7 +158,7 @@ export default function ForRestaurantsPage() {
               },
               {
                 label: "Accounting & Payroll",
-                available: false,
+                available: true,
                 desc: "Financial reports, expense tracking, and staff payroll management.",
               },
               {

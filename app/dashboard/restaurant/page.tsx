@@ -31,7 +31,14 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
   const { q, category, stock } = await searchParams;
 
   const supabase = await createServerSupabaseClient();
-  const [{ data: restaurant }, { data: categories }, { data: inventoryAddon }, { data: inventoryItems }] = await Promise.all([
+  const [
+    { data: restaurant },
+    { data: categories },
+    { data: inventoryAddon },
+    { data: inventoryItems },
+    { data: accountingAddon },
+    { data: accountingExpenses },
+  ] = await Promise.all([
     supabase
       .from("restaurants")
       .select(
@@ -54,6 +61,18 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
       .from("inventory_items")
       .select("id, current_qty, min_qty")
       .eq("restaurant_id", appUser.restaurant_id),
+    supabase
+      .from("restaurant_addons")
+      .select("is_enabled")
+      .eq("restaurant_id", appUser.restaurant_id)
+      .eq("addon_key", "accounting")
+      .maybeSingle(),
+    supabase
+      .from("accounting_expenses")
+      .select("id, amount, occurred_at")
+      .eq("restaurant_id", appUser.restaurant_id)
+      .order("occurred_at", { ascending: false })
+      .limit(100),
   ]);
 
   const itemsSelectWithOptions =
@@ -108,6 +127,15 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
     : 0;
   const inventoryOutOfStock = inventoryEnabled
     ? (inventoryItems ?? []).filter((i) => Number(i.current_qty) <= 0).length
+    : 0;
+  const accountingEnabled = Boolean(accountingAddon?.is_enabled);
+  const currentMonthStart = new Date();
+  currentMonthStart.setDate(1);
+  currentMonthStart.setHours(0, 0, 0, 0);
+  const accountingMonthExpenses = accountingEnabled
+    ? (accountingExpenses ?? [])
+        .filter((expense) => new Date(expense.occurred_at) >= currentMonthStart)
+        .reduce((sum, expense) => sum + Number(expense.amount), 0)
     : 0;
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
@@ -839,12 +867,44 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
               </div>
             )}
 
+            {/* Accounting & Payroll */}
+            {accountingEnabled ? (
+              <a
+                href="/dashboard/restaurant/accounting"
+                className="flex flex-col rounded-2xl border border-indigo-200 bg-indigo-50 p-4 shadow-sm transition hover:border-indigo-400 hover:shadow-md"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-semibold text-indigo-800">Accounting & Payroll</p>
+                  <span className="rounded-full bg-indigo-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                    Active
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-indigo-700">Financial management and staff payroll.</p>
+                <p className="mt-3 text-xs text-indigo-700">
+                  This month expenses: <span className="font-semibold">${accountingMonthExpenses.toFixed(2)}</span>
+                </p>
+                <p className="mt-2 text-xs font-semibold text-indigo-600">Open Accounting →</p>
+              </a>
+            ) : (
+              <div className="flex flex-col rounded-2xl border border-slate-200 bg-slate-50 p-4 opacity-70">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-semibold text-slate-700">Accounting & Payroll</p>
+                  <span className="rounded-full bg-slate-300 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                    Add-on
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-slate-500">Financial management and staff payroll.</p>
+                <a href="/contact" className="mt-3 text-xs font-semibold text-violet-600 hover:underline">
+                  Contact us to activate →
+                </a>
+              </div>
+            )}
+
             {/* Future modules — locked */}
             {[
               { label: "Cloud & Offline POS", desc: "Point of sale for dine-in and takeaway." },
               { label: "CRM", desc: "Customer relationship and order history." },
               { label: "Loyalty Management", desc: "Points, rewards, and retention programs." },
-              { label: "Accounting & Payroll", desc: "Financial management and staff payroll." },
               { label: "Event Management", desc: "Bookings, events, and table reservations." },
               { label: "E-commerce Integration", desc: "Sync with your online store." },
             ].map((m) => (
