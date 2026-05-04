@@ -25,7 +25,46 @@ async function requireAccountingAccess() {
 
 function revalidate() {
   revalidatePath("/dashboard/restaurant/accounting");
+  revalidatePath("/dashboard/restaurant/accounting/receipts");
   revalidatePath("/dashboard/restaurant");
+}
+
+async function getNextReceiptNumber(
+  restaurantId: string,
+  prefix: "EXP" | "PAY",
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+) {
+  const year = new Date().getFullYear();
+  const { data: existing } = await supabase
+    .from("restaurant_receipt_sequences")
+    .select("id, last_number")
+    .eq("restaurant_id", restaurantId)
+    .eq("prefix", prefix)
+    .eq("seq_year", year)
+    .maybeSingle();
+
+  if (!existing) {
+    const { data: inserted } = await supabase
+      .from("restaurant_receipt_sequences")
+      .insert({
+        restaurant_id: restaurantId,
+        prefix,
+        seq_year: year,
+        last_number: 1,
+        updated_at: new Date().toISOString(),
+      })
+      .select("last_number")
+      .single();
+    const initial = Number(inserted?.last_number ?? 1);
+    return `${prefix}-${year}-${String(initial).padStart(6, "0")}`;
+  }
+
+  const nextNumber = Number(existing.last_number ?? 0) + 1;
+  await supabase
+    .from("restaurant_receipt_sequences")
+    .update({ last_number: nextNumber, updated_at: new Date().toISOString() })
+    .eq("id", existing.id);
+  return `${prefix}-${year}-${String(nextNumber).padStart(6, "0")}`;
 }
 
 export async function createEmployeeAction(formData: FormData) {
@@ -72,6 +111,7 @@ export async function createExpenseAction(formData: FormData) {
   const amount = Number(formData.get("amount") ?? 0);
   if (!category || !Number.isFinite(amount) || amount <= 0) return;
   const supabase = await createServerSupabaseClient();
+  const receiptNumber = await getNextReceiptNumber(user.restaurant_id, "EXP", supabase);
   await supabase.from("accounting_expenses").insert({
     restaurant_id: user.restaurant_id,
     category,
@@ -80,6 +120,7 @@ export async function createExpenseAction(formData: FormData) {
     vendor: String(formData.get("vendor") ?? "").trim() || null,
     reference: String(formData.get("reference") ?? "").trim() || null,
     notes: String(formData.get("notes") ?? "").trim() || null,
+    receipt_number: receiptNumber,
     created_by: user.id,
   });
   revalidate();
@@ -111,8 +152,10 @@ export async function createPayrollRunAction(formData: FormData) {
     .eq("is_active", true);
 
   if (run && employees?.length) {
-    await supabase.from("payroll_entries").insert(
-      employees.map((employee) => ({
+    const rows = [];
+    for (const employee of employees) {
+      const receiptNumber = await getNextReceiptNumber(user.restaurant_id, "PAY", supabase);
+      rows.push({
         payroll_run_id: run.id,
         restaurant_id: user.restaurant_id,
         employee_id: employee.id,
@@ -121,8 +164,48 @@ export async function createPayrollRunAction(formData: FormData) {
         bonus_amount: 0,
         deduction_amount: 0,
         net_amount: Number(employee.base_salary ?? 0),
-      })),
-    );
+        receipt_number: receiptNumber,
+      });
+    }
+    await supabase.from("payroll_entries").insert(rows);
   }
+  revalidate();
+}
+
+export async function markPayrollEntryPaidAction(formData: FormData) {
+  const user = await requireAccountingAccess();
+  const entryId = String(formData.get("entry_id") ?? "").trim();
+  const paidAt = String(formData.get("paid_at") ?? "").trim() || new Date().toISOString();
+  if (!entryId) return;
+
+  const supabase = await createServerSupabaseClient();
+  const { data: entry } = await supabase
+    .from("payroll_entries")
+    .select("id, payroll_run_id")
+    .eq("id", entryId)
+    .eq("restaurant_id", user.restaurant_id)
+    .maybeSingle();
+  if (!entry) return;
+
+  await supabase
+    .from("payroll_entries")
+    .update({ paid_at: paidAt })
+    .eq("id", entryId)
+    .eq("restaurant_id", user.restaurant_id);
+
+  const { data: runEntries } = await supabase
+    .from("payroll_entries")
+    .select("id, paid_at")
+    .eq("restaurant_id", user.restaurant_id)
+    .eq("payroll_run_id", entry.payroll_run_id);
+  const allPaid = (runEntries ?? []).length > 0 && (runEntries ?? []).every((item) => Boolean(item.paid_at));
+  if (allPaid) {
+    await supabase
+      .from("payroll_runs")
+      .update({ status: "paid", updated_at: new Date().toISOString() })
+      .eq("id", entry.payroll_run_id)
+      .eq("restaurant_id", user.restaurant_id);
+  }
+
   revalidate();
 }

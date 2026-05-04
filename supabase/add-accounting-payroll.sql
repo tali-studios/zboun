@@ -52,16 +52,40 @@ create table if not exists public.accounting_expenses (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.restaurant_receipt_sequences (
+  id uuid primary key default gen_random_uuid(),
+  restaurant_id uuid not null references public.restaurants(id) on delete cascade,
+  prefix text not null,
+  seq_year int not null,
+  last_number bigint not null default 0 check (last_number >= 0),
+  updated_at timestamptz not null default now(),
+  unique (restaurant_id, prefix, seq_year)
+);
+
+alter table public.accounting_expenses
+  add column if not exists receipt_number text;
+alter table public.payroll_entries
+  add column if not exists receipt_number text;
+
 create index if not exists idx_restaurant_employees_restaurant_id on public.restaurant_employees(restaurant_id);
 create index if not exists idx_payroll_runs_restaurant_id on public.payroll_runs(restaurant_id);
 create index if not exists idx_payroll_entries_restaurant_id on public.payroll_entries(restaurant_id);
 create index if not exists idx_accounting_expenses_restaurant_id on public.accounting_expenses(restaurant_id);
 create index if not exists idx_accounting_expenses_occurred_at on public.accounting_expenses(occurred_at desc);
+create unique index if not exists idx_accounting_expenses_receipt_number_unique
+  on public.accounting_expenses(restaurant_id, receipt_number)
+  where receipt_number is not null;
+create unique index if not exists idx_payroll_entries_receipt_number_unique
+  on public.payroll_entries(restaurant_id, receipt_number)
+  where receipt_number is not null;
+create index if not exists idx_receipt_sequences_restaurant_year_prefix
+  on public.restaurant_receipt_sequences(restaurant_id, seq_year, prefix);
 
 alter table public.restaurant_employees enable row level security;
 alter table public.payroll_runs enable row level security;
 alter table public.payroll_entries enable row level security;
 alter table public.accounting_expenses enable row level security;
+alter table public.restaurant_receipt_sequences enable row level security;
 
 create policy "super admin full restaurant_employees access"
 on public.restaurant_employees for all
@@ -164,5 +188,31 @@ with check (
     where u.id = auth.uid()
       and u.role = 'restaurant_admin'
       and u.restaurant_id = accounting_expenses.restaurant_id
+  )
+);
+
+create policy "super admin full restaurant_receipt_sequences access"
+on public.restaurant_receipt_sequences for all
+to authenticated
+using (exists (select 1 from public.users u where u.id = auth.uid() and u.role = 'superadmin'))
+with check (exists (select 1 from public.users u where u.id = auth.uid() and u.role = 'superadmin'));
+
+create policy "restaurant admin manage own restaurant_receipt_sequences"
+on public.restaurant_receipt_sequences for all
+to authenticated
+using (
+  exists (
+    select 1 from public.users u
+    where u.id = auth.uid()
+      and u.role = 'restaurant_admin'
+      and u.restaurant_id = restaurant_receipt_sequences.restaurant_id
+  )
+)
+with check (
+  exists (
+    select 1 from public.users u
+    where u.id = auth.uid()
+      and u.role = 'restaurant_admin'
+      and u.restaurant_id = restaurant_receipt_sequences.restaurant_id
   )
 );

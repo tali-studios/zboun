@@ -56,6 +56,7 @@ type Props = {
   updateEmployeeAction: (fd: FormData) => Promise<void>;
   createExpenseAction: (fd: FormData) => Promise<void>;
   createPayrollRunAction: (fd: FormData) => Promise<void>;
+  markPayrollEntryPaidAction: (fd: FormData) => Promise<void>;
 };
 
 export function AccountingPanel({
@@ -68,6 +69,7 @@ export function AccountingPanel({
   updateEmployeeAction,
   createExpenseAction,
   createPayrollRunAction,
+  markPayrollEntryPaidAction,
 }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -120,9 +122,14 @@ export function AccountingPanel({
               <h1 className="mt-1 text-xl font-bold md:text-2xl">{restaurantName}</h1>
               <p className="mt-0.5 text-xs text-indigo-200">Expenses, payroll, and operational finance in one place.</p>
             </div>
-            <a href="/dashboard/restaurant" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">
-              Dashboard
-            </a>
+            <div className="flex gap-2">
+              <a href="/dashboard/restaurant/accounting/receipts" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">
+                Receipts
+              </a>
+              <a href="/dashboard/restaurant" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">
+                Dashboard
+              </a>
+            </div>
           </div>
         </header>
 
@@ -174,7 +181,7 @@ export function AccountingPanel({
               <div className="mt-3 overflow-x-auto">
                 <table className="w-full min-w-[720px] text-sm">
                   <thead className="text-left text-xs uppercase tracking-wide text-slate-500">
-                    <tr className="border-b border-slate-200"><th className="py-2">Date</th><th>Category</th><th>Amount</th><th>Vendor</th><th>Reference</th><th>Notes</th></tr>
+                    <tr className="border-b border-slate-200"><th className="py-2">Date</th><th>Category</th><th>Amount</th><th>Vendor</th><th>Reference</th><th>Receipt</th><th>Notes</th></tr>
                   </thead>
                   <tbody>
                     {expenses.map((expense) => (
@@ -184,6 +191,11 @@ export function AccountingPanel({
                         <td className="font-semibold text-red-600">${Number(expense.amount).toFixed(2)}</td>
                         <td>{expense.vendor ?? "—"}</td>
                         <td>{expense.reference ?? "—"}</td>
+                        <td>
+                          <a href={`/dashboard/restaurant/accounting/receipts/expense/${expense.id}`} className="text-indigo-600 hover:underline">
+                            Open
+                          </a>
+                        </td>
                         <td className="text-slate-500">{expense.notes ?? "—"}</td>
                       </tr>
                     ))}
@@ -226,6 +238,47 @@ export function AccountingPanel({
                         </tr>
                       );
                     })}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+            <section className="panel p-5">
+              <h2 className="panel-title">Payroll entry receipts</h2>
+              <div className="mt-3 overflow-x-auto">
+                <table className="w-full min-w-[760px] text-sm">
+                  <thead className="text-left text-xs uppercase tracking-wide text-slate-500">
+                    <tr className="border-b border-slate-200"><th className="py-2">Employee</th><th>Net amount</th><th>Status</th><th>Receipt</th><th>Actions</th></tr>
+                  </thead>
+                  <tbody>
+                    {payrollEntries.slice(0, 50).map((entry) => (
+                      <tr key={entry.id} className="border-b border-slate-100">
+                        <td className="py-2">{employeeNameById[entry.employee_id] ?? "Employee"}</td>
+                        <td className="font-semibold text-indigo-700">${Number(entry.net_amount).toFixed(2)}</td>
+                        <td>{entry.paid_at ? "Paid" : "Pending"}</td>
+                        <td>
+                          <a href={`/dashboard/restaurant/accounting/receipts/payroll/${entry.id}`} className="text-indigo-600 hover:underline">
+                            Open receipt
+                          </a>
+                        </td>
+                        <td>
+                          {!entry.paid_at ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const formData = new FormData();
+                                formData.set("entry_id", entry.id);
+                                run(markPayrollEntryPaidAction, formData);
+                              }}
+                              className="btn btn-secondary rounded-xl"
+                            >
+                              Mark paid
+                            </button>
+                          ) : (
+                            <span className="text-xs text-emerald-600">Done</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>

@@ -3,6 +3,7 @@ import {
   createEmployeeAction,
   createExpenseAction,
   createPayrollRunAction,
+  markPayrollEntryPaidAction,
   updateEmployeeAction,
 } from "@/app-actions/accounting";
 import { AccountingPanel } from "@/components/accounting-panel";
@@ -66,6 +67,7 @@ export default async function AccountingPage() {
       updateEmployeeAction={updateEmployeeAction}
       createExpenseAction={createExpenseAction}
       createPayrollRunAction={createPayrollRunAction}
+      markPayrollEntryPaidAction={markPayrollEntryPaidAction}
     />
   );
 }
