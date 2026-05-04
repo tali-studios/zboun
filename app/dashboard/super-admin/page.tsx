@@ -46,6 +46,7 @@ export default async function SuperAdminPage({ searchParams }: Props) {
     { data: subscriptions },
     { data: invoices },
     { data: payments },
+    { data: addons },
   ] =
     await Promise.all([
       query,
@@ -70,6 +71,9 @@ export default async function SuperAdminPage({ searchParams }: Props) {
         .from("payments")
         .select("id, invoice_id, restaurant_id, amount_paid, paid_at, method, reference_note, created_at")
         .order("paid_at", { ascending: false }),
+      dataClient
+        .from("restaurant_addons")
+        .select("restaurant_id, addon_key, is_enabled"),
     ]);
 
   const categoryCountByRestaurant = (categories ?? []).reduce<Record<string, number>>(
@@ -142,6 +146,15 @@ export default async function SuperAdminPage({ searchParams }: Props) {
     return acc;
   }, {});
 
+  const addonsByRestaurant = (addons ?? []).reduce<Record<string, Record<string, boolean>>>(
+    (acc, row) => {
+      if (!acc[row.restaurant_id]) acc[row.restaurant_id] = {};
+      acc[row.restaurant_id][row.addon_key] = row.is_enabled;
+      return acc;
+    },
+    {},
+  );
+
   const restaurantsWithDetails = (restaurants ?? []).map((restaurant) => ({
     ...restaurant,
     category_count: categoryCountByRestaurant[restaurant.id] ?? 0,
@@ -154,6 +167,7 @@ export default async function SuperAdminPage({ searchParams }: Props) {
     billing_cycle_price: latestSubscriptionByRestaurant[restaurant.id]?.billing_cycle_price ?? 0,
     last_payment_at: lastPaymentByRestaurant[restaurant.id] ?? null,
     outstanding_balance: outstandingByRestaurant[restaurant.id] ?? 0,
+    addons: addonsByRestaurant[restaurant.id] ?? {},
   }));
 
   const monthStart = new Date();

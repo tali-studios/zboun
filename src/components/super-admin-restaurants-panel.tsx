@@ -4,6 +4,8 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   deleteRestaurantAction,
+  disableAddonAction,
+  enableAddonAction,
   renewSubscriptionAction,
   setNextDueDateAction,
   toggleRestaurantActiveAction,
@@ -11,6 +13,19 @@ import {
   updateRestaurantBrowseSectionsAction,
   updateSubscriptionStatusAction,
 } from "@/app-actions/superadmin";
+
+const ALL_ADDONS: { key: string; label: string; description: string }[] = [
+  { key: "inventory", label: "Inventory Management", description: "Stock tracking, suppliers, and movement log." },
+  { key: "crm", label: "CRM", description: "Customer relationship management (coming soon)." },
+  { key: "loyalty", label: "Loyalty Management", description: "Points and reward programs (coming soon)." },
+  { key: "pos", label: "Cloud & Offline POS", description: "Point of sale system (coming soon)." },
+  { key: "accounting", label: "Accounting & Payroll", description: "Financial management (coming soon)." },
+  { key: "pms", label: "Property Management (PMS)", description: "Hotel/property features (coming soon)." },
+  { key: "ecommerce", label: "E-commerce Integration", description: "Online store sync (coming soon)." },
+  { key: "events", label: "Event Management", description: "Booking and event tools (coming soon)." },
+  { key: "fleet", label: "Fleet Management", description: "Delivery fleet tracking (coming soon)." },
+  { key: "club", label: "Club Management", description: "Membership and club tools (coming soon)." },
+];
 import { BROWSE_SECTION_OPTIONS, normalizeBrowseSections } from "@/lib/browse-sections";
 
 type RestaurantRow = {
@@ -32,6 +47,7 @@ type RestaurantRow = {
   billing_cycle_price: number;
   last_payment_at: string | null;
   outstanding_balance: number;
+  addons: Record<string, boolean>;
 };
 
 type Props = {
@@ -77,6 +93,13 @@ type BrowseSectionsEditorState = {
   section: string;
 };
 
+type AddonsEditorState = {
+  open: boolean;
+  restaurantId: string;
+  restaurantName: string;
+  addons: Record<string, boolean>;
+};
+
 export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -96,6 +119,12 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
     restaurantId: "",
     restaurantName: "",
     section: "Lunch",
+  });
+  const [addonsEditor, setAddonsEditor] = useState<AddonsEditorState>({
+    open: false,
+    restaurantId: "",
+    restaurantName: "",
+    addons: {},
   });
 
   const filtered = useMemo(() => {
@@ -205,6 +234,43 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
       formData.set("id", subscriptionId);
       formData.set("status", next);
       await updateSubscriptionStatusAction(formData);
+      router.refresh();
+    });
+  }
+
+  function openAddonsEditor(restaurant: RestaurantRow) {
+    setAddonsEditor({
+      open: true,
+      restaurantId: restaurant.id,
+      restaurantName: restaurant.name,
+      addons: { ...restaurant.addons },
+    });
+  }
+
+  function toggleAddon(key: string) {
+    setAddonsEditor((prev) => ({
+      ...prev,
+      addons: { ...prev.addons, [key]: !prev.addons[key] },
+    }));
+  }
+
+  function saveAddons() {
+    startTransition(async () => {
+      const { restaurantId, addons } = addonsEditor;
+      await Promise.all(
+        ALL_ADDONS.map(async ({ key }) => {
+          const enabled = Boolean(addons[key]);
+          const formData = new FormData();
+          formData.set("restaurant_id", restaurantId);
+          formData.set("addon_key", key);
+          if (enabled) {
+            await enableAddonAction(formData);
+          } else {
+            await disableAddonAction(formData);
+          }
+        }),
+      );
+      setAddonsEditor((prev) => ({ ...prev, open: false }));
       router.refresh();
     });
   }
@@ -340,6 +406,13 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                 disabled={isPending}
                 onClick={() => setInfoRestaurant(restaurant)}
               />
+              <ActionIconButton
+                label="Manage add-ons"
+                icon="🧩"
+                className="bg-teal-600 hover:bg-teal-500"
+                disabled={isPending}
+                onClick={() => openAddonsEditor(restaurant)}
+              />
               {restaurant.subscription_id ? (
                 <>
                   <ActionIconButton
@@ -471,6 +544,13 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                       className="bg-slate-600 hover:bg-slate-500"
                       disabled={isPending}
                       onClick={() => setInfoRestaurant(restaurant)}
+                    />
+                    <ActionIconButton
+                      label="Manage add-ons"
+                      icon="🧩"
+                      className="bg-teal-600 hover:bg-teal-500"
+                      disabled={isPending}
+                      onClick={() => openAddonsEditor(restaurant)}
                     />
                     {restaurant.subscription_id ? (
                       <>
@@ -617,6 +697,66 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                 className="btn btn-primary rounded-xl disabled:opacity-70"
               >
                 Save category
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {addonsEditor.open && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/40 p-4">
+          <div className="flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white p-5 shadow-xl ring-1 ring-slate-200">
+            <h3 className="text-lg font-bold text-slate-900">Add-on modules</h3>
+            <p className="mt-1 text-sm text-slate-600">
+              Enable or disable paid modules for{" "}
+              <span className="font-semibold">{addonsEditor.restaurantName}</span>.
+            </p>
+            <div className="mt-4 space-y-2 overflow-y-auto pr-1">
+              {ALL_ADDONS.map((addon) => {
+                const enabled = Boolean(addonsEditor.addons[addon.key]);
+                return (
+                  <label
+                    key={addon.key}
+                    className={`flex cursor-pointer items-start gap-3 rounded-xl border px-4 py-3 transition ${
+                      enabled
+                        ? "border-teal-200 bg-teal-50"
+                        : "border-slate-200 bg-slate-50"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={enabled}
+                      onChange={() => toggleAddon(addon.key)}
+                      className="mt-0.5 h-4 w-4 accent-teal-600"
+                    />
+                    <div>
+                      <p className="text-sm font-semibold text-slate-800">{addon.label}</p>
+                      <p className="text-xs text-slate-500">{addon.description}</p>
+                    </div>
+                    {enabled && (
+                      <span className="ml-auto shrink-0 rounded-full bg-teal-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                        Active
+                      </span>
+                    )}
+                  </label>
+                );
+              })}
+            </div>
+            <div className="mt-4 flex justify-end gap-2 border-t border-slate-100 pt-3">
+              <button
+                type="button"
+                onClick={() => setAddonsEditor((prev) => ({ ...prev, open: false }))}
+                className="btn btn-secondary rounded-xl"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isPending}
+                onClick={saveAddons}
+                className="btn btn-primary rounded-xl disabled:opacity-70"
+              >
+                {isPending ? "Saving…" : "Save add-ons"}
               </button>
             </div>
           </div>

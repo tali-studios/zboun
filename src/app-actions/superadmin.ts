@@ -362,6 +362,55 @@ export async function recordCashPaymentAction(formData: FormData) {
   redirect("/dashboard/super-admin?success=payment_recorded");
 }
 
+export async function enableAddonAction(formData: FormData) {
+  const appUser = await getCurrentUserRole();
+  if (!appUser || appUser.role !== "superadmin") {
+    redirect("/dashboard/login");
+  }
+  const restaurantId = String(formData.get("restaurant_id") ?? "").trim();
+  const addonKey = String(formData.get("addon_key") ?? "").trim();
+  const notes = String(formData.get("notes") ?? "").trim() || null;
+  if (!restaurantId || !addonKey) {
+    redirect("/dashboard/super-admin?error=missing_addon_fields");
+  }
+  const supabase = await createServerSupabaseClient();
+  const { error } = await supabase.from("restaurant_addons").upsert(
+    {
+      restaurant_id: restaurantId,
+      addon_key: addonKey,
+      is_enabled: true,
+      enabled_at: new Date().toISOString(),
+      enabled_by: appUser.id,
+      notes,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "restaurant_id,addon_key" },
+  );
+  if (error) {
+    redirect(`/dashboard/super-admin?error=${encodeURIComponent(error.message)}`);
+  }
+  revalidatePath("/dashboard/super-admin");
+}
+
+export async function disableAddonAction(formData: FormData) {
+  await requireSuperAdmin();
+  const restaurantId = String(formData.get("restaurant_id") ?? "").trim();
+  const addonKey = String(formData.get("addon_key") ?? "").trim();
+  if (!restaurantId || !addonKey) {
+    redirect("/dashboard/super-admin?error=missing_addon_fields");
+  }
+  const supabase = await createServerSupabaseClient();
+  const { error } = await supabase
+    .from("restaurant_addons")
+    .update({ is_enabled: false, updated_at: new Date().toISOString() })
+    .eq("restaurant_id", restaurantId)
+    .eq("addon_key", addonKey);
+  if (error) {
+    redirect(`/dashboard/super-admin?error=${encodeURIComponent(error.message)}`);
+  }
+  revalidatePath("/dashboard/super-admin");
+}
+
 export async function deleteRestaurantAction(formData: FormData) {
   await requireSuperAdmin();
   const id = String(formData.get("id"));

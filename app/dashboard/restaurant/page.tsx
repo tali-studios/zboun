@@ -31,7 +31,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
   const { q, category, stock } = await searchParams;
 
   const supabase = await createServerSupabaseClient();
-  const [{ data: restaurant }, { data: categories }] = await Promise.all([
+  const [{ data: restaurant }, { data: categories }, { data: inventoryAddon }, { data: inventoryItems }] = await Promise.all([
     supabase
       .from("restaurants")
       .select(
@@ -44,6 +44,16 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
       .select("id, name, position")
       .eq("restaurant_id", appUser.restaurant_id)
       .order("position"),
+    supabase
+      .from("restaurant_addons")
+      .select("is_enabled")
+      .eq("restaurant_id", appUser.restaurant_id)
+      .eq("addon_key", "inventory")
+      .maybeSingle(),
+    supabase
+      .from("inventory_items")
+      .select("id, current_qty, min_qty")
+      .eq("restaurant_id", appUser.restaurant_id),
   ]);
 
   const itemsSelectWithOptions =
@@ -91,6 +101,14 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
     option_label: item.option_label ?? null,
     option_values: Array.isArray(item.option_values) ? item.option_values : [],
   }));
+
+  const inventoryEnabled = Boolean(inventoryAddon?.is_enabled);
+  const inventoryLowStock = inventoryEnabled
+    ? (inventoryItems ?? []).filter((i) => Number(i.current_qty) < Number(i.min_qty)).length
+    : 0;
+  const inventoryOutOfStock = inventoryEnabled
+    ? (inventoryItems ?? []).filter((i) => Number(i.current_qty) <= 0).length
+    : 0;
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const menuUrl = `${appUrl.replace(/\/+$/, "")}/${restaurant?.slug ?? ""}`;
@@ -760,6 +778,89 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
             {filteredItems.length === 0 ? (
               <p className="p-4 text-sm text-slate-500">No items found for current filters.</p>
             ) : null}
+          </div>
+        </section>
+
+        {/* Add-on modules */}
+        <section className="panel p-5">
+          <div className="mb-4">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-teal-600">Add-on modules</p>
+            <h2 className="mt-1 text-lg font-bold text-slate-900">Paid features</h2>
+            <p className="text-xs text-slate-500">
+              Additional modules available for your subscription. Contact us to activate.
+            </p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {/* Inventory — gated */}
+            {inventoryEnabled ? (
+              <a
+                href="/dashboard/restaurant/inventory"
+                className="flex flex-col rounded-2xl border border-teal-200 bg-teal-50 p-4 shadow-sm transition hover:border-teal-400 hover:shadow-md"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-semibold text-teal-800">Inventory Management</p>
+                  <span className="rounded-full bg-teal-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                    Active
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-teal-700">
+                  Stock tracking, suppliers, and movement log.
+                </p>
+                {(inventoryLowStock > 0 || inventoryOutOfStock > 0) && (
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {inventoryOutOfStock > 0 && (
+                      <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-700">
+                        {inventoryOutOfStock} out of stock
+                      </span>
+                    )}
+                    {inventoryLowStock > 0 && (
+                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                        {inventoryLowStock} low stock
+                      </span>
+                    )}
+                  </div>
+                )}
+                <p className="mt-3 text-xs font-semibold text-teal-600">Open Inventory →</p>
+              </a>
+            ) : (
+              <div className="flex flex-col rounded-2xl border border-slate-200 bg-slate-50 p-4 opacity-70">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-semibold text-slate-700">Inventory Management</p>
+                  <span className="rounded-full bg-slate-300 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                    Add-on
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-slate-500">
+                  Stock tracking, suppliers, and movement log.
+                </p>
+                <a href="/contact" className="mt-3 text-xs font-semibold text-violet-600 hover:underline">
+                  Contact us to activate →
+                </a>
+              </div>
+            )}
+
+            {/* Future modules — locked */}
+            {[
+              { label: "Cloud & Offline POS", desc: "Point of sale for dine-in and takeaway." },
+              { label: "CRM", desc: "Customer relationship and order history." },
+              { label: "Loyalty Management", desc: "Points, rewards, and retention programs." },
+              { label: "Accounting & Payroll", desc: "Financial management and staff payroll." },
+              { label: "Event Management", desc: "Bookings, events, and table reservations." },
+              { label: "E-commerce Integration", desc: "Sync with your online store." },
+            ].map((m) => (
+              <div key={m.label} className="flex flex-col rounded-2xl border border-slate-200 bg-slate-50 p-4 opacity-60">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-semibold text-slate-700">{m.label}</p>
+                  <span className="rounded-full bg-slate-300 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                    Soon
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-slate-500">{m.desc}</p>
+                <a href="/contact" className="mt-3 text-xs font-semibold text-violet-600 hover:underline">
+                  Contact us →
+                </a>
+              </div>
+            ))}
           </div>
         </section>
       </div>
