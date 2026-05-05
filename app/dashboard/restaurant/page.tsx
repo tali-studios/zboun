@@ -38,6 +38,23 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
     { data: inventoryItems },
     { data: accountingAddon },
     { data: accountingExpenses },
+    { data: posAddon },
+    { data: posOrders },
+    { data: crmAddon },
+    { data: crmCustomers },
+    { data: loyaltyAddon },
+    { data: loyaltyMembers },
+    { data: eventsAddon },
+    { data: todayReservations },
+    { data: upcomingBookings },
+    { data: pmsAddon },
+    { data: pmsRooms },
+    { data: ecommerceAddon },
+    { data: ecommerceOrders },
+    { data: fleetAddon },
+    { data: fleetDeliveries },
+    { data: clubAddon },
+    { data: clubMembers },
   ] = await Promise.all([
     supabase
       .from("restaurants")
@@ -73,6 +90,79 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
       .eq("restaurant_id", appUser.restaurant_id)
       .order("occurred_at", { ascending: false })
       .limit(100),
+    supabase
+      .from("restaurant_addons")
+      .select("is_enabled")
+      .eq("restaurant_id", appUser.restaurant_id)
+      .eq("addon_key", "pos")
+      .maybeSingle(),
+    supabase
+      .from("pos_orders")
+      .select("id, status, created_at")
+      .eq("restaurant_id", appUser.restaurant_id)
+      .order("created_at", { ascending: false })
+      .limit(100),
+    supabase
+      .from("restaurant_addons")
+      .select("is_enabled")
+      .eq("restaurant_id", appUser.restaurant_id)
+      .eq("addon_key", "crm")
+      .maybeSingle(),
+    supabase
+      .from("crm_customers")
+      .select("id, is_vip, total_spend")
+      .eq("restaurant_id", appUser.restaurant_id),
+    supabase
+      .from("restaurant_addons")
+      .select("is_enabled")
+      .eq("restaurant_id", appUser.restaurant_id)
+      .eq("addon_key", "loyalty")
+      .maybeSingle(),
+    supabase
+      .from("loyalty_members")
+      .select("id, tier, is_active")
+      .eq("restaurant_id", appUser.restaurant_id),
+    supabase
+      .from("restaurant_addons")
+      .select("is_enabled")
+      .eq("restaurant_id", appUser.restaurant_id)
+      .eq("addon_key", "events")
+      .maybeSingle(),
+    supabase
+      .from("table_reservations")
+      .select("id, status")
+      .eq("restaurant_id", appUser.restaurant_id)
+      .eq("reservation_date", new Date().toISOString().split("T")[0]),
+    supabase
+      .from("event_bookings")
+      .select("id, status, event_date")
+      .eq("restaurant_id", appUser.restaurant_id)
+      .gte("event_date", new Date().toISOString().split("T")[0])
+      .not("status", "in", '("cancelled","completed")'),
+    supabase
+      .from("restaurant_addons")
+      .select("is_enabled")
+      .eq("restaurant_id", appUser.restaurant_id)
+      .eq("addon_key", "pms")
+      .maybeSingle(),
+    supabase
+      .from("pms_rooms")
+      .select("id, status, is_active")
+      .eq("restaurant_id", appUser.restaurant_id),
+    supabase.from("restaurant_addons").select("is_enabled")
+      .eq("restaurant_id", appUser.restaurant_id).eq("addon_key", "ecommerce").maybeSingle(),
+    supabase.from("ecommerce_orders").select("id, status, payment_status")
+      .eq("restaurant_id", appUser.restaurant_id)
+      .not("status", "in", '("delivered","cancelled")').limit(200),
+    supabase.from("restaurant_addons").select("is_enabled")
+      .eq("restaurant_id", appUser.restaurant_id).eq("addon_key", "fleet").maybeSingle(),
+    supabase.from("fleet_deliveries").select("id, status")
+      .eq("restaurant_id", appUser.restaurant_id)
+      .not("status", "in", '("delivered","failed","cancelled")').limit(100),
+    supabase.from("restaurant_addons").select("is_enabled")
+      .eq("restaurant_id", appUser.restaurant_id).eq("addon_key", "club").maybeSingle(),
+    supabase.from("club_members").select("id, status")
+      .eq("restaurant_id", appUser.restaurant_id).limit(500),
   ]);
 
   const itemsSelectWithOptions =
@@ -137,6 +227,28 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
         .filter((expense) => new Date(expense.occurred_at) >= currentMonthStart)
         .reduce((sum, expense) => sum + Number(expense.amount), 0)
     : 0;
+  const posEnabled = Boolean(posAddon?.is_enabled);
+  const posOpenOrders = posEnabled ? (posOrders ?? []).filter((order) => order.status === "open").length : 0;
+  const crmEnabled = Boolean(crmAddon?.is_enabled);
+  const crmTotalCustomers = crmEnabled ? (crmCustomers ?? []).length : 0;
+  const crmVipCount = crmEnabled ? (crmCustomers ?? []).filter((c) => c.is_vip).length : 0;
+  const loyaltyEnabled = Boolean(loyaltyAddon?.is_enabled);
+  const loyaltyActiveMembers = loyaltyEnabled ? (loyaltyMembers ?? []).filter((m) => m.is_active).length : 0;
+  const loyaltyNonStandard = loyaltyEnabled ? (loyaltyMembers ?? []).filter((m) => m.tier !== "standard" && m.is_active).length : 0;
+  const eventsEnabled = Boolean(eventsAddon?.is_enabled);
+  const pmsEnabled = Boolean(pmsAddon?.is_enabled);
+  const pmsActiveRooms = pmsEnabled ? (pmsRooms ?? []).filter((r) => r.is_active) : [];
+  const pmsOccupied = pmsActiveRooms.filter((r) => r.status === "occupied").length;
+  const pmsOccupancyRate = pmsActiveRooms.length > 0 ? Math.round((pmsOccupied / pmsActiveRooms.length) * 100) : 0;
+  const eventsTodayCount = eventsEnabled ? (todayReservations ?? []).filter((r) => r.status !== "cancelled").length : 0;
+  const eventsUpcomingCount = eventsEnabled ? (upcomingBookings ?? []).length : 0;
+  const ecommerceEnabled = Boolean(ecommerceAddon?.is_enabled);
+  const ecommercePendingOrders = ecommerceEnabled ? (ecommerceOrders ?? []).filter((o) => o.status === "pending").length : 0;
+  const ecommerceActiveOrders = ecommerceEnabled ? (ecommerceOrders ?? []).length : 0;
+  const fleetEnabled = Boolean(fleetAddon?.is_enabled);
+  const fleetActiveDeliveries = fleetEnabled ? (fleetDeliveries ?? []).length : 0;
+  const clubEnabled = Boolean(clubAddon?.is_enabled);
+  const clubActiveMembers = clubEnabled ? (clubMembers ?? []).filter((m) => m.status === "active").length : 0;
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const menuUrl = `${appUrl.replace(/\/+$/, "")}/${restaurant?.slug ?? ""}`;
@@ -900,27 +1012,288 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
               </div>
             )}
 
-            {/* Future modules — locked */}
-            {[
-              { label: "Cloud & Offline POS", desc: "Point of sale for dine-in and takeaway." },
-              { label: "CRM", desc: "Customer relationship and order history." },
-              { label: "Loyalty Management", desc: "Points, rewards, and retention programs." },
-              { label: "Event Management", desc: "Bookings, events, and table reservations." },
-              { label: "E-commerce Integration", desc: "Sync with your online store." },
-            ].map((m) => (
-              <div key={m.label} className="flex flex-col rounded-2xl border border-slate-200 bg-slate-50 p-4 opacity-60">
+            {/* POS */}
+            {posEnabled ? (
+              <a
+                href="/dashboard/restaurant/pos"
+                className="flex flex-col rounded-2xl border border-cyan-200 bg-cyan-50 p-4 shadow-sm transition hover:border-cyan-400 hover:shadow-md"
+              >
                 <div className="flex items-center justify-between gap-2">
-                  <p className="font-semibold text-slate-700">{m.label}</p>
-                  <span className="rounded-full bg-slate-300 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
-                    Soon
+                  <p className="font-semibold text-cyan-800">Cloud & Offline POS</p>
+                  <span className="rounded-full bg-cyan-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                    Active
                   </span>
                 </div>
-                <p className="mt-1 text-xs text-slate-500">{m.desc}</p>
+                <p className="mt-1 text-xs text-cyan-700">Sales, payments, and printable customer receipts.</p>
+                <p className="mt-3 text-xs text-cyan-700">
+                  Open orders: <span className="font-semibold">{posOpenOrders}</span>
+                </p>
+                <p className="mt-2 text-xs font-semibold text-cyan-600">Open POS →</p>
+              </a>
+            ) : (
+              <div className="flex flex-col rounded-2xl border border-slate-200 bg-slate-50 p-4 opacity-70">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-semibold text-slate-700">Cloud & Offline POS</p>
+                  <span className="rounded-full bg-slate-300 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                    Add-on
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-slate-500">Sales, payments, and printable customer receipts.</p>
                 <a href="/contact" className="mt-3 text-xs font-semibold text-violet-600 hover:underline">
-                  Contact us →
+                  Contact us to activate →
                 </a>
               </div>
-            ))}
+            )}
+
+            {/* CRM — gated */}
+            {crmEnabled ? (
+              <a
+                href="/dashboard/restaurant/crm"
+                className="flex flex-col rounded-2xl border border-rose-200 bg-rose-50 p-4 shadow-sm transition hover:border-rose-400 hover:shadow-md"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-semibold text-rose-800">CRM</p>
+                  <span className="rounded-full bg-rose-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                    Active
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-rose-700">Customer profiles, order history, notes, and tags.</p>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold text-rose-700">
+                    {crmTotalCustomers} customer{crmTotalCustomers !== 1 ? "s" : ""}
+                  </span>
+                  {crmVipCount > 0 && (
+                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                      {crmVipCount} VIP
+                    </span>
+                  )}
+                </div>
+                <p className="mt-3 text-xs font-semibold text-rose-600">Open CRM →</p>
+              </a>
+            ) : (
+              <div className="flex flex-col rounded-2xl border border-slate-200 bg-slate-50 p-4 opacity-70">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-semibold text-slate-700">CRM</p>
+                  <span className="rounded-full bg-slate-300 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                    Add-on
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-slate-500">Customer profiles, order history, notes, and tags.</p>
+                <a href="/contact" className="mt-3 text-xs font-semibold text-violet-600 hover:underline">
+                  Contact us to activate →
+                </a>
+              </div>
+            )}
+
+            {/* Loyalty — gated */}
+            {loyaltyEnabled ? (
+              <a
+                href="/dashboard/restaurant/loyalty"
+                className="flex flex-col rounded-2xl border border-violet-200 bg-violet-50 p-4 shadow-sm transition hover:border-violet-400 hover:shadow-md"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-semibold text-violet-800">Loyalty Programme</p>
+                  <span className="rounded-full bg-violet-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                    Active
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-violet-700">Points, stamps, tiers, and referral rewards.</p>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-semibold text-violet-700">
+                    {loyaltyActiveMembers} member{loyaltyActiveMembers !== 1 ? "s" : ""}
+                  </span>
+                  {loyaltyNonStandard > 0 && (
+                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                      {loyaltyNonStandard} tier member{loyaltyNonStandard !== 1 ? "s" : ""}
+                    </span>
+                  )}
+                </div>
+                <p className="mt-3 text-xs font-semibold text-violet-600">Open Loyalty →</p>
+              </a>
+            ) : (
+              <div className="flex flex-col rounded-2xl border border-slate-200 bg-slate-50 p-4 opacity-70">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-semibold text-slate-700">Loyalty Programme</p>
+                  <span className="rounded-full bg-slate-300 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                    Add-on
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-slate-500">Points, stamps, tiers, and referral rewards.</p>
+                <a href="/contact" className="mt-3 text-xs font-semibold text-violet-600 hover:underline">
+                  Contact us to activate →
+                </a>
+              </div>
+            )}
+
+            {/* Events & Reservations — gated */}
+            {eventsEnabled ? (
+              <a
+                href="/dashboard/restaurant/events"
+                className="flex flex-col rounded-2xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm transition hover:border-emerald-400 hover:shadow-md"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-semibold text-emerald-800">Events & Reservations</p>
+                  <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                    Active
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-emerald-700">Table bookings and private event management.</p>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                    {eventsTodayCount} reservation{eventsTodayCount !== 1 ? "s" : ""} today
+                  </span>
+                  {eventsUpcomingCount > 0 && (
+                    <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-semibold text-violet-700">
+                      {eventsUpcomingCount} upcoming event{eventsUpcomingCount !== 1 ? "s" : ""}
+                    </span>
+                  )}
+                </div>
+                <p className="mt-3 text-xs font-semibold text-emerald-600">Open Events →</p>
+              </a>
+            ) : (
+              <div className="flex flex-col rounded-2xl border border-slate-200 bg-slate-50 p-4 opacity-70">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-semibold text-slate-700">Events & Reservations</p>
+                  <span className="rounded-full bg-slate-300 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                    Add-on
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-slate-500">Table bookings and private event management.</p>
+                <a href="/contact" className="mt-3 text-xs font-semibold text-violet-600 hover:underline">
+                  Contact us to activate →
+                </a>
+              </div>
+            )}
+
+            {/* PMS — gated */}
+            {pmsEnabled ? (
+              <a
+                href="/dashboard/restaurant/pms"
+                className="flex flex-col rounded-2xl border border-sky-200 bg-sky-50 p-4 shadow-sm transition hover:border-sky-400 hover:shadow-md"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-semibold text-sky-800">Property Management</p>
+                  <span className="rounded-full bg-sky-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                    Active
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-sky-700">Rooms, reservations, housekeeping & charges.</p>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-semibold text-sky-700">
+                    {pmsActiveRooms.length} room{pmsActiveRooms.length !== 1 ? "s" : ""}
+                  </span>
+                  <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-semibold text-sky-700">
+                    {pmsOccupancyRate}% occupied
+                  </span>
+                </div>
+                <p className="mt-3 text-xs font-semibold text-sky-600">Open PMS →</p>
+              </a>
+            ) : (
+              <div className="flex flex-col rounded-2xl border border-slate-200 bg-slate-50 p-4 opacity-70">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-semibold text-slate-700">Property Management</p>
+                  <span className="rounded-full bg-slate-300 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                    Add-on
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-slate-500">Rooms, reservations, housekeeping & charges.</p>
+                <a href="/contact" className="mt-3 text-xs font-semibold text-violet-600 hover:underline">
+                  Contact us to activate →
+                </a>
+              </div>
+            )}
+
+            {/* E-commerce Integration */}
+            {ecommerceEnabled ? (
+              <a
+                href="/dashboard/restaurant/ecommerce"
+                className="flex flex-col rounded-2xl border border-orange-200 bg-orange-50 p-4 shadow-sm transition hover:border-orange-400 hover:shadow-md"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-semibold text-orange-800">E-commerce</p>
+                  <span className="rounded-full bg-orange-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">Active</span>
+                </div>
+                <p className="mt-1 text-xs text-orange-700">Online ordering, delivery zones, and order management.</p>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-semibold text-orange-700">
+                    {ecommerceActiveOrders} active order{ecommerceActiveOrders !== 1 ? "s" : ""}
+                  </span>
+                  {ecommercePendingOrders > 0 && (
+                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                      {ecommercePendingOrders} pending
+                    </span>
+                  )}
+                </div>
+                <p className="mt-3 text-xs font-semibold text-orange-600">Open Store →</p>
+              </a>
+            ) : (
+              <div className="flex flex-col rounded-2xl border border-slate-200 bg-slate-50 p-4 opacity-70">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-semibold text-slate-700">E-commerce</p>
+                  <span className="rounded-full bg-slate-300 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">Add-on</span>
+                </div>
+                <p className="mt-1 text-xs text-slate-500">Online ordering, delivery zones, and order management.</p>
+                <a href="/contact" className="mt-3 text-xs font-semibold text-violet-600 hover:underline">Contact us to activate →</a>
+              </div>
+            )}
+
+            {/* Fleet Management */}
+            {fleetEnabled ? (
+              <a
+                href="/dashboard/restaurant/fleet"
+                className="flex flex-col rounded-2xl border border-cyan-200 bg-cyan-50 p-4 shadow-sm transition hover:border-cyan-400 hover:shadow-md"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-semibold text-cyan-800">Fleet Management</p>
+                  <span className="rounded-full bg-cyan-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">Active</span>
+                </div>
+                <p className="mt-1 text-xs text-cyan-700">Drivers, vehicles, deliveries, and maintenance logs.</p>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  <span className="rounded-full bg-cyan-100 px-2 py-0.5 text-[10px] font-semibold text-cyan-700">
+                    {fleetActiveDeliveries} active deliver{fleetActiveDeliveries !== 1 ? "ies" : "y"}
+                  </span>
+                </div>
+                <p className="mt-3 text-xs font-semibold text-cyan-600">Open Fleet →</p>
+              </a>
+            ) : (
+              <div className="flex flex-col rounded-2xl border border-slate-200 bg-slate-50 p-4 opacity-70">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-semibold text-slate-700">Fleet Management</p>
+                  <span className="rounded-full bg-slate-300 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">Add-on</span>
+                </div>
+                <p className="mt-1 text-xs text-slate-500">Drivers, vehicles, deliveries, and maintenance logs.</p>
+                <a href="/contact" className="mt-3 text-xs font-semibold text-violet-600 hover:underline">Contact us to activate →</a>
+              </div>
+            )}
+
+            {/* Club Management */}
+            {clubEnabled ? (
+              <a
+                href="/dashboard/restaurant/club"
+                className="flex flex-col rounded-2xl border border-purple-200 bg-purple-50 p-4 shadow-sm transition hover:border-purple-400 hover:shadow-md"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-semibold text-purple-800">Club Management</p>
+                  <span className="rounded-full bg-purple-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">Active</span>
+                </div>
+                <p className="mt-1 text-xs text-purple-700">Membership plans, check-ins, and subscription invoicing.</p>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-semibold text-purple-700">
+                    {clubActiveMembers} active member{clubActiveMembers !== 1 ? "s" : ""}
+                  </span>
+                </div>
+                <p className="mt-3 text-xs font-semibold text-purple-600">Open Club →</p>
+              </a>
+            ) : (
+              <div className="flex flex-col rounded-2xl border border-slate-200 bg-slate-50 p-4 opacity-70">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-semibold text-slate-700">Club Management</p>
+                  <span className="rounded-full bg-slate-300 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">Add-on</span>
+                </div>
+                <p className="mt-1 text-xs text-slate-500">Membership plans, check-ins, and subscription invoicing.</p>
+                <a href="/contact" className="mt-3 text-xs font-semibold text-violet-600 hover:underline">Contact us to activate →</a>
+              </div>
+            )}
           </div>
         </section>
       </div>

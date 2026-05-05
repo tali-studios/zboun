@@ -143,18 +143,18 @@ export default function ForRestaurantsPage() {
               },
               {
                 label: "Cloud & Offline POS",
-                available: false,
+                available: true,
                 desc: "Full point-of-sale system that works online and offline, synced to your menu and inventory.",
               },
               {
                 label: "CRM",
-                available: false,
-                desc: "Customer profiles, order history, preferences, and targeted communication tools.",
+                available: true,
+                desc: "Customer profiles, order history, notes, tags, and VIP management — linked to your POS.",
               },
               {
                 label: "Loyalty Management",
-                available: false,
-                desc: "Points, rewards, and stamp cards to keep customers coming back.",
+                available: true,
+                desc: "Points, stamp cards, tiers (Silver/Gold/Platinum), and referral bonuses — all configurable per restaurant.",
               },
               {
                 label: "Accounting & Payroll",
@@ -163,23 +163,28 @@ export default function ForRestaurantsPage() {
               },
               {
                 label: "Property Management (PMS)",
-                available: false,
-                desc: "Room bookings, housekeeping, and front-desk tools for hotels and hospitality.",
+                available: true,
+                desc: "Room types, reservations, check-in/out, housekeeping tasks, and room charges — with full CRM integration.",
               },
               {
                 label: "Event Management",
-                available: false,
+                available: true,
                 desc: "Table reservations, private event bookings, and capacity management.",
               },
               {
                 label: "E-commerce Integration",
-                available: false,
-                desc: "Sync your menu with online stores and delivery platforms.",
+                available: true,
+                desc: "Online storefront, delivery zones, order management, and real-time status tracking.",
               },
               {
                 label: "Fleet Management",
-                available: false,
-                desc: "Delivery tracking, driver assignment, and route optimization.",
+                available: true,
+                desc: "Vehicle registry, driver profiles, delivery dispatch, and maintenance logs.",
+              },
+              {
+                label: "Club Management",
+                available: true,
+                desc: "Membership plans, member enrollment, check-in logging, and subscription invoicing.",
               },
             ].map((mod) => (
               <div

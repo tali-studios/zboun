@@ -19,9 +19,14 @@ export async function createServerSupabaseClient() {
           options?: Record<string, unknown>;
         }>,
       ) {
-        cookiesToSet.forEach(({ name, value, options }) => {
-          cookieStore.set(name, value, options as never);
-        });
+        try {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            cookieStore.set(name, value, options as never);
+          });
+        } catch {
+          // Called from a Server Component — cookie writes are not permitted here.
+          // The session will be refreshed on the next Server Action or Route Handler call.
+        }
       },
     },
   });

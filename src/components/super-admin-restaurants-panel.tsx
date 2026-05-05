@@ -16,15 +16,15 @@ import {
 
 const ALL_ADDONS: { key: string; label: string; description: string }[] = [
   { key: "inventory", label: "Inventory Management", description: "Stock tracking, suppliers, and movement log." },
-  { key: "crm", label: "CRM", description: "Customer relationship management (coming soon)." },
-  { key: "loyalty", label: "Loyalty Management", description: "Points and reward programs (coming soon)." },
-  { key: "pos", label: "Cloud & Offline POS", description: "Point of sale system (coming soon)." },
-  { key: "accounting", label: "Accounting & Payroll", description: "Financial management (coming soon)." },
-  { key: "pms", label: "Property Management (PMS)", description: "Hotel/property features (coming soon)." },
-  { key: "ecommerce", label: "E-commerce Integration", description: "Online store sync (coming soon)." },
-  { key: "events", label: "Event Management", description: "Booking and event tools (coming soon)." },
-  { key: "fleet", label: "Fleet Management", description: "Delivery fleet tracking (coming soon)." },
-  { key: "club", label: "Club Management", description: "Membership and club tools (coming soon)." },
+  { key: "accounting", label: "Accounting & Payroll", description: "Financial management, expenses, and staff payroll." },
+  { key: "pos", label: "Cloud & Offline POS", description: "Point-of-sale system with customer receipts." },
+  { key: "crm", label: "CRM", description: "Customer profiles, order history, notes, and tags." },
+  { key: "loyalty", label: "Loyalty Management", description: "Points, stamps, tiers, and referral rewards." },
+  { key: "events", label: "Event Management", description: "Table reservations and private event bookings." },
+  { key: "pms", label: "Property Management (PMS)", description: "Rooms, reservations, housekeeping, and charges." },
+  { key: "ecommerce", label: "E-commerce Integration", description: "Online ordering, delivery zones, and order management." },
+  { key: "fleet", label: "Fleet Management", description: "Vehicles, drivers, delivery dispatch, and maintenance logs." },
+  { key: "club", label: "Club Management", description: "Membership plans, check-ins, and subscription invoicing." },
 ];
 import { BROWSE_SECTION_OPTIONS, normalizeBrowseSections } from "@/lib/browse-sections";
 
