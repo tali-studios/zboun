@@ -113,12 +113,13 @@ export function PosPanel({
   return (
     <main className="min-h-screen bg-[#f8f8ff] p-3 sm:p-4 md:p-8">
       <div className="mx-auto max-w-7xl space-y-5">
-        <header className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-cyan-700 via-cyan-600 to-blue-600 p-5 text-white shadow-lg shadow-cyan-600/30 md:p-6">
+        <header className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-violet-700 via-violet-600 to-fuchsia-600 p-5 text-white shadow-lg shadow-violet-600/30 md:p-6">
+          <div aria-hidden className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-white/10 blur-3xl" />
           <div className="relative flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-cyan-200">Cloud POS</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-violet-200">Cloud POS</p>
               <h1 className="mt-1 text-xl font-bold md:text-2xl">{restaurantName}</h1>
-              <p className="mt-0.5 text-xs text-cyan-200">Create sales, collect payments, and print customer receipts.</p>
+              <p className="mt-0.5 text-xs text-violet-200">Create sales, collect payments, and print customer receipts.</p>
             </div>
             <div className="flex gap-2">
               <a href="/dashboard/restaurant/pos/receipts" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">Receipts</a>
@@ -137,7 +138,7 @@ export function PosPanel({
               type="button"
               onClick={() => setTab(item.id as "sale" | "orders")}
               className={`flex-1 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
-                tab === item.id ? "bg-cyan-600 text-white" : "text-slate-600 hover:bg-slate-100"
+                tab === item.id ? "bg-violet-600 text-white" : "text-slate-600 hover:bg-slate-100"
               }`}
             >
               {item.label}

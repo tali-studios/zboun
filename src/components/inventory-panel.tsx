@@ -189,11 +189,11 @@ export function InventoryPanel({
       <div className="mx-auto max-w-7xl space-y-5">
 
         {/* Header */}
-        <header className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-teal-700 via-teal-600 to-emerald-600 p-5 text-white shadow-lg shadow-teal-600/30 md:p-6">
+        <header className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-violet-700 via-violet-600 to-fuchsia-600 p-5 text-white shadow-lg shadow-violet-600/30 md:p-6">
           <div aria-hidden className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-white/10 blur-3xl" />
           <div className="relative flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-teal-200">Inventory Management</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-violet-200">Inventory Management</p>
               <h1 className="mt-1 text-xl font-bold md:text-2xl">{restaurantName}</h1>
               <p className="mt-0.5 text-xs text-teal-200">
                 Track stock, suppliers, and movements for your operation.

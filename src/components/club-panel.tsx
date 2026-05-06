@@ -67,35 +67,40 @@ export function ClubPanel({ restaurantName, plans, members, checkIns, invoices,
 
   return (
     <>
-      <main className="container max-w-7xl space-y-6 py-8">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-widest text-purple-600">Club Management</p>
-            <h1 className="text-2xl font-bold text-slate-900">{restaurantName} — Club</h1>
-            <p className="text-sm text-slate-500">Membership plans, member management, check-ins, and invoicing.</p>
+      <main className="min-h-screen bg-[#f8f8ff] p-3 sm:p-4 md:p-8">
+      <div className="mx-auto max-w-7xl space-y-5">
+        {/* Header */}
+        <header className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-violet-700 via-violet-600 to-fuchsia-600 p-5 text-white shadow-lg shadow-violet-600/30 md:p-6">
+          <div aria-hidden className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-white/10 blur-3xl" />
+          <div className="relative flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-widest text-violet-200">Club Management</p>
+              <h1 className="mt-1 text-xl font-bold md:text-2xl">{restaurantName}</h1>
+              <p className="mt-0.5 text-xs text-violet-200 md:text-sm">Membership plans, check-ins, and subscription invoicing.</p>
+            </div>
+            <a href="/dashboard/restaurant" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">← Dashboard</a>
           </div>
-          <a href="/dashboard/restaurant" className="btn btn-secondary rounded-xl text-sm">← Dashboard</a>
-        </div>
+        </header>
 
-        <div className="flex gap-1 rounded-2xl border border-slate-200 bg-slate-50 p-1">
+        <nav className="flex gap-1 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-1 shadow-sm">
           {(["overview","members","invoices","plans"] as const).map((t) => (
-            <button key={t} onClick={()=>setTab(t)} className={`flex-1 rounded-xl py-2 text-sm font-semibold capitalize transition ${tab===t?"bg-white text-slate-900 shadow-sm":"text-slate-500 hover:text-slate-700"}`}>{t}</button>
+            <button key={t} onClick={()=>setTab(t)} className={`flex-1 whitespace-nowrap rounded-xl px-3 py-2.5 text-sm font-semibold capitalize transition ${tab===t?"bg-violet-600 text-white":"text-slate-600 hover:bg-slate-100"}`}>{t}</button>
           ))}
-        </div>
+        </nav>
 
         {/* Overview */}
         {tab === "overview" && (
           <div className="space-y-6">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {[
-                {label:"Active Members",value:String(activeCount),c:"purple"},
-                {label:"New This Month",value:String(newThisMonth),c:"indigo"},
-                {label:"Check-ins Today",value:String(todayCheckins),c:"teal"},
-                {label:"Outstanding Invoices",value:String(outstandingInvoices),c:"amber"},
+                {label:"Active Members",value:String(activeCount)},
+                {label:"New This Month",value:String(newThisMonth)},
+                {label:"Check-ins Today",value:String(todayCheckins)},
+                {label:"Outstanding Invoices",value:String(outstandingInvoices)},
               ].map(k=>(
-                <div key={k.label} className={`rounded-2xl border border-${k.c}-100 bg-${k.c}-50 p-5`}>
-                  <p className={`text-xs font-semibold uppercase tracking-wide text-${k.c}-600 opacity-70`}>{k.label}</p>
-                  <p className={`mt-1 text-3xl font-bold text-${k.c}-700`}>{k.value}</p>
+                <div key={k.label} className="panel p-5">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{k.label}</p>
+                  <p className="mt-1 text-3xl font-bold text-slate-900">{k.value}</p>
                 </div>
               ))}
             </div>
@@ -259,6 +264,7 @@ export function ClubPanel({ restaurantName, plans, members, checkIns, invoices,
             </div>
           </div>
         )}
+      </div>
       </main>
 
       {/* Enroll / Edit Member Modal */}
