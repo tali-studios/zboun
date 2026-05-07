@@ -37,4 +37,6 @@ export type CloudKitchenDashboardProps = CategoryDashboardSharedProps & {
   ecommerceActiveOrders: number;
   ecommercePendingOrders: number;
   fleetActiveDeliveries: number;
+  posOpenOrders: number;
+  crmTotalCustomers: number;
 };

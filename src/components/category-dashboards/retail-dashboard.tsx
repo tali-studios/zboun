@@ -20,6 +20,7 @@ export function RetailDashboard(props: RetailDashboardProps) {
 
       <QuickActions
         actions={[
+          { label: "Retail ops console", href: "/dashboard/business/retail", hint: "Executive control center for retail operations", enabled: props.posEnabled || props.inventoryEnabled || props.ecommerceEnabled },
           { label: "Start POS sale", href: "/dashboard/business/pos", hint: "Serve in-store customers quickly", enabled: props.posEnabled },
           { label: "Review stock", href: "/dashboard/business/inventory", hint: "Detect low stock before stockouts", enabled: props.inventoryEnabled },
           { label: "Process online", href: "/dashboard/business/ecommerce", hint: "Manage omnichannel orders", enabled: props.ecommerceEnabled },
