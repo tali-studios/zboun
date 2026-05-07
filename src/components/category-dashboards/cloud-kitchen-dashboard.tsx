@@ -23,10 +23,10 @@ export function CloudKitchenDashboard(props: CloudKitchenDashboardProps) {
 
       <QuickActions
         actions={[
-          { label: "Order control tower", href: "/dashboard/restaurant/ecommerce", hint: "Prioritize urgent and delayed orders", enabled: props.ecommerceEnabled },
-          { label: "Dispatch center", href: "/dashboard/restaurant/fleet", hint: "Assign drivers and routes", enabled: props.fleetEnabled },
-          { label: "POS fallback", href: "/dashboard/restaurant/pos", hint: "Handle direct walk-in calls", enabled: props.posEnabled },
-          { label: "Inventory sync", href: "/dashboard/restaurant/inventory", hint: "Prevent item overselling", enabled: props.inventoryEnabled },
+          { label: "Order control tower", href: "/dashboard/business/ecommerce", hint: "Prioritize urgent and delayed orders", enabled: props.ecommerceEnabled },
+          { label: "Dispatch center", href: "/dashboard/business/fleet", hint: "Assign drivers and routes", enabled: props.fleetEnabled },
+          { label: "POS fallback", href: "/dashboard/business/pos", hint: "Handle direct walk-in calls", enabled: props.posEnabled },
+          { label: "Inventory sync", href: "/dashboard/business/inventory", hint: "Prevent item overselling", enabled: props.inventoryEnabled },
         ]}
       />
 

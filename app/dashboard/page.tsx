@@ -14,5 +14,5 @@ export default async function DashboardIndex() {
   if (normalizedRole === "superadmin") {
     redirect("/dashboard/super-admin");
   }
-  redirect("/dashboard/restaurant");
+  redirect("/dashboard/business");
 }

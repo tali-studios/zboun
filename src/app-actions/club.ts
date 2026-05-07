@@ -12,13 +12,13 @@ async function requireClubAccess() {
   const { data: addon } = await supabase
     .from("restaurant_addons").select("is_enabled")
     .eq("restaurant_id", user.restaurant_id).eq("addon_key", "club").maybeSingle();
-  if (!addon?.is_enabled) redirect("/dashboard/restaurant");
+  if (!addon?.is_enabled) redirect("/dashboard/business");
   return user;
 }
 
 function revalidate() {
-  revalidatePath("/dashboard/restaurant/club");
-  revalidatePath("/dashboard/restaurant");
+  revalidatePath("/dashboard/business/club");
+  revalidatePath("/dashboard/business");
 }
 
 async function nextMemberNumber(restaurantId: string) {

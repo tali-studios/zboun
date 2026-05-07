@@ -25,7 +25,7 @@ async function requirePosAccess() {
     .eq("addon_key", "pos")
     .maybeSingle();
   if (!addon?.is_enabled) {
-    redirect("/dashboard/restaurant");
+    redirect("/dashboard/business");
   }
   return user;
 }
@@ -65,9 +65,9 @@ async function nextPosReceiptNumber(restaurantId: string) {
 }
 
 function revalidate() {
-  revalidatePath("/dashboard/restaurant/pos");
-  revalidatePath("/dashboard/restaurant/pos/receipts");
-  revalidatePath("/dashboard/restaurant");
+  revalidatePath("/dashboard/business/pos");
+  revalidatePath("/dashboard/business/pos/receipts");
+  revalidatePath("/dashboard/business");
 }
 
 export async function createPosOrderAction(formData: FormData) {

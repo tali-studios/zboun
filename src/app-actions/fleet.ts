@@ -12,13 +12,13 @@ async function requireFleetAccess() {
   const { data: addon } = await supabase
     .from("restaurant_addons").select("is_enabled")
     .eq("restaurant_id", user.restaurant_id).eq("addon_key", "fleet").maybeSingle();
-  if (!addon?.is_enabled) redirect("/dashboard/restaurant");
+  if (!addon?.is_enabled) redirect("/dashboard/business");
   return user;
 }
 
 function revalidate() {
-  revalidatePath("/dashboard/restaurant/fleet");
-  revalidatePath("/dashboard/restaurant");
+  revalidatePath("/dashboard/business/fleet");
+  revalidatePath("/dashboard/business");
 }
 
 // ─── Vehicles ─────────────────────────────────────────────────────────────────

@@ -23,10 +23,11 @@ export function GymDashboard(props: GymDashboardProps) {
 
       <QuickActions
         actions={[
-          { label: "New member", href: "/dashboard/restaurant/club", hint: "Create or upgrade membership plans", enabled: props.clubEnabled },
-          { label: "Track check-ins", href: "/dashboard/restaurant/club", hint: "Monitor attendance and engagement", enabled: props.clubEnabled },
-          { label: "Launch campaign", href: "/dashboard/restaurant/crm", hint: "Target members with offers", enabled: props.crmEnabled },
-          { label: "Review payroll", href: "/dashboard/restaurant/accounting", hint: "Approve payroll and expenses", enabled: props.accountingEnabled },
+          { label: "Gym operations", href: "/dashboard/business/gym", hint: "Manage trainers, PT sessions, and payroll", enabled: true },
+          { label: "New member", href: "/dashboard/business/club", hint: "Create or upgrade membership plans", enabled: props.clubEnabled },
+          { label: "Track check-ins", href: "/dashboard/business/club", hint: "Monitor attendance and engagement", enabled: props.clubEnabled },
+          { label: "Launch campaign", href: "/dashboard/business/crm", hint: "Target members with offers", enabled: props.crmEnabled },
+          { label: "Review payroll", href: "/dashboard/business/accounting", hint: "Approve payroll and expenses", enabled: props.accountingEnabled },
         ]}
       />
 

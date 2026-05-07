@@ -18,14 +18,14 @@ async function requireLoyaltyAccess() {
     .eq("addon_key", "loyalty")
     .maybeSingle();
   if (!addon?.is_enabled) {
-    redirect("/dashboard/restaurant");
+    redirect("/dashboard/business");
   }
   return user;
 }
 
 function revalidate() {
-  revalidatePath("/dashboard/restaurant/loyalty");
-  revalidatePath("/dashboard/restaurant");
+  revalidatePath("/dashboard/business/loyalty");
+  revalidatePath("/dashboard/business");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -100,7 +100,7 @@ export async function enrollMemberAction(formData: FormData) {
       .eq("phone", phone)
       .maybeSingle();
     if (existing) {
-      redirect("/dashboard/restaurant/loyalty?error=duplicate_phone");
+      redirect("/dashboard/business/loyalty?error=duplicate_phone");
     }
   }
 
@@ -216,7 +216,7 @@ export async function redeemPointsAction(formData: FormData) {
     .maybeSingle();
 
   if (!member || member.points_balance < pointsToRedeem) {
-    redirect("/dashboard/restaurant/loyalty?error=insufficient_points");
+    redirect("/dashboard/business/loyalty?error=insufficient_points");
   }
 
   const { data: program } = await supabase

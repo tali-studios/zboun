@@ -20,7 +20,7 @@ export default async function ChangePasswordPage({ searchParams }: Props) {
 
   const { success, error } = await searchParams;
   const dashboardHref =
-    appUser.role === "superadmin" ? "/dashboard/super-admin" : "/dashboard/restaurant";
+    appUser.role === "superadmin" ? "/dashboard/super-admin" : "/dashboard/business";
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#f8f8ff] px-4 py-12">

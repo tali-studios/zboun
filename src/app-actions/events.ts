@@ -18,14 +18,14 @@ async function requireEventsAccess() {
     .eq("addon_key", "events")
     .maybeSingle();
   if (!addon?.is_enabled) {
-    redirect("/dashboard/restaurant");
+    redirect("/dashboard/business");
   }
   return user;
 }
 
 function revalidate() {
-  revalidatePath("/dashboard/restaurant/events");
-  revalidatePath("/dashboard/restaurant");
+  revalidatePath("/dashboard/business/events");
+  revalidatePath("/dashboard/business");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

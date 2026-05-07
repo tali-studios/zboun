@@ -20,14 +20,14 @@ async function requireInventoryAccess() {
     .maybeSingle();
 
   if (!addon?.is_enabled) {
-    redirect("/dashboard/restaurant");
+    redirect("/dashboard/business");
   }
 
   return user;
 }
 
 function revalidate() {
-  revalidatePath("/dashboard/restaurant/inventory");
+  revalidatePath("/dashboard/business/inventory");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -49,7 +49,7 @@ export async function createSupplierAction(formData: FormData) {
     notes: String(formData.get("notes") ?? "").trim() || null,
   });
   if (error) {
-    redirect(`/dashboard/restaurant/inventory?error=${encodeURIComponent(error.message)}`);
+    redirect(`/dashboard/business/inventory?error=${encodeURIComponent(error.message)}`);
   }
   revalidate();
 }
@@ -123,7 +123,7 @@ export async function createInventoryItemAction(formData: FormData) {
     .single();
 
   if (error) {
-    redirect(`/dashboard/restaurant/inventory?error=${encodeURIComponent(error.message)}`);
+    redirect(`/dashboard/business/inventory?error=${encodeURIComponent(error.message)}`);
   }
 
   if (initialQty !== 0 && item) {
@@ -191,7 +191,7 @@ export async function recordMovementAction(formData: FormData) {
   const allowed = new Set(["purchase", "consume", "waste", "adjustment"]);
 
   if (!itemId || !allowed.has(movementType) || !Number.isFinite(qtyRaw) || qtyRaw === 0) {
-    redirect("/dashboard/restaurant/inventory?error=invalid_movement");
+    redirect("/dashboard/business/inventory?error=invalid_movement");
   }
 
   // consume and waste are always outgoing (negative)
@@ -214,7 +214,7 @@ export async function recordMovementAction(formData: FormData) {
   });
 
   if (error) {
-    redirect(`/dashboard/restaurant/inventory?error=${encodeURIComponent(error.message)}`);
+    redirect(`/dashboard/business/inventory?error=${encodeURIComponent(error.message)}`);
   }
   revalidate();
 }

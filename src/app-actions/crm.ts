@@ -18,14 +18,14 @@ async function requireCrmAccess() {
     .eq("addon_key", "crm")
     .maybeSingle();
   if (!addon?.is_enabled) {
-    redirect("/dashboard/restaurant");
+    redirect("/dashboard/business");
   }
   return user;
 }
 
 function revalidate() {
-  revalidatePath("/dashboard/restaurant/crm");
-  revalidatePath("/dashboard/restaurant");
+  revalidatePath("/dashboard/business/crm");
+  revalidatePath("/dashboard/business");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

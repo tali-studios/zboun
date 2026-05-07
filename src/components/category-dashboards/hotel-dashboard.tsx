@@ -20,10 +20,10 @@ export function HotelDashboard(props: HotelDashboardProps) {
 
       <QuickActions
         actions={[
-          { label: "New reservation", href: "/dashboard/restaurant/pms", hint: "Add booking and assign room", enabled: props.pmsEnabled },
-          { label: "Front desk board", href: "/dashboard/restaurant/pms", hint: "Check arrivals and departures", enabled: props.pmsEnabled },
-          { label: "Event planning", href: "/dashboard/restaurant/events", hint: "Manage venue bookings", enabled: props.eventsEnabled },
-          { label: "Guest CRM", href: "/dashboard/restaurant/crm", hint: "Track VIP guests and notes", enabled: props.crmEnabled },
+          { label: "New reservation", href: "/dashboard/business/pms", hint: "Add booking and assign room", enabled: props.pmsEnabled },
+          { label: "Front desk board", href: "/dashboard/business/pms", hint: "Check arrivals and departures", enabled: props.pmsEnabled },
+          { label: "Event planning", href: "/dashboard/business/events", hint: "Manage venue bookings", enabled: props.eventsEnabled },
+          { label: "Guest CRM", href: "/dashboard/business/crm", hint: "Track VIP guests and notes", enabled: props.crmEnabled },
         ]}
       />
 

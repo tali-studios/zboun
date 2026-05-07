@@ -161,16 +161,16 @@ export function ModuleGrid({
       <h2 className="panel-title">Active modules</h2>
       {moduleCount > 0 ? (
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {clubEnabled && <a href="/dashboard/restaurant/club" className="rounded-2xl border border-purple-200 bg-purple-50 p-4 text-sm font-semibold text-purple-800">Club Management</a>}
-          {pmsEnabled && <a href="/dashboard/restaurant/pms" className="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm font-semibold text-sky-800">Property Management</a>}
-          {crmEnabled && <a href="/dashboard/restaurant/crm" className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-800">CRM</a>}
-          {accountingEnabled && <a href="/dashboard/restaurant/accounting" className="rounded-2xl border border-indigo-200 bg-indigo-50 p-4 text-sm font-semibold text-indigo-800">Accounting & Payroll</a>}
-          {eventsEnabled && <a href="/dashboard/restaurant/events" className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">Event Management</a>}
-          {fleetEnabled && <a href="/dashboard/restaurant/fleet" className="rounded-2xl border border-cyan-200 bg-cyan-50 p-4 text-sm font-semibold text-cyan-800">Fleet Management</a>}
-          {ecommerceEnabled && <a href="/dashboard/restaurant/ecommerce" className="rounded-2xl border border-orange-200 bg-orange-50 p-4 text-sm font-semibold text-orange-800">E-commerce</a>}
-          {posEnabled && <a href="/dashboard/restaurant/pos" className="rounded-2xl border border-cyan-200 bg-cyan-50 p-4 text-sm font-semibold text-cyan-800">POS</a>}
-          {inventoryEnabled && <a href="/dashboard/restaurant/inventory" className="rounded-2xl border border-teal-200 bg-teal-50 p-4 text-sm font-semibold text-teal-800">Inventory</a>}
-          {loyaltyEnabled && <a href="/dashboard/restaurant/loyalty" className="rounded-2xl border border-violet-200 bg-violet-50 p-4 text-sm font-semibold text-violet-800">Loyalty</a>}
+        {clubEnabled && <a href="/dashboard/business/club" className="rounded-2xl border border-purple-200 bg-purple-50 p-4 text-sm font-semibold text-purple-800">Club Management</a>}
+        {pmsEnabled && <a href="/dashboard/business/pms" className="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm font-semibold text-sky-800">Property Management</a>}
+        {crmEnabled && <a href="/dashboard/business/crm" className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-800">CRM</a>}
+        {accountingEnabled && <a href="/dashboard/business/accounting" className="rounded-2xl border border-indigo-200 bg-indigo-50 p-4 text-sm font-semibold text-indigo-800">Accounting & Payroll</a>}
+        {eventsEnabled && <a href="/dashboard/business/events" className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">Event Management</a>}
+        {fleetEnabled && <a href="/dashboard/business/fleet" className="rounded-2xl border border-cyan-200 bg-cyan-50 p-4 text-sm font-semibold text-cyan-800">Fleet Management</a>}
+        {ecommerceEnabled && <a href="/dashboard/business/ecommerce" className="rounded-2xl border border-orange-200 bg-orange-50 p-4 text-sm font-semibold text-orange-800">E-commerce</a>}
+        {posEnabled && <a href="/dashboard/business/pos" className="rounded-2xl border border-cyan-200 bg-cyan-50 p-4 text-sm font-semibold text-cyan-800">POS</a>}
+        {inventoryEnabled && <a href="/dashboard/business/inventory" className="rounded-2xl border border-teal-200 bg-teal-50 p-4 text-sm font-semibold text-teal-800">Inventory</a>}
+        {loyaltyEnabled && <a href="/dashboard/business/loyalty" className="rounded-2xl border border-violet-200 bg-violet-50 p-4 text-sm font-semibold text-violet-800">Loyalty</a>}
         </div>
       ) : (
         <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">

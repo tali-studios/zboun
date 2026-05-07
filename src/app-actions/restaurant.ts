@@ -164,7 +164,7 @@ export async function createCategoryAction(formData: FormData) {
     restaurant_id: user.restaurant_id,
     position: 0,
   });
-  revalidatePath("/dashboard/restaurant");
+  revalidatePath("/dashboard/business");
 }
 
 export async function updateCategoryAction(formData: FormData) {
@@ -179,7 +179,7 @@ export async function updateCategoryAction(formData: FormData) {
     .update({ name })
     .eq("id", id)
     .eq("restaurant_id", user.restaurant_id);
-  revalidatePath("/dashboard/restaurant");
+  revalidatePath("/dashboard/business");
 }
 
 export async function deleteCategoryAction(formData: FormData) {
@@ -189,7 +189,7 @@ export async function deleteCategoryAction(formData: FormData) {
 
   const supabase = await createServerSupabaseClient();
   await supabase.from("categories").delete().eq("id", id).eq("restaurant_id", user.restaurant_id);
-  revalidatePath("/dashboard/restaurant");
+  revalidatePath("/dashboard/business");
 }
 
 export async function createMenuItemAction(formData: FormData) {
@@ -226,7 +226,7 @@ export async function createMenuItemAction(formData: FormData) {
     option_values: optionValues,
     is_available: true,
   });
-  revalidatePath("/dashboard/restaurant");
+  revalidatePath("/dashboard/business");
 }
 
 export async function updateMenuItemAction(formData: FormData) {
@@ -275,7 +275,7 @@ export async function updateMenuItemAction(formData: FormData) {
     })
     .eq("id", id)
     .eq("restaurant_id", user.restaurant_id);
-  revalidatePath("/dashboard/restaurant");
+  revalidatePath("/dashboard/business");
 }
 
 export async function toggleMenuItemAvailabilityAction(formData: FormData) {
@@ -290,7 +290,7 @@ export async function toggleMenuItemAvailabilityAction(formData: FormData) {
     .update({ is_available: !isAvailable })
     .eq("id", id)
     .eq("restaurant_id", user.restaurant_id);
-  revalidatePath("/dashboard/restaurant");
+  revalidatePath("/dashboard/business");
 }
 
 export async function deleteMenuItemAction(formData: FormData) {
@@ -300,7 +300,7 @@ export async function deleteMenuItemAction(formData: FormData) {
 
   const supabase = await createServerSupabaseClient();
   await supabase.from("menu_items").delete().eq("id", id).eq("restaurant_id", user.restaurant_id);
-  revalidatePath("/dashboard/restaurant");
+  revalidatePath("/dashboard/business");
 }
 
 export async function updateRestaurantSettingsAction(formData: FormData) {
@@ -312,7 +312,7 @@ export async function updateRestaurantSettingsAction(formData: FormData) {
   const lbpRateRaw = String(formData.get("lbp_rate") ?? "").trim();
   const lbpRate = Number(lbpRateRaw);
   if (!Number.isFinite(lbpRate) || lbpRate <= 0) {
-    redirect("/dashboard/restaurant?q=invalid_lbp_rate");
+    redirect("/dashboard/business?q=invalid_lbp_rate");
   }
   const uploadedLogoUrl =
     logoFile instanceof File ? await uploadRestaurantLogo(logoFile, user.restaurant_id) : null;
@@ -336,6 +336,6 @@ export async function updateRestaurantSettingsAction(formData: FormData) {
       eta_label,
     })
     .eq("id", user.restaurant_id);
-  revalidatePath("/dashboard/restaurant");
+  revalidatePath("/dashboard/business");
   revalidatePath("/");
 }

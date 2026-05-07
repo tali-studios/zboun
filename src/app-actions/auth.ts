@@ -69,7 +69,7 @@ export async function signInAction(formData: FormData) {
     if (!profile.restaurant_id) {
       redirect("/dashboard/login?error=missing_restaurant_link");
     }
-    redirect("/dashboard/restaurant");
+    redirect("/dashboard/business");
   }
   redirect("/dashboard/login?error=missing_profile");
 }

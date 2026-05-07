@@ -18,15 +18,15 @@ async function requireAccountingAccess() {
     .eq("addon_key", "accounting")
     .maybeSingle();
   if (!addon?.is_enabled) {
-    redirect("/dashboard/restaurant");
+    redirect("/dashboard/business");
   }
   return user;
 }
 
 function revalidate() {
-  revalidatePath("/dashboard/restaurant/accounting");
-  revalidatePath("/dashboard/restaurant/accounting/receipts");
-  revalidatePath("/dashboard/restaurant");
+  revalidatePath("/dashboard/business/accounting");
+  revalidatePath("/dashboard/business/accounting/receipts");
+  revalidatePath("/dashboard/business");
 }
 
 async function getNextReceiptNumber(

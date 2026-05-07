@@ -20,10 +20,10 @@ export function RetailDashboard(props: RetailDashboardProps) {
 
       <QuickActions
         actions={[
-          { label: "Start POS sale", href: "/dashboard/restaurant/pos", hint: "Serve in-store customers quickly", enabled: props.posEnabled },
-          { label: "Review stock", href: "/dashboard/restaurant/inventory", hint: "Detect low stock before stockouts", enabled: props.inventoryEnabled },
-          { label: "Process online", href: "/dashboard/restaurant/ecommerce", hint: "Manage omnichannel orders", enabled: props.ecommerceEnabled },
-          { label: "Customer campaigns", href: "/dashboard/restaurant/crm", hint: "Target repeat customer segments", enabled: props.crmEnabled },
+          { label: "Start POS sale", href: "/dashboard/business/pos", hint: "Serve in-store customers quickly", enabled: props.posEnabled },
+          { label: "Review stock", href: "/dashboard/business/inventory", hint: "Detect low stock before stockouts", enabled: props.inventoryEnabled },
+          { label: "Process online", href: "/dashboard/business/ecommerce", hint: "Manage omnichannel orders", enabled: props.ecommerceEnabled },
+          { label: "Customer campaigns", href: "/dashboard/business/crm", hint: "Target repeat customer segments", enabled: props.crmEnabled },
         ]}
       />
 

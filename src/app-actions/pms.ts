@@ -17,13 +17,13 @@ async function requirePmsAccess() {
     .eq("restaurant_id", user.restaurant_id)
     .eq("addon_key", "pms")
     .maybeSingle();
-  if (!addon?.is_enabled) redirect("/dashboard/restaurant");
+  if (!addon?.is_enabled) redirect("/dashboard/business");
   return user;
 }
 
 function revalidate() {
-  revalidatePath("/dashboard/restaurant/pms");
-  revalidatePath("/dashboard/restaurant");
+  revalidatePath("/dashboard/business/pms");
+  revalidatePath("/dashboard/business");
 }
 
 async function nextPmsRefNumber(restaurantId: string, prefix: string) {
