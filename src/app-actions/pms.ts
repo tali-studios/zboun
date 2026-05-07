@@ -26,6 +26,37 @@ function revalidate() {
   revalidatePath("/dashboard/business");
 }
 
+async function markNoShowsForToday(restaurantId: string) {
+  const supabase = await createServerSupabaseClient();
+  const today = new Date().toISOString().split("T")[0];
+  const now = new Date().toISOString();
+
+  const { data: missed } = await supabase
+    .from("pms_reservations")
+    .select("id, room_id")
+    .eq("restaurant_id", restaurantId)
+    .eq("status", "confirmed")
+    .lt("check_in_date", today);
+  if (!missed || missed.length === 0) return 0;
+
+  const ids = missed.map((row) => row.id);
+  await supabase
+    .from("pms_reservations")
+    .update({ status: "no_show", updated_at: now })
+    .in("id", ids)
+    .eq("restaurant_id", restaurantId);
+
+  const roomIds = missed.map((row) => row.room_id).filter(Boolean) as string[];
+  if (roomIds.length > 0) {
+    await supabase
+      .from("pms_rooms")
+      .update({ status: "available", updated_at: now })
+      .in("id", roomIds)
+      .eq("restaurant_id", restaurantId);
+  }
+  return ids.length;
+}
+
 async function nextPmsRefNumber(restaurantId: string, prefix: string) {
   const supabase = await createServerSupabaseClient();
   const year = new Date().getFullYear();
@@ -291,6 +322,109 @@ export async function updateReservationPaymentAction(formData: FormData) {
   await supabase.from("pms_reservations").update({
     amount_paid: amountPaid, updated_at: new Date().toISOString(),
   }).eq("id", id).eq("restaurant_id", user.restaurant_id);
+  revalidate();
+}
+
+export async function extendReservationStayAction(formData: FormData) {
+  const user = await requirePmsAccess();
+  const id = String(formData.get("id") ?? "").trim();
+  const checkOutDate = String(formData.get("check_out_date") ?? "").trim();
+  const ratePerNight = parseFloat(String(formData.get("rate_per_night") ?? "0")) || 0;
+  if (!id || !checkOutDate || ratePerNight < 0) return;
+
+  const supabase = await createServerSupabaseClient();
+  const { data: reservation } = await supabase
+    .from("pms_reservations")
+    .select("check_in_date, charges_total")
+    .eq("id", id)
+    .eq("restaurant_id", user.restaurant_id)
+    .maybeSingle();
+  if (!reservation?.check_in_date) return;
+
+  const checkInMs = new Date(reservation.check_in_date).getTime();
+  const checkOutMs = new Date(checkOutDate).getTime();
+  if (!Number.isFinite(checkInMs) || !Number.isFinite(checkOutMs) || checkOutMs <= checkInMs) return;
+
+  const nights = Math.max(1, Math.round((checkOutMs - checkInMs) / 86400000));
+  const roomTotal = nights * ratePerNight;
+
+  await supabase
+    .from("pms_reservations")
+    .update({
+      check_out_date: checkOutDate,
+      rate_per_night: ratePerNight,
+      room_total: roomTotal,
+      grand_total: roomTotal + Number(reservation.charges_total ?? 0),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .eq("restaurant_id", user.restaurant_id);
+  revalidate();
+}
+
+export async function autoMarkNoShowsAction() {
+  const user = await requirePmsAccess();
+  await markNoShowsForToday(user.restaurant_id!);
+  revalidate();
+}
+
+export async function runNightAuditAction() {
+  const user = await requirePmsAccess();
+  await markNoShowsForToday(user.restaurant_id!);
+  revalidate();
+}
+
+export async function moveReservationRoomAction(formData: FormData) {
+  const user = await requirePmsAccess();
+  const reservationId = String(formData.get("id") ?? "").trim();
+  const targetRoomId = String(formData.get("target_room_id") ?? "").trim();
+  if (!reservationId || !targetRoomId) return;
+
+  const supabase = await createServerSupabaseClient();
+  const now = new Date().toISOString();
+
+  const { data: reservation } = await supabase
+    .from("pms_reservations")
+    .select("room_id, status")
+    .eq("id", reservationId)
+    .eq("restaurant_id", user.restaurant_id)
+    .maybeSingle();
+  if (!reservation) return;
+  if (!["confirmed", "checked_in"].includes(reservation.status)) return;
+
+  const { data: targetRoom } = await supabase
+    .from("pms_rooms")
+    .select("id, room_type_id, status")
+    .eq("id", targetRoomId)
+    .eq("restaurant_id", user.restaurant_id)
+    .maybeSingle();
+  if (!targetRoom || targetRoom.status !== "available") return;
+
+  await supabase
+    .from("pms_reservations")
+    .update({
+      room_id: targetRoom.id,
+      room_type_id: targetRoom.room_type_id,
+      updated_at: now,
+    })
+    .eq("id", reservationId)
+    .eq("restaurant_id", user.restaurant_id);
+
+  const nextTargetStatus = reservation.status === "checked_in" ? "occupied" : "reserved";
+  await supabase
+    .from("pms_rooms")
+    .update({ status: nextTargetStatus, updated_at: now })
+    .eq("id", targetRoom.id)
+    .eq("restaurant_id", user.restaurant_id);
+
+  if (reservation.room_id) {
+    await supabase
+      .from("pms_rooms")
+      .update({ status: "available", updated_at: now })
+      .eq("id", reservation.room_id)
+      .eq("restaurant_id", user.restaurant_id);
+  }
+
   revalidate();
 }
 

@@ -4,6 +4,7 @@ import {
   createRoomAction, updateRoomAction, updateRoomStatusAction, deleteRoomAction,
   createPmsReservationAction, checkInAction, checkOutAction,
   cancelPmsReservationAction, updateReservationPaymentAction,
+  extendReservationStayAction, autoMarkNoShowsAction, runNightAuditAction, moveReservationRoomAction,
   addChargeAction, deleteChargeAction,
   createHousekeepingTaskAction, updateHousekeepingStatusAction,
 } from "@/app-actions/pms";
@@ -79,6 +80,10 @@ export default async function PmsPage() {
       checkOutAction={checkOutAction}
       cancelPmsReservationAction={cancelPmsReservationAction}
       updateReservationPaymentAction={updateReservationPaymentAction}
+      extendReservationStayAction={extendReservationStayAction}
+      autoMarkNoShowsAction={autoMarkNoShowsAction}
+      runNightAuditAction={runNightAuditAction}
+      moveReservationRoomAction={moveReservationRoomAction}
       addChargeAction={addChargeAction}
       deleteChargeAction={deleteChargeAction}
       createHousekeepingTaskAction={createHousekeepingTaskAction}

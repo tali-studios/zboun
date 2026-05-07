@@ -64,6 +64,10 @@ type Props = {
   checkOutAction: (fd: FormData) => Promise<void>;
   cancelPmsReservationAction: (fd: FormData) => Promise<void>;
   updateReservationPaymentAction: (fd: FormData) => Promise<void>;
+  extendReservationStayAction: (fd: FormData) => Promise<void>;
+  autoMarkNoShowsAction: () => Promise<void>;
+  runNightAuditAction: () => Promise<void>;
+  moveReservationRoomAction: (fd: FormData) => Promise<void>;
   addChargeAction: (fd: FormData) => Promise<void>;
   deleteChargeAction: (fd: FormData) => Promise<void>;
   createHousekeepingTaskAction: (fd: FormData) => Promise<void>;
@@ -121,6 +125,8 @@ export function PmsPanel({
   createRoomAction, updateRoomAction, updateRoomStatusAction, deleteRoomAction,
   createPmsReservationAction, checkInAction, checkOutAction,
   cancelPmsReservationAction, updateReservationPaymentAction,
+  extendReservationStayAction, autoMarkNoShowsAction,
+  runNightAuditAction, moveReservationRoomAction,
   addChargeAction, deleteChargeAction,
   createHousekeepingTaskAction, updateHousekeepingStatusAction,
 }: Props) {
@@ -138,6 +144,11 @@ export function PmsPanel({
   const [checkoutPaid, setCheckoutPaid] = useState("");
   const [resStatusFilter, setResStatusFilter] = useState("all");
   const [showAddTask, setShowAddTask] = useState(false);
+  const [extendResId, setExtendResId] = useState<string | null>(null);
+  const [extendCheckOutDate, setExtendCheckOutDate] = useState("");
+  const [extendRatePerNight, setExtendRatePerNight] = useState("");
+  const [moveResId, setMoveResId] = useState<string | null>(null);
+  const [moveTargetRoomId, setMoveTargetRoomId] = useState("");
 
   // ── Derived ───────────────────────────────────────────────────────────────
   const typeMap = useMemo(() => Object.fromEntries(roomTypes.map((t) => [t.id, t])), [roomTypes]);
@@ -158,6 +169,35 @@ export function PmsPanel({
   const monthRevenue = reservations
     .filter((r) => r.status === "checked_out" && r.check_out_date >= monthStart)
     .reduce((s, r) => s + Number(r.amount_paid), 0);
+  const noShowCandidates = reservations.filter((r) => r.status === "confirmed" && r.check_in_date < TODAY).length;
+  const departuresStillOpen = reservations.filter((r) => r.status === "checked_in" && r.check_out_date === TODAY).length;
+
+  const frontDeskDays = useMemo(() => {
+    const start = new Date(TODAY + "T00:00:00");
+    return Array.from({ length: 7 }, (_, idx) => {
+      const d = new Date(start);
+      d.setDate(start.getDate() + idx);
+      const iso = d.toISOString().split("T")[0];
+      const arrivals = reservations.filter((r) => r.check_in_date === iso && r.status === "confirmed").length;
+      const departures = reservations.filter((r) => r.check_out_date === iso && r.status === "checked_in").length;
+      return { iso, label: d.toLocaleDateString("en-GB", { weekday: "short", day: "2-digit", month: "short" }), arrivals, departures };
+    });
+  }, [reservations]);
+  const hkStaffBoard = useMemo(() => {
+    const done = housekeeping.filter((task) => task.status === "done" && task.assigned_to?.trim());
+    const map = new Map<string, { doneCount: number; pendingCount: number }>();
+    for (const task of housekeeping) {
+      const staff = task.assigned_to?.trim();
+      if (!staff) continue;
+      const current = map.get(staff) ?? { doneCount: 0, pendingCount: 0 };
+      if (task.status === "done") current.doneCount += 1;
+      else current.pendingCount += 1;
+      map.set(staff, current);
+    }
+    return Array.from(map.entries())
+      .map(([staff, data]) => ({ staff, ...data }))
+      .sort((a, b) => b.doneCount - a.doneCount);
+  }, [housekeeping]);
 
   const filteredReservations = useMemo(() => {
     let list = reservations;
@@ -193,7 +233,7 @@ export function PmsPanel({
               <h1 className="mt-1 text-xl font-bold md:text-2xl">{restaurantName}</h1>
               <p className="mt-0.5 text-xs text-violet-200 md:text-sm">Rooms, reservations, check-in/out, charges, and housekeeping.</p>
             </div>
-            <a href="/dashboard/restaurant" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">← Dashboard</a>
+            <a href="/dashboard/business" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">← Dashboard</a>
           </div>
         </header>
 
@@ -330,6 +370,54 @@ export function PmsPanel({
                 </div>
               </div>
             )}
+
+            <div className="panel p-5">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-sm font-bold text-slate-700">Front desk 7-day board</p>
+                {noShowCandidates > 0 && (
+                  <button
+                    onClick={() => {
+                      startTransition(async () => {
+                        await autoMarkNoShowsAction();
+                      });
+                    }}
+                    className="rounded-lg bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-200"
+                  >
+                    Sweep no-shows ({noShowCandidates})
+                  </button>
+                )}
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-7">
+                {frontDeskDays.map((day) => (
+                  <div key={day.iso} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                    <p className="text-xs font-semibold text-slate-600">{day.label}</p>
+                    <p className="mt-2 text-xs text-teal-700">Arrivals: <span className="font-bold">{day.arrivals}</span></p>
+                    <p className="text-xs text-amber-700">Departures: <span className="font-bold">{day.departures}</span></p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="panel p-5">
+              <p className="text-sm font-bold text-slate-700">Night audit checklist</p>
+              <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                <ChecklistItem label="No-show candidates" value={noShowCandidates} tone={noShowCandidates > 0 ? "warn" : "ok"} />
+                <ChecklistItem label="Departures to close" value={departuresStillOpen} tone={departuresStillOpen > 0 ? "warn" : "ok"} />
+                <ChecklistItem label="Housekeeping pending" value={housekeepingPending} tone={housekeepingPending > 0 ? "warn" : "ok"} />
+              </div>
+              <div className="mt-3 flex justify-end">
+                <button
+                  onClick={() => {
+                    startTransition(async () => {
+                      await runNightAuditAction();
+                    });
+                  }}
+                  className="btn btn-primary rounded-xl text-sm"
+                >
+                  Run night audit
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -471,6 +559,29 @@ export function PmsPanel({
                             Cancel
                           </Qbtn>
                         )}
+                        {r.status === "confirmed" && (
+                          <Qbtn
+                            color="blue"
+                            onClick={() => {
+                              setExtendResId(r.id);
+                              setExtendCheckOutDate(r.check_out_date);
+                              setExtendRatePerNight(String(r.rate_per_night));
+                            }}
+                          >
+                            Extend stay
+                          </Qbtn>
+                        )}
+                        {["confirmed", "checked_in"].includes(r.status) && (
+                          <Qbtn
+                            color="indigo"
+                            onClick={() => {
+                              setMoveResId(r.id);
+                              setMoveTargetRoomId("");
+                            }}
+                          >
+                            Move / upgrade room
+                          </Qbtn>
+                        )}
                         <Qbtn color="slate" onClick={() => setViewResId(r.id)}>View / Charges</Qbtn>
                       </div>
                     </div>
@@ -484,6 +595,20 @@ export function PmsPanel({
         {/* ── Housekeeping ──────────────────────────────────────────────────── */}
         {tab === "housekeeping" && (
           <div className="space-y-4">
+            {hkStaffBoard.length > 0 && (
+              <div className="panel p-5">
+                <p className="mb-3 text-sm font-bold text-slate-700">Housekeeping staff performance</p>
+                <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                  {hkStaffBoard.map((staff) => (
+                    <div key={staff.staff} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <p className="text-sm font-semibold text-slate-800">{staff.staff}</p>
+                      <p className="mt-1 text-xs text-teal-700">Completed: <span className="font-bold">{staff.doneCount}</span></p>
+                      <p className="text-xs text-amber-700">Open tasks: <span className="font-bold">{staff.pendingCount}</span></p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="flex justify-end">
               <button onClick={() => setShowAddTask(true)} className="btn btn-primary rounded-xl text-sm">
                 + Add Task
@@ -967,6 +1092,96 @@ export function PmsPanel({
           </div>
         </div>
       )}
+
+      {extendResId && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/40 p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl ring-1 ring-slate-200">
+            <h3 className="text-lg font-bold text-slate-900">Extend stay</h3>
+            <p className="mt-1 text-sm text-slate-500">
+              {reservations.find((r) => r.id === extendResId)?.guest_name ?? "Reservation"}
+            </p>
+            <div className="mt-4 space-y-3">
+              <div>
+                <label className="ui-label">New check-out date</label>
+                <input
+                  type="date"
+                  className="ui-input w-full"
+                  value={extendCheckOutDate}
+                  onChange={(e) => setExtendCheckOutDate(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="ui-label">Rate per night ($)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  className="ui-input w-full"
+                  value={extendRatePerNight}
+                  onChange={(e) => setExtendRatePerNight(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="mt-4 flex justify-end gap-2 border-t border-slate-100 pt-3">
+              <button onClick={() => setExtendResId(null)} className="btn btn-secondary rounded-xl text-sm">Cancel</button>
+              <button
+                disabled={isPending}
+                onClick={() => {
+                  const fd = new FormData();
+                  fd.set("id", extendResId);
+                  fd.set("check_out_date", extendCheckOutDate);
+                  fd.set("rate_per_night", extendRatePerNight);
+                  run(extendReservationStayAction, fd);
+                  setExtendResId(null);
+                }}
+                className="btn btn-primary rounded-xl text-sm disabled:opacity-60"
+              >
+                Save extension
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {moveResId && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/40 p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl ring-1 ring-slate-200">
+            <h3 className="text-lg font-bold text-slate-900">Move / upgrade room</h3>
+            <p className="mt-1 text-sm text-slate-500">
+              {reservations.find((r) => r.id === moveResId)?.guest_name ?? "Reservation"}
+            </p>
+            <div className="mt-4">
+              <label className="ui-label">Target available room</label>
+              <select className="ui-input w-full" value={moveTargetRoomId} onChange={(e) => setMoveTargetRoomId(e.target.value)}>
+                <option value="">— Select room —</option>
+                {rooms
+                  .filter((room) => room.is_active && room.status === "available")
+                  .map((room) => (
+                    <option key={room.id} value={room.id}>
+                      Room {room.room_number}
+                    </option>
+                  ))}
+              </select>
+            </div>
+            <div className="mt-4 flex justify-end gap-2 border-t border-slate-100 pt-3">
+              <button onClick={() => setMoveResId(null)} className="btn btn-secondary rounded-xl text-sm">Cancel</button>
+              <button
+                disabled={isPending || !moveTargetRoomId}
+                onClick={() => {
+                  const fd = new FormData();
+                  fd.set("id", moveResId);
+                  fd.set("target_room_id", moveTargetRoomId);
+                  run(moveReservationRoomAction, fd);
+                  setMoveResId(null);
+                }}
+                className="btn btn-primary rounded-xl text-sm disabled:opacity-60"
+              >
+                Confirm move
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
@@ -991,15 +1206,25 @@ function KpiCard({ label, value, sub, color }: { label: string; value: string; s
   );
 }
 
-function Qbtn({ color, onClick, children }: { color: "teal"|"amber"|"blue"|"red"|"slate"; onClick: () => void; children: React.ReactNode }) {
+function Qbtn({ color, onClick, children }: { color: "teal"|"amber"|"blue"|"red"|"indigo"|"slate"; onClick: () => void; children: React.ReactNode }) {
   const c = {
     teal:  "bg-teal-100 text-teal-700 hover:bg-teal-200",
     amber: "bg-amber-100 text-amber-700 hover:bg-amber-200",
     blue:  "bg-blue-100 text-blue-700 hover:bg-blue-200",
     red:   "bg-red-100 text-red-600 hover:bg-red-200",
+    indigo:"bg-indigo-100 text-indigo-700 hover:bg-indigo-200",
     slate: "bg-slate-100 text-slate-600 hover:bg-slate-200",
   };
   return <button onClick={onClick} className={`rounded-lg px-3 py-1 text-xs font-semibold transition ${c[color]}`}>{children}</button>;
+}
+
+function ChecklistItem({ label, value, tone }: { label: string; value: number; tone: "ok" | "warn" }) {
+  return (
+    <div className={`rounded-xl border p-3 ${tone === "warn" ? "border-amber-200 bg-amber-50" : "border-teal-200 bg-teal-50"}`}>
+      <p className="text-xs text-slate-600">{label}</p>
+      <p className={`mt-1 text-xl font-bold ${tone === "warn" ? "text-amber-700" : "text-teal-700"}`}>{value}</p>
+    </div>
+  );
 }
 
 function InfoRow({ label, value, bold }: { label: string; value: string; bold?: boolean }) {

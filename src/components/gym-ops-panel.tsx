@@ -85,6 +85,7 @@ export function GymOpsPanel({
   const monthlyPayrollDue = trainerPayouts
     .filter((payout) => payout.status !== "paid")
     .reduce((sum, payout) => sum + Number(payout.total_amount), 0);
+  const activePackages = memberPackages.filter((pkg) => pkg.status === "active").length;
 
   function run(action: (fd: FormData) => Promise<void>, formData: FormData) {
     startTransition(async () => {
@@ -125,6 +126,7 @@ export function GymOpsPanel({
             <KpiCard label="Completed sessions" value={String(completedSessions)} />
             <KpiCard label="Unpaid sessions" value={String(unpaidSessions)} />
             <KpiCard label="Payroll due" value={`$${monthlyPayrollDue.toFixed(2)}`} />
+            <KpiCard label="Active PT packages" value={String(activePackages)} />
           </section>
         )}
 
@@ -280,6 +282,23 @@ export function GymOpsPanel({
               </div>
             </form>
             <div className="panel p-5 lg:col-span-2">
+              <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <p className="text-sm font-semibold text-slate-800">Create PT package</p>
+                <form
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    run(createPackageAction, new FormData(event.currentTarget));
+                    event.currentTarget.reset();
+                  }}
+                  className="mt-2 grid gap-2 md:grid-cols-5"
+                >
+                  <input name="name" required placeholder="Package name" className="ui-input md:col-span-2" />
+                  <input name="session_count" type="number" min="1" defaultValue={8} className="ui-input" />
+                  <input name="price" type="number" step="0.01" min="0" placeholder="Price" className="ui-input" />
+                  <input name="valid_days" type="number" min="1" placeholder="Validity days" className="ui-input" />
+                  <button className="btn btn-secondary rounded-xl md:col-span-5">Create package</button>
+                </form>
+              </div>
               <h2 className="panel-title">Weekly trainer calendar</h2>
               <div className="mt-3 grid gap-2 md:grid-cols-7">
                 {weekDays.map((dayDate) => (
