@@ -10,6 +10,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { parseBrowseSectionsFromForm } from "@/lib/browse-sections";
 import {
   addonsForBusinessType,
+  getBusinessTypeLabel,
   parseBusinessType,
   supportsHomeBrowseCategory,
 } from "@/lib/business-types";
@@ -94,6 +95,7 @@ export async function createRestaurantAction(formData: FormData) {
     const slug = await getUniqueSlug(name);
     const adminClient = getAdminClient();
     const appUrl = getAppBaseUrl();
+    const businessTypeLabel = getBusinessTypeLabel(businessType);
 
     const { data: restaurantData, error: restaurantError } = await adminClient
       .from("restaurants")
@@ -174,8 +176,9 @@ export async function createRestaurantAction(formData: FormData) {
     try {
       await sendRestaurantOnboardingEmail({
         to: email,
-        restaurantName: name,
-        menuUrl: `${appUrl}/${slug}`,
+        businessName: name,
+        businessTypeLabel,
+        publicUrl: supportsHomeBrowseCategory(businessType) ? `${appUrl}/${slug}` : null,
         dashboardUrl: `${appUrl}/dashboard/login`,
         initialPassword,
       });
@@ -472,8 +475,9 @@ function getAdminClient() {
 
 async function sendRestaurantOnboardingEmail(params: {
   to: string;
-  restaurantName: string;
-  menuUrl: string;
+  businessName: string;
+  businessTypeLabel: string;
+  publicUrl: string | null;
   dashboardUrl: string;
   initialPassword: string;
 }) {
@@ -498,17 +502,17 @@ async function sendRestaurantOnboardingEmail(params: {
   await transporter.sendMail({
     from: fromEmail,
     to: params.to,
-    subject: `Welcome to Zboun - ${params.restaurantName}`,
+    subject: `Welcome to Zboun - ${params.businessName}`,
     text: [
       `Hello,`,
       ``,
-      `Your restaurant "${params.restaurantName}" is ready on Zboun.`,
+      `Your ${params.businessTypeLabel} "${params.businessName}" is ready on Zboun.`,
       ``,
-      `Menu URL: ${params.menuUrl}`,
+      ...(params.publicUrl ? [`Public URL: ${params.publicUrl}`] : []),
       `Dashboard URL: ${params.dashboardUrl}`,
       `Password: ${params.initialPassword}`,
       ``,
-      `Use this password to sign in. The restaurant admin can change it later from the dashboard.`,
+      `Use this password to sign in. The admin can change it later from the dashboard.`,
       ``,
       `- Zboun Team`,
     ].join("\n"),

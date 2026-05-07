@@ -258,12 +258,12 @@ export default async function SuperAdminPage({ searchParams }: Props) {
         {(success === "restaurant_created_and_invited" ||
           success === "restaurant_created_with_fallback") && (
           <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-medium text-amber-700">
-            Restaurant created successfully. Admin onboarding email has been sent.
+            Business created successfully. Admin onboarding email has been sent.
           </p>
         )}
         {success === "restaurant_created_email_failed" && (
           <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-medium text-amber-700">
-            Restaurant and admin account were created, but sending email failed. You can create
+            Business and admin account were created, but sending email failed. You can create
             another test account or share login details manually.
           </p>
         )}
