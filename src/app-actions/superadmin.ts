@@ -8,6 +8,11 @@ import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { getCurrentUserRole } from "@/lib/data";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { parseBrowseSectionsFromForm } from "@/lib/browse-sections";
+import {
+  addonsForBusinessType,
+  parseBusinessType,
+  supportsHomeBrowseCategory,
+} from "@/lib/business-types";
 import { toSlug } from "@/lib/slug";
 import { env } from "@/lib/env";
 
@@ -16,6 +21,7 @@ async function requireSuperAdmin() {
   if (!user || user.role !== "superadmin") {
     redirect("/dashboard/login");
   }
+  return user;
 }
 
 function toPositiveMoney(raw: FormDataEntryValue | null): number {
@@ -72,11 +78,13 @@ function getAppBaseUrl() {
 }
 
 export async function createRestaurantAction(formData: FormData) {
-  await requireSuperAdmin();
+  const superAdmin = await requireSuperAdmin();
   const name = String(formData.get("name") ?? "").trim();
   const phone = String(formData.get("phone") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const browseSections = parseBrowseSectionsFromForm(formData);
+  const businessType = parseBusinessType(formData.get("business_type"));
+  const showOnHome = supportsHomeBrowseCategory(businessType);
 
   if (!name || !phone || !email) {
     redirect("/dashboard/super-admin?error=missing_restaurant_fields");
@@ -94,12 +102,31 @@ export async function createRestaurantAction(formData: FormData) {
         phone,
         slug,
         is_active: true,
+        show_on_home: showOnHome,
+        business_type: businessType,
         browse_sections: browseSections,
       })
       .select("id")
       .single();
 
     if (restaurantError) throw restaurantError;
+
+    const presetAddons = addonsForBusinessType(businessType);
+    if (presetAddons.length > 0) {
+      const { error: addonsError } = await adminClient.from("restaurant_addons").upsert(
+        presetAddons.map((addonKey) => ({
+          restaurant_id: restaurantData.id,
+          addon_key: addonKey,
+          is_enabled: true,
+          enabled_at: new Date().toISOString(),
+          enabled_by: superAdmin.id,
+          notes: `Auto-enabled from business type preset: ${businessType}`,
+          updated_at: new Date().toISOString(),
+        })),
+        { onConflict: "restaurant_id,addon_key" },
+      );
+      if (addonsError) throw addonsError;
+    }
 
     const inviteAdminName = `${name} Admin`;
     let userId: string | null = null;

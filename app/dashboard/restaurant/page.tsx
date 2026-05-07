@@ -16,6 +16,7 @@ import { CopyMenuLinkButton } from "@/components/copy-menu-link-button";
 import { ImageUploadField } from "@/components/image-upload-field";
 import { IngredientListField } from "@/components/ingredient-list-field";
 import { BROWSE_SECTION_OPTIONS, normalizeBrowseSections } from "@/lib/browse-sections";
+import { getBusinessTypeLabel, parseBusinessType, supportsHomeBrowseCategory } from "@/lib/business-types";
 
 export const dynamic = "force-dynamic";
 
@@ -59,7 +60,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
     supabase
       .from("restaurants")
       .select(
-        "name, slug, phone, logo_url, banner_url, description, lbp_rate, browse_sections, location, eta_label",
+        "name, slug, phone, logo_url, banner_url, description, lbp_rate, browse_sections, location, eta_label, business_type",
       )
       .eq("id", appUser.restaurant_id)
       .single(),
@@ -252,6 +253,9 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const menuUrl = `${appUrl.replace(/\/+$/, "")}/${restaurant?.slug ?? ""}`;
+  const businessType = parseBusinessType(restaurant?.business_type ?? "restaurant");
+  const businessTypeLabel = getBusinessTypeLabel(businessType);
+  const isMenuBusiness = supportsHomeBrowseCategory(businessType);
   const totalItems = normalizedItems.length;
   const availableItems = normalizedItems.filter((item) => item.is_available).length;
   const outOfStockItems = totalItems - availableItems;
@@ -296,25 +300,35 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
               <p className="text-xs font-bold uppercase tracking-widest text-violet-200">Restaurant admin</p>
               <h1 className="mt-1 text-xl font-bold md:text-2xl">{restaurant?.name}</h1>
               <p className="mt-0.5 text-xs text-violet-200 md:text-sm">
-                Menu: <span className="font-medium text-white">/{restaurant?.slug}</span>
+                {businessTypeLabel}
+                {isMenuBusiness ? (
+                  <>
+                    {" "}
+                    · Menu: <span className="font-medium text-white">/{restaurant?.slug}</span>
+                  </>
+                ) : null}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <a
-                href={menuUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="btn rounded-full bg-white text-violet-700 shadow-sm hover:bg-violet-50"
-              >
-                Open menu
-              </a>
-              <CopyMenuLinkButton url={menuUrl} />
-              <a href="/dashboard/restaurant/qr" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">
-                QR code
-              </a>
-              <a href="/dashboard/restaurant/flyer" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">
-                Print flyer
-              </a>
+              {isMenuBusiness ? (
+                <>
+                  <a
+                    href={menuUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn rounded-full bg-white text-violet-700 shadow-sm hover:bg-violet-50"
+                  >
+                    Open menu
+                  </a>
+                  <CopyMenuLinkButton url={menuUrl} />
+                  <a href="/dashboard/restaurant/qr" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">
+                    QR code
+                  </a>
+                  <a href="/dashboard/restaurant/flyer" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">
+                    Print flyer
+                  </a>
+                </>
+              ) : null}
               <a href="/dashboard/change-password" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">
                 Password
               </a>
@@ -348,6 +362,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
           </article>
         </section>
 
+        {isMenuBusiness ? (
         <section className="grid gap-4 lg:grid-cols-3">
           <form
             action={updateRestaurantSettingsAction}
@@ -470,6 +485,60 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
             </div>
           </form>
         </section>
+        ) : (
+          <section className="panel p-5">
+            <h2 className="panel-title">Business profile</h2>
+            <p className="mt-1 text-sm text-slate-600">
+              This dashboard is tailored for {businessTypeLabel}. Menu and home-browse tools are hidden
+              for non-restaurant businesses.
+            </p>
+            <form action={updateRestaurantSettingsAction} className="mt-4 grid gap-3 md:grid-cols-2">
+              <input type="hidden" name="current_logo_url" value={restaurant?.logo_url ?? ""} />
+              <input type="hidden" name="current_banner_url" value={restaurant?.banner_url ?? ""} />
+              <label className="space-y-1">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Business Name</span>
+                <input name="name" defaultValue={restaurant?.name} placeholder="Business name" className="ui-input" />
+              </label>
+              <label className="space-y-1">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Phone Number</span>
+                <input
+                  name="phone"
+                  defaultValue={restaurant?.phone}
+                  placeholder="Phone number"
+                  className="ui-input"
+                />
+              </label>
+              <label className="space-y-1 md:col-span-2">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Description</span>
+                <textarea
+                  name="description"
+                  defaultValue={restaurant?.description ?? ""}
+                  placeholder="Describe your business"
+                  className="ui-input min-h-24"
+                />
+              </label>
+              <label className="space-y-1">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Location</span>
+                <input
+                  name="location"
+                  defaultValue={restaurant?.location ?? ""}
+                  placeholder="Location"
+                  className="ui-input"
+                />
+              </label>
+              <label className="space-y-1">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">ETA Label</span>
+                <input
+                  name="eta_label"
+                  defaultValue={restaurant?.eta_label ?? ""}
+                  placeholder="e.g. By appointment"
+                  className="ui-input"
+                />
+              </label>
+              <button className="btn btn-primary rounded-xl md:col-span-2">Save profile</button>
+            </form>
+          </section>
+        )}
 
         <section className="panel p-5">
           <div className="flex items-center justify-between gap-3">

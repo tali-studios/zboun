@@ -1,12 +1,9 @@
 import { redirect } from "next/navigation";
 import { signOutAction } from "@/app-actions/auth";
-import {
-  createRestaurantAction,
-} from "@/app-actions/superadmin";
 import { createClient } from "@supabase/supabase-js";
+import { SuperAdminCreateRestaurantForm } from "@/components/super-admin-create-restaurant-form";
 import { SuperAdminFinancePanel } from "@/components/super-admin-finance-panel";
 import { SuperAdminRestaurantsPanel } from "@/components/super-admin-restaurants-panel";
-import { BROWSE_SECTION_OPTIONS } from "@/lib/browse-sections";
 import { getCurrentUserRole } from "@/lib/data";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { env } from "@/lib/env";
@@ -297,57 +294,8 @@ export default async function SuperAdminPage({ searchParams }: Props) {
         )}
 
         <section className="panel p-4 md:p-5">
-          <h2 className="panel-title">Create restaurant + admin invite</h2>
-          <form action={createRestaurantAction} className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
-            <input
-              name="name"
-              required
-              placeholder="Restaurant name"
-              className="ui-input"
-            />
-            <input
-              name="email"
-              type="email"
-              required
-              placeholder="Admin email"
-              className="ui-input"
-            />
-            <input
-              name="phone"
-              type="tel"
-              required
-              placeholder="WhatsApp number"
-              className="ui-input"
-            />
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 md:col-span-2 xl:col-span-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Home browse category
-              </p>
-              <p className="mt-1 text-xs text-slate-500">
-                Each restaurant appears in exactly one home section.
-              </p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {BROWSE_SECTION_OPTIONS.map((section) => (
-                  <label
-                    key={section}
-                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700"
-                  >
-                    <input
-                      type="radio"
-                      name="browse_section"
-                      value={section}
-                      defaultChecked={section === "Lunch"}
-                      className="h-4 w-4 accent-violet-600"
-                    />
-                    <span>{section}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-            <button className="btn btn-success rounded-xl">
-              Create restaurant
-            </button>
-          </form>
+          <h2 className="panel-title">Create business + admin invite</h2>
+          <SuperAdminCreateRestaurantForm />
           <p className="mt-3 text-xs text-slate-500">
             An invitation email is sent to the admin with a secure set-password link and dashboard
             access URL.

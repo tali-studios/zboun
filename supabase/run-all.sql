@@ -16,6 +16,7 @@ create table if not exists public.restaurants (
   name text not null,
   slug text not null unique,
   phone text not null,
+  business_type text not null default 'restaurant',
   logo_url text,
   banner_url text,
   description text,
@@ -32,6 +33,8 @@ alter table public.restaurants
   add column if not exists browse_sections text[] not null default array['Lunch']::text[];
 alter table public.restaurants
   add column if not exists banner_url text;
+alter table public.restaurants
+  add column if not exists business_type text not null default 'restaurant';
 alter table public.restaurants
   add column if not exists description text;
 alter table public.restaurants
