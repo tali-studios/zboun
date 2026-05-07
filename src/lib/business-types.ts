@@ -40,25 +40,25 @@ export const ADDON_LABELS: Record<AddonKey, string> = {
 export const BUSINESS_TYPE_PRESETS: BusinessTypePreset[] = [
   {
     key: "restaurant",
-    label: "Restaurant / Cafe",
+    label: "Restaurant",
     description: "Best for dine-in, takeaway, and neighborhood restaurants.",
     recommendedAddons: ["pos", "inventory", "crm", "loyalty"],
   },
   {
     key: "cloud_kitchen",
-    label: "Cloud Kitchen / Delivery Brand",
+    label: "Cloud Kitchen",
     description: "Best for delivery-first operations and high order throughput.",
     recommendedAddons: ["pos", "inventory", "ecommerce", "fleet", "crm"],
   },
   {
     key: "hotel_resort",
-    label: "Hotel / Resort / Venue",
+    label: "Hotel",
     description: "Best for room operations, bookings, and events.",
     recommendedAddons: ["pms", "events", "accounting", "pos", "crm"],
   },
   {
     key: "fitness_club",
-    label: "Gym / Fitness / Private Club",
+    label: "Gym",
     description: "Best for memberships, retention, and recurring customer management.",
     recommendedAddons: ["club", "crm", "loyalty", "accounting"],
   },

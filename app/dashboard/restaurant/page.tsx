@@ -13,6 +13,7 @@ import {
 import { getCurrentUserRole } from "@/lib/data";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { CopyMenuLinkButton } from "@/components/copy-menu-link-button";
+import { BusinessCategoryDashboard } from "@/components/business-category-dashboard";
 import { ImageUploadField } from "@/components/image-upload-field";
 import { IngredientListField } from "@/components/ingredient-list-field";
 import { BROWSE_SECTION_OPTIONS, normalizeBrowseSections } from "@/lib/browse-sections";
@@ -285,6 +286,37 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
       : 0;
   const selectedBrowseSection =
     normalizeBrowseSections(restaurant?.browse_sections ?? [])[0] ?? "Lunch";
+
+  if (!isMenuBusiness) {
+    return (
+      <BusinessCategoryDashboard
+        businessType={businessType}
+        businessTypeLabel={businessTypeLabel}
+        restaurantName={restaurant?.name ?? ""}
+        profileCompleteness={[restaurant?.description, restaurant?.location, restaurant?.phone].filter(Boolean).length}
+        clubActiveMembers={clubActiveMembers}
+        crmTotalCustomers={crmTotalCustomers}
+        pmsActiveRooms={pmsActiveRooms.length}
+        pmsOccupancyRate={pmsOccupancyRate}
+        ecommerceActiveOrders={ecommerceActiveOrders}
+        ecommercePendingOrders={ecommercePendingOrders}
+        posOpenOrders={posOpenOrders}
+        fleetActiveDeliveries={fleetActiveDeliveries}
+        accountingMonthExpenses={accountingMonthExpenses}
+        enabledModuleCount={[inventoryEnabled, accountingEnabled, posEnabled, crmEnabled, loyaltyEnabled, eventsEnabled, pmsEnabled, ecommerceEnabled, fleetEnabled, clubEnabled].filter(Boolean).length}
+        inventoryEnabled={inventoryEnabled}
+        accountingEnabled={accountingEnabled}
+        posEnabled={posEnabled}
+        crmEnabled={crmEnabled}
+        loyaltyEnabled={loyaltyEnabled}
+        eventsEnabled={eventsEnabled}
+        pmsEnabled={pmsEnabled}
+        ecommerceEnabled={ecommerceEnabled}
+        fleetEnabled={fleetEnabled}
+        clubEnabled={clubEnabled}
+      />
+    );
+  }
 
   return (
     <main className="min-h-screen bg-[#f8f8ff] p-3 sm:p-4 md:p-8">

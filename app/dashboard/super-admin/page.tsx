@@ -31,7 +31,7 @@ export default async function SuperAdminPage({ searchParams }: Props) {
       : supabase;
   const query = dataClient
     .from("restaurants")
-    .select("id, name, slug, phone, is_active, show_on_home, browse_sections, created_at")
+    .select("id, name, slug, phone, business_type, is_active, show_on_home, browse_sections, created_at")
     .order("created_at", { ascending: false });
 
   const [
@@ -231,7 +231,7 @@ export default async function SuperAdminPage({ searchParams }: Props) {
         <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <div className="panel p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Restaurants
+              Businesses
             </p>
             <p className="mt-1 text-2xl font-bold text-slate-900">{stats.totalRestaurants}</p>
           </div>
@@ -243,13 +243,13 @@ export default async function SuperAdminPage({ searchParams }: Props) {
           </div>
           <div className="panel p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Total sections
+              Total categories
             </p>
             <p className="mt-1 text-2xl font-bold text-slate-900">{stats.totalSections}</p>
           </div>
           <div className="panel p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Total menu items
+              Total catalog items
             </p>
             <p className="mt-1 text-2xl font-bold text-slate-900">{stats.totalItems}</p>
           </div>
@@ -284,7 +284,7 @@ export default async function SuperAdminPage({ searchParams }: Props) {
         )}
         {success === "restaurant_deleted" && (
           <p className="rounded-xl border border-violet-200 bg-violet-50 p-3 text-sm font-medium text-violet-700">
-            Restaurant deleted successfully.
+            Business deleted successfully.
           </p>
         )}
         {error && (

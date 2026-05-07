@@ -33,6 +33,7 @@ type RestaurantRow = {
   name: string;
   slug: string;
   phone: string;
+  business_type: string | null;
   is_active: boolean;
   show_on_home: boolean;
   browse_sections: string[] | null;
@@ -143,15 +144,19 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
     });
   }, [q, restaurants, status]);
 
+  function hasHomeCategory(restaurant: RestaurantRow) {
+    return restaurant.business_type === "restaurant";
+  }
+
   function openDeleteModal(restaurant: RestaurantRow) {
     setModal({
       open: true,
       restaurantId: restaurant.id,
       isActive: restaurant.is_active,
       action: "delete",
-      title: "Delete restaurant?",
+      title: "Delete business?",
       message:
-        "This will remove the restaurant and related menu records. This action cannot be undone.",
+        "This will remove the business and related records. This action cannot be undone.",
     });
   }
 
@@ -162,9 +167,9 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
       restaurantId: restaurant.id,
       isActive,
       action: "toggle",
-      title: isActive ? "Deactivate restaurant?" : "Activate restaurant?",
+      title: isActive ? "Deactivate business?" : "Activate business?",
       message: isActive
-        ? "The public menu will stop working for this restaurant."
+        ? "The public page will stop working for this business."
         : "The public menu will become available again.",
     });
   }
@@ -291,7 +296,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
   return (
     <section className="panel p-5">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-bold text-slate-900">Restaurants</h2>
+        <h2 className="text-lg font-bold text-slate-900">Businesses</h2>
         <div className="text-xs text-slate-500">{filtered.length} results</div>
       </div>
 
@@ -352,16 +357,24 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
               <span className="rounded-full bg-amber-50 px-2 py-1 text-amber-700">
                 Outstanding: ${restaurant.outstanding_balance.toFixed(2)}
               </span>
-              <span
-                className={`rounded-full px-2 py-1 ${
-                  restaurant.show_on_home ? "bg-violet-100 text-violet-700" : "bg-slate-200 text-slate-700"
-                }`}
-              >
-                {restaurant.show_on_home ? "Visible on home" : "Hidden on home"}
-              </span>
-              <span className="rounded-full bg-slate-100 px-2 py-1">
-                Home category: {normalizeBrowseSections(restaurant.browse_sections ?? [])[0] ?? "Lunch"}
-              </span>
+              {hasHomeCategory(restaurant) ? (
+                <>
+                  <span
+                    className={`rounded-full px-2 py-1 ${
+                      restaurant.show_on_home ? "bg-violet-100 text-violet-700" : "bg-slate-200 text-slate-700"
+                    }`}
+                  >
+                    {restaurant.show_on_home ? "Visible on home" : "Hidden on home"}
+                  </span>
+                  <span className="rounded-full bg-slate-100 px-2 py-1">
+                    Home category: {normalizeBrowseSections(restaurant.browse_sections ?? [])[0] ?? "Lunch"}
+                  </span>
+                </>
+              ) : (
+                <span className="rounded-full bg-slate-100 px-2 py-1">
+                  Home category: N/A
+                </span>
+              )}
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <ActionIconButton
@@ -372,28 +385,32 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                 onClick={() => renewSubscription(restaurant.id)}
               />
               <ActionIconButton
-                label={restaurant.is_active ? "Deactivate restaurant" : "Activate restaurant"}
+                label={restaurant.is_active ? "Deactivate business" : "Activate business"}
                 icon={restaurant.is_active ? "⏸" : "▶"}
                 className={restaurant.is_active ? "bg-amber-600 hover:bg-amber-500" : "bg-violet-600 hover:bg-violet-500"}
                 disabled={isPending}
                 onClick={() => openToggleModal(restaurant)}
               />
+              {hasHomeCategory(restaurant) ? (
+                <>
+                  <ActionIconButton
+                    label={restaurant.show_on_home ? "Hide from home page" : "Show on home page"}
+                    icon={restaurant.show_on_home ? "👁" : "🏠"}
+                    className={restaurant.show_on_home ? "bg-slate-700 hover:bg-slate-600" : "bg-violet-600 hover:bg-violet-500"}
+                    disabled={isPending}
+                    onClick={() => toggleHomeVisibility(restaurant.id, restaurant.show_on_home)}
+                  />
+                  <ActionIconButton
+                    label="Home browse category"
+                    icon="🧭"
+                    className="bg-violet-600 hover:bg-violet-500"
+                    disabled={isPending}
+                    onClick={() => openBrowseSectionsEditor(restaurant)}
+                  />
+                </>
+              ) : null}
               <ActionIconButton
-                label={restaurant.show_on_home ? "Hide from home page" : "Show on home page"}
-                icon={restaurant.show_on_home ? "👁" : "🏠"}
-                className={restaurant.show_on_home ? "bg-slate-700 hover:bg-slate-600" : "bg-violet-600 hover:bg-violet-500"}
-                disabled={isPending}
-                onClick={() => toggleHomeVisibility(restaurant.id, restaurant.show_on_home)}
-              />
-              <ActionIconButton
-                label="Home browse category"
-                icon="🧭"
-                className="bg-violet-600 hover:bg-violet-500"
-                disabled={isPending}
-                onClick={() => openBrowseSectionsEditor(restaurant)}
-              />
-              <ActionIconButton
-                label="Delete restaurant"
+                label="Delete business"
                 icon="🗑"
                 className="bg-red-600 hover:bg-red-500"
                 disabled={isPending}
@@ -447,7 +464,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
         <table className="w-full min-w-[980px] text-xs">
           <thead>
             <tr className="border-b border-slate-200 text-left text-[11px] uppercase tracking-wide text-slate-500">
-              <th className="py-2 whitespace-nowrap">Restaurant</th>
+              <th className="py-2 whitespace-nowrap">Business</th>
               <th className="py-2 whitespace-nowrap">Slug</th>
               <th className="py-2 whitespace-nowrap">Sub status</th>
               <th className="py-2 whitespace-nowrap">Next due</th>
@@ -485,18 +502,24 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                   </span>
                 </td>
                 <td className="py-3 whitespace-nowrap">
-                  <span
-                    className={`rounded-full px-2 py-1 text-xs font-semibold ${
-                      restaurant.show_on_home
-                        ? "bg-violet-100 text-violet-700"
-                        : "bg-slate-200 text-slate-700"
-                    }`}
-                  >
-                    {restaurant.show_on_home ? "Visible" : "Hidden"}
-                  </span>
+                  {hasHomeCategory(restaurant) ? (
+                    <span
+                      className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                        restaurant.show_on_home
+                          ? "bg-violet-100 text-violet-700"
+                          : "bg-slate-200 text-slate-700"
+                      }`}
+                    >
+                      {restaurant.show_on_home ? "Visible" : "Hidden"}
+                    </span>
+                  ) : (
+                    <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600">N/A</span>
+                  )}
                 </td>
                 <td className="py-3 whitespace-nowrap text-slate-600">
-                  {normalizeBrowseSections(restaurant.browse_sections ?? [])[0] ?? "Lunch"}
+                  {hasHomeCategory(restaurant)
+                    ? normalizeBrowseSections(restaurant.browse_sections ?? [])[0] ?? "Lunch"
+                    : "N/A"}
                 </td>
                 <td className="py-3 whitespace-nowrap text-slate-600">
                   {new Date(restaurant.created_at).toLocaleDateString()}
@@ -511,28 +534,32 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                       onClick={() => renewSubscription(restaurant.id)}
                     />
                     <ActionIconButton
-                      label={restaurant.is_active ? "Deactivate restaurant" : "Activate restaurant"}
+                      label={restaurant.is_active ? "Deactivate business" : "Activate business"}
                       icon={restaurant.is_active ? "⏸" : "▶"}
                       className={restaurant.is_active ? "bg-amber-600 hover:bg-amber-500" : "bg-violet-600 hover:bg-violet-500"}
                       disabled={isPending}
                       onClick={() => openToggleModal(restaurant)}
                     />
+                    {hasHomeCategory(restaurant) ? (
+                      <>
+                        <ActionIconButton
+                          label={restaurant.show_on_home ? "Hide from home page" : "Show on home page"}
+                          icon={restaurant.show_on_home ? "👁" : "🏠"}
+                          className={restaurant.show_on_home ? "bg-slate-700 hover:bg-slate-600" : "bg-violet-600 hover:bg-violet-500"}
+                          disabled={isPending}
+                          onClick={() => toggleHomeVisibility(restaurant.id, restaurant.show_on_home)}
+                        />
+                        <ActionIconButton
+                          label="Home browse category"
+                          icon="🧭"
+                          className="bg-violet-600 hover:bg-violet-500"
+                          disabled={isPending}
+                          onClick={() => openBrowseSectionsEditor(restaurant)}
+                        />
+                      </>
+                    ) : null}
                     <ActionIconButton
-                      label={restaurant.show_on_home ? "Hide from home page" : "Show on home page"}
-                      icon={restaurant.show_on_home ? "👁" : "🏠"}
-                      className={restaurant.show_on_home ? "bg-slate-700 hover:bg-slate-600" : "bg-violet-600 hover:bg-violet-500"}
-                      disabled={isPending}
-                      onClick={() => toggleHomeVisibility(restaurant.id, restaurant.show_on_home)}
-                    />
-                    <ActionIconButton
-                      label="Home browse category"
-                      icon="🧭"
-                      className="bg-violet-600 hover:bg-violet-500"
-                      disabled={isPending}
-                      onClick={() => openBrowseSectionsEditor(restaurant)}
-                    />
-                    <ActionIconButton
-                      label="Delete restaurant"
+                      label="Delete business"
                       icon="🗑"
                       className="bg-red-600 hover:bg-red-500"
                       disabled={isPending}
@@ -614,7 +641,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
       {infoRestaurant && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/40 p-4">
           <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-xl ring-1 ring-slate-200">
-            <h3 className="text-lg font-bold text-slate-900">Restaurant details</h3>
+            <h3 className="text-lg font-bold text-slate-900">Business details</h3>
             <div className="mt-3 grid gap-2 text-sm text-slate-700 sm:grid-cols-2">
               <p><span className="font-semibold">Name:</span> {infoRestaurant.name}</p>
               <p><span className="font-semibold">Slug:</span> /{infoRestaurant.slug}</p>
@@ -640,7 +667,9 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
               <p><span className="font-semibold">Created:</span> {new Date(infoRestaurant.created_at).toLocaleDateString()}</p>
               <p className="sm:col-span-2">
                 <span className="font-semibold">Home browse category:</span>{" "}
-                {normalizeBrowseSections(infoRestaurant.browse_sections ?? [])[0] ?? "Lunch"}
+                {hasHomeCategory(infoRestaurant)
+                  ? normalizeBrowseSections(infoRestaurant.browse_sections ?? [])[0] ?? "Lunch"
+                  : "N/A"}
               </p>
             </div>
             <div className="mt-4 flex justify-end">
