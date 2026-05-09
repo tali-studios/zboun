@@ -9,7 +9,6 @@ import { getCurrentUserRole } from "@/lib/data";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { parseBrowseSectionsFromForm } from "@/lib/browse-sections";
 import {
-  addonsForBusinessType,
   getBusinessTypeLabel,
   parseBusinessType,
   supportsHomeBrowseCategory,
@@ -79,7 +78,7 @@ function getAppBaseUrl() {
 }
 
 export async function createRestaurantAction(formData: FormData) {
-  const superAdmin = await requireSuperAdmin();
+  await requireSuperAdmin();
   const name = String(formData.get("name") ?? "").trim();
   const phone = String(formData.get("phone") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
@@ -112,23 +111,6 @@ export async function createRestaurantAction(formData: FormData) {
       .single();
 
     if (restaurantError) throw restaurantError;
-
-    const presetAddons = addonsForBusinessType(businessType);
-    if (presetAddons.length > 0) {
-      const { error: addonsError } = await adminClient.from("restaurant_addons").upsert(
-        presetAddons.map((addonKey) => ({
-          restaurant_id: restaurantData.id,
-          addon_key: addonKey,
-          is_enabled: true,
-          enabled_at: new Date().toISOString(),
-          enabled_by: superAdmin.id,
-          notes: `Auto-enabled from business type preset: ${businessType}`,
-          updated_at: new Date().toISOString(),
-        })),
-        { onConflict: "restaurant_id,addon_key" },
-      );
-      if (addonsError) throw addonsError;
-    }
 
     const inviteAdminName = `${name} Admin`;
     let userId: string | null = null;
