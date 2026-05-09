@@ -77,7 +77,8 @@ export default async function CloudKitchenOpsPage() {
       if (order.fulfilment_type === "delivery") priorityScore += 10;
       if (order.payment_status === "unpaid") priorityScore += 5;
       if (!deliveryAssigned && ["preparing", "ready"].includes(order.status)) priorityScore += 20;
-      const priorityLevel = priorityScore >= 80 ? "critical" : priorityScore >= 50 ? "high" : "normal";
+      const priorityLevel: "critical" | "high" | "normal" =
+        priorityScore >= 80 ? "critical" : priorityScore >= 50 ? "high" : "normal";
       return {
         id: order.id,
         orderNumber: order.order_number ?? order.id.slice(0, 8).toUpperCase(),
