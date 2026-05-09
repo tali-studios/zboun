@@ -759,7 +759,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                 <option value="in">In stock</option>
                 <option value="out">Out of stock</option>
               </select>
-              <p className="text-xs text-slate-500">Show only available or unavailable items.</p>
+              <p className="text-xs text-slate-500">Show items.</p>
             </label>
             <div className="grid grid-cols-2 gap-2 lg:col-span-2">
               <button className="btn btn-secondary flex-1" type="submit">
