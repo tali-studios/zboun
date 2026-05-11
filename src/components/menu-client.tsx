@@ -4,10 +4,25 @@ import Image from "next/image";
 import { useMemo, useState } from "react";
 import type { CategoryWithItems } from "@/lib/data";
 import { MenuRestaurantRating } from "@/components/menu-restaurant-rating";
-import { BRAND_HEX } from "@/lib/brand";
+import { BRAND_HEX, BRAND_HEX_DEEP } from "@/lib/brand";
 
 const BRAND = BRAND_HEX;
 const WHATSAPP_GREEN = "#25D366";
+
+/** Shopping-bag mark for the mobile cart strip (stroke reads clearly on the badge) */
+function CartBagMark({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+      />
+    </svg>
+  );
+}
 
 type Props = {
   restaurantName: string;
@@ -567,37 +582,43 @@ export function MenuClient({
         </aside>
       </div>
 
-      {/* ── Mobile checkout bar — same horizontal track as menu cards (container + px) + matching card chrome ───── */}
+      {/* ── Mobile checkout bar — aligned with menu column; bag mark + gradient ───── */}
       {items.length > 0 ? (
         <div className="fixed bottom-0 left-0 right-0 z-30 pt-2 lg:hidden">
           <div className="container mx-auto min-w-0 max-w-full px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6">
             <div
-              className="rounded-2xl p-3 text-white shadow-md ring-1 ring-white/25"
-              style={{ backgroundColor: BRAND }}
+              className="overflow-hidden rounded-2xl border border-white/25 text-white shadow-[0_12px_40px_rgba(45,24,95,0.38)] ring-1 ring-black/10"
+              style={{
+                background: `linear-gradient(155deg, ${BRAND_HEX} 0%, ${BRAND_HEX_DEEP} 100%)`,
+              }}
             >
-              <div className="flex min-h-[88px] items-center justify-between gap-3">
-                <span className="flex min-w-0 items-center gap-2.5 text-sm font-semibold">
-                  <span className="flex h-[88px] w-[88px] shrink-0 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/20">
-                    <svg className="h-8 w-8 shrink-0 opacity-95" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                    </svg>
-                  </span>
-                  <span className="min-w-0 leading-tight">
-                    <span className="block text-[15px] font-bold sm:text-base">
-                      {itemCount} {itemCount === 1 ? "item" : "items"}
-                    </span>
-                  </span>
-                </span>
-                <span className="shrink-0 pr-1 text-right">
-                  <span className="block text-base font-bold tabular-nums leading-none">{formatUsd(total)}</span>
-                  <span className="mt-1 block text-[11px] font-medium text-white/80 tabular-nums">{formatLbp(total)}</span>
-                </span>
+              <div className="relative flex items-center gap-3 px-3.5 pb-2.5 pt-3.5">
+                <div
+                  className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_80%_at_0%_0%,rgba(255,255,255,0.22)_0%,transparent_55%)]"
+                  aria-hidden
+                />
+                <div
+                  className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/35 bg-white/18 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)]"
+                  aria-hidden
+                >
+                  <CartBagMark className="h-6 w-6 text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.2)]" />
+                </div>
+                <div className="relative min-w-0 flex-1">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/65">Your order</p>
+                  <p className="mt-0.5 text-[15px] font-bold leading-tight tracking-tight sm:text-base">
+                    {itemCount} {itemCount === 1 ? "item" : "items"}
+                  </p>
+                </div>
+                <div className="relative shrink-0 text-right">
+                  <p className="text-lg font-bold tabular-nums leading-none tracking-tight">{formatUsd(total)}</p>
+                  <p className="mt-1 text-[11px] font-medium tabular-nums text-white/80">{formatLbp(total)}</p>
+                </div>
               </div>
-              <div className="mt-2 flex gap-2 border-t border-white/15 pt-2">
+              <div className="flex gap-2 border-t border-white/15 bg-black/10 px-3 py-2.5">
                 <button
                   type="button"
                   onClick={openReviewSheet}
-                  className="flex-1 rounded-full bg-white/15 py-2.5 text-sm font-semibold text-white ring-1 ring-white/25 transition hover:bg-white/20"
+                  className="flex-1 rounded-full bg-white/20 py-2.5 text-sm font-semibold text-white shadow-sm ring-1 ring-white/30 transition hover:bg-white/28 active:scale-[0.99]"
                 >
                   Review
                 </button>
@@ -605,7 +626,7 @@ export function MenuClient({
                   type="button"
                   onClick={handleOrderClick}
                   disabled={!canOrder}
-                  className="min-w-0 flex-[1.35] rounded-full py-2.5 text-sm font-bold text-[#111827] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45"
+                  className="min-w-0 flex-[1.35] rounded-full py-2.5 text-sm font-bold text-[#0a1f16] shadow-sm ring-1 ring-black/10 transition hover:brightness-105 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-45"
                   style={{ backgroundColor: WHATSAPP_GREEN }}
                 >
                   Order on WhatsApp
