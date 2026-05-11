@@ -418,12 +418,12 @@ export function MenuClient({
   return (
     <>
       <div
-        className={`grid gap-4 lg:grid-cols-[1fr_360px] ${items.length > 0 ? "pb-[120px] lg:pb-0" : ""}`}
+        className={`grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_360px] ${items.length > 0 ? "pb-[120px] lg:pb-0" : ""}`}
       >
         {/* ── Menu items column ──────────────────────────────────────── */}
-        <section className="space-y-4">
+        <section className="min-w-0 space-y-4">
           {/* Search */}
-          <div className="relative">
+          <div className="relative w-full min-w-0">
             <svg
               className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400"
               fill="none"
@@ -438,12 +438,12 @@ export function MenuClient({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search this menu"
-              className="ui-input ui-input-search h-12 w-full rounded-full border border-slate-200 bg-white text-base shadow-sm"
+              className="ui-input ui-input-search box-border h-12 w-full max-w-full min-w-0 !rounded-full border border-slate-200 bg-white text-base shadow-sm"
             />
           </div>
 
-          {/* Category pills (menu sections) */}
-          <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {/* Category pills (menu sections) — min-w-0 keeps horizontal scroll from widening the column */}
+          <div className="flex min-w-0 max-w-full gap-2 overflow-x-auto overflow-y-hidden touch-pan-x pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <button
               type="button"
               onClick={() => setMenuCategoryFilter("all")}
