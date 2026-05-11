@@ -25,8 +25,13 @@ export function DashboardShell({
             </div>
             <div className="flex flex-wrap gap-2">
               <a href="/dashboard/change-password" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">Password</a>
-              <form action={signOutAction}>
-                <button className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">Sign out</button>
+              <form action={signOutAction} className="w-full sm:w-auto">
+                <button
+                  type="submit"
+                  className="btn w-full rounded-full border border-rose-400/50 bg-rose-600 text-white shadow-sm hover:border-rose-300/60 hover:bg-rose-500 sm:w-auto"
+                >
+                  Sign out
+                </button>
               </form>
             </div>
           </div>
