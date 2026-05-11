@@ -578,39 +578,39 @@ export function MenuClient({
         </aside>
       </div>
 
-      {/* ── Mobile cart strip — full width; tap opens cart sheet (WhatsApp lives in sheet) ───── */}
+      {/* ── Mobile cart strip — full width; safe-area padding inside purple (no gap under bar) ───── */}
       {items.length > 0 ? (
         <div className="fixed bottom-0 left-0 right-0 z-30 w-full lg:hidden">
           <button
             type="button"
             onClick={() => setShowMobileCart(true)}
-            className="w-full pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-white/90 focus-visible:ring-offset-2 focus-visible:ring-offset-violet-950"
+            className="block w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/80"
             aria-label="Open your cart to review and order on WhatsApp"
           >
             <div
-              className="w-full overflow-hidden rounded-t-2xl border-t border-white/30 text-white shadow-[0_-8px_40px_rgba(45,24,95,0.35)] ring-1 ring-black/10"
+              className="relative w-full overflow-hidden rounded-t-2xl border-t border-white/30 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 text-white shadow-[0_-8px_40px_rgba(45,24,95,0.35)] ring-1 ring-black/10"
               style={{
                 background: `linear-gradient(155deg, ${BRAND_HEX} 0%, ${BRAND_HEX_DEEP} 100%)`,
               }}
             >
-              <div className="relative flex w-full items-center gap-3 px-4 py-3.5 active:brightness-95 sm:px-5">
+              <div
+                className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_80%_at_50%_0%,rgba(255,255,255,0.2)_0%,transparent_55%)]"
+                aria-hidden
+              />
+              <div className="relative mx-auto flex w-full max-w-lg flex-wrap items-center justify-center gap-x-5 gap-y-2 px-4 active:brightness-95 sm:gap-6 sm:px-5">
                 <div
-                  className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_80%_at_0%_0%,rgba(255,255,255,0.22)_0%,transparent_55%)]"
-                  aria-hidden
-                />
-                <div
-                  className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/35 bg-white/18 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)]"
+                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/35 bg-white/18 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)]"
                   aria-hidden
                 >
                   <CartBagMark className="h-6 w-6 text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.2)]" />
                 </div>
-                <div className="relative min-w-0 flex-1">
+                <div className="relative min-w-0 text-center">
                   <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/65">Your order</p>
                   <p className="mt-0.5 text-[15px] font-bold leading-tight tracking-tight sm:text-base">
                     {itemCount} {itemCount === 1 ? "item" : "items"}
                   </p>
                 </div>
-                <div className="relative shrink-0 text-right">
+                <div className="relative shrink-0 text-center">
                   <p className="text-lg font-bold tabular-nums leading-none tracking-tight">{formatUsd(total)}</p>
                   <p className="mt-1 text-[11px] font-medium tabular-nums text-white/80">{formatLbp(total)}</p>
                 </div>
