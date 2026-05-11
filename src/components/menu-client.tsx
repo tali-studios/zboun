@@ -418,7 +418,7 @@ export function MenuClient({
   return (
     <>
       <div
-        className={`grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_360px] ${items.length > 0 ? "pb-[120px] lg:pb-0" : ""}`}
+        className={`grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_360px] ${items.length > 0 ? "pb-44 lg:pb-0" : ""}`}
       >
         {/* ── Menu items column ──────────────────────────────────────── */}
         <section className="min-w-0 space-y-4">
@@ -567,36 +567,50 @@ export function MenuClient({
         </aside>
       </div>
 
-      {/* ── Mobile checkout bar (mock: summary + Review + WhatsApp) ───── */}
+      {/* ── Mobile checkout bar — same horizontal track as menu cards (container + px) + matching card chrome ───── */}
       {items.length > 0 ? (
-        <div className="fixed bottom-0 left-0 right-0 z-30 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 lg:hidden">
-          <div className="rounded-2xl px-4 py-3 text-white shadow-2xl" style={{ backgroundColor: BRAND }}>
-            <div className="flex items-center justify-between gap-3">
-              <span className="flex items-center gap-2 text-sm font-semibold">
-                <svg className="h-5 w-5 shrink-0 opacity-95" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                </svg>
-                {itemCount} {itemCount === 1 ? "item" : "items"}
-              </span>
-              <span className="text-base font-bold tabular-nums">{formatUsd(total)}</span>
-            </div>
-            <div className="mt-3 flex gap-2">
-              <button
-                type="button"
-                onClick={openReviewSheet}
-                className="flex-1 rounded-full bg-white/15 py-3 text-sm font-semibold text-white ring-1 ring-white/25 transition hover:bg-white/20"
-              >
-                Review
-              </button>
-              <button
-                type="button"
-                onClick={handleOrderClick}
-                disabled={!canOrder}
-                className="min-w-0 flex-[1.35] rounded-full py-3 text-sm font-bold text-[#111827] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45"
-                style={{ backgroundColor: WHATSAPP_GREEN }}
-              >
-                Order on WhatsApp
-              </button>
+        <div className="fixed bottom-0 left-0 right-0 z-30 pt-2 lg:hidden">
+          <div className="container mx-auto min-w-0 max-w-full px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6">
+            <div
+              className="rounded-2xl p-3 text-white shadow-md ring-1 ring-white/25"
+              style={{ backgroundColor: BRAND }}
+            >
+              <div className="flex min-h-[88px] items-center justify-between gap-3">
+                <span className="flex min-w-0 items-center gap-2.5 text-sm font-semibold">
+                  <span className="flex h-[88px] w-[88px] shrink-0 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/20">
+                    <svg className="h-8 w-8 shrink-0 opacity-95" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                    </svg>
+                  </span>
+                  <span className="min-w-0 leading-tight">
+                    <span className="block text-[15px] font-bold sm:text-base">
+                      {itemCount} {itemCount === 1 ? "item" : "items"}
+                    </span>
+                  </span>
+                </span>
+                <span className="shrink-0 pr-1 text-right">
+                  <span className="block text-base font-bold tabular-nums leading-none">{formatUsd(total)}</span>
+                  <span className="mt-1 block text-[11px] font-medium text-white/80 tabular-nums">{formatLbp(total)}</span>
+                </span>
+              </div>
+              <div className="mt-2 flex gap-2 border-t border-white/15 pt-2">
+                <button
+                  type="button"
+                  onClick={openReviewSheet}
+                  className="flex-1 rounded-full bg-white/15 py-2.5 text-sm font-semibold text-white ring-1 ring-white/25 transition hover:bg-white/20"
+                >
+                  Review
+                </button>
+                <button
+                  type="button"
+                  onClick={handleOrderClick}
+                  disabled={!canOrder}
+                  className="min-w-0 flex-[1.35] rounded-full py-2.5 text-sm font-bold text-[#111827] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45"
+                  style={{ backgroundColor: WHATSAPP_GREEN }}
+                >
+                  Order on WhatsApp
+                </button>
+              </div>
             </div>
           </div>
         </div>
