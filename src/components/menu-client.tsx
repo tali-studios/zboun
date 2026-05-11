@@ -623,9 +623,7 @@ export function MenuClient({
             className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
             onClick={() => setShowMobileCart(false)}
           />
-          <div className="absolute bottom-0 left-0 right-0 max-h-[90dvh] overflow-y-auto rounded-t-3xl bg-white px-5 pb-8 pt-4 shadow-2xl">
-            {/* Pull handle */}
-            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-slate-200" />
+          <div className="absolute bottom-0 left-0 right-0 max-h-[90dvh] overflow-y-auto rounded-t-3xl bg-white px-5 pb-8 pt-5 shadow-2xl">
             {renderCartPanel({ onClose: () => setShowMobileCart(false) })}
           </div>
         </div>
