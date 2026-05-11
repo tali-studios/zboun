@@ -425,15 +425,11 @@ export function MenuClient({
     );
   }
 
-  function openReviewSheet() {
-    setShowMobileCart(true);
-  }
-
   /* ─── Render ────────────────────────────────────────────────────────── */
   return (
     <>
       <div
-        className={`grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_360px] ${items.length > 0 ? "pb-44 lg:pb-0" : ""}`}
+        className={`grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_360px] ${items.length > 0 ? "pb-28 lg:pb-0" : ""}`}
       >
         {/* ── Menu items column ──────────────────────────────────────── */}
         <section className="min-w-0 space-y-4">
@@ -582,17 +578,22 @@ export function MenuClient({
         </aside>
       </div>
 
-      {/* ── Mobile checkout bar — aligned with menu column; bag mark + gradient ───── */}
+      {/* ── Mobile cart strip — full width; tap opens cart sheet (WhatsApp lives in sheet) ───── */}
       {items.length > 0 ? (
-        <div className="fixed bottom-0 left-0 right-0 z-30 pt-2 lg:hidden">
-          <div className="container mx-auto min-w-0 max-w-full px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6">
+        <div className="fixed bottom-0 left-0 right-0 z-30 w-full lg:hidden">
+          <button
+            type="button"
+            onClick={() => setShowMobileCart(true)}
+            className="w-full pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-white/90 focus-visible:ring-offset-2 focus-visible:ring-offset-violet-950"
+            aria-label="Open your cart to review and order on WhatsApp"
+          >
             <div
-              className="overflow-hidden rounded-2xl border border-white/25 text-white shadow-[0_12px_40px_rgba(45,24,95,0.38)] ring-1 ring-black/10"
+              className="w-full overflow-hidden rounded-t-2xl border-t border-white/30 text-white shadow-[0_-8px_40px_rgba(45,24,95,0.35)] ring-1 ring-black/10"
               style={{
                 background: `linear-gradient(155deg, ${BRAND_HEX} 0%, ${BRAND_HEX_DEEP} 100%)`,
               }}
             >
-              <div className="relative flex items-center gap-3 px-3.5 pb-2.5 pt-3.5">
+              <div className="relative flex w-full items-center gap-3 px-4 py-3.5 active:brightness-95 sm:px-5">
                 <div
                   className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_80%_at_0%_0%,rgba(255,255,255,0.22)_0%,transparent_55%)]"
                   aria-hidden
@@ -614,26 +615,8 @@ export function MenuClient({
                   <p className="mt-1 text-[11px] font-medium tabular-nums text-white/80">{formatLbp(total)}</p>
                 </div>
               </div>
-              <div className="flex gap-2 border-t border-white/15 bg-black/10 px-3 py-2.5">
-                <button
-                  type="button"
-                  onClick={openReviewSheet}
-                  className="flex-1 rounded-full bg-white/20 py-2.5 text-sm font-semibold text-white shadow-sm ring-1 ring-white/30 transition hover:bg-white/28 active:scale-[0.99]"
-                >
-                  Review
-                </button>
-                <button
-                  type="button"
-                  onClick={handleOrderClick}
-                  disabled={!canOrder}
-                  className="min-w-0 flex-[1.35] rounded-full py-2.5 text-sm font-bold text-[#0a1f16] shadow-sm ring-1 ring-black/10 transition hover:brightness-105 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-45"
-                  style={{ backgroundColor: WHATSAPP_GREEN }}
-                >
-                  Order on WhatsApp
-                </button>
-              </div>
             </div>
-          </div>
+          </button>
         </div>
       ) : null}
 
