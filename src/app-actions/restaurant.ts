@@ -157,7 +157,10 @@ async function uploadRestaurantBanner(file: File, restaurantId: string) {
 
 export async function createCategoryAction(formData: FormData) {
   const user = await requireRestaurantAdmin();
-  const name = String(formData.get("name") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
+  if (!name) {
+    redirect("/dashboard/business?toast=section_name_required");
+  }
   const supabase = await createServerSupabaseClient();
   await supabase.from("categories").insert({
     name,
@@ -165,6 +168,7 @@ export async function createCategoryAction(formData: FormData) {
     position: 0,
   });
   revalidatePath("/dashboard/business");
+  redirect(`/dashboard/business?toast=section_created&section_name=${encodeURIComponent(name)}`);
 }
 
 export async function updateCategoryAction(formData: FormData) {
@@ -338,4 +342,5 @@ export async function updateRestaurantSettingsAction(formData: FormData) {
     .eq("id", user.restaurant_id);
   revalidatePath("/dashboard/business");
   revalidatePath("/");
+  redirect("/dashboard/business?toast=settings_saved");
 }

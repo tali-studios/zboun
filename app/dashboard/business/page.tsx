@@ -18,11 +18,19 @@ import { ImageUploadField } from "@/components/image-upload-field";
 import { IngredientListField } from "@/components/ingredient-list-field";
 import { BROWSE_SECTION_OPTIONS, normalizeBrowseSections } from "@/lib/browse-sections";
 import { getBusinessTypeLabel, parseBusinessType, supportsHomeBrowseCategory } from "@/lib/business-types";
+import { RestaurantDashboardToast } from "@/components/restaurant-dashboard-toast";
 
 export const dynamic = "force-dynamic";
 
 type Props = {
-  searchParams: Promise<{ q?: string; category?: string; stock?: string; jump?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    category?: string;
+    stock?: string;
+    jump?: string;
+    toast?: string;
+    section_name?: string;
+  }>;
 };
 
 export default async function RestaurantDashboardPage({ searchParams }: Props) {
@@ -30,7 +38,15 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
   if (!appUser || appUser.role !== "restaurant_admin" || !appUser.restaurant_id) {
     redirect("/dashboard/login");
   }
-  const { q, category, stock } = await searchParams;
+  const { q, category, stock, toast, section_name: sectionNameRaw } = await searchParams;
+  let sectionName: string | undefined = undefined;
+  if (typeof sectionNameRaw === "string" && sectionNameRaw.length > 0) {
+    try {
+      sectionName = decodeURIComponent(sectionNameRaw);
+    } catch {
+      sectionName = sectionNameRaw;
+    }
+  }
 
   const supabase = await createServerSupabaseClient();
   const [
@@ -289,37 +305,41 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
 
   if (!isMenuBusiness) {
     return (
-      <BusinessCategoryDashboard
-        businessType={businessType}
-        businessTypeLabel={businessTypeLabel}
-        restaurantName={restaurant?.name ?? ""}
-        profileCompleteness={[restaurant?.description, restaurant?.location, restaurant?.phone].filter(Boolean).length}
-        clubActiveMembers={clubActiveMembers}
-        crmTotalCustomers={crmTotalCustomers}
-        pmsActiveRooms={pmsActiveRooms.length}
-        pmsOccupancyRate={pmsOccupancyRate}
-        ecommerceActiveOrders={ecommerceActiveOrders}
-        ecommercePendingOrders={ecommercePendingOrders}
-        posOpenOrders={posOpenOrders}
-        fleetActiveDeliveries={fleetActiveDeliveries}
-        accountingMonthExpenses={accountingMonthExpenses}
-        enabledModuleCount={[inventoryEnabled, accountingEnabled, posEnabled, crmEnabled, loyaltyEnabled, eventsEnabled, pmsEnabled, ecommerceEnabled, fleetEnabled, clubEnabled].filter(Boolean).length}
-        inventoryEnabled={inventoryEnabled}
-        accountingEnabled={accountingEnabled}
-        posEnabled={posEnabled}
-        crmEnabled={crmEnabled}
-        loyaltyEnabled={loyaltyEnabled}
-        eventsEnabled={eventsEnabled}
-        pmsEnabled={pmsEnabled}
-        ecommerceEnabled={ecommerceEnabled}
-        fleetEnabled={fleetEnabled}
-        clubEnabled={clubEnabled}
-      />
+      <>
+        <RestaurantDashboardToast toast={toast} sectionName={sectionName} />
+        <BusinessCategoryDashboard
+          businessType={businessType}
+          businessTypeLabel={businessTypeLabel}
+          restaurantName={restaurant?.name ?? ""}
+          profileCompleteness={[restaurant?.description, restaurant?.location, restaurant?.phone].filter(Boolean).length}
+          clubActiveMembers={clubActiveMembers}
+          crmTotalCustomers={crmTotalCustomers}
+          pmsActiveRooms={pmsActiveRooms.length}
+          pmsOccupancyRate={pmsOccupancyRate}
+          ecommerceActiveOrders={ecommerceActiveOrders}
+          ecommercePendingOrders={ecommercePendingOrders}
+          posOpenOrders={posOpenOrders}
+          fleetActiveDeliveries={fleetActiveDeliveries}
+          accountingMonthExpenses={accountingMonthExpenses}
+          enabledModuleCount={[inventoryEnabled, accountingEnabled, posEnabled, crmEnabled, loyaltyEnabled, eventsEnabled, pmsEnabled, ecommerceEnabled, fleetEnabled, clubEnabled].filter(Boolean).length}
+          inventoryEnabled={inventoryEnabled}
+          accountingEnabled={accountingEnabled}
+          posEnabled={posEnabled}
+          crmEnabled={crmEnabled}
+          loyaltyEnabled={loyaltyEnabled}
+          eventsEnabled={eventsEnabled}
+          pmsEnabled={pmsEnabled}
+          ecommerceEnabled={ecommerceEnabled}
+          fleetEnabled={fleetEnabled}
+          clubEnabled={clubEnabled}
+        />
+      </>
     );
   }
 
   return (
     <main className="min-h-screen bg-[#f8f8ff] p-3 sm:p-4 md:p-8">
+      <RestaurantDashboardToast toast={toast} sectionName={sectionName} />
       <div className="mx-auto max-w-7xl space-y-5">
         {/* Dashboard header */}
         <header className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-violet-700 via-violet-600 to-fuchsia-600 p-5 text-white shadow-lg shadow-violet-600/30 md:p-6">
@@ -530,6 +550,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
             <form action={updateRestaurantSettingsAction} className="mt-4 grid gap-3 md:grid-cols-2">
               <input type="hidden" name="current_logo_url" value={restaurant?.logo_url ?? ""} />
               <input type="hidden" name="current_banner_url" value={restaurant?.banner_url ?? ""} />
+              <input type="hidden" name="lbp_rate" value={String(restaurant?.lbp_rate ?? 89500)} />
               <label className="space-y-1">
                 <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Business Name</span>
                 <input name="name" defaultValue={restaurant?.name} placeholder="Business name" className="ui-input" />
