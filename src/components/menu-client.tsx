@@ -567,49 +567,49 @@ export function MenuClient({
         </aside>
       </div>
 
-      {/* ── Mobile cart — floating white card (tap → cart sheet) ───── */}
+      {/* ── Mobile cart — purple card (tap → cart sheet) ───── */}
       {items.length > 0 ? (
-        <div className="fixed bottom-0 left-0 right-0 z-30 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 lg:hidden">
+        <div className="fixed bottom-0 left-0 right-0 z-30 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-2 lg:hidden">
           <div className="container mx-auto min-w-0 max-w-full px-3 sm:px-6">
             <button
               type="button"
               onClick={() => setShowMobileCart(true)}
-              className="block w-full rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[#F9FAFB]"
+              className="block w-full rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#F9FAFB]"
               aria-label="Open your cart to review and order on WhatsApp"
             >
-              <div className="flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white px-3.5 py-2.5 shadow-[0_4px_24px_rgba(0,0,0,0.10),0_1px_4px_rgba(0,0,0,0.06)] transition-shadow active:shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
+              <div
+                className="flex items-center gap-3 rounded-2xl border border-white/15 px-3.5 py-2.5 shadow-[0_6px_28px_rgba(76,29,149,0.38),inset_0_1px_0_rgba(255,255,255,0.12)] transition-[filter] duration-150 active:brightness-95"
+                style={{ backgroundImage: `linear-gradient(135deg, ${BRAND_HEX} 0%, ${BRAND_HEX_DEEP} 100%)` }}
+              >
                 {/* Icon + count badge */}
                 <div className="relative shrink-0" aria-hidden>
-                  <div
-                    className="flex h-10 w-10 items-center justify-center rounded-xl text-white shadow-sm"
-                    style={{ background: `linear-gradient(135deg, ${BRAND_HEX} 0%, ${BRAND_HEX_DEEP} 100%)` }}
-                  >
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 text-white ring-1 ring-white/25">
                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                     </svg>
                   </div>
-                  <span
-                    className="absolute -right-1.5 -top-1.5 flex h-[18px] w-[18px] items-center justify-center rounded-full text-[10px] font-bold leading-none text-white shadow-sm"
-                    style={{ background: `linear-gradient(135deg, #f43f5e, #e11d48)` }}
-                  >
+                  <span className="absolute -right-1.5 -top-1.5 flex h-[18px] w-[18px] items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold leading-none text-white shadow">
                     {itemCount > 9 ? "9+" : itemCount}
                   </span>
                 </div>
                 {/* Label */}
                 <div className="min-w-0 flex-1 text-left">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-400">Your cart</p>
-                  <p className="mt-0.5 text-[14px] font-bold leading-none tracking-tight text-slate-800">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/60">Your cart</p>
+                  <p className="mt-0.5 text-[14px] font-bold leading-none tracking-tight text-white">
                     {itemCount} {itemCount === 1 ? "item" : "items"}
                   </p>
                 </div>
-                {/* Price + chevron */}
+                {/* Divider */}
+                <div className="h-8 w-px shrink-0 bg-white/20" aria-hidden />
+                {/* Price */}
                 <div className="shrink-0 text-right">
-                  <p className="text-[17px] font-bold tabular-nums leading-none tracking-tight" style={{ color: BRAND_HEX }}>
+                  <p className="text-[17px] font-bold tabular-nums leading-none tracking-tight text-white">
                     {formatUsd(total)}
                   </p>
-                  <p className="mt-0.5 text-[10px] font-medium tabular-nums text-slate-400">{formatLbp(total)}</p>
+                  <p className="mt-0.5 text-[10px] font-medium tabular-nums text-white/60">{formatLbp(total)}</p>
                 </div>
-                <svg className="h-4 w-4 shrink-0 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden>
+                {/* Chevron */}
+                <svg className="h-4 w-4 shrink-0 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                 </svg>
               </div>
