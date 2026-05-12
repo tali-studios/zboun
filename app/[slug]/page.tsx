@@ -167,7 +167,7 @@ export default async function RestaurantMenuPage({ params }: Props) {
         </div>
       </header>
 
-      <main className="container px-3 py-3 sm:px-6 sm:py-6 lg:pb-8">
+      <main className="container px-3 pb-10 pt-3 sm:px-6 sm:pb-12 sm:pt-6 lg:pb-8">
         <MenuClient
           restaurantName={restaurant.name}
           restaurantPhone={restaurant.phone}

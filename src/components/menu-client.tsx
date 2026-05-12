@@ -414,7 +414,11 @@ export function MenuClient({
   return (
     <>
       <div
-        className={`grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_360px] ${items.length > 0 ? "pb-28 lg:pb-0" : ""}`}
+        className={`grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_360px] ${
+          items.length > 0
+            ? "pb-[calc(12.5rem+env(safe-area-inset-bottom,0px)+1.25rem)] lg:pb-0"
+            : "pb-[calc(3rem+env(safe-area-inset-bottom,0px))] lg:pb-0"
+        }`}
       >
         {/* ── Menu items column ──────────────────────────────────────── */}
         <section className="min-w-0 space-y-4">
@@ -618,10 +622,7 @@ export function MenuClient({
       {/* ── Customization modal ────────────────────────────────────────── */}
       {customizing ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/50 backdrop-blur-sm p-0 sm:items-center sm:p-4">
-          <div className="w-full max-h-[95dvh] overflow-y-auto rounded-t-3xl bg-white px-5 pb-6 pt-4 shadow-2xl sm:max-h-[90vh] sm:max-w-xl sm:rounded-3xl sm:px-6 sm:pb-6 sm:pt-5">
-            {/* Pull handle (mobile) */}
-            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-200 sm:hidden" />
-
+          <div className="w-full max-h-[95dvh] overflow-y-auto rounded-t-3xl bg-white px-5 pb-6 pt-5 shadow-2xl sm:max-h-[90vh] sm:max-w-xl sm:rounded-3xl sm:px-6 sm:pb-6 sm:pt-5">
             {/* Header */}
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
