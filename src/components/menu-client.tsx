@@ -416,7 +416,7 @@ export function MenuClient({
       <div
         className={`grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_360px] ${
           items.length > 0
-            ? "pb-[calc(12.5rem+env(safe-area-inset-bottom,0px)+1.25rem)] lg:pb-0"
+            ? "pb-[calc(10.5rem+env(safe-area-inset-bottom,0px)+1rem)] lg:pb-0"
             : "pb-[calc(3rem+env(safe-area-inset-bottom,0px))] lg:pb-0"
         }`}
       >
@@ -567,39 +567,51 @@ export function MenuClient({
         </aside>
       </div>
 
-      {/* ── Mobile cart — oval pill, same horizontal track as menu cards (container + px) ───── */}
+      {/* ── Mobile cart — floating white card (tap → cart sheet) ───── */}
       {items.length > 0 ? (
-        <div className="fixed bottom-0 left-0 right-0 z-30 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 lg:hidden">
+        <div className="fixed bottom-0 left-0 right-0 z-30 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 lg:hidden">
           <div className="container mx-auto min-w-0 max-w-full px-3 sm:px-6">
             <button
               type="button"
               onClick={() => setShowMobileCart(true)}
-              className="block w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#F9FAFB] rounded-full"
+              className="block w-full rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[#F9FAFB]"
               aria-label="Open your cart to review and order on WhatsApp"
             >
-              <div
-                className="relative w-full overflow-hidden rounded-full border border-white/35 px-5 py-3.5 text-white shadow-[0_8px_32px_rgba(45,24,95,0.35)] ring-1 ring-black/10"
-                style={{
-                  background: `linear-gradient(155deg, ${BRAND_HEX} 0%, ${BRAND_HEX_DEEP} 100%)`,
-                }}
-              >
-                <div
-                  className="pointer-events-none absolute inset-0 bg-[radial-gradient(100%_120%_at_50%_0%,rgba(255,255,255,0.22)_0%,transparent_60%)]"
-                  aria-hidden
-                />
-                <div className="relative flex flex-wrap items-center justify-center gap-x-5 gap-y-1 active:brightness-95 sm:gap-6">
-                  <div className="min-w-0 text-center">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/70">Your order</p>
-                    <p className="mt-0.5 text-[15px] font-bold leading-tight tracking-tight">
-                      {itemCount} {itemCount === 1 ? "item" : "items"}
-                    </p>
+              <div className="flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white px-3.5 py-2.5 shadow-[0_4px_24px_rgba(0,0,0,0.10),0_1px_4px_rgba(0,0,0,0.06)] transition-shadow active:shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
+                {/* Icon + count badge */}
+                <div className="relative shrink-0" aria-hidden>
+                  <div
+                    className="flex h-10 w-10 items-center justify-center rounded-xl text-white shadow-sm"
+                    style={{ background: `linear-gradient(135deg, ${BRAND_HEX} 0%, ${BRAND_HEX_DEEP} 100%)` }}
+                  >
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                    </svg>
                   </div>
-                  <div className="h-8 w-px shrink-0 bg-white/25" aria-hidden />
-                  <div className="shrink-0 text-center">
-                    <p className="text-lg font-bold tabular-nums leading-none tracking-tight">{formatUsd(total)}</p>
-                    <p className="mt-1 text-[11px] font-medium tabular-nums text-white/85">{formatLbp(total)}</p>
-                  </div>
+                  <span
+                    className="absolute -right-1.5 -top-1.5 flex h-[18px] w-[18px] items-center justify-center rounded-full text-[10px] font-bold leading-none text-white shadow-sm"
+                    style={{ background: `linear-gradient(135deg, #f43f5e, #e11d48)` }}
+                  >
+                    {itemCount > 9 ? "9+" : itemCount}
+                  </span>
                 </div>
+                {/* Label */}
+                <div className="min-w-0 flex-1 text-left">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-400">Your cart</p>
+                  <p className="mt-0.5 text-[14px] font-bold leading-none tracking-tight text-slate-800">
+                    {itemCount} {itemCount === 1 ? "item" : "items"}
+                  </p>
+                </div>
+                {/* Price + chevron */}
+                <div className="shrink-0 text-right">
+                  <p className="text-[17px] font-bold tabular-nums leading-none tracking-tight" style={{ color: BRAND_HEX }}>
+                    {formatUsd(total)}
+                  </p>
+                  <p className="mt-0.5 text-[10px] font-medium tabular-nums text-slate-400">{formatLbp(total)}</p>
+                </div>
+                <svg className="h-4 w-4 shrink-0 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
               </div>
             </button>
           </div>
