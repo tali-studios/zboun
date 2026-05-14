@@ -88,14 +88,15 @@ export function MenuFlyerCard({ menuUrl, restaurantName, logoUrl }: Props) {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap gap-2 print:hidden">
-        <button type="button" className="btn btn-primary" onClick={printFlyer}>
+    <>
+      <div className="mx-auto w-full max-w-full space-y-4 lg:w-[210mm] print:w-full print:max-w-none">
+      <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1 print:hidden lg:w-full lg:justify-between lg:overflow-visible lg:pb-0">
+        <button type="button" className="btn btn-primary shrink-0" onClick={printFlyer}>
           Print A4 flyer
         </button>
         <button
           type="button"
-          className="btn btn-success disabled:opacity-60"
+          className="btn btn-primary shrink-0 disabled:opacity-60"
           onClick={downloadFlyerAsPng}
           disabled={isLoading || isExporting}
         >
@@ -103,50 +104,57 @@ export function MenuFlyerCard({ menuUrl, restaurantName, logoUrl }: Props) {
         </button>
         <button
           type="button"
-          className="btn btn-secondary disabled:opacity-60"
+          className="btn btn-primary shrink-0 disabled:opacity-60"
           onClick={downloadFlyerAsPdf}
           disabled={isLoading || isExporting}
         >
           {isExporting ? "Preparing..." : "Download PDF"}
         </button>
-        <a href={menuUrl} target="_blank" rel="noreferrer" className="btn btn-secondary">
+        <a href={menuUrl} target="_blank" rel="noreferrer" className="btn btn-primary shrink-0">
           Open menu
         </a>
       </div>
 
-      <div ref={flyerRef} className="flyer-a4 panel mx-auto bg-white p-10 text-slate-900">
-        <div className="flex h-full flex-col items-center justify-between gap-8 text-center">
-          <div className="space-y-4">
+      <div ref={flyerRef} className="flyer-a4 panel mx-auto w-full max-w-full bg-white p-5 text-slate-900 sm:p-10 lg:mx-0">
+        <div className="flex flex-col items-center gap-6 text-center sm:gap-8 lg:h-full lg:min-h-0 lg:justify-between">
+          <div className="w-full space-y-3 sm:space-y-4">
             {logoUrl ? (
               <Image
                 src={logoUrl}
                 alt={`${restaurantName} logo`}
                 width={160}
                 height={160}
-                className="mx-auto h-40 w-40 rounded-2xl border border-slate-200 object-contain p-2"
+                className="mx-auto h-28 w-28 rounded-2xl border border-slate-200 object-contain p-2 sm:h-40 sm:w-40"
                 unoptimized
               />
             ) : null}
-            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-violet-700">ZBOUN</p>
-            <h2 className="text-4xl font-extrabold">{restaurantName}</h2>
-            <p className="text-lg text-slate-600">Scan to Order</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-violet-700 sm:text-sm sm:tracking-[0.3em]">
+              ZBOUN
+            </p>
+            <h2 className="break-words px-1 text-2xl font-extrabold leading-tight sm:text-4xl">{restaurantName}</h2>
+            <p className="text-base text-slate-600 sm:text-lg">Scan to Order</p>
           </div>
 
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="w-full max-w-[min(100%,20rem)] rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:max-w-none sm:p-6">
             {isLoading ? (
-              <div className="flex h-80 w-80 items-center justify-center text-slate-500">
+              <div className="mx-auto flex aspect-square w-full max-w-[min(72vw,18rem)] items-center justify-center text-sm text-slate-500 sm:h-80 sm:max-w-none sm:text-base">
                 Generating QR...
               </div>
             ) : (
-              <img src={qrDataUrl} alt="Menu QR" className="h-80 w-80 object-contain" />
+              <img
+                src={qrDataUrl}
+                alt="Menu QR"
+                className="mx-auto aspect-square h-auto w-full max-w-[min(72vw,18rem)] object-contain sm:h-80 sm:max-w-none"
+              />
             )}
           </div>
 
-          <div className="space-y-3">
-            <p className="text-lg font-semibold">Open your camera and scan the QR</p>
-            <p className="mx-auto max-w-xl text-sm text-slate-500 break-all">{menuUrl}</p>
+          <div className="w-full space-y-2 px-1 sm:space-y-3">
+            <p className="text-sm font-semibold sm:text-lg">Open your camera and scan the QR</p>
+            <p className="mx-auto max-w-xl break-all text-xs text-slate-500 sm:text-sm">{menuUrl}</p>
           </div>
         </div>
+      </div>
       </div>
 
       {/* Hidden clean export canvas for perfectly centered PNG/PDF output */}
@@ -186,6 +194,6 @@ export function MenuFlyerCard({ menuUrl, restaurantName, logoUrl }: Props) {
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

@@ -226,6 +226,17 @@ body {
   box-sizing: border-box;
 }
 
+/* On-screen preview: full width on phone/tablet; height follows content (A4 ratio would clip the QR) */
+@media screen and (max-width: 1023px) {
+  .flyer-a4 {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+}
+
 @media print {
   @page {
     size: A4 portrait;
