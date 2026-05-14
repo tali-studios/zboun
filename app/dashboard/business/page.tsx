@@ -310,9 +310,6 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
   const businessType = parseBusinessType(restaurant?.business_type ?? "restaurant");
   const businessTypeLabel = getBusinessTypeLabel(businessType);
   const isMenuBusiness = supportsHomeBrowseCategory(businessType);
-  const totalItems = normalizedItems.length;
-  const availableItems = normalizedItems.filter((item) => item.is_available).length;
-  const outOfStockItems = totalItems - availableItems;
   const sectionCount = categories?.length ?? 0;
   const categoryNameById = new Map((categories ?? []).map((category) => [category.id, category.name]));
   const normalizedQuery = (q ?? "").trim().toLowerCase();
@@ -333,10 +330,6 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
       optionText.includes(normalizedQuery)
     );
   });
-  const avgPrice =
-    totalItems > 0
-      ? (normalizedItems.reduce((sum, item) => sum + Number(item.price), 0) ?? 0) / totalItems
-      : 0;
   const selectedBrowseSection =
     normalizeBrowseSections(restaurant?.browse_sections ?? [])[0] ?? "Lunch";
 
@@ -432,27 +425,6 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
             </div>
           </div>
         </header>
-
-        {/* Stats */}
-        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <article className="panel p-5">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Sections</p>
-            <p className="mt-2 text-3xl font-bold tracking-tight text-slate-900">{sectionCount}</p>
-          </article>
-          <article className="panel p-5">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Menu items</p>
-            <p className="mt-2 text-3xl font-bold tracking-tight text-slate-900">{totalItems}</p>
-          </article>
-          <article className="panel p-5">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">In stock</p>
-            <p className="mt-2 text-3xl font-bold tracking-tight text-violet-700">{availableItems}</p>
-            <p className="mt-1 text-xs text-slate-400">{outOfStockItems} out of stock</p>
-          </article>
-          <article className="panel p-5">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Avg price</p>
-            <p className="mt-2 text-3xl font-bold tracking-tight text-slate-900">${avgPrice.toFixed(2)}</p>
-          </article>
-        </section>
 
         {isMenuBusiness ? (
         <section className="grid gap-4 lg:grid-cols-3">
