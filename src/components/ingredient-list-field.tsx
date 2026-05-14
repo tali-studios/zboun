@@ -38,7 +38,10 @@ export function IngredientListField({
 
   return (
     <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 md:col-span-2">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">{label}</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+        {label}
+        <span className="ml-1 font-normal normal-case text-slate-500">(optional)</span>
+      </p>
       <input type="hidden" name={name} value={payload} />
       <div className="mt-2 flex flex-wrap gap-2">
         {items.map((item, index) => (
@@ -74,7 +77,7 @@ export function IngredientListField({
             type="number"
             min={0}
             step="0.01"
-            placeholder="Price"
+            placeholder="Extra (optional)"
             className="ui-input w-full sm:w-28"
           />
         ) : null}

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { signOutAction } from "@/app-actions/auth";
 import {
@@ -19,8 +20,35 @@ import { IngredientListField } from "@/components/ingredient-list-field";
 import { BROWSE_SECTION_OPTIONS, normalizeBrowseSections } from "@/lib/browse-sections";
 import { getBusinessTypeLabel, parseBusinessType, supportsHomeBrowseCategory } from "@/lib/business-types";
 import { RestaurantDashboardToast } from "@/components/restaurant-dashboard-toast";
+import { BusinessMenuItemsFilter } from "@/components/business-menu-items-filter";
 
 export const dynamic = "force-dynamic";
+
+function FormFieldLabel({
+  children,
+  required,
+  optional,
+}: {
+  children: ReactNode;
+  required?: boolean;
+  optional?: boolean;
+}) {
+  return (
+    <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+      {children}
+      {required ? (
+        <>
+          {" "}
+          <span className="text-red-600" aria-hidden="true">
+            *
+          </span>
+          <span className="sr-only">Required.</span>
+        </>
+      ) : null}
+      {optional ? <span className="ml-1 font-normal normal-case text-slate-500">(optional)</span> : null}
+    </span>
+  );
+}
 
 type Props = {
   searchParams: Promise<{
@@ -30,6 +58,7 @@ type Props = {
     jump?: string;
     toast?: string;
     section_name?: string;
+    item_name?: string;
   }>;
 };
 
@@ -38,13 +67,21 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
   if (!appUser || appUser.role !== "restaurant_admin" || !appUser.restaurant_id) {
     redirect("/dashboard/login");
   }
-  const { q, category, stock, toast, section_name: sectionNameRaw } = await searchParams;
+  const { q, category, stock, toast, section_name: sectionNameRaw, item_name: itemNameRaw } = await searchParams;
   let sectionName: string | undefined = undefined;
   if (typeof sectionNameRaw === "string" && sectionNameRaw.length > 0) {
     try {
       sectionName = decodeURIComponent(sectionNameRaw);
     } catch {
       sectionName = sectionNameRaw;
+    }
+  }
+  let itemName: string | undefined = undefined;
+  if (typeof itemNameRaw === "string" && itemNameRaw.length > 0) {
+    try {
+      itemName = decodeURIComponent(itemNameRaw);
+    } catch {
+      itemName = itemNameRaw;
     }
   }
 
@@ -306,7 +343,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
   if (!isMenuBusiness) {
     return (
       <>
-        <RestaurantDashboardToast toast={toast} sectionName={sectionName} />
+        <RestaurantDashboardToast toast={toast} sectionName={sectionName} itemName={itemName} />
         <BusinessCategoryDashboard
           businessType={businessType}
           businessTypeLabel={businessTypeLabel}
@@ -339,7 +376,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
 
   return (
     <main className="min-h-screen bg-[#f8f8ff] p-3 sm:p-4 md:p-8">
-      <RestaurantDashboardToast toast={toast} sectionName={sectionName} />
+      <RestaurantDashboardToast toast={toast} sectionName={sectionName} itemName={itemName} />
       <div className="mx-auto max-w-7xl space-y-5">
         {/* Dashboard header */}
         <header className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-violet-700 via-violet-600 to-fuchsia-600 p-5 text-white shadow-lg shadow-violet-600/30 md:p-6">
@@ -665,7 +702,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
             id="add-item"
           >
             <label className="space-y-1">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Section</span>
+              <FormFieldLabel required>Section</FormFieldLabel>
               <select name="category_id" required className="ui-select">
                 <option value="">Section</option>
                 {categories?.map((category) => (
@@ -675,24 +712,22 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
               <p className="text-xs text-slate-500">Where this item appears in your menu.</p>
             </label>
             <label className="space-y-1">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Item name</span>
+              <FormFieldLabel required>Item name</FormFieldLabel>
               <input name="name" required placeholder="Item name" className="ui-input" />
               <p className="text-xs text-slate-500">Customer-facing product name.</p>
             </label>
             <label className="space-y-1">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Price</span>
-              <input name="price" required placeholder="Price" type="number" step="0.01" className="ui-input" />
-              <p className="text-xs text-slate-500">Base price before optional add-ons.</p>
+              <FormFieldLabel required>Price ($)</FormFieldLabel>
+              <input name="price" required placeholder="e.g. 4.50" type="number" step="0.01" className="ui-input" />
+              <p className="text-xs text-slate-500">US dollars ($). Base price before optional add-ons.</p>
             </label>
             <label className="space-y-1">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Weight (grams)</span>
+              <FormFieldLabel optional>Weight (grams)</FormFieldLabel>
               <input name="grams" placeholder="Optional" type="number" min={0} className="ui-input" />
-              <p className="text-xs text-slate-500">Optional for weighted items.</p>
+              <p className="text-xs text-slate-500">For weighted items (e.g. produce).</p>
             </label>
             <label className="space-y-1 md:col-span-2">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Description (what this item is)
-              </span>
+              <FormFieldLabel optional>Description (what this item is)</FormFieldLabel>
               <input
                 name="description"
                 placeholder="Example: Grilled chicken burger with sauce and fries"
@@ -700,9 +735,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
               />
             </label>
             <label className="space-y-1 md:col-span-2">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Contains / ingredients (allergens or key ingredients)
-              </span>
+              <FormFieldLabel optional>Contains / ingredients (allergens or key ingredients)</FormFieldLabel>
               <input
                 name="contents"
                 placeholder="Example: wheat, milk, sesame, nuts"
@@ -710,9 +743,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
               />
             </label>
             <label className="space-y-1 md:col-span-2">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Option type (optional)
-              </span>
+              <FormFieldLabel optional>Option type</FormFieldLabel>
               <input
                 name="option_label"
                 placeholder="Examples: Size, Quantity, Type, Packing"
@@ -728,7 +759,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
             />
             <IngredientListField
               name="add_ingredients"
-              label="Add ingredients (+ optional price)"
+              label="Add ingredients (+ extra price per line)"
               withPrice
             />
             <IngredientListField
@@ -737,63 +768,22 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
               withPrice
             />
             <div className="md:col-span-2">
-              <ImageUploadField name="image_file" />
+              <ImageUploadField name="image_file" optional />
             </div>
             <button className="btn btn-success md:col-span-4 rounded-xl">Add item</button>
           </form>
         </section>
 
         <section className="panel p-4 md:p-5">
-          <div className="flex flex-wrap items-center justify-between gap-3" id="items-toolbar">
-            <h2 className="panel-title">Manage menu items</h2>
-            <div className="grid w-full gap-2 sm:flex sm:w-auto sm:flex-wrap" >
-              <a href="#add-item" className="btn btn-secondary rounded-xl text-center">
-                + Add item
-              </a>
-              <a href="#items-toolbar" className="btn btn-secondary rounded-xl text-center">
-                Toolbar
-              </a>
-            </div>
-          </div>
-          <form action="/dashboard/business" method="get" className="mt-3 grid gap-2 lg:grid-cols-12 lg:items-end">
-            <div className="lg:col-span-5">
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Search</p>
-              <input
-                name="q"
-                defaultValue={q ?? ""}
-                placeholder="Search by item, section, ingredient, option"
-                className="ui-input"
-              />
-              <p className="mt-1 text-xs text-slate-500">Search item names, descriptions, ingredients, and options.</p>
-            </div>
-            <label className="space-y-1 lg:col-span-3">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Section</span>
-              <select name="category" defaultValue={selectedCategory} className="ui-select">
-                <option value="">All sections</option>
-                {categories?.map((category) => (
-                  <option key={category.id} value={category.id}>{category.name}</option>
-                ))}
-              </select>
-              <p className="text-xs text-slate-500">Filter items by one section.</p>
-            </label>
-            <label className="space-y-1 lg:col-span-2">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Stock</span>
-              <select name="stock" defaultValue={selectedStock} className="ui-select">
-                <option value="">All</option>
-                <option value="in">In stock</option>
-                <option value="out">Out of stock</option>
-              </select>
-              <p className="text-xs text-slate-500">Show items.</p>
-            </label>
-            <div className="grid grid-cols-2 gap-2 lg:col-span-2">
-              <button className="btn btn-secondary flex-1" type="submit">
-                Apply
-              </button>
-              <a href="/dashboard/business" className="btn btn-secondary flex-1 text-center">
-                Clear
-              </a>
-            </div>
-          </form>
+          <h2 className="panel-title mb-3" id="items-toolbar">
+            Manage menu items
+          </h2>
+          <BusinessMenuItemsFilter
+            categories={(categories ?? []).map((c) => ({ id: c.id, name: c.name }))}
+            initialQ={q ?? ""}
+            initialCategory={selectedCategory}
+            initialStock={selectedStock}
+          />
           {normalizedQuery ? (
             <p className="mt-2 text-sm text-slate-600">
               Showing {filteredItems.length} result(s) for "<span className="font-semibold">{q}</span>".
@@ -830,19 +820,42 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+                      <div className="flex min-w-0 flex-nowrap items-center justify-start gap-2">
                         <div className="relative">
                           <input id={`view-${item.id}`} type="checkbox" className="peer hidden" />
-                          <label htmlFor={`view-${item.id}`} className="block cursor-pointer rounded-full border border-slate-200 px-2.5 py-1.5 text-center text-[11px] font-semibold text-slate-700 hover:bg-slate-50 sm:text-xs">
-                            View
+                          <label
+                            htmlFor={`view-${item.id}`}
+                            aria-label="View item details"
+                            title="View item details"
+                            className="inline-flex cursor-pointer items-center justify-center rounded-full border border-slate-200 px-2.5 py-1.5 text-center text-[11px] font-semibold text-slate-700 hover:bg-slate-50 max-sm:h-10 max-sm:w-10 max-sm:min-w-10 max-sm:p-0 sm:text-xs"
+                          >
+                            <svg className="h-4 w-4 shrink-0 sm:hidden" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            <span className="hidden sm:inline">View</span>
                           </label>
                           <div className="pointer-events-none fixed inset-0 z-40 hidden items-center justify-center bg-slate-900/50 p-4 peer-checked:flex peer-checked:pointer-events-auto">
                             <label htmlFor={`view-${item.id}`} className="absolute inset-0 cursor-pointer" />
                             <div className="relative z-10 w-full max-w-2xl rounded-2xl bg-white p-4 shadow-xl sm:p-5">
-                              <h3 className="text-lg font-bold text-slate-900">{item.name}</h3>
-                              <p className="mt-1 text-sm text-slate-600">
-                                Section: {categoryNameById.get(item.category_id ?? "") ?? "Uncategorized"}
-                              </p>
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0 flex-1 pr-2">
+                                  <h3 className="text-lg font-bold text-slate-900">{item.name}</h3>
+                                  <p className="mt-1 text-sm text-slate-600">
+                                    Section: {categoryNameById.get(item.category_id ?? "") ?? "Uncategorized"}
+                                  </p>
+                                </div>
+                                <label
+                                  htmlFor={`view-${item.id}`}
+                                  className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full text-slate-500 ring-1 ring-slate-200 transition hover:bg-slate-50 hover:text-slate-800"
+                                  aria-label="Close"
+                                  title="Close"
+                                >
+                                  <span className="text-2xl leading-none" aria-hidden>
+                                    ×
+                                  </span>
+                                </label>
+                              </div>
                               <div className="mt-4 space-y-2 text-sm text-slate-700">
                                 <p><span className="font-semibold">Price:</span> ${item.price.toFixed(2)}</p>
                                 {item.description ? <p><span className="font-semibold">Description:</span> {item.description}</p> : null}
@@ -857,7 +870,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                                 ) : null}
                               </div>
                               <div className="mt-4 text-right">
-                                <label htmlFor={`view-${item.id}`} className="inline-flex cursor-pointer rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                                <label htmlFor={`view-${item.id}`} title="Close" className="inline-flex cursor-pointer rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
                                   Close
                                 </label>
                               </div>
@@ -867,46 +880,77 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
 
                         <div className="relative">
                           <input id={`edit-${item.id}`} type="checkbox" className="peer hidden" />
-                          <label htmlFor={`edit-${item.id}`} className="block cursor-pointer rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1.5 text-center text-[11px] font-semibold text-violet-700 hover:bg-violet-100 sm:text-xs">
-                            Edit
+                          <label
+                            htmlFor={`edit-${item.id}`}
+                            aria-label="Edit item"
+                            title="Edit this item"
+                            className="inline-flex cursor-pointer items-center justify-center rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1.5 text-center text-[11px] font-semibold text-violet-700 hover:bg-violet-100 max-sm:h-10 max-sm:w-10 max-sm:min-w-10 max-sm:p-0 sm:text-xs"
+                          >
+                            <svg className="h-4 w-4 shrink-0 sm:hidden" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                            </svg>
+                            <span className="hidden sm:inline">Edit</span>
                           </label>
                           <div className="pointer-events-none fixed inset-0 z-40 hidden items-center justify-center bg-slate-900/50 p-4 peer-checked:flex peer-checked:pointer-events-auto">
                             <label htmlFor={`edit-${item.id}`} className="absolute inset-0 cursor-pointer" />
                             <div className="relative z-10 max-h-[90vh] w-full max-w-3xl overflow-auto rounded-2xl bg-white p-4 shadow-xl sm:p-5">
-                              <h3 className="text-lg font-bold text-slate-900">Edit: {item.name}</h3>
-                              <p className="mt-1 text-sm text-slate-600">
-                                Section: {categoryNameById.get(item.category_id ?? "") ?? "Uncategorized"}
-                              </p>
-                              <form action={updateMenuItemAction} className="mt-4 grid gap-2 md:grid-cols-2">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0 flex-1 pr-2">
+                                  <h3 className="text-lg font-bold text-slate-900">Edit: {item.name}</h3>
+                                  <p className="mt-1 text-sm text-slate-600">
+                                    Section: {categoryNameById.get(item.category_id ?? "") ?? "Uncategorized"}
+                                  </p>
+                                </div>
+                                <label
+                                  htmlFor={`edit-${item.id}`}
+                                  className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full text-slate-500 ring-1 ring-slate-200 transition hover:bg-slate-50 hover:text-slate-800"
+                                  aria-label="Close"
+                                  title="Close"
+                                >
+                                  <span className="text-2xl leading-none" aria-hidden>
+                                    ×
+                                  </span>
+                                </label>
+                              </div>
+                              <form action={updateMenuItemAction} className="mt-4 grid gap-3 md:grid-cols-2">
                                 <input type="hidden" name="id" value={item.id} />
                                 <input type="hidden" name="current_image_url" value={item.image_url ?? ""} />
                                 <label className="space-y-1">
-                                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Item name</span>
-                                  <input name="name" defaultValue={item.name} placeholder="Item name" className="ui-input" />
-                                  <p className="text-xs text-slate-500">Displayed to customers in the menu.</p>
+                                  <FormFieldLabel required>Section</FormFieldLabel>
+                                  <select name="category_id" required defaultValue={item.category_id ?? ""} className="ui-select">
+                                    {categories?.map((category) => (
+                                      <option key={category.id} value={category.id}>{category.name}</option>
+                                    ))}
+                                  </select>
+                                  <p className="text-xs text-slate-500">Where this item appears in your menu.</p>
                                 </label>
                                 <label className="space-y-1">
-                                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Description</span>
+                                  <FormFieldLabel required>Item name</FormFieldLabel>
+                                  <input name="name" required defaultValue={item.name} placeholder="Item name" className="ui-input" />
+                                  <p className="text-xs text-slate-500">Displayed to customers in the menu.</p>
+                                </label>
+                                <label className="space-y-1 md:col-span-2">
+                                  <FormFieldLabel optional>Description</FormFieldLabel>
                                   <input name="description" defaultValue={item.description ?? ""} placeholder="Description (what this item is)" className="ui-input" />
                                   <p className="text-xs text-slate-500">Explain what the item is.</p>
                                 </label>
                                 <label className="space-y-1">
-                                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Price</span>
-                                  <input name="price" type="number" step="0.01" defaultValue={item.price} placeholder="Price" className="ui-input" />
-                                  <p className="text-xs text-slate-500">Base price before add-ons.</p>
+                                  <FormFieldLabel required>Price ($)</FormFieldLabel>
+                                  <input name="price" required type="number" step="0.01" defaultValue={item.price} placeholder="e.g. 4.50" className="ui-input" />
+                                  <p className="text-xs text-slate-500">US dollars ($). Base price before add-ons.</p>
                                 </label>
                                 <label className="space-y-1">
-                                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Weight (grams)</span>
-                                  <input name="grams" type="number" min={0} defaultValue={item.grams ?? ""} placeholder="Weight in grams" className="ui-input" />
-                                  <p className="text-xs text-slate-500">Optional for weighted products.</p>
+                                  <FormFieldLabel optional>Weight (grams)</FormFieldLabel>
+                                  <input name="grams" type="number" min={0} defaultValue={item.grams ?? ""} placeholder="Optional" className="ui-input" />
+                                  <p className="text-xs text-slate-500">For weighted products.</p>
                                 </label>
                                 <label className="space-y-1 md:col-span-2">
-                                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Contains / ingredients</span>
+                                  <FormFieldLabel optional>Contains / ingredients</FormFieldLabel>
                                   <input name="contents" defaultValue={item.contents ?? ""} placeholder="Contains / ingredients (allergens, key contents)" className="ui-input" />
                                   <p className="text-xs text-slate-500">Useful for allergens and key components.</p>
                                 </label>
                                 <label className="space-y-1 md:col-span-2">
-                                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Option type</span>
+                                  <FormFieldLabel optional>Option type</FormFieldLabel>
                                   <input name="option_label" defaultValue={item.option_label ?? ""} placeholder="Option type (Size, Quantity, Type...)" className="ui-input" />
                                   <p className="text-xs text-slate-500">Example: Size, Quantity, Type, or Pack.</p>
                                 </label>
@@ -922,7 +966,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                                 />
                                 <IngredientListField
                                   name="add_ingredients"
-                                  label={`Add ingredients (${categoryNameById.get(item.category_id ?? "") ?? "section"}) + optional price`}
+                                  label={`Add ingredients (${categoryNameById.get(item.category_id ?? "") ?? "section"}) — extra price per line`}
                                   withPrice
                                   defaultItems={(item.add_ingredients ?? [])
                                     .filter(
@@ -936,7 +980,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                                 />
                                 <IngredientListField
                                   name="option_values"
-                                  label={`Option values for ${item.option_label || "item"} (+ optional price)`}
+                                  label={`Option values for ${item.option_label || "item"}`}
                                   withPrice
                                   defaultItems={(item.option_values ?? [])
                                     .filter(
@@ -949,23 +993,21 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                                     }))}
                                 />
                                 <div className="md:col-span-2">
-                                  <ImageUploadField name="image_file" initialImageUrl={item.image_url} label="Update image" />
+                                  <ImageUploadField
+                                    name="image_file"
+                                    initialImageUrl={item.image_url}
+                                    label="Update image"
+                                    optional
+                                  />
                                 </div>
-                                <label className="space-y-1">
-                                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Section</span>
-                                  <select name="category_id" defaultValue={item.category_id ?? ""} className="ui-select">
-                                    {categories?.map((category) => (
-                                      <option key={category.id} value={category.id}>{category.name}</option>
-                                    ))}
-                                  </select>
-                                  <p className="text-xs text-slate-500">Move item to another section if needed.</p>
-                                </label>
-                                <div className="flex items-end">
-                                  <button className="btn btn-primary w-full rounded-xl">Save changes</button>
+                                <div className="md:col-span-2 border-t border-slate-100 pt-1">
+                                  <button type="submit" className="btn btn-primary w-full rounded-xl py-3">
+                                    Save changes
+                                  </button>
                                 </div>
                               </form>
-                              <div className="mt-4 text-right">
-                                <label htmlFor={`edit-${item.id}`} className="inline-flex cursor-pointer rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                              <div className="mt-3 flex justify-end border-t border-slate-100 pt-3">
+                                <label htmlFor={`edit-${item.id}`} title="Close" className="inline-flex cursor-pointer rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
                                   Close
                                 </label>
                               </div>
@@ -975,8 +1017,16 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
 
                         <div className="relative">
                           <input id={`delete-${item.id}`} type="checkbox" className="peer hidden" />
-                          <label htmlFor={`delete-${item.id}`} className="block cursor-pointer rounded-full border border-red-200 bg-red-50 px-2.5 py-1.5 text-center text-[11px] font-semibold text-red-700 hover:bg-red-100 sm:text-xs">
-                            Delete
+                          <label
+                            htmlFor={`delete-${item.id}`}
+                            aria-label="Delete item"
+                            title="Delete this item"
+                            className="inline-flex cursor-pointer items-center justify-center rounded-full border border-red-200 bg-red-50 px-2.5 py-1.5 text-center text-[11px] font-semibold text-red-700 hover:bg-red-100 max-sm:h-10 max-sm:w-10 max-sm:min-w-10 max-sm:p-0 sm:text-xs"
+                          >
+                            <svg className="h-4 w-4 shrink-0 sm:hidden" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                            </svg>
+                            <span className="hidden sm:inline">Delete</span>
                           </label>
                           <div className="pointer-events-none fixed inset-0 z-40 hidden items-center justify-center bg-slate-900/50 p-4 peer-checked:flex peer-checked:pointer-events-auto">
                             <label htmlFor={`delete-${item.id}`} className="absolute inset-0 cursor-pointer" />
@@ -1004,11 +1054,22 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                           <input id={`stock-${item.id}`} type="checkbox" className="peer hidden" />
                           <label
                             htmlFor={`stock-${item.id}`}
-                            className={`block cursor-pointer rounded-full px-2.5 py-1.5 text-center text-[11px] font-semibold text-white sm:text-xs ${
+                            aria-label={item.is_available ? "Mark out of stock" : "Mark in stock"}
+                            title={item.is_available ? "Mark as out of stock" : "Mark as in stock"}
+                            className={`inline-flex cursor-pointer items-center justify-center rounded-full px-2.5 py-1.5 text-center text-[11px] font-semibold text-white max-sm:h-10 max-sm:w-10 max-sm:min-w-10 max-sm:p-0 sm:text-xs ${
                               item.is_available ? "bg-amber-500 hover:bg-amber-600" : "bg-violet-600 hover:bg-violet-700"
                             }`}
                           >
-                            {item.is_available ? "Out of Stock" : "In Stock"}
+                            {item.is_available ? (
+                              <svg className="h-4 w-4 shrink-0 sm:hidden" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                              </svg>
+                            ) : (
+                              <svg className="h-4 w-4 shrink-0 sm:hidden" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            )}
+                            <span className="hidden sm:inline">{item.is_available ? "Out of Stock" : "In Stock"}</span>
                           </label>
                           <div className="pointer-events-none fixed inset-0 z-40 hidden items-center justify-center bg-slate-900/50 p-4 peer-checked:flex peer-checked:pointer-events-auto">
                             <label htmlFor={`stock-${item.id}`} className="absolute inset-0 cursor-pointer" />

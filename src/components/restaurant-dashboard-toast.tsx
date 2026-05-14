@@ -6,9 +6,10 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 type Props = {
   toast: string | undefined | null;
   sectionName?: string | undefined | null;
+  itemName?: string | undefined | null;
 };
 
-export function RestaurantDashboardToast({ toast, sectionName }: Props) {
+export function RestaurantDashboardToast({ toast, sectionName, itemName }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const [open, setOpen] = useState(Boolean(toast));
@@ -17,6 +18,7 @@ export function RestaurantDashboardToast({ toast, sectionName }: Props) {
     const params = new URLSearchParams(window.location.search);
     params.delete("toast");
     params.delete("section_name");
+    params.delete("item_name");
     const qs = params.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname);
   }, [pathname, router]);
@@ -51,6 +53,22 @@ export function RestaurantDashboardToast({ toast, sectionName }: Props) {
   } else if (toast === "section_name_required") {
     heading = "Name required";
     message = "Enter a section name before adding.";
+  } else if (toast === "item_created") {
+    heading = "Item added";
+    message = itemName ? (
+      <>
+        <span className="font-semibold text-slate-900">“{itemName}”</span> is on your menu.
+      </>
+    ) : (
+      "Your new menu item was saved."
+    );
+  } else if (toast === "item_create_invalid") {
+    heading = "Check the form";
+    message = "Choose a section, enter an item name, and set a valid price (0 or more) before saving.";
+  } else if (toast === "item_create_failed") {
+    heading = "Could not save item";
+    message =
+      "Something went wrong while saving to the database. Confirm the section still exists and try again. If it keeps happening, contact support.";
   } else {
     return null;
   }
@@ -80,13 +98,21 @@ export function RestaurantDashboardToast({ toast, sectionName }: Props) {
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-xl text-white shadow-md"
             style={{
               background:
-                toast === "section_name_required"
+                toast === "section_name_required" ||
+                toast === "item_create_invalid" ||
+                toast === "item_create_failed"
                   ? "linear-gradient(135deg,#f59e0b,#d97706)"
                   : "linear-gradient(135deg,#7854ff,#9f3bfe)",
             }}
             aria-hidden
           >
-            {toast === "section_name_required" ? "!" : "✓"}
+            {toast === "section_name_required" ||
+            toast === "item_create_invalid" ||
+            toast === "item_create_failed" ? (
+              "!"
+            ) : (
+              "✓"
+            )}
           </div>
           <div className="min-w-0 flex-1 pt-0.5">
             <h2 id="dashboard-toast-title" className="text-lg font-bold tracking-tight text-slate-900">

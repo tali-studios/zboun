@@ -7,6 +7,11 @@ alter table public.menu_items add column if not exists contents text;
 alter table public.menu_items add column if not exists grams int;
 alter table public.menu_items add column if not exists image_url text;
 
+alter table public.menu_items add column if not exists removable_ingredients jsonb not null default '[]'::jsonb;
+alter table public.menu_items add column if not exists add_ingredients jsonb not null default '[]'::jsonb;
+alter table public.menu_items add column if not exists option_label text;
+alter table public.menu_items add column if not exists option_values jsonb not null default '[]'::jsonb;
+
 do $$
 begin
   if not exists (

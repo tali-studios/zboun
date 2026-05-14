@@ -199,10 +199,29 @@ export async function deleteCategoryAction(formData: FormData) {
 export async function createMenuItemAction(formData: FormData) {
   const user = await requireRestaurantAdmin();
   const supabase = await createServerSupabaseClient();
+
+  const categoryId = String(formData.get("category_id") ?? "").trim();
+  const name = String(formData.get("name") ?? "").trim();
+  const price = Number(formData.get("price"));
   const gramsValue = String(formData.get("grams") ?? "").trim();
+  const gramsParsed = gramsValue ? Number(gramsValue) : null;
+
+  if (!categoryId || !name) {
+    redirect("/dashboard/business?toast=item_create_invalid");
+  }
+  if (!Number.isFinite(price) || price < 0) {
+    redirect("/dashboard/business?toast=item_create_invalid");
+  }
+  if (gramsParsed !== null && (!Number.isFinite(gramsParsed) || gramsParsed < 0)) {
+    redirect("/dashboard/business?toast=item_create_invalid");
+  }
+
   const imageFile = formData.get("image_file");
   const imageUrl =
-    imageFile instanceof File ? await uploadMenuItemImage(imageFile, user.restaurant_id) : null;
+    imageFile instanceof File && imageFile.size > 0
+      ? await uploadMenuItemImage(imageFile, user.restaurant_id)
+      : null;
+
   const removableIngredients = parseIngredientJson(formData.get("removable_ingredients")).map(
     (item) => ({ name: item.name }),
   );
@@ -215,14 +234,17 @@ export async function createMenuItemAction(formData: FormData) {
     name: item.name,
     price: item.price ?? 0,
   }));
-  await supabase.from("menu_items").insert({
+
+  const description = String(formData.get("description") ?? "").trim() || null;
+
+  const { error } = await supabase.from("menu_items").insert({
     restaurant_id: user.restaurant_id,
-    category_id: String(formData.get("category_id")),
-    name: String(formData.get("name")),
-    description: String(formData.get("description")),
-    price: Number(formData.get("price")),
+    category_id: categoryId,
+    name,
+    description,
+    price,
     image_url: imageUrl,
-    grams: gramsValue ? Number(gramsValue) : null,
+    grams: gramsParsed,
     contents: String(formData.get("contents") ?? "").trim() || null,
     removable_ingredients: removableIngredients,
     add_ingredients: addIngredients,
@@ -230,7 +252,14 @@ export async function createMenuItemAction(formData: FormData) {
     option_values: optionValues,
     is_available: true,
   });
+
+  if (error) {
+    console.error("[createMenuItemAction]", error.message, error.code, error.details);
+    redirect("/dashboard/business?toast=item_create_failed");
+  }
+
   revalidatePath("/dashboard/business");
+  redirect(`/dashboard/business?toast=item_created&item_name=${encodeURIComponent(name)}`);
 }
 
 export async function updateMenuItemAction(formData: FormData) {

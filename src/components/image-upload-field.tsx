@@ -7,9 +7,16 @@ type Props = {
   name: string;
   label?: string;
   initialImageUrl?: string | null;
+  /** When true, show “(optional)” next to the label (menu item image). Logo/banner omit this. */
+  optional?: boolean;
 };
 
-export function ImageUploadField({ name, label = "Item image", initialImageUrl = null }: Props) {
+export function ImageUploadField({
+  name,
+  label = "Item image",
+  initialImageUrl = null,
+  optional = false,
+}: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState("");
@@ -42,7 +49,10 @@ export function ImageUploadField({ name, label = "Item image", initialImageUrl =
 
   return (
     <div className="space-y-2">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        {label}
+        {optional ? <span className="ml-1 font-normal normal-case text-slate-500">(optional)</span> : null}
+      </p>
 
       <label
         onDragOver={(event) => {
