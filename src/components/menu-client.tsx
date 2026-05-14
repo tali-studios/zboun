@@ -442,8 +442,8 @@ export function MenuClient({
             />
           </div>
 
-          {/* Category pills (menu sections) — min-w-0 keeps horizontal scroll from widening the column */}
-          <div className="flex min-w-0 max-w-full gap-2 overflow-x-auto overflow-y-hidden touch-pan-x pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {/* Category pills — phone: one row + swipe; sm+: wrap so every section is visible on laptop without hunting for horizontal scroll */}
+          <div className="flex min-w-0 w-full max-w-full flex-nowrap gap-2 overflow-x-auto overflow-y-hidden touch-pan-x pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:overflow-x-visible sm:overflow-y-visible sm:touch-auto">
             <button
               type="button"
               onClick={() => setMenuCategoryFilter("all")}
