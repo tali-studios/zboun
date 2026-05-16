@@ -41,7 +41,7 @@ export function SuperAdminCreateRestaurantForm() {
             ))}
           </select>
         </label>
-        <p className="mt-2 text-xs text-slate-500">{activePreset.description}</p>
+        {/* <p className="mt-2 text-xs text-slate-500">{activePreset.description}</p>
         <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
           Recommended features
         </p>
@@ -54,13 +54,13 @@ export function SuperAdminCreateRestaurantForm() {
               {ADDON_LABELS[addonKey]}
             </span>
           ))}
-        </div>
+        </div> */}
       </div>
 
       {showBrowse ? (
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 md:col-span-2 xl:col-span-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Home browse category</p>
-          <p className="mt-1 text-xs text-slate-500">Each business appears in exactly one home section.</p>
+          {/* <p className="mt-1 text-xs text-slate-500">Each business appears in exactly one home section.</p> */}
           <div className="mt-2 flex flex-wrap gap-2">
             {BROWSE_SECTION_OPTIONS.map((section) => (
               <label

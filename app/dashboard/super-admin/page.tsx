@@ -241,7 +241,7 @@ export default async function SuperAdminPage({ searchParams }: Props) {
             </p>
             <p className="mt-1 text-2xl font-bold text-violet-700">{stats.activeRestaurants}</p>
           </div>
-          <div className="panel p-4">
+          {/* <div className="panel p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Total categories
             </p>
@@ -252,7 +252,7 @@ export default async function SuperAdminPage({ searchParams }: Props) {
               Total catalog items
             </p>
             <p className="mt-1 text-2xl font-bold text-slate-900">{stats.totalItems}</p>
-          </div>
+          </div> */}
         </section>
 
         {(success === "restaurant_created_and_invited" ||
@@ -296,10 +296,10 @@ export default async function SuperAdminPage({ searchParams }: Props) {
         <section className="panel p-4 md:p-5">
           <h2 className="panel-title">Create business + admin invite</h2>
           <SuperAdminCreateRestaurantForm />
-          <p className="mt-3 text-xs text-slate-500">
+          {/* <p className="mt-3 text-xs text-slate-500">
             An invitation email is sent to the admin with a secure set-password link and dashboard
             access URL.
-          </p>
+          </p> */}
         </section>
 
         <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">

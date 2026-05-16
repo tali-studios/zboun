@@ -72,9 +72,9 @@ export function MenuQrCard({ menuUrl, restaurantName }: Props) {
       <div className="mt-5 space-y-2">
         <p className="rounded-xl bg-slate-50 p-3 text-xs text-slate-700 break-all">{menuUrl}</p>
         <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={generateQr} className="btn btn-secondary">
+          {/* <button type="button" onClick={generateQr} className="btn btn-secondary">
             Regenerate
-          </button>
+          </button> */}
           <button
             type="button"
             onClick={downloadQr}

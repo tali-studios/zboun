@@ -101,7 +101,7 @@ export function SuperAdminFinancePanel({ restaurants, invoices, payments }: Prop
   }
 
   return (
-    <section className="panel p-5">
+    <section className="panel min-w-0 overflow-hidden p-5">
       <div className="mb-4">
         <h2 className="text-lg font-bold text-slate-900">Finance management</h2>
         <p className="text-xs text-slate-500">
@@ -109,11 +109,11 @@ export function SuperAdminFinancePanel({ restaurants, invoices, payments }: Prop
         </p>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        <form action={submitInvoice} className="rounded-2xl border border-slate-200 p-4">
+      <div className="grid min-w-0 gap-4 xl:grid-cols-2">
+        <form action={submitInvoice} className="min-w-0 max-w-full overflow-hidden rounded-2xl border border-slate-200 p-4">
           <h3 className="font-semibold text-slate-900">Create invoice</h3>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2">
-            <select name="restaurant_id" required className="ui-select sm:col-span-2">
+          <div className="mt-3 grid min-w-0 grid-cols-1 gap-2 md:grid-cols-2">
+            <select name="restaurant_id" required className="ui-select min-w-0 md:col-span-2">
               <option value="">Select restaurant</option>
               {restaurants.map((restaurant) => (
                 <option key={restaurant.id} value={restaurant.id}>
@@ -121,7 +121,7 @@ export function SuperAdminFinancePanel({ restaurants, invoices, payments }: Prop
                 </option>
               ))}
             </select>
-            <select name="subscription_id" className="ui-select sm:col-span-2">
+            <select name="subscription_id" className="ui-select min-w-0 md:col-span-2">
               <option value="">No subscription link</option>
               {restaurants
                 .filter((restaurant) => Boolean(restaurant.subscription_id))
@@ -131,21 +131,48 @@ export function SuperAdminFinancePanel({ restaurants, invoices, payments }: Prop
                   </option>
                 ))}
             </select>
-            <input type="number" min="0.01" step="0.01" name="amount_due" required placeholder="Amount due" className="ui-input" />
-            <input type="datetime-local" name="due_at" required className="ui-input" />
-            <input type="date" name="period_start" className="ui-input" />
-            <input type="date" name="period_end" className="ui-input" />
-            <textarea name="notes" rows={2} className="ui-textarea sm:col-span-2" placeholder="Notes (optional)" />
-            <button disabled={isPending} className="btn btn-success rounded-xl sm:col-span-2 disabled:opacity-70">
+            <label className="min-w-0 space-y-1 md:col-span-2">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Amount due</span>
+              <input
+                type="number"
+                min="0.01"
+                step="0.01"
+                name="amount_due"
+                required
+                placeholder="0.00"
+                className="ui-input min-w-0 w-full max-w-full"
+              />
+            </label>
+            <div className="grid min-w-0 grid-cols-1 gap-2 md:col-span-2 lg:grid-cols-3">
+              <label className="min-w-0 space-y-1">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Due date</span>
+                <input
+                  type="datetime-local"
+                  name="due_at"
+                  required
+                  className="ui-input min-w-0 w-full max-w-full"
+                />
+              </label>
+              <label className="min-w-0 space-y-1">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Period start</span>
+                <input type="date" name="period_start" className="ui-input min-w-0 w-full max-w-full" />
+              </label>
+              <label className="min-w-0 space-y-1">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Period end</span>
+                <input type="date" name="period_end" className="ui-input min-w-0 w-full max-w-full" />
+              </label>
+            </div>
+            <textarea name="notes" rows={2} className="ui-textarea min-w-0 md:col-span-2" placeholder="Notes (optional)" />
+            <button disabled={isPending} className="btn btn-success rounded-xl md:col-span-2 disabled:opacity-70">
               Create invoice
             </button>
           </div>
         </form>
 
-        <form action={submitPayment} className="rounded-2xl border border-slate-200 p-4">
+        <form action={submitPayment} className="min-w-0 max-w-full overflow-hidden rounded-2xl border border-slate-200 p-4">
           <h3 className="font-semibold text-slate-900">Record cash payment</h3>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2">
-            <select name="invoice_id" required className="ui-select sm:col-span-2">
+          <div className="mt-3 grid min-w-0 grid-cols-1 gap-2 md:grid-cols-2">
+            <select name="invoice_id" required className="ui-select min-w-0 md:col-span-2">
               <option value="">Select invoice</option>
               {invoices
                 .filter((invoice) => invoice.status === "unpaid" || invoice.status === "partial")
@@ -155,10 +182,28 @@ export function SuperAdminFinancePanel({ restaurants, invoices, payments }: Prop
                   </option>
                 ))}
             </select>
-            <input type="number" min="0.01" step="0.01" name="amount_paid" required placeholder="Cash received" className="ui-input" />
-            <input type="datetime-local" name="paid_at" className="ui-input" />
-            <input name="reference_note" placeholder="Receipt note / reference" className="ui-input sm:col-span-2" />
-            <button disabled={isPending} className="btn btn-primary rounded-xl sm:col-span-2 disabled:opacity-70">
+            <label className="min-w-0 space-y-1">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Cash received</span>
+              <input
+                type="number"
+                min="0.01"
+                step="0.01"
+                name="amount_paid"
+                required
+                placeholder="0.00"
+                className="ui-input min-w-0 w-full max-w-full"
+              />
+            </label>
+            <label className="min-w-0 space-y-1">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Paid at</span>
+              <input type="datetime-local" name="paid_at" className="ui-input min-w-0 w-full max-w-full" />
+            </label>
+            <input
+              name="reference_note"
+              placeholder="Receipt note / reference"
+              className="ui-input min-w-0 md:col-span-2"
+            />
+            <button disabled={isPending} className="btn btn-primary rounded-xl md:col-span-2 disabled:opacity-70">
               Record payment
             </button>
           </div>

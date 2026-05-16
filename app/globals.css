@@ -135,6 +135,16 @@ body {
   box-shadow: 0 0 0 4px rgba(120, 84, 255, 0.14);
 }
 
+/* Prevent date/time pickers from overflowing narrow containers (common on mobile) */
+input[type="date"].ui-input,
+input[type="datetime-local"].ui-input,
+input[type="time"].ui-input {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
 /* Search fields with a leading icon */
 .ui-input-search {
   padding-left: 2.5rem;
