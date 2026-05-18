@@ -56,14 +56,18 @@ type Props = {
 };
 
 type ActionIconButtonProps = {
+  /** Full label for tooltips (desktop hover) and screen readers */
   label: string;
+  /** Short text shown beside the icon on phone/tablet (defaults to label on desktop) */
+  shortLabel?: string;
   icon: string;
   className: string;
   disabled?: boolean;
   onClick: () => void;
 };
 
-function ActionIconButton({ label, icon, className, disabled, onClick }: ActionIconButtonProps) {
+function ActionIconButton({ label, shortLabel, icon, className, disabled, onClick }: ActionIconButtonProps) {
+  const displayShort = shortLabel ?? label;
   return (
     <button
       type="button"
@@ -71,9 +75,12 @@ function ActionIconButton({ label, icon, className, disabled, onClick }: ActionI
       aria-label={label}
       disabled={disabled}
       onClick={onClick}
-      className={`inline-flex h-9 w-9 items-center justify-center rounded-full text-base font-bold text-white shadow-sm transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70 ${className}`}
+      className={`inline-flex min-h-9 items-center justify-center gap-1.5 rounded-full font-semibold text-white shadow-sm transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70 max-lg:min-w-0 max-lg:flex-1 max-lg:px-2.5 max-lg:py-2 max-lg:text-[11px] lg:h-9 lg:w-9 lg:gap-0 lg:px-0 lg:text-base lg:font-bold ${className}`}
     >
-      <span aria-hidden>{icon}</span>
+      <span aria-hidden className="shrink-0 text-sm lg:text-base">
+        {icon}
+      </span>
+      <span className="truncate lg:sr-only">{displayShort}</span>
     </button>
   );
 }
@@ -376,9 +383,10 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                 </span>
               )}
             </div>
-            <div className="mt-3 flex flex-wrap items-center gap-2">
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
               <ActionIconButton
                 label="Renew subscription"
+                shortLabel="Renew"
                 icon="↻"
                 className="bg-blue-600 hover:bg-blue-500"
                 disabled={isPending}
@@ -386,6 +394,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
               />
               <ActionIconButton
                 label={restaurant.is_active ? "Deactivate business" : "Activate business"}
+                shortLabel={restaurant.is_active ? "Deactivate" : "Activate"}
                 icon={restaurant.is_active ? "⏸" : "▶"}
                 className={restaurant.is_active ? "bg-amber-600 hover:bg-amber-500" : "bg-violet-600 hover:bg-violet-500"}
                 disabled={isPending}
@@ -395,6 +404,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                 <>
                   <ActionIconButton
                     label={restaurant.show_on_home ? "Hide from home page" : "Show on home page"}
+                    shortLabel={restaurant.show_on_home ? "Hide home" : "Show home"}
                     icon={restaurant.show_on_home ? "👁" : "🏠"}
                     className={restaurant.show_on_home ? "bg-slate-700 hover:bg-slate-600" : "bg-violet-600 hover:bg-violet-500"}
                     disabled={isPending}
@@ -402,6 +412,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                   />
                   <ActionIconButton
                     label="Home browse category"
+                    shortLabel="Category"
                     icon="🧭"
                     className="bg-violet-600 hover:bg-violet-500"
                     disabled={isPending}
@@ -411,6 +422,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
               ) : null}
               <ActionIconButton
                 label="Delete business"
+                shortLabel="Delete"
                 icon="🗑"
                 className="bg-red-600 hover:bg-red-500"
                 disabled={isPending}
@@ -418,6 +430,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
               />
               <ActionIconButton
                 label="View more info"
+                shortLabel="Info"
                 icon="ℹ"
                 className="bg-slate-600 hover:bg-slate-500"
                 disabled={isPending}
@@ -425,6 +438,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
               />
               <ActionIconButton
                 label="Manage add-ons"
+                shortLabel="Add-ons"
                 icon="🧩"
                 className="bg-teal-600 hover:bg-teal-500"
                 disabled={isPending}
@@ -434,6 +448,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                 <>
                   <ActionIconButton
                     label="Update subscription status"
+                    shortLabel="Sub status"
                     icon="⚙"
                     className="bg-indigo-600 hover:bg-indigo-500"
                     disabled={isPending}
@@ -446,6 +461,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                   />
                   <ActionIconButton
                     label="Set next due date"
+                    shortLabel="Due date"
                     icon="📅"
                     className="bg-cyan-600 hover:bg-cyan-500"
                     disabled={isPending}
