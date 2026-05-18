@@ -148,6 +148,56 @@ export async function renewRestaurantSubscription(
   };
 }
 
+/** Create subscription rows for restaurants that pre-date billing (idempotent). */
+export async function backfillMissingSubscriptions(
+  supabase: SupabaseClient,
+  restaurants: { id: string; created_at: string; is_active: boolean }[],
+) {
+  if (restaurants.length === 0) return 0;
+
+  const { planId, price } = await getOrCreateMonthlyPlanId(supabase);
+  const restaurantIds = restaurants.map((r) => r.id);
+
+  const { data: existing, error: listError } = await supabase
+    .from("restaurant_subscriptions")
+    .select("restaurant_id")
+    .in("restaurant_id", restaurantIds);
+
+  if (listError) {
+    throw new Error(listError.message);
+  }
+
+  const hasSubscription = new Set((existing ?? []).map((row) => row.restaurant_id));
+  const missing = restaurants.filter((r) => !hasSubscription.has(r.id));
+  if (missing.length === 0) return 0;
+
+  const now = new Date();
+  const rows = missing.map((restaurant) => {
+    const startAt = new Date(restaurant.created_at);
+    const nextDueAt = addMonths(startAt, SUBSCRIPTION_PERIOD_MONTHS);
+    const expired = nextDueAt.getTime() < now.getTime();
+    const status = expired ? "overdue" : restaurant.is_active ? "active" : "overdue";
+
+    return {
+      restaurant_id: restaurant.id,
+      plan_id: planId,
+      status,
+      start_at: startAt.toISOString(),
+      next_due_at: nextDueAt.toISOString(),
+      billing_cycle_price: price,
+      ended_at: expired ? nextDueAt.toISOString() : null,
+      notes: "Backfilled subscription for existing business.",
+    };
+  });
+
+  const { error: insertError } = await supabase.from("restaurant_subscriptions").insert(rows);
+  if (insertError) {
+    throw new Error(insertError.message);
+  }
+
+  return missing.length;
+}
+
 export async function getRestaurantAdminEmail(
   supabase: SupabaseClient,
   restaurantId: string,

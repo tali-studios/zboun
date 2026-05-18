@@ -27,6 +27,12 @@ const ALL_ADDONS: { key: string; label: string; description: string }[] = [
   { key: "club", label: "Club Management", description: "Membership plans, check-ins, and subscription invoicing." },
 ];
 import { BROWSE_SECTION_OPTIONS, normalizeBrowseSections } from "@/lib/browse-sections";
+import {
+  formatNextDueLine,
+  formatSubscriptionStatus,
+  isSubscriptionPastDue,
+  subscriptionStatusBadgeClass,
+} from "@/lib/subscription-display";
 
 type RestaurantRow = {
   id: string;
@@ -64,9 +70,19 @@ type ActionIconButtonProps = {
   className: string;
   disabled?: boolean;
   onClick: () => void;
+  /** Table row: icon-only, single horizontal line */
+  tableRow?: boolean;
 };
 
-function ActionIconButton({ label, shortLabel, icon, className, disabled, onClick }: ActionIconButtonProps) {
+function ActionIconButton({
+  label,
+  shortLabel,
+  icon,
+  className,
+  disabled,
+  onClick,
+  tableRow,
+}: ActionIconButtonProps) {
   const displayShort = shortLabel ?? label;
   return (
     <button
@@ -75,15 +91,32 @@ function ActionIconButton({ label, shortLabel, icon, className, disabled, onClic
       aria-label={label}
       disabled={disabled}
       onClick={onClick}
-      className={`inline-flex min-h-9 items-center justify-center gap-1.5 rounded-full font-semibold text-white shadow-sm transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70 max-lg:min-w-0 max-lg:flex-1 max-lg:px-2.5 max-lg:py-2 max-lg:text-[11px] lg:h-9 lg:w-9 lg:gap-0 lg:px-0 lg:text-base lg:font-bold ${className}`}
+      className={
+        tableRow
+          ? `inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-white shadow-sm transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60 ${className}`
+          : `inline-flex min-h-9 items-center justify-center gap-1.5 rounded-full font-semibold text-white shadow-sm transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70 max-lg:min-w-0 max-lg:flex-1 max-lg:px-2.5 max-lg:py-2 max-lg:text-[11px] lg:h-9 lg:w-9 lg:gap-0 lg:px-0 lg:text-base lg:font-bold ${className}`
+      }
     >
       <span aria-hidden className="shrink-0 text-sm lg:text-base">
         {icon}
       </span>
-      <span className="truncate lg:sr-only">{displayShort}</span>
+      <span className={tableRow ? "sr-only" : "truncate lg:sr-only"}>{displayShort}</span>
     </button>
   );
 }
+
+/** Data column tints — helps scan rows; actions stay in a neutral column. */
+const TABLE_DATA_COLUMNS = [
+  { label: "Business", header: "bg-slate-200/90 text-slate-800", cell: "bg-slate-50" },
+  { label: "Slug", header: "bg-zinc-200/90 text-zinc-800", cell: "bg-zinc-50/90" },
+  { label: "Sub status", header: "bg-emerald-200/90 text-emerald-900", cell: "bg-emerald-50/80" },
+  { label: "Next due", header: "bg-sky-200/90 text-sky-900", cell: "bg-sky-50/80" },
+  { label: "Outstanding", header: "bg-amber-200/90 text-amber-900", cell: "bg-amber-50/80" },
+  { label: "Status", header: "bg-violet-200/90 text-violet-900", cell: "bg-violet-50/80" },
+  { label: "Home", header: "bg-indigo-200/90 text-indigo-900", cell: "bg-indigo-50/80" },
+  { label: "Home category", header: "bg-fuchsia-200/90 text-fuchsia-900", cell: "bg-fuchsia-50/80" },
+  { label: "Created", header: "bg-stone-200/90 text-stone-800", cell: "bg-stone-50/90" },
+] as const;
 
 type ModalState = {
   open: boolean;
@@ -355,11 +388,16 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
               </span>
             </div>
             <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-600">
-              <span className="rounded-full bg-slate-100 px-2 py-1">
-                {restaurant.subscription_status ?? "No subscription"}
+              <span
+                className={`rounded-full px-2 py-1 font-semibold ${subscriptionStatusBadgeClass(
+                  restaurant.subscription_status,
+                  isSubscriptionPastDue(restaurant.next_due_at, restaurant.subscription_status),
+                )}`}
+              >
+                {formatSubscriptionStatus(restaurant.subscription_status)}
               </span>
               <span className="rounded-full bg-slate-100 px-2 py-1">
-                Due: {restaurant.next_due_at ? new Date(restaurant.next_due_at).toLocaleDateString() : "—"}
+                Due: {formatNextDueLine(restaurant.next_due_at)}
               </span>
               <span className="rounded-full bg-amber-50 px-2 py-1 text-amber-700">
                 Outstanding: ${restaurant.outstanding_balance.toFixed(2)}
@@ -477,130 +515,164 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
       </div>
 
       <div className="mt-4 hidden overflow-x-auto lg:block">
-        <table className="w-full min-w-[980px] text-xs">
+        <table className="w-full min-w-[1320px] border-separate border-spacing-0 text-xs">
+          <colgroup>
+            <col className="w-[min(14rem,16%)]" />
+            <col className="w-[min(9rem,11%)]" />
+            <col className="w-[6.5rem]" />
+            <col className="w-[min(11rem,13%)]" />
+            <col className="w-[5.5rem]" />
+            <col className="w-[5rem]" />
+            <col className="w-[4.5rem]" />
+            <col className="w-[min(6.5rem,8%)]" />
+            <col className="w-[5.5rem]" />
+            <col className="min-w-[21rem]" />
+          </colgroup>
           <thead>
-            <tr className="border-b border-slate-200 text-left text-[11px] uppercase tracking-wide text-slate-500">
-              <th className="py-2 whitespace-nowrap">Business</th>
-              <th className="py-2 whitespace-nowrap">Slug</th>
-              <th className="py-2 whitespace-nowrap">Sub status</th>
-              <th className="py-2 whitespace-nowrap">Next due</th>
-              <th className="py-2 whitespace-nowrap">Outstanding</th>
-              <th className="py-2 whitespace-nowrap">Status</th>
-              <th className="py-2 whitespace-nowrap">Home</th>
-              <th className="py-2 whitespace-nowrap">Home category</th>
-              <th className="py-2 whitespace-nowrap">Created</th>
-              <th className="py-2 whitespace-nowrap">Actions</th>
+            <tr className="text-left text-[11px] uppercase tracking-wide">
+              {TABLE_DATA_COLUMNS.map((col) => (
+                <th
+                  key={col.label}
+                  className={`border-r border-white/70 px-3 py-2 font-bold whitespace-nowrap ${col.header}`}
+                >
+                  {col.label}
+                </th>
+              ))}
+              <th className="bg-white px-3 py-2 font-bold text-slate-600 whitespace-nowrap">Actions</th>
             </tr>
           </thead>
           <tbody>
             {filtered.map((restaurant) => (
-              <tr key={restaurant.id} className="border-b border-slate-100">
-                <td className="py-3 whitespace-nowrap font-medium text-slate-900">{restaurant.name}</td>
-                <td className="py-3 whitespace-nowrap text-slate-600">/{restaurant.slug}</td>
-                <td className="py-3 whitespace-nowrap text-slate-600">{restaurant.subscription_status ?? "—"}</td>
-                <td className="py-3 whitespace-nowrap text-slate-600">
-                  {restaurant.next_due_at
-                    ? new Date(restaurant.next_due_at).toLocaleDateString()
-                    : "—"}
+              <tr key={restaurant.id} className="border-b border-slate-200/80">
+                <td className={`border-r border-white/50 px-3 py-3 font-medium text-slate-900 ${TABLE_DATA_COLUMNS[0].cell}`}>
+                  <span className="block truncate" title={restaurant.name}>
+                    {restaurant.name}
+                  </span>
                 </td>
-                <td className="py-3 whitespace-nowrap font-medium text-amber-700">
+                <td className={`border-r border-white/50 px-3 py-3 text-slate-600 ${TABLE_DATA_COLUMNS[1].cell}`}>
+                  <span className="block truncate" title={restaurant.slug}>
+                    /{restaurant.slug}
+                  </span>
+                </td>
+                <td className={`border-r border-white/50 px-3 py-3 whitespace-nowrap ${TABLE_DATA_COLUMNS[2].cell}`}>
+                  <span
+                    className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${subscriptionStatusBadgeClass(
+                      restaurant.subscription_status,
+                      isSubscriptionPastDue(restaurant.next_due_at, restaurant.subscription_status),
+                    )}`}
+                  >
+                    {formatSubscriptionStatus(restaurant.subscription_status)}
+                  </span>
+                </td>
+                <td className={`border-r border-white/50 px-3 py-3 whitespace-nowrap text-slate-700 ${TABLE_DATA_COLUMNS[3].cell}`}>
+                  {formatNextDueLine(restaurant.next_due_at)}
+                </td>
+                <td className={`border-r border-white/50 px-3 py-3 whitespace-nowrap font-semibold text-amber-900 ${TABLE_DATA_COLUMNS[4].cell}`}>
                   ${restaurant.outstanding_balance.toFixed(2)}
                 </td>
-                <td className="py-3 whitespace-nowrap">
+                <td className={`border-r border-white/50 px-3 py-3 whitespace-nowrap ${TABLE_DATA_COLUMNS[5].cell}`}>
                   <span
                     className={`rounded-full px-2 py-1 text-xs font-semibold ${
                       restaurant.is_active
-                        ? "bg-violet-100 text-violet-700"
-                        : "bg-slate-200 text-slate-700"
+                        ? "bg-violet-200 text-violet-900"
+                        : "bg-slate-300/80 text-slate-800"
                     }`}
                   >
                     {restaurant.is_active ? "Active" : "Inactive"}
                   </span>
                 </td>
-                <td className="py-3 whitespace-nowrap">
+                <td className={`border-r border-white/50 px-3 py-3 whitespace-nowrap ${TABLE_DATA_COLUMNS[6].cell}`}>
                   {hasHomeCategory(restaurant) ? (
                     <span
                       className={`rounded-full px-2 py-1 text-xs font-semibold ${
                         restaurant.show_on_home
-                          ? "bg-violet-100 text-violet-700"
-                          : "bg-slate-200 text-slate-700"
+                          ? "bg-indigo-200 text-indigo-900"
+                          : "bg-slate-300/80 text-slate-800"
                       }`}
                     >
                       {restaurant.show_on_home ? "Visible" : "Hidden"}
                     </span>
                   ) : (
-                    <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600">N/A</span>
+                    <span className="rounded-full bg-white/60 px-2 py-1 text-xs font-semibold text-slate-600">N/A</span>
                   )}
                 </td>
-                <td className="py-3 whitespace-nowrap text-slate-600">
+                <td className={`border-r border-white/50 px-3 py-3 whitespace-nowrap text-slate-700 ${TABLE_DATA_COLUMNS[7].cell}`}>
                   {hasHomeCategory(restaurant)
                     ? normalizeBrowseSections(restaurant.browse_sections ?? [])[0] ?? "Lunch"
                     : "N/A"}
                 </td>
-                <td className="py-3 whitespace-nowrap text-slate-600">
+                <td className={`px-3 py-3 whitespace-nowrap text-slate-700 ${TABLE_DATA_COLUMNS[8].cell}`}>
                   {new Date(restaurant.created_at).toLocaleDateString()}
                 </td>
-                <td className="py-3 whitespace-nowrap">
-                  <div className="flex items-center gap-2">
+                <td className="bg-white px-2 py-2 align-middle whitespace-nowrap">
+                  <div className="inline-flex flex-nowrap items-center justify-end gap-1">
                     <ActionIconButton
+                      tableRow
                       label="Renew subscription"
                       icon="↻"
-                      className="bg-blue-600 hover:bg-blue-500"
+                      className="bg-blue-600"
                       disabled={isPending}
                       onClick={() => renewSubscription(restaurant.id)}
                     />
                     <ActionIconButton
+                      tableRow
                       label={restaurant.is_active ? "Deactivate business" : "Activate business"}
                       icon={restaurant.is_active ? "⏸" : "▶"}
-                      className={restaurant.is_active ? "bg-amber-600 hover:bg-amber-500" : "bg-violet-600 hover:bg-violet-500"}
+                      className={restaurant.is_active ? "bg-amber-600" : "bg-violet-600"}
                       disabled={isPending}
                       onClick={() => openToggleModal(restaurant)}
                     />
                     {hasHomeCategory(restaurant) ? (
                       <>
                         <ActionIconButton
+                          tableRow
                           label={restaurant.show_on_home ? "Hide from home page" : "Show on home page"}
                           icon={restaurant.show_on_home ? "👁" : "🏠"}
-                          className={restaurant.show_on_home ? "bg-slate-700 hover:bg-slate-600" : "bg-violet-600 hover:bg-violet-500"}
+                          className={restaurant.show_on_home ? "bg-slate-700" : "bg-violet-600"}
                           disabled={isPending}
                           onClick={() => toggleHomeVisibility(restaurant.id, restaurant.show_on_home)}
                         />
                         <ActionIconButton
+                          tableRow
                           label="Home browse category"
                           icon="🧭"
-                          className="bg-violet-600 hover:bg-violet-500"
+                          className="bg-violet-600"
                           disabled={isPending}
                           onClick={() => openBrowseSectionsEditor(restaurant)}
                         />
                       </>
                     ) : null}
                     <ActionIconButton
+                      tableRow
                       label="Delete business"
                       icon="🗑"
-                      className="bg-red-600 hover:bg-red-500"
+                      className="bg-red-600"
                       disabled={isPending}
                       onClick={() => openDeleteModal(restaurant)}
                     />
                     <ActionIconButton
+                      tableRow
                       label="View more info"
                       icon="ℹ"
-                      className="bg-slate-600 hover:bg-slate-500"
+                      className="bg-slate-600"
                       disabled={isPending}
                       onClick={() => setInfoRestaurant(restaurant)}
                     />
                     <ActionIconButton
+                      tableRow
                       label="Manage add-ons"
                       icon="🧩"
-                      className="bg-teal-600 hover:bg-teal-500"
+                      className="bg-teal-600"
                       disabled={isPending}
                       onClick={() => openAddonsEditor(restaurant)}
                     />
                     {restaurant.subscription_id ? (
                       <>
                         <ActionIconButton
+                          tableRow
                           label="Update subscription status"
                           icon="⚙"
-                          className="bg-indigo-600 hover:bg-indigo-500"
+                          className="bg-indigo-600"
                           disabled={isPending}
                           onClick={() =>
                             updateSubscriptionStatus(
@@ -610,9 +682,10 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                           }
                         />
                         <ActionIconButton
+                          tableRow
                           label="Set next due date"
                           icon="📅"
-                          className="bg-cyan-600 hover:bg-cyan-500"
+                          className="bg-cyan-600"
                           disabled={isPending}
                           onClick={() =>
                             setNextDueDate(restaurant.subscription_id as string, restaurant.next_due_at)
@@ -666,7 +739,10 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
               <p><span className="font-semibold">Sections:</span> {infoRestaurant.category_count}</p>
               <p><span className="font-semibold">Items:</span> {infoRestaurant.item_count}</p>
               <p><span className="font-semibold">Plan:</span> {infoRestaurant.plan_name ?? "No plan"}</p>
-              <p><span className="font-semibold">Sub status:</span> {infoRestaurant.subscription_status ?? "—"}</p>
+              <p>
+                <span className="font-semibold">Sub status:</span>{" "}
+                {formatSubscriptionStatus(infoRestaurant.subscription_status)}
+              </p>
               <p>
                 <span className="font-semibold">Last payment:</span>{" "}
                 {infoRestaurant.last_payment_at
@@ -675,9 +751,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
               </p>
               <p>
                 <span className="font-semibold">Next due:</span>{" "}
-                {infoRestaurant.next_due_at
-                  ? new Date(infoRestaurant.next_due_at).toLocaleDateString()
-                  : "—"}
+                {formatNextDueLine(infoRestaurant.next_due_at)}
               </p>
               <p><span className="font-semibold">Outstanding:</span> ${infoRestaurant.outstanding_balance.toFixed(2)}</p>
               <p><span className="font-semibold">Created:</span> {new Date(infoRestaurant.created_at).toLocaleDateString()}</p>

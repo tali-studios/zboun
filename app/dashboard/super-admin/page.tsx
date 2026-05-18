@@ -7,6 +7,7 @@ import { SuperAdminRestaurantsPanel } from "@/components/super-admin-restaurants
 import { getCurrentUserRole } from "@/lib/data";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { env } from "@/lib/env";
+import { backfillMissingSubscriptions } from "@/lib/subscription-billing";
 
 export const dynamic = "force-dynamic";
 
@@ -29,13 +30,20 @@ export default async function SuperAdminPage({ searchParams }: Props) {
           auth: { autoRefreshToken: false, persistSession: false },
         })
       : supabase;
-  const query = dataClient
+  const { data: restaurants } = await dataClient
     .from("restaurants")
     .select("id, name, slug, phone, business_type, is_active, show_on_home, browse_sections, created_at")
     .order("created_at", { ascending: false });
 
+  if (restaurants?.length) {
+    try {
+      await backfillMissingSubscriptions(dataClient, restaurants);
+    } catch {
+      // Dashboard still loads if backfill fails (e.g. plans table missing).
+    }
+  }
+
   const [
-    { data: restaurants },
     { data: categories },
     { data: items },
     { data: admins },
@@ -46,7 +54,6 @@ export default async function SuperAdminPage({ searchParams }: Props) {
     { data: addons },
   ] =
     await Promise.all([
-      query,
       dataClient.from("categories").select("id, restaurant_id"),
       dataClient.from("menu_items").select("id, restaurant_id"),
       dataClient
