@@ -269,7 +269,14 @@ export default async function SuperAdminPage({ searchParams }: Props) {
         )}
         {success === "subscription_renewed" && (
           <p className="rounded-xl border border-violet-200 bg-violet-50 p-3 text-sm font-medium text-violet-700">
-            Subscription renewed successfully.
+            Subscription renewed. The restaurant received a confirmation email with the service
+            agreement PDF attached.
+          </p>
+        )}
+        {success === "subscription_renewed_email_failed" && (
+          <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-medium text-amber-700">
+            Subscription was extended, but the renewal email could not be sent. Check SMTP settings
+            and try again, or share the contract manually.
           </p>
         )}
         {success === "invoice_created" && (

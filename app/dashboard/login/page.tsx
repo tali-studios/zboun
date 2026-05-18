@@ -68,6 +68,15 @@ export default async function LoginPage({ searchParams }: Props) {
             <code className="font-mono">public.users</code>.
           </div>
         )}
+        {error === "account_deactivated" && (
+          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-sm font-medium text-amber-800">
+            Your account is deactivated because your subscription ended. Contact{" "}
+            <a href="mailto:zbounlb@outlook.com" className="underline">
+              zbounlb@outlook.com
+            </a>{" "}
+            to renew your contract and restore access.
+          </div>
+        )}
 
         {/* Fields */}
         <div className="mt-5 space-y-3">

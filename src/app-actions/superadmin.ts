@@ -3,10 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
-import nodemailer from "nodemailer";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { getCurrentUserRole } from "@/lib/data";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createInitialSubscription, renewRestaurantSubscription, getRestaurantAdminEmail } from "@/lib/subscription-billing";
+import {
+  sendRestaurantOnboardingEmail,
+  sendSubscriptionRenewalEmail,
+} from "@/lib/subscription-emails";
 import { parseBrowseSectionsFromForm } from "@/lib/browse-sections";
 import {
   getBusinessTypeLabel,
@@ -154,6 +158,8 @@ export async function createRestaurantAction(formData: FormData) {
     );
     if (upsertError) throw upsertError;
 
+    const subscription = await createInitialSubscription(adminClient, restaurantData.id);
+
     let emailSent = false;
     try {
       await sendRestaurantOnboardingEmail({
@@ -163,6 +169,8 @@ export async function createRestaurantAction(formData: FormData) {
         publicUrl: supportsHomeBrowseCategory(businessType) ? `${appUrl}/${slug}` : null,
         dashboardUrl: `${appUrl}/dashboard/login`,
         initialPassword,
+        subscriptionEndsAt: subscription.periodEnd,
+        monthlyPrice: subscription.billingPrice,
       });
       emailSent = true;
     } catch {
@@ -222,11 +230,59 @@ export async function toggleRestaurantHomeVisibilityAction(formData: FormData) {
 
 export async function renewSubscriptionAction(formData: FormData) {
   await requireSuperAdmin();
-  const id = String(formData.get("id"));
-  const supabase = await createServerSupabaseClient();
-  await supabase.from("restaurants").update({ is_active: true }).eq("id", id);
-  revalidatePath("/dashboard/super-admin");
-  redirect("/dashboard/super-admin?success=subscription_renewed");
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) {
+    redirect("/dashboard/super-admin?error=missing_restaurant_id");
+  }
+
+  try {
+    const adminClient = getAdminClient();
+    const { data: restaurant, error: restaurantError } = await adminClient
+      .from("restaurants")
+      .select("id, name")
+      .eq("id", id)
+      .single();
+
+    if (restaurantError || !restaurant) {
+      redirect("/dashboard/super-admin?error=restaurant_not_found");
+    }
+
+    const renewal = await renewRestaurantSubscription(adminClient, id);
+    await adminClient.from("restaurants").update({ is_active: true }).eq("id", id);
+
+    const fallbackEmail = String(formData.get("admin_email") ?? "").trim().toLowerCase();
+    const adminEmail =
+      (await getRestaurantAdminEmail(adminClient, id)) ??
+      (fallbackEmail || null);
+
+    if (adminEmail) {
+      try {
+        await sendSubscriptionRenewalEmail({
+          to: adminEmail,
+          restaurantName: restaurant.name,
+          adminEmail,
+          periodStart: renewal.periodStart,
+          periodEnd: renewal.periodEnd,
+          monthlyPrice: renewal.billingPrice,
+        });
+      } catch {
+        revalidatePath("/dashboard/super-admin");
+        redirect("/dashboard/super-admin?success=subscription_renewed_email_failed");
+      }
+    } else {
+      revalidatePath("/dashboard/super-admin");
+      redirect("/dashboard/super-admin?success=subscription_renewed_email_failed");
+    }
+
+    revalidatePath("/dashboard/super-admin");
+    redirect("/dashboard/super-admin?success=subscription_renewed");
+  } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+    const message = error instanceof Error ? error.message : "renew_failed";
+    redirect(`/dashboard/super-admin?error=${encodeURIComponent(message)}`);
+  }
 }
 
 export async function updateSubscriptionStatusAction(formData: FormData) {
@@ -454,50 +510,3 @@ function getAdminClient() {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 }
-
-async function sendRestaurantOnboardingEmail(params: {
-  to: string;
-  businessName: string;
-  businessTypeLabel: string;
-  publicUrl: string | null;
-  dashboardUrl: string;
-  initialPassword: string;
-}) {
-  const smtpUser = process.env.SMTP_USER;
-  const smtpPass = process.env.SMTP_PASS;
-  const fromEmail = process.env.SMTP_FROM ?? smtpUser;
-
-  if (!smtpUser || !smtpPass || !fromEmail) {
-    return;
-  }
-
-  const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 465,
-    secure: true,
-    auth: {
-      user: smtpUser,
-      pass: smtpPass,
-    },
-  });
-
-  await transporter.sendMail({
-    from: fromEmail,
-    to: params.to,
-    subject: `Welcome to Zboun - ${params.businessName}`,
-    text: [
-      `Hello,`,
-      ``,
-      `Your ${params.businessTypeLabel} "${params.businessName}" is ready on Zboun.`,
-      ``,
-      ...(params.publicUrl ? [`Public URL: ${params.publicUrl}`] : []),
-      `Dashboard URL: ${params.dashboardUrl}`,
-      `Password: ${params.initialPassword}`,
-      ``,
-      `Use this password to sign in. The admin can change it later from the dashboard.`,
-      ``,
-      `- Zboun Team`,
-    ].join("\n"),
-  });
-}
-
