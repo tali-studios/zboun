@@ -10,6 +10,7 @@ export default async function BusinessDashboardLayout({ children }: { children: 
   if (!appUser || appUser.role !== "restaurant_admin" || !appUser.restaurant_id) {
     redirect("/dashboard/login");
   }
-  await requireActiveRestaurant(appUser.restaurant_id);
+  const restaurantId = appUser.restaurant_id;
+  await requireActiveRestaurant(restaurantId);
   return children;
 }

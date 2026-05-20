@@ -411,6 +411,9 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                   </a>
                 </>
               ) : null}
+              <a href="/dashboard/billing" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">
+                Billing
+              </a>
               <a href="/dashboard/change-password" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">
                 Password
               </a>

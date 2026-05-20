@@ -7,6 +7,7 @@ import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { getCurrentUserRole } from "@/lib/data";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createInitialSubscription, renewRestaurantSubscription, getRestaurantAdminEmail } from "@/lib/subscription-billing";
+import { deactivateRestaurantManually } from "@/lib/subscription-lifecycle";
 import {
   sendRestaurantOnboardingEmail,
   sendSubscriptionRenewalEmail,
@@ -209,10 +210,22 @@ export async function toggleRestaurantActiveAction(formData: FormData) {
   await requireSuperAdmin();
   const id = String(formData.get("id"));
   const isActive = String(formData.get("is_active")) === "true";
-  const supabase = await createServerSupabaseClient();
-  await supabase.from("restaurants").update({ is_active: !isActive }).eq("id", id);
+
+  if (isActive) {
+    try {
+      await deactivateRestaurantManually(id);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "deactivate_failed";
+      redirect(`/dashboard/super-admin?error=${encodeURIComponent(message)}`);
+    }
+  } else {
+    const supabase = await createServerSupabaseClient();
+    await supabase.from("restaurants").update({ is_active: true }).eq("id", id);
+  }
+
   revalidatePath("/dashboard/super-admin");
   revalidatePath("/");
+  revalidatePath("/dashboard/billing");
 }
 
 export async function toggleRestaurantHomeVisibilityAction(formData: FormData) {
@@ -275,6 +288,7 @@ export async function renewSubscriptionAction(formData: FormData) {
     }
 
     revalidatePath("/dashboard/super-admin");
+    revalidatePath("/dashboard/billing");
     redirect("/dashboard/super-admin?success=subscription_renewed");
   } catch (error) {
     if (isRedirectError(error)) {

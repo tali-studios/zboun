@@ -6,10 +6,11 @@ import {
   getRestaurantAdminEmail,
   type SubscriptionReminderKind,
 } from "@/lib/subscription-billing";
+import { sendSubscriptionExpiryReminderEmail } from "@/lib/subscription-emails";
 import {
-  sendSubscriptionExpiryReminderEmail,
-  sendSubscriptionDeactivatedEmail,
-} from "@/lib/subscription-emails";
+  deactivateRestaurantForSubscription,
+  revalidateRestaurantPublicCaches,
+} from "@/lib/subscription-lifecycle";
 
 function addUtcDays(date: Date, days: number) {
   const next = new Date(date);
@@ -222,62 +223,26 @@ export async function runExpiredSubscriptionDeactivations(
       continue;
     }
 
-    const adminEmail = await getRestaurantAdminEmail(supabase, restaurantId);
-
     try {
-      const { error: restaurantError } = await supabase
-        .from("restaurants")
-        .update({ is_active: false })
-        .eq("id", restaurantId);
+      const outcome = await deactivateRestaurantForSubscription(supabase, {
+        restaurantId,
+        subscriptionId,
+        restaurantName,
+        dueAt,
+        billingPrice: Number(row.billing_cycle_price ?? 20),
+        reason: "expired",
+        sendEmail: !alreadyHandled,
+        subscriptionStatus: "overdue",
+      });
 
-      if (restaurantError) {
-        result.errors.push(`Restaurant ${restaurantId}: ${restaurantError.message}`);
-        continue;
-      }
-
-      const { error: subError } = await supabase
-        .from("restaurant_subscriptions")
-        .update({
-          status: "overdue",
-          ended_at: dueAt.toISOString(),
-          updated_at: nowIso,
-        })
-        .eq("id", subscriptionId);
-
-      if (subError) {
-        result.errors.push(`Subscription ${subscriptionId}: ${subError.message}`);
-        continue;
-      }
-
-      result.deactivated += 1;
-
-      if (!alreadyHandled) {
-        if (!adminEmail) {
-          result.errors.push(`Deactivated ${restaurantId} but no admin email for notice`);
-        } else {
-          try {
-            await sendSubscriptionDeactivatedEmail({
-              restaurantName,
-              adminEmail,
-              expiredAt: dueAt,
-              monthlyPrice: Number(row.billing_cycle_price ?? 20),
-            });
-            result.emailsSent += 1;
-          } catch (err) {
-            const message = err instanceof Error ? err.message : "unknown_error";
-            result.errors.push(`Deactivation email failed for ${subscriptionId}: ${message}`);
-          }
+      if (outcome.deactivated) {
+        result.deactivated += 1;
+        if (outcome.emailSent) result.emailsSent += 1;
+        if (!alreadyHandled && !outcome.emailSent) {
+          result.errors.push(`Deactivated ${restaurantId} but deactivation email was not sent`);
         }
-
-        const { error: logError } = await logReminder(
-          supabase,
-          subscriptionId,
-          "expired_deactivated",
-          dueDate,
-        );
-        if (logError) {
-          result.errors.push(`Deactivation log failed for ${subscriptionId}: ${logError.message}`);
-        }
+      } else if (outcome.error) {
+        result.errors.push(`Subscription ${subscriptionId}: ${outcome.error}`);
       } else {
         result.skipped += 1;
       }
@@ -285,6 +250,10 @@ export async function runExpiredSubscriptionDeactivations(
       const message = err instanceof Error ? err.message : "unknown_error";
       result.errors.push(`Subscription ${subscriptionId}: ${message}`);
     }
+  }
+
+  if (result.deactivated > 0) {
+    revalidateRestaurantPublicCaches();
   }
 
   return result;

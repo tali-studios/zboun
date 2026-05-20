@@ -1,6 +1,58 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ZBOUN_PRICING } from "@/lib/pricing";
 
+function toPeriodDate(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+/** Idempotent invoice for a subscription billing period. */
+export async function createSubscriptionPeriodInvoice(
+  supabase: SupabaseClient,
+  params: {
+    restaurantId: string;
+    subscriptionId: string;
+    periodStart: Date;
+    periodEnd: Date;
+    amountDue: number;
+    notes?: string;
+  },
+) {
+  const periodStart = toPeriodDate(params.periodStart);
+  const periodEnd = toPeriodDate(params.periodEnd);
+
+  const { data: existing } = await supabase
+    .from("invoices")
+    .select("id")
+    .eq("subscription_id", params.subscriptionId)
+    .eq("period_start", periodStart)
+    .eq("period_end", periodEnd)
+    .maybeSingle();
+
+  if (existing?.id) return { invoiceId: existing.id as string, created: false as const };
+
+  const { data, error } = await supabase
+    .from("invoices")
+    .insert({
+      restaurant_id: params.restaurantId,
+      subscription_id: params.subscriptionId,
+      period_start: periodStart,
+      period_end: periodEnd,
+      amount_due: params.amountDue,
+      amount_paid: 0,
+      status: "unpaid",
+      due_at: params.periodEnd.toISOString(),
+      notes: params.notes ?? "Subscription period invoice (auto-generated).",
+    })
+    .select("id")
+    .single();
+
+  if (error || !data) {
+    throw new Error(error?.message ?? "Could not create subscription invoice.");
+  }
+
+  return { invoiceId: data.id as string, created: true as const };
+}
+
 export const SUBSCRIPTION_PERIOD_MONTHS = 1;
 export const REMINDER_DAYS_BEFORE_DUE = 10;
 export const REMINDER_DAYS_FINAL = 3;
@@ -83,10 +135,22 @@ export async function createInitialSubscription(
     throw new Error(error?.message ?? "Could not create subscription.");
   }
 
+  const subscriptionId = data.id as string;
+  const billingPrice = Number(data.billing_cycle_price);
+
+  await createSubscriptionPeriodInvoice(supabase, {
+    restaurantId,
+    subscriptionId,
+    periodStart: startAt,
+    periodEnd: nextDueAt,
+    amountDue: billingPrice,
+    notes: "Initial subscription period invoice.",
+  });
+
   return {
-    subscriptionId: data.id as string,
+    subscriptionId,
     nextDueAt: new Date(data.next_due_at as string),
-    billingPrice: Number(data.billing_cycle_price),
+    billingPrice,
     periodStart: startAt,
     periodEnd: nextDueAt,
   };
@@ -138,10 +202,21 @@ export async function renewRestaurantSubscription(
     throw new Error(error.message);
   }
 
+  const billingPrice = Number(existing.billing_cycle_price ?? ZBOUN_PRICING.monthly);
+
+  await createSubscriptionPeriodInvoice(supabase, {
+    restaurantId,
+    subscriptionId: existing.id as string,
+    periodStart,
+    periodEnd: nextDueAt,
+    amountDue: billingPrice,
+    notes: "Renewed subscription period invoice.",
+  });
+
   return {
     subscriptionId: existing.id as string,
     nextDueAt,
-    billingPrice: Number(existing.billing_cycle_price ?? ZBOUN_PRICING.monthly),
+    billingPrice,
     periodStart,
     periodEnd: nextDueAt,
     renewed: true as const,

@@ -1,4 +1,4 @@
-/** Public subscription pricing (display only — billing not wired in MVP). */
+/** Public subscription pricing (USD). Billing is managed via super admin + invoices. */
 export const ZBOUN_PRICING = {
   currency: "USD",
   symbol: "$",

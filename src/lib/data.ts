@@ -2,6 +2,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { env } from "@/lib/env";
 import { unstable_cache } from "next/cache";
+import { enforceSubscriptionExpiryForRestaurant } from "@/lib/subscription-lifecycle";
 
 type RatingAgg = { avgRating: number; ratingCount: number };
 
@@ -93,6 +94,16 @@ export async function getRestaurantBySlug(slug: string): Promise<RestaurantForMe
   }
 
   if (!row) return null;
+
+  await enforceSubscriptionExpiryForRestaurant(row.id);
+  const { data: statusRow } = await supabase
+    .from("restaurants")
+    .select("is_active")
+    .eq("id", row.id)
+    .maybeSingle();
+  if (statusRow) {
+    row.is_active = statusRow.is_active;
+  }
 
   const stats = await loadRatingStatsMap(supabase, [row.id]);
   const agg = stats.get(row.id);
