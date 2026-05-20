@@ -145,4 +145,4 @@ curl.exe "http://localhost:3000/api/cron/subscription-reminders?secret=YOUR_CRON
 - [ ] `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`
 - [ ] `CRON_SECRET` (same on Vercel)
 - [ ] `ZBOUN_OPS_EMAIL=zbounlb@outlook.com`
-- [ ] Vercel cron enabled (`vercel.json` hourly)
+- [ ] Vercel cron enabled (`vercel.json` — once daily; Hobby cannot use hourly)
