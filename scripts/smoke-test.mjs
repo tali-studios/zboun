@@ -110,7 +110,9 @@ async function testPublicPages(slug) {
   }
   if (slug) {
     const res = await fetchStatus(`/${slug}`);
-    expectStatus(`/${slug} (menu)`, res, [200, 404]);
+    expectStatus(`/${slug} (order menu)`, res, [200, 404]);
+    const resView = await fetchStatus(`/${slug}/menu`);
+    expectStatus(`/${slug}/menu (in-store)`, resView, [200, 404]);
     if (res.status === 404) {
       skip("Menu slug", `slug "${slug}" not found or inactive`);
     }

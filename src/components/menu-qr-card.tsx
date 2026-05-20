@@ -6,12 +6,26 @@ import QRCode from "qrcode";
 type Props = {
   menuUrl: string;
   restaurantName: string;
+  title: string;
+  description: string;
+  /** Filename suffix, e.g. "menu-qr" or "in-store-menu-qr" */
+  downloadSuffix?: string;
+  variant?: "order" | "in-store";
 };
 
-export function MenuQrCard({ menuUrl, restaurantName }: Props) {
+export function MenuQrCard({
+  menuUrl,
+  restaurantName,
+  title,
+  description,
+  downloadSuffix = "menu-qr",
+  variant = "order",
+}: Props) {
   const [qrDataUrl, setQrDataUrl] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const isInStore = variant === "in-store";
 
   async function generateQr() {
     try {
@@ -42,16 +56,31 @@ export function MenuQrCard({ menuUrl, restaurantName }: Props) {
     if (!qrDataUrl) return;
     const link = document.createElement("a");
     link.href = qrDataUrl;
-    link.download = `${restaurantName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-menu-qr.png`;
+    link.download = `${restaurantName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${downloadSuffix}.png`;
     link.click();
   }
 
   return (
-    <section className="panel mx-auto max-w-xl rounded-3xl p-6">
-      <h2 className="text-xl font-bold text-slate-900">Menu QR code</h2>
-      <p className="mt-1 text-sm text-slate-600">
-        Customers can scan this QR code to open your menu instantly.
-      </p>
+    <section
+      className={`panel rounded-3xl p-6 ${
+        isInStore ? "ring-2 ring-violet-100" : ""
+      }`}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <h2 className="text-xl font-bold text-slate-900">{title}</h2>
+          <p className="mt-1 text-sm text-slate-600">{description}</p>
+        </div>
+        <span
+          className={`rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wide ${
+            isInStore
+              ? "bg-violet-100 text-violet-800"
+              : "bg-emerald-100 text-emerald-800"
+          }`}
+        >
+          {isInStore ? "In-store" : "Online order"}
+        </span>
+      </div>
 
       <div className="mt-5 flex justify-center">
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -64,7 +93,7 @@ export function MenuQrCard({ menuUrl, restaurantName }: Props) {
               {error}
             </div>
           ) : (
-            <img src={qrDataUrl} alt="Menu QR code" className="h-64 w-64 rounded-lg object-contain" />
+            <img src={qrDataUrl} alt={title} className="h-64 w-64 rounded-lg object-contain" />
           )}
         </div>
       </div>
@@ -72,9 +101,6 @@ export function MenuQrCard({ menuUrl, restaurantName }: Props) {
       <div className="mt-5 space-y-2">
         <p className="rounded-xl bg-slate-50 p-3 text-xs text-slate-700 break-all">{menuUrl}</p>
         <div className="flex flex-wrap gap-2">
-          {/* <button type="button" onClick={generateQr} className="btn btn-secondary">
-            Regenerate
-          </button> */}
           <button
             type="button"
             onClick={downloadQr}

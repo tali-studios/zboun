@@ -40,6 +40,8 @@ The script checks:
 | 4 | Open `/contact` | Email tab → mailto zbounlb@outlook.com; WhatsApp tab → opens chat |
 | 4b | `/dashboard/billing` | Email + WhatsApp contact buttons visible |
 | 5 | Open `/{slug}` active restaurant | Menu, categories, add to cart |
+| 5b | Open `/{slug}/menu` | Same design, no + buttons or cart |
+| 5c | `/dashboard/business/qr` | Two QRs: online order + in-restaurant |
 | 6 | Open `/{slug}` inactive restaurant | 404 |
 | 7 | WhatsApp order button | Pre-filled message with items |
 | 8 | Rate restaurant (if shown) | Rating saves |

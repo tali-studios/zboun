@@ -10,6 +10,8 @@ const BRAND = BRAND_HEX;
 const WHATSAPP_GREEN = "#25D366";
 
 type Props = {
+  /** In-restaurant QR: browse items and prices only (no cart / WhatsApp order). */
+  viewOnly?: boolean;
   restaurantName: string;
   restaurantPhone: string;
   restaurantId: string;
@@ -42,6 +44,7 @@ type CustomizationState = {
 };
 
 export function MenuClient({
+  viewOnly = false,
   restaurantName,
   restaurantPhone,
   restaurantId,
@@ -414,10 +417,14 @@ export function MenuClient({
   return (
     <>
       <div
-        className={`grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_360px] ${
-          items.length > 0
-            ? "pb-[calc(10.5rem+env(safe-area-inset-bottom,0px)+1rem)] lg:pb-0"
-            : "pb-[calc(3rem+env(safe-area-inset-bottom,0px))] lg:pb-0"
+        className={`grid min-w-0 gap-4 ${
+          viewOnly ? "" : "lg:grid-cols-[minmax(0,1fr)_360px]"
+        } ${
+          viewOnly
+            ? "pb-[calc(2rem+env(safe-area-inset-bottom,0px))]"
+            : items.length > 0
+              ? "pb-[calc(10.5rem+env(safe-area-inset-bottom,0px)+1rem)] lg:pb-0"
+              : "pb-[calc(3rem+env(safe-area-inset-bottom,0px))] lg:pb-0"
         }`}
       >
         {/* ── Menu items column ──────────────────────────────────────── */}
@@ -516,7 +523,9 @@ export function MenuClient({
                     </div>
 
                     {/* Info */}
-                    <div className="flex min-h-[88px] min-w-0 flex-1 flex-col pr-12">
+                    <div
+                      className={`flex min-h-[88px] min-w-0 flex-1 flex-col ${viewOnly ? "" : "pr-12"}`}
+                    >
                       <h3 className="text-[15px] font-bold leading-snug text-slate-900 sm:text-base">
                         {item.name}
                         {!item.is_available ? (
@@ -541,34 +550,46 @@ export function MenuClient({
                       </div>
                     </div>
 
-                    {/* Add button */}
-                    <button
-                      disabled={!item.is_available}
-                      onClick={() => openCustomization(item)}
-                      className="absolute bottom-3 right-3 flex h-10 w-10 items-center justify-center rounded-full text-xl font-light leading-none text-white shadow-md shadow-violet-500/35 transition hover:brightness-110 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
-                      style={{ backgroundColor: item.is_available ? BRAND : undefined }}
-                      aria-label={item.is_available ? `Add ${item.name}` : `${item.name} unavailable`}
-                    >
-                      +
-                    </button>
+                    {!viewOnly ? (
+                      <button
+                        disabled={!item.is_available}
+                        onClick={() => openCustomization(item)}
+                        className="absolute bottom-3 right-3 flex h-10 w-10 items-center justify-center rounded-full text-xl font-light leading-none text-white shadow-md shadow-violet-500/35 transition hover:brightness-110 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
+                        style={{ backgroundColor: item.is_available ? BRAND : undefined }}
+                        aria-label={item.is_available ? `Add ${item.name}` : `${item.name} unavailable`}
+                      >
+                        +
+                      </button>
+                    ) : null}
                   </article>
                 ))}
               </div>
             </div>
           ))}
+
+          {viewOnly ? (
+            <MenuRestaurantRating
+              variant="cart"
+              restaurantId={restaurantId}
+              slug={restaurantSlug}
+              avgRating={avgRating}
+              ratingCount={ratingCount}
+            />
+          ) : null}
         </section>
 
-        {/* ── Desktop cart sidebar ───────────────────────────────────── */}
-        <aside
-          className="hidden h-fit rounded-2xl border border-slate-200/80 bg-white p-5 shadow-md lg:block lg:sticky lg:top-6"
-          style={{ boxShadow: "0 8px 30px rgba(120, 84, 255, 0.12)" }}
-        >
-          {renderCartPanel({})}
-        </aside>
+        {!viewOnly ? (
+          <aside
+            className="hidden h-fit rounded-2xl border border-slate-200/80 bg-white p-5 shadow-md lg:block lg:sticky lg:top-6"
+            style={{ boxShadow: "0 8px 30px rgba(120, 84, 255, 0.12)" }}
+          >
+            {renderCartPanel({})}
+          </aside>
+        ) : null}
       </div>
 
       {/* ── Mobile cart — purple card (tap → cart sheet) ───── */}
-      {items.length > 0 ? (
+      {!viewOnly && items.length > 0 ? (
         <div className="fixed bottom-0 left-0 right-0 z-30 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-2 lg:hidden">
           <div className="container mx-auto min-w-0 max-w-full px-3 sm:px-6">
             <button
@@ -619,7 +640,7 @@ export function MenuClient({
       ) : null}
 
       {/* ── Mobile cart sheet ──────────────────────────────────────────── */}
-      {showMobileCart ? (
+      {!viewOnly && showMobileCart ? (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div
             className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
@@ -632,7 +653,7 @@ export function MenuClient({
       ) : null}
 
       {/* ── Customization modal ────────────────────────────────────────── */}
-      {customizing ? (
+      {!viewOnly && customizing ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/50 backdrop-blur-sm p-0 sm:items-center sm:p-4">
           <div className="w-full max-h-[95dvh] overflow-y-auto rounded-t-3xl bg-white px-5 pb-6 pt-5 shadow-2xl sm:max-h-[90vh] sm:max-w-xl sm:rounded-3xl sm:px-6 sm:pb-6 sm:pt-5">
             {/* Header */}
