@@ -2,8 +2,7 @@
 
 import { useCallback, useState } from "react";
 
-/** Business WhatsApp (digits only, no +). */
-const ZBOUN_WHATSAPP_DIGITS = "96171212734";
+import { ZBOUN_WHATSAPP_DIGITS } from "@/lib/zboun-contact";
 
 function buildMessage(name: string, phone: string, message: string) {
   const lines = [

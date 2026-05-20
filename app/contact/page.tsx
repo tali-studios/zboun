@@ -1,4 +1,4 @@
-import { ContactWhatsAppForm } from "@/components/contact-whatsapp-form";
+import { ZbounContactOptions } from "@/components/zboun-contact-options";
 import { SiteFooter } from "@/components/site-footer";
 
 export default function ContactPage() {
@@ -13,13 +13,13 @@ export default function ContactPage() {
               Contact us
             </h1>
             <p className="mt-3 text-sm leading-relaxed text-slate-500">
-              Tell us about your restaurant and we&apos;ll get your ordering page live quickly.
+              Reach us by email or WhatsApp — we&apos;ll get your ordering page live quickly.
             </p>
           </div>
 
           {/* Form card */}
           <div className="rounded-3xl border border-slate-100 bg-white p-7 shadow-[0_12px_40px_rgba(120,84,255,0.1)] sm:p-8">
-            <ContactWhatsAppForm />
+            <ZbounContactOptions variant="page" />
           </div>
         </div>
       </main>

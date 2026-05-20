@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ZbounContactOptions } from "@/components/zboun-contact-options";
 import {
   formatNextDueLine,
   formatSubscriptionStatus,
@@ -60,6 +61,8 @@ export function BusinessBillingPanel({
         </div>
       </header>
 
+      <ZbounContactOptions variant="billing" restaurantName={restaurantName} />
+
       <section className="panel rounded-2xl p-5">
         <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">Account status</h2>
         <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -83,11 +86,8 @@ export function BusinessBillingPanel({
         </div>
         {!isActive ? (
           <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-            Your account is deactivated. Email{" "}
-            <a href={`mailto:${opsEmail}`} className="font-semibold underline">
-              {opsEmail}
-            </a>{" "}
-            to renew your subscription and restore access.
+            Your account is deactivated. Use the contact options above (email or WhatsApp) to renew
+            and restore access.
           </p>
         ) : null}
       </section>
@@ -132,7 +132,8 @@ export function BusinessBillingPanel({
         </section>
       ) : (
         <section className="panel rounded-2xl p-5 text-sm text-slate-600">
-          No subscription record is linked to this account yet. Contact {opsEmail} if this looks wrong.
+          No subscription record is linked to this account yet. Contact us by email or WhatsApp if this
+          looks wrong.
         </section>
       )}
 
@@ -174,11 +175,8 @@ export function BusinessBillingPanel({
           </table>
         )}
         <p className="mt-4 text-xs text-slate-500">
-          Payments are recorded by Zboun after renewal. To pay or renew, email{" "}
-          <a href={`mailto:${opsEmail}`} className="text-violet-700 underline">
-            {opsEmail}
-          </a>
-          .
+          Payments are recorded by Zboun after renewal. To pay or renew, contact us by email or
+          WhatsApp using the section above.
         </p>
       </section>
     </div>

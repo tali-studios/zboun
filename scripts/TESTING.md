@@ -37,7 +37,8 @@ The script checks:
 | 1 | Open `/` | Home loads, restaurant cards (if any active + show on home) |
 | 2 | Search/filter on home | Filters work |
 | 3 | Open `/for-restaurants` | Pricing ($20/mo) visible |
-| 4 | Open `/contact` | WhatsApp contact form opens chat |
+| 4 | Open `/contact` | Email tab → mailto zbounlb@outlook.com; WhatsApp tab → opens chat |
+| 4b | `/dashboard/billing` | Email + WhatsApp contact buttons visible |
 | 5 | Open `/{slug}` active restaurant | Menu, categories, add to cart |
 | 6 | Open `/{slug}` inactive restaurant | 404 |
 | 7 | WhatsApp order button | Pre-filled message with items |
