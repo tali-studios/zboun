@@ -1,5 +1,21 @@
 # Zboun testing guide
 
+## Full QA (manual) — for QA team
+
+**→ See [`scripts/QA-TEAM-GUIDE.md`](./QA-TEAM-GUIDE.md)** — detailed step-by-step test cases (TC-101+), every feature, sign-off sheet, bug template.
+
+Short index: [`scripts/QA-PLAYBOOK.md`](./QA-PLAYBOOK.md)
+
+Optional fast menu data (after restaurant exists):
+
+```bash
+npm run qa:seed-menu -- --slug your-slug-here
+```
+
+Run automated checks first: `npm run test:qa` (same as smoke test).
+
+---
+
 ## Automated smoke test (start here)
 
 ```bash

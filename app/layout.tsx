@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     template: "%s | Zboun",
   },
   description:
-    "Browse restaurant digital menus and send clear orders on WhatsApp. For restaurants: menu page, QR codes, flyer tools, and dashboard from $25/month — no commission on orders.",
+    "Browse restaurant digital menus and send clear orders on WhatsApp. For restaurants: menu page, QR codes, flyer tools, and dashboard from $20/month — no commission on orders.",
   applicationName: "Zboun",
   keywords: [
     "WhatsApp food order",
@@ -54,13 +54,13 @@ export const metadata: Metadata = {
     siteName: "Zboun",
     title: "Zboun — Restaurant menus & WhatsApp orders",
     description:
-      "Browse menus and order on WhatsApp. Restaurant tools: digital menu, QR, dashboard — $25/month.",
+      "Browse menus and order on WhatsApp. Restaurant tools: digital menu, QR, dashboard — $20/month.",
   },
   twitter: {
     card: "summary_large_image",
     title: "Zboun — Restaurant menus & WhatsApp orders",
     description:
-      "Browse menus and order on WhatsApp. Digital menus for restaurants from $25/month.",
+      "Browse menus and order on WhatsApp. Digital menus for restaurants from $20/month.",
   },
   robots: {
     index: true,

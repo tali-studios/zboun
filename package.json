@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "seed:superadmin": "node scripts/seed-superadmin.mjs",
-    "test:smoke": "node scripts/smoke-test.mjs"
+    "test:smoke": "node scripts/smoke-test.mjs",
+    "test:qa": "node scripts/smoke-test.mjs",
+    "qa:seed-menu": "node scripts/qa-seed-menu.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",
