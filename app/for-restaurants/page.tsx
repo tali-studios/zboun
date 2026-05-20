@@ -101,7 +101,7 @@ export default function ForRestaurantsPage() {
           </div>
         </section>
 
-        {/* ── How it works ───────────────────────────────────────────────────*/}
+        {/* ── How it works ─────────────────────────────────────────────────── */}
         <section className="border-y border-slate-100 bg-white py-12 md:py-16">
           <div className="container">
             <div className="mx-auto max-w-lg text-center">
