@@ -181,3 +181,35 @@ export async function getRestaurantOrders(restaurantId: string): Promise<OrderRo
 
   return (data ?? []) as OrderRow[];
 }
+
+export type CustomerOrderRow = OrderRow & {
+  restaurant_name: string;
+  restaurant_slug: string;
+};
+
+export async function getCustomerOrders(): Promise<CustomerOrderRow[]> {
+  const supabase = await createServerSupabaseClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data } = await supabase
+    .from("orders")
+    .select(
+      "id, customer_name, customer_phone, delivery_address, delivery_lat, delivery_lng, items, notes, total_usd, status, whatsapp_sent, created_at, updated_at, restaurants(name, slug)",
+    )
+    .eq("customer_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  return ((data ?? []) as unknown[]).map((row) => {
+    const r = row as Record<string, unknown>;
+    const rest = r.restaurants as { name: string; slug: string } | null;
+    return {
+      ...(r as unknown as OrderRow),
+      restaurant_name: rest?.name ?? "Restaurant",
+      restaurant_slug: rest?.slug ?? "",
+    };
+  });
+}

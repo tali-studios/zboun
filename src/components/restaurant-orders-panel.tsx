@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient as createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { updateOrderStatusAction, type OrderRow } from "@/app-actions/orders";
@@ -87,11 +87,13 @@ type Props = {
 export function RestaurantOrdersPanel({ initialOrders, restaurantId }: Props) {
   const router = useRouter();
   const [orders, setOrders] = useState<OrderRow[]>(initialOrders);
+  const ordersRef = useRef<OrderRow[]>(initialOrders);
   const [selectedId, setSelectedId] = useState<string | null>(
     initialOrders.find((o) => o.status === "pending")?.id ?? initialOrders[0]?.id ?? null,
   );
   const [statusFilter, setStatusFilter] = useState<string>("active");
-  const [updating, startUpdate] = useTransition();
+  const [updatingKey, setUpdatingKey] = useState<string | null>(null);
+  const [updateError, setUpdateError] = useState<string | null>(null);
   const [newOrderIds, setNewOrderIds] = useState<Set<string>>(new Set());
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -116,7 +118,11 @@ export function RestaurantOrdersPanel({ initialOrders, restaurantId }: Props) {
         (payload) => {
           if (payload.eventType === "INSERT") {
             const newOrder = payload.new as OrderRow;
-            setOrders((prev) => [newOrder, ...prev]);
+            setOrders((prev) => {
+              const next = [newOrder, ...prev];
+              ordersRef.current = next;
+              return next;
+            });
             setNewOrderIds((prev) => new Set([...prev, newOrder.id]));
             // Clear highlight after 10s
             setTimeout(() => {
@@ -146,14 +152,35 @@ export function RestaurantOrdersPanel({ initialOrders, restaurantId }: Props) {
     };
   }, [restaurantId]);
 
-  function handleStatusUpdate(orderId: string, status: string) {
-    startUpdate(async () => {
-      await updateOrderStatusAction({
-        orderId,
-        status: status as Parameters<typeof updateOrderStatusAction>[0]["status"],
-      });
-      router.refresh();
+  async function handleStatusUpdate(orderId: string, status: string) {
+    const key = `${orderId}:${status}`;
+    setUpdatingKey(key);
+    setUpdateError(null);
+
+    // Snapshot current state for potential revert
+    const snapshot = ordersRef.current;
+
+    // Optimistic update — show change immediately
+    const updated = snapshot.map((o) =>
+      o.id === orderId ? { ...o, status, updated_at: new Date().toISOString() } : o,
+    );
+    ordersRef.current = updated;
+    setOrders(updated);
+
+    const result = await updateOrderStatusAction({
+      orderId,
+      status: status as Parameters<typeof updateOrderStatusAction>[0]["status"],
     });
+
+    if (!result.ok) {
+      // Revert on failure
+      ordersRef.current = snapshot;
+      setOrders(snapshot);
+      setUpdateError(result.error ?? "Failed to update status");
+    } else {
+      router.refresh();
+    }
+    setUpdatingKey(null);
   }
 
   const filteredOrders = orders.filter((o) => {
@@ -407,22 +434,36 @@ export function RestaurantOrdersPanel({ initialOrders, restaurantId }: Props) {
             {STATUS_TRANSITIONS[selected.status]?.length ? (
               <div>
                 <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-400">Update Status</p>
+                {updateError ? (
+                  <p className="mb-2 rounded-xl bg-red-50 px-3 py-2 text-xs font-medium text-red-600">{updateError}</p>
+                ) : null}
                 <div className="flex flex-wrap gap-2">
-                  {STATUS_TRANSITIONS[selected.status].map((nextStatus) => (
-                    <button
-                      key={nextStatus}
-                      type="button"
-                      disabled={updating}
-                      onClick={() => handleStatusUpdate(selected.id, nextStatus)}
-                      className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:opacity-50 ${
-                        nextStatus === "cancelled"
-                          ? "border border-red-200 bg-red-50 text-red-600 hover:bg-red-100"
-                          : "bg-violet-600 text-white shadow-sm shadow-violet-400/30 hover:bg-violet-700"
-                      }`}
-                    >
-                      {updating ? "…" : STATUS_TRANSITION_LABELS[nextStatus] ?? nextStatus}
-                    </button>
-                  ))}
+                  {STATUS_TRANSITIONS[selected.status].map((nextStatus) => {
+                    const key = `${selected.id}:${nextStatus}`;
+                    const isThisUpdating = updatingKey === key;
+                    const anyUpdating = updatingKey !== null;
+                    return (
+                      <button
+                        key={nextStatus}
+                        type="button"
+                        disabled={anyUpdating}
+                        onClick={() => void handleStatusUpdate(selected.id, nextStatus)}
+                        className={`inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                          nextStatus === "cancelled"
+                            ? "border border-red-200 bg-red-50 text-red-600 hover:bg-red-100"
+                            : "bg-violet-600 text-white shadow-sm shadow-violet-400/30 hover:bg-violet-700 active:scale-[0.98]"
+                        }`}
+                      >
+                        {isThisUpdating ? (
+                          <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} aria-hidden>
+                            <circle cx="12" cy="12" r="10" strokeOpacity={0.25} />
+                            <path d="M12 2a10 10 0 0 1 10 10" />
+                          </svg>
+                        ) : null}
+                        {STATUS_TRANSITION_LABELS[nextStatus] ?? nextStatus}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             ) : null}

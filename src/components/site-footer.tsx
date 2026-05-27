@@ -82,23 +82,6 @@ export async function SiteFooter() {
                     Contact
                   </Link>
                 </li>
-                {user ? (
-                  <li className="pt-2">
-                    <form action={isRestaurantOrAdmin ? signOutAction : customerSignOutAction}>
-                      <button
-                        type="submit"
-                        className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-4 py-2 text-[13px] font-semibold text-red-600 transition hover:bg-red-100 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
-                      >
-                        <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                          <polyline points="16 17 21 12 16 7" />
-                          <line x1="21" y1="12" x2="9" y2="12" />
-                        </svg>
-                        Sign out
-                      </button>
-                    </form>
-                  </li>
-                ) : null}
               </ul>
             </nav>
             <nav aria-label="For restaurants">
@@ -138,6 +121,21 @@ export async function SiteFooter() {
             <p className="mt-2.5 text-center text-xs leading-relaxed text-slate-500 lg:text-left">
               Quick support &amp; onboarding
             </p>
+            {user ? (
+              <form action={isRestaurantOrAdmin ? signOutAction : customerSignOutAction} className="mt-3">
+                <button
+                  type="submit"
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-5 py-3.5 text-sm font-semibold text-red-600 transition hover:bg-red-100 hover:border-red-300 active:scale-[0.99] sm:py-4"
+                >
+                  <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                  </svg>
+                  Sign out
+                </button>
+              </form>
+            ) : null}
           </div>
         </div>
 

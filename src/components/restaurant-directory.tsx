@@ -225,12 +225,23 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
                 <X className="h-4 w-4" />
               </button>
             ) : null}
+            {isLoggedIn ? (
+              <Link
+                href="/account/orders"
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-violet-600 text-white shadow-sm shadow-violet-400/30 transition hover:bg-violet-700"
+                aria-label="My orders"
+              >
+                <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+              </Link>
+            ) : null}
             <Link
               href={isLoggedIn ? "/account" : "/login"}
               className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200"
               aria-label="Account"
             >
-              <Bell className="h-4.5 w-4.5 h-[18px] w-[18px]" strokeWidth={2} />
+              <Bell className="h-[18px] w-[18px]" strokeWidth={2} />
             </Link>
           </div>
         </div>
@@ -265,12 +276,27 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
       <section className="container pb-10 pt-4 md:pt-6" style={{ color: PAGE.ink }}>
         {/* Desktop header — hidden on mobile (mobile has sticky header above) */}
         <header className="mb-6 hidden md:block md:mb-8">
-          <h1 className="max-w-3xl text-3xl font-bold leading-[1.15] tracking-tight sm:text-4xl md:text-5xl">
-            Every menu, one tap away.
-          </h1>
-          <p className="mt-4 max-w-xl text-base leading-relaxed md:text-lg" style={{ color: PAGE.muted }}>
-            Discover restaurants, browse clean menus, and send your order straight to WhatsApp.
-          </p>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h1 className="max-w-3xl text-3xl font-bold leading-[1.15] tracking-tight sm:text-4xl md:text-5xl">
+                Every menu, one tap away.
+              </h1>
+              <p className="mt-4 max-w-xl text-base leading-relaxed md:text-lg" style={{ color: PAGE.muted }}>
+                Discover restaurants, browse clean menus, and place your order online.
+              </p>
+            </div>
+            {isLoggedIn ? (
+              <Link
+                href="/account/orders"
+                className="inline-flex shrink-0 items-center gap-2 rounded-full bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-violet-400/30 transition hover:bg-violet-700"
+              >
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+                My Orders
+              </Link>
+            ) : null}
+          </div>
         </header>
 
         {/* ── Desktop: delivery location bar ── */}
