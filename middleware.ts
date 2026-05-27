@@ -2,8 +2,6 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { AUTH_COOKIE_OPTIONS } from "@/lib/supabase/session";
 
-const PUBLIC_AUTH_PATHS = new Set(["/login", "/signup"]);
-
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
   const { pathname } = request.nextUrl;
@@ -53,14 +51,6 @@ export async function middleware(request: NextRequest) {
     loginUrl.pathname = "/login";
     loginUrl.searchParams.set("next", "/");
     return NextResponse.redirect(loginUrl);
-  }
-
-  // Already signed in — skip login/signup screens
-  if (user && PUBLIC_AUTH_PATHS.has(pathname)) {
-    const homeUrl = request.nextUrl.clone();
-    homeUrl.pathname = "/";
-    homeUrl.search = "";
-    return NextResponse.redirect(homeUrl);
   }
 
   return response;

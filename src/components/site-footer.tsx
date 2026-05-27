@@ -1,8 +1,25 @@
 import Image from "next/image";
 import Link from "next/link";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { customerSignOutAction } from "@/app-actions/customer-auth";
+import { signOutAction } from "@/app-actions/auth";
 
-export function SiteFooter() {
+export async function SiteFooter() {
   const year = new Date().getFullYear();
+  const supabase = await createServerSupabaseClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  let isRestaurantOrAdmin = false;
+  if (user) {
+    const { data: adminRow } = await supabase
+      .from("users")
+      .select("id")
+      .eq("id", user.id)
+      .maybeSingle();
+    isRestaurantOrAdmin = Boolean(adminRow);
+  }
 
   const linkClass =
     "inline-flex py-1 text-[15px] font-medium text-slate-600 transition-colors hover:text-violet-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white rounded-sm";
@@ -51,6 +68,11 @@ export function SiteFooter() {
                   </Link>
                 </li>
                 <li>
+                  <Link href="/login" className={linkClass}>
+                    Customer login
+                  </Link>
+                </li>
+                <li>
                   <Link href="/for-restaurants" className={linkClass}>
                     Join us
                   </Link>
@@ -60,6 +82,18 @@ export function SiteFooter() {
                     Contact
                   </Link>
                 </li>
+                {user ? (
+                  <li className="pt-1">
+                    <form action={isRestaurantOrAdmin ? signOutAction : customerSignOutAction}>
+                      <button
+                        type="submit"
+                        className="inline-flex rounded-full border border-slate-200 px-3 py-1.5 text-[13px] font-semibold text-slate-600 transition hover:border-red-200 hover:text-red-600"
+                      >
+                        Sign out
+                      </button>
+                    </form>
+                  </li>
+                ) : null}
               </ul>
             </nav>
             <nav aria-label="For restaurants">

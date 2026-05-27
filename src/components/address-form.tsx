@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MapPin, Map, Home, Briefcase, Star, ChevronDown } from "lucide-react";
+import { MapPin, Home, Briefcase, Star } from "lucide-react";
 import dynamic from "next/dynamic";
 import { saveCustomerAddressAction } from "@/app-actions/customer-auth";
 import { Loader2 } from "lucide-react";
@@ -31,10 +31,10 @@ type Props = {
 };
 
 const LABEL_OPTIONS = [
-  { value: "home", label: "Home", icon: <Home className="h-4 w-4" />, color: "bg-emerald-100 text-emerald-700 border-emerald-200" },
-  { value: "work", label: "Work", icon: <Briefcase className="h-4 w-4" />, color: "bg-blue-100 text-blue-700 border-blue-200" },
-  { value: "moms", label: "Mom's", icon: <Star className="h-4 w-4" />, color: "bg-pink-100 text-pink-700 border-pink-200" },
-  { value: "other", label: "Other", icon: <MapPin className="h-4 w-4" />, color: "bg-slate-100 text-slate-600 border-slate-200" },
+  { value: "home", label: "Home", icon: <Home className="h-4 w-4" /> },
+  { value: "work", label: "Work", icon: <Briefcase className="h-4 w-4" /> },
+  { value: "moms", label: "Mom's", icon: <Star className="h-4 w-4" /> },
+  { value: "other", label: "Other", icon: <MapPin className="h-4 w-4" /> },
 ];
 
 export function AddressForm({ address }: Props) {
@@ -46,150 +46,142 @@ export function AddressForm({ address }: Props) {
   const [isDefault, setIsDefault] = useState(address?.is_default ?? false);
 
   return (
-    <div className="space-y-5">
-      {/* Label selector */}
-      <div>
-        <p className="mb-2 text-sm font-semibold text-slate-700">Address type</p>
-        <div className="flex gap-2 flex-wrap">
-          {LABEL_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => setLabel(opt.value)}
-              className={`flex items-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-semibold transition ${
-                label === opt.value
-                  ? opt.color + " ring-2 ring-violet-200"
-                  : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-              }`}
-            >
-              {opt.icon}
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Map location picker */}
-      <div className="rounded-2xl border border-slate-200 overflow-hidden bg-white shadow-sm">
-        <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-          <div className="flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-violet-500" />
-            <p className="text-sm font-semibold text-slate-700">Pin on map</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowMap(!showMap)}
-            className="flex items-center gap-1 rounded-xl bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-700 transition hover:bg-violet-100"
-          >
-            <Map className="h-3.5 w-3.5" />
-            {showMap ? "Hide map" : "Open map"}
-            <ChevronDown className={`h-3.5 w-3.5 transition ${showMap ? "rotate-180" : ""}`} />
-          </button>
-        </div>
-
-        {showMap ? (
-          <div className="h-80">
-            <GoogleMapPicker
-              initial={{ lat, lng }}
-              onConfirm={(result) => {
-                setLat(result.lat);
-                setLng(result.lng);
-                setFormattedAddress(result.address);
-                setShowMap(false);
-              }}
-              onClose={() => setShowMap(false)}
-            />
-          </div>
-        ) : (
-          <div className="px-4 py-3">
-            <p className="text-sm text-slate-500">
-              {formattedAddress || `${lat.toFixed(5)}, ${lng.toFixed(5)}`}
-            </p>
-          </div>
-        )}
-      </div>
-
+    <div className="space-y-6">
       {/* Form */}
-      <form action={saveCustomerAddressAction} className="space-y-4">
+      <form action={saveCustomerAddressAction} className="space-y-5">
         {address ? <input type="hidden" name="id" value={address.id} /> : null}
         <input type="hidden" name="label" value={label} />
         <input type="hidden" name="latitude" value={lat} />
         <input type="hidden" name="longitude" value={lng} />
         <input type="hidden" name="formatted_address" value={formattedAddress} />
         <input type="hidden" name="is_default" value={String(isDefault)} />
+        <input type="hidden" name="nickname" defaultValue={address?.nickname ?? ""} />
+
+        {/* Map location picker */}
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+          <div className="flex items-center justify-between px-3.5 py-2.5">
+            <p className="text-sm font-semibold text-slate-900">Location pin</p>
+            <button
+              type="button"
+              onClick={() => setShowMap(!showMap)}
+              className="text-xs font-medium text-teal-600 transition hover:text-teal-700"
+            >
+              {showMap ? "Done map" : "Refine map"}
+            </button>
+          </div>
+
+          {showMap ? (
+            <div className="h-72 border-t border-slate-100">
+              <GoogleMapPicker
+                initial={{ lat, lng }}
+                onConfirm={(result) => {
+                  setLat(result.lat);
+                  setLng(result.lng);
+                  setFormattedAddress(result.address);
+                  setShowMap(false);
+                }}
+                onClose={() => setShowMap(false)}
+              />
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowMap(true)}
+              className="block w-full border-t border-slate-100 text-left transition hover:bg-slate-50"
+            >
+              <div className="flex h-32 items-center justify-center bg-slate-100">
+                <div className="text-center">
+                  <MapPin className="mx-auto h-6 w-6 text-violet-600" />
+                  <p className="mt-1 text-xs font-medium text-slate-600">
+                    {formattedAddress || `${lat.toFixed(5)}, ${lng.toFixed(5)}`}
+                  </p>
+                </div>
+              </div>
+            </button>
+          )}
+        </div>
+
+        {/* Label selector */}
+        <div>
+          <p className="mb-2.5 text-[13px] font-semibold text-slate-900">Choose a Nickname</p>
+          <div className="grid grid-cols-4 gap-2">
+            {LABEL_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setLabel(opt.value)}
+                className={`flex flex-col items-center gap-1 rounded-none border px-2 py-3 text-xs transition ${
+                  label === opt.value
+                    ? "border-violet-400 bg-violet-50 text-violet-700"
+                    : "border-slate-300 bg-white text-slate-500 hover:bg-slate-50"
+                }`}
+              >
+                <span className={label === opt.value ? "text-violet-600" : "text-slate-400"}>
+                  {opt.icon}
+                </span>
+                <span>{opt.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
 
         <div>
-          <label className="mb-1.5 block text-xs font-semibold text-slate-600">
-            Nickname (optional)
-          </label>
+          <p className="mb-2.5 text-[22px] font-bold tracking-tight text-slate-900">Give us the Details</p>
+        </div>
+
+        <div>
           <input
-            name="nickname"
+            name="street"
             type="text"
-            defaultValue={address?.nickname ?? ""}
-            placeholder={`e.g. "${LABEL_OPTIONS.find((l) => l.value === label)?.label ?? "Home"}"`}
-            className="ui-input"
+            defaultValue={address?.street ?? ""}
+            placeholder="Street"
+            className="ui-input rounded-md"
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="mb-1.5 block text-xs font-semibold text-slate-600">Street</label>
-            <input
-              name="street"
-              type="text"
-              defaultValue={address?.street ?? ""}
-              placeholder="Street name"
-              className="ui-input"
-            />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-xs font-semibold text-slate-600">Building</label>
-            <input
-              name="building"
-              type="text"
-              defaultValue={address?.building ?? ""}
-              placeholder="Building no. / name"
-              className="ui-input"
-            />
-          </div>
+        <div>
+          <input
+            name="building"
+            type="text"
+            defaultValue={address?.building ?? ""}
+            placeholder="Building"
+            className="ui-input rounded-md"
+          />
         </div>
 
         <div>
-          <label className="mb-1.5 block text-xs font-semibold text-slate-600">
-            Floor / Apartment
-          </label>
           <input
             name="apartment"
             type="text"
             defaultValue={address?.apartment ?? ""}
-            placeholder="Floor 3, Apt 12"
-            className="ui-input"
+            placeholder="Apartment"
+            className="ui-input rounded-md"
           />
         </div>
 
-        <div>
-          <label className="mb-1.5 block text-xs font-semibold text-slate-600">
-            Phone (optional)
-          </label>
+        <div className="grid grid-cols-[80px_1fr] gap-2">
+          <input
+            type="text"
+            value="LB +961"
+            readOnly
+            className="ui-input rounded-md bg-slate-50 px-3 text-xs font-medium text-slate-600"
+          />
           <input
             name="phone"
             type="tel"
             defaultValue={address?.phone ?? ""}
-            placeholder="+961 71 000 000"
-            className="ui-input"
+            placeholder="Phone Number"
+            className="ui-input rounded-md"
           />
         </div>
 
         <div>
-          <label className="mb-1.5 block text-xs font-semibold text-slate-600">
-            Delivery notes (optional)
-          </label>
           <textarea
             name="driver_notes"
             defaultValue={address?.driver_notes ?? ""}
-            placeholder="e.g. Ring the doorbell twice, white gate"
+            placeholder="Instructions For Your Driver? (Optional)"
             rows={2}
-            className="ui-input resize-none"
+            className="ui-input resize-none rounded-md"
           />
         </div>
 
@@ -209,7 +201,7 @@ export function AddressForm({ address }: Props) {
 
         <button
           type="submit"
-          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 py-4 text-sm font-bold text-white shadow-md shadow-violet-400/30 transition hover:brightness-110 active:scale-[0.99]"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 py-3.5 text-sm font-bold text-white shadow-md shadow-violet-400/30 transition hover:brightness-110 active:scale-[0.99]"
         >
           <MapPin className="h-4 w-4" />
           {address ? "Save changes" : "Save address"}
