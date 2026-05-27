@@ -416,6 +416,9 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                     Open menu
                   </a>
                   <CopyMenuLinkButton url={menuUrl} />
+                  <a href="/dashboard/business/orders" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20 relative">
+                    📋 Orders
+                  </a>
                   <a href="/dashboard/business/qr" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">
                     QR codes
                   </a>

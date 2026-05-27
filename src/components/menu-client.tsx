@@ -1,11 +1,13 @@
 ﻿"use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { CategoryWithItems } from "@/lib/data";
 import { MenuRestaurantRating } from "@/components/menu-restaurant-rating";
 import { OrderDeliveryFields, type SavedAddressOption } from "@/components/order-delivery-fields";
 import { BRAND_HEX, BRAND_HEX_DEEP } from "@/lib/brand";
+import { placeOrderAction } from "@/app-actions/orders";
+import { useDeliveryLocation } from "@/components/delivery-location-provider";
 
 const BRAND = BRAND_HEX;
 const WHATSAPP_GREEN = "#25D366";
@@ -83,6 +85,11 @@ export function MenuClient({
   const [notes, setNotes] = useState("");
   const [isOrderConfirmed, setIsOrderConfirmed] = useState(false);
   const [showMobileCart, setShowMobileCart] = useState(false);
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [placedOrder, setPlacedOrder] = useState<{ orderId: string; whatsappUrl: string | null } | null>(null);
+  const [orderError, setOrderError] = useState<string | null>(null);
+  const { location } = useDeliveryLocation();
+  const orderTopRef = useRef<HTMLDivElement>(null);
 
   const items = useMemo(() => Object.values(cart), [cart]);
   const filteredCategories = useMemo(() => {
@@ -281,20 +288,55 @@ export function MenuClient({
     address.trim().length > 0 &&
     isOrderConfirmed;
 
-  function handleOrderClick() {
+  async function handleOrderClick() {
     if (!customerName.trim() || !address.trim()) {
-      window.alert("Please fill both Name and Address before ordering.");
+      setOrderError("Please fill in your name and delivery address before ordering.");
       return;
     }
     if (!isOrderConfirmed) {
-      window.alert("Please confirm your order before ordering via WhatsApp.");
+      setOrderError("Please confirm your order by checking the box below.");
       return;
     }
     if (items.length === 0) {
-      window.alert("Please add at least one item to your cart.");
+      setOrderError("Your cart is empty.");
       return;
     }
-    window.location.href = orderLink;
+    setOrderError(null);
+    setIsPlacingOrder(true);
+    try {
+      const result = await placeOrderAction({
+        restaurantId,
+        restaurantSlug,
+        customerName: customerName.trim(),
+        customerPhone: null,
+        deliveryAddress: address.trim(),
+        deliveryLat: location?.lat ?? null,
+        deliveryLng: location?.lng ?? null,
+        items: items.map((item) => ({
+          name: item.name,
+          qty: item.qty,
+          unit: item.unit,
+          unitPrice: item.unitPrice,
+          removedIngredients: item.removedIngredients,
+          addedIngredients: item.addedIngredients,
+          specialInstructions: item.specialInstructions,
+        })),
+        notes: notes.trim() || null,
+        totalUsd: total,
+      });
+      if (!result.ok) {
+        setOrderError(result.error);
+        return;
+      }
+      setPlacedOrder({ orderId: result.orderId, whatsappUrl: result.whatsappNotifyUrl });
+      setCart({});
+      setIsOrderConfirmed(false);
+      orderTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (err) {
+      setOrderError(err instanceof Error ? err.message : "Failed to place order. Please try again.");
+    } finally {
+      setIsPlacingOrder(false);
+    }
   }
 
   /* ─── Cart panel (shared between desktop sidebar and mobile sheet) ─── */
@@ -408,7 +450,7 @@ export function MenuClient({
           <input
             type="checkbox"
             checked={isOrderConfirmed}
-            onChange={(e) => setIsOrderConfirmed(e.target.checked)}
+            onChange={(e) => { setIsOrderConfirmed(e.target.checked); setOrderError(null); }}
             className="mt-0.5 h-4 w-4 accent-[#7854ff]"
           />
           <div>
@@ -419,6 +461,10 @@ export function MenuClient({
           </div>
         </label>
 
+        {orderError ? (
+          <p className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-xs font-medium text-red-600">{orderError}</p>
+        ) : null}
+
         <MenuRestaurantRating
           variant="cart"
           restaurantId={restaurantId}
@@ -427,19 +473,79 @@ export function MenuClient({
           ratingCount={ratingCount}
         />
 
-        {/* Order button */}
+        {/* Place Order button */}
         <button
           type="button"
-          onClick={handleOrderClick}
-          disabled={!canOrder}
-          className="mt-3 flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-sm font-bold text-[#111827] shadow-md transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40"
-          style={{ backgroundColor: WHATSAPP_GREEN }}
+          onClick={() => void handleOrderClick()}
+          disabled={!canOrder || isPlacingOrder}
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-sm font-bold text-white shadow-md transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40"
+          style={{ background: "linear-gradient(135deg, #7854ff 0%, #a855f7 100%)" }}
         >
-          <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
-            <path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.124 1.532 5.859L.054 23.285a.75.75 0 00.916.916l5.437-1.478A11.954 11.954 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.89 0-3.67-.5-5.21-1.374l-.374-.213-3.867 1.051 1.052-3.843-.226-.386A9.956 9.956 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
+          {isPlacingOrder ? (
+            <>
+              <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} aria-hidden>
+                <circle cx="12" cy="12" r="10" strokeOpacity={0.25} />
+                <path d="M12 2a10 10 0 0 1 10 10" />
+              </svg>
+              Placing order…
+            </>
+          ) : (
+            <>
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+              Place Order
+            </>
+          )}
+        </button>
+      </div>
+    );
+  }
+
+  /** Confirmation screen shown after order is successfully placed */
+  function renderOrderConfirmation() {
+    if (!placedOrder) return null;
+    const shortId = placedOrder.orderId.slice(0, 8).toUpperCase();
+    return (
+      <div className="mx-auto max-w-md rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-8 text-center shadow-lg">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
+          <svg className="h-8 w-8 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <polyline points="20 6 9 17 4 12" />
           </svg>
-          Order on WhatsApp
+        </div>
+        <h2 className="text-2xl font-bold text-slate-900">Order Placed!</h2>
+        <p className="mt-1 text-sm text-slate-500">Reference: <span className="font-bold text-slate-700">#{shortId}</span></p>
+        <p className="mt-3 text-sm leading-relaxed text-slate-600">
+          Your order has been received by <span className="font-semibold">{restaurantName}</span>.
+          They will confirm it shortly.
+        </p>
+
+        {placedOrder.whatsappUrl ? (
+          <div className="mt-6 rounded-2xl border border-green-100 bg-white p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Also notify via WhatsApp</p>
+            <p className="mt-1 text-xs text-slate-500">Tap below to also send your order details directly to the restaurant on WhatsApp.</p>
+            <a
+              href={placedOrder.whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 flex w-full items-center justify-center gap-2 rounded-full py-3 text-sm font-bold text-white transition hover:brightness-110"
+              style={{ backgroundColor: "#25D366" }}
+            >
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+                <path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.124 1.532 5.859L.054 23.285a.75.75 0 00.916.916l5.437-1.478A11.954 11.954 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.89 0-3.67-.5-5.21-1.374l-.374-.213-3.867 1.051 1.052-3.843-.226-.386A9.956 9.956 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" />
+              </svg>
+              Also notify on WhatsApp
+            </a>
+          </div>
+        ) : null}
+
+        <button
+          type="button"
+          onClick={() => setPlacedOrder(null)}
+          className="mt-5 w-full rounded-full border border-slate-200 py-3 text-sm font-semibold text-slate-600 transition hover:border-violet-300 hover:text-violet-700"
+        >
+          Order something else
         </button>
       </div>
     );
@@ -448,6 +554,12 @@ export function MenuClient({
   /* ─── Render ────────────────────────────────────────────────────────── */
   return (
     <>
+      <div ref={orderTopRef} />
+      {placedOrder ? (
+        <div className="py-8">{renderOrderConfirmation()}</div>
+      ) : null}
+      {!placedOrder ? (
+      <>
       <div
         className={`grid min-w-0 gap-4 ${
           viewOnly ? "" : "lg:grid-cols-[minmax(0,1fr)_360px]"
@@ -912,6 +1024,8 @@ export function MenuClient({
             </div>
           </div>
         </div>
+      ) : null}
+      </>
       ) : null}
     </>
   );
