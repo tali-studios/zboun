@@ -2,8 +2,11 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { AUTH_COOKIE_OPTIONS } from "@/lib/supabase/session";
 
+const PUBLIC_AUTH_PATHS = new Set(["/login", "/signup"]);
+
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
+  const { pathname } = request.nextUrl;
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey =
@@ -40,8 +43,25 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  // Refreshes the session when the access token is expired (keeps users logged in).
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Home page: customers must be signed in
+  if (pathname === "/" && !user) {
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = "/login";
+    loginUrl.searchParams.set("next", "/");
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // Already signed in — skip login/signup screens
+  if (user && PUBLIC_AUTH_PATHS.has(pathname)) {
+    const homeUrl = request.nextUrl.clone();
+    homeUrl.pathname = "/";
+    homeUrl.search = "";
+    return NextResponse.redirect(homeUrl);
+  }
 
   return response;
 }

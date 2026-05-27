@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
+import { getSafeRedirectPath } from "@/lib/auth-redirect";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { env } from "@/lib/env";
 
@@ -74,21 +75,26 @@ export async function customerSignUpAction(formData: FormData) {
     redirect("/signup?success=check_email");
   }
 
-  redirect("/account");
+  redirect(getSafeRedirectPath(formData.get("next"), "/"));
 }
 
 export async function customerSignInAction(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
+  const next = getSafeRedirectPath(formData.get("next"), "/");
+  const nextQuery = encodeURIComponent(next);
 
-  if (!email || !password) redirect("/login?error=missing_fields");
+  if (!email || !password)
+    redirect(`/login?error=missing_fields&next=${nextQuery}`);
 
   const supabase = await createServerSupabaseClient();
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) redirect("/login?error=invalid_credentials");
+  if (error)
+    redirect(`/login?error=invalid_credentials&next=${nextQuery}`);
 
   const userId = data.user?.id;
-  if (!userId) redirect("/login?error=invalid_credentials");
+  if (!userId)
+    redirect(`/login?error=invalid_credentials&next=${nextQuery}`);
 
   const { data: profile } = await supabase
     .from("customer_profiles")
@@ -96,7 +102,7 @@ export async function customerSignInAction(formData: FormData) {
     .eq("id", userId)
     .maybeSingle();
 
-  if (profile) redirect("/account");
+  if (profile) redirect(next);
 
   // Check if they're actually a restaurant admin / super admin
   const { data: adminProfile } = await supabase
@@ -107,13 +113,13 @@ export async function customerSignInAction(formData: FormData) {
 
   if (adminProfile) redirect("/login?error=use_dashboard_login");
 
-  redirect("/login?error=account_not_found");
+  redirect(`/login?error=account_not_found&next=${nextQuery}`);
 }
 
 export async function customerSignOutAction() {
   const supabase = await createServerSupabaseClient();
   await supabase.auth.signOut();
-  redirect("/");
+  redirect("/login");
 }
 
 export async function getCustomerSession() {

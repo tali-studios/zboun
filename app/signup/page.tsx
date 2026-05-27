@@ -1,9 +1,10 @@
 import { customerSignUpAction } from "@/app-actions/customer-auth";
+import { getSafeRedirectPath } from "@/lib/auth-redirect";
 import Image from "next/image";
 import Link from "next/link";
 
 type Props = {
-  searchParams: Promise<{ error?: string; success?: string }>;
+  searchParams: Promise<{ error?: string; success?: string; next?: string }>;
 };
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -14,7 +15,8 @@ const ERROR_MESSAGES: Record<string, string> = {
 };
 
 export default async function CustomerSignupPage({ searchParams }: Props) {
-  const { error, success } = await searchParams;
+  const { error, success, next: nextRaw } = await searchParams;
+  const next = getSafeRedirectPath(nextRaw, "/");
 
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-slate-50 via-white to-violet-50 px-4 py-12">
@@ -84,6 +86,7 @@ export default async function CustomerSignupPage({ searchParams }: Props) {
 
           {/* Form — hide if confirmation email was just sent */}
           <form action={customerSignUpAction} className={`space-y-3 ${success === "check_email" ? "hidden" : ""}`}>
+            <input type="hidden" name="next" value={next} />
             <div>
               <label htmlFor="name" className="mb-1.5 block text-xs font-semibold text-slate-600">
                 Full name
@@ -161,7 +164,10 @@ export default async function CustomerSignupPage({ searchParams }: Props) {
           {/* Sign in link */}
           <p className="text-center text-sm text-slate-500">
             Already have an account?{" "}
-            <Link href="/login" className="font-semibold text-violet-600 transition hover:text-violet-700">
+            <Link
+              href={next === "/" ? "/login" : `/login?next=${encodeURIComponent(next)}`}
+              className="font-semibold text-violet-600 transition hover:text-violet-700"
+            >
               Sign in
             </Link>
           </p>
