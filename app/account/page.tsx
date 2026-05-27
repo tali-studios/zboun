@@ -18,6 +18,7 @@ import {
   deleteCustomerAddressAction,
   setDefaultAddressAction,
 } from "@/app-actions/customer-auth";
+import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 
 export const dynamic = "force-dynamic";
 
@@ -44,44 +45,46 @@ export default async function AccountPage({ searchParams }: Props) {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-violet-50">
       {/* Header */}
       <header className="border-b border-slate-100 bg-white/80 backdrop-blur-md">
-        <div className="container flex h-16 items-center justify-between">
-          <Link href="/" className="outline-none transition-opacity hover:opacity-80">
+        <div className="container flex h-14 items-center justify-between gap-3 px-4 sm:h-16 sm:px-6">
+          <Link href="/" className="shrink-0 outline-none transition-opacity hover:opacity-80">
             <Image
               src="/Logo.svg"
               alt="Zboun"
               width={120}
               height={36}
-              className="h-8 w-auto object-contain"
+              className="h-7 w-auto object-contain sm:h-8"
               unoptimized
             />
           </Link>
           <form action={customerSignOutAction}>
             <button
               type="submit"
-              className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-red-200 hover:text-red-600"
+              className="flex shrink-0 items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-red-200 hover:text-red-600 sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"
             >
-              <LogOut className="h-4 w-4" />
+              <LogOut className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               Sign out
             </button>
           </form>
         </div>
       </header>
 
-      <main className="container py-8 md:py-12">
+      <main className="container px-4 py-6 sm:px-6 sm:py-12">
         {/* Profile card */}
-        <div className="mb-8 flex items-center gap-4 rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-500 text-xl font-bold text-white shadow-md shadow-violet-300/40">
-            {session.name.charAt(0).toUpperCase()}
-          </div>
-          <div>
-            <p className="text-lg font-bold text-slate-900">{session.name}</p>
-            <p className="text-sm text-slate-500">{session.email}</p>
-          </div>
-          <div className="ml-auto">
-            <span className="rounded-full bg-violet-100 px-3 py-1 text-xs font-bold text-violet-700">
-              <User className="mr-1 inline h-3 w-3" />
-              Customer
-            </span>
+        <div className="mb-6 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm sm:mb-8 sm:rounded-3xl sm:p-6">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 text-lg font-bold text-white shadow-md shadow-violet-300/40 sm:h-14 sm:w-14 sm:rounded-2xl sm:text-xl">
+              {session.name.charAt(0).toUpperCase()}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <p className="truncate text-base font-bold text-slate-900 sm:text-lg">{session.name}</p>
+                <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold text-violet-700 sm:px-3 sm:text-xs">
+                  <User className="h-3 w-3" />
+                  Customer
+                </span>
+              </div>
+              <p className="mt-0.5 truncate text-xs text-slate-500 sm:text-sm">{session.email}</p>
+            </div>
           </div>
         </div>
 
@@ -98,16 +101,16 @@ export default async function AccountPage({ searchParams }: Props) {
         ) : null}
 
         {/* Addresses section */}
-        <div className="mb-4 flex items-center justify-between">
-          <div>
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+          <div className="min-w-0">
             <h2 className="text-lg font-bold text-slate-900">Saved addresses</h2>
-            <p className="text-sm text-slate-500">Quickly pick your delivery location when ordering.</p>
+            <p className="mt-0.5 text-sm text-slate-500">Quickly pick your delivery location when ordering.</p>
           </div>
           <Link
             href="/account/addresses/new"
-            className="flex items-center gap-2 rounded-2xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-violet-400/30 transition hover:bg-violet-700"
+            className="inline-flex w-full shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-violet-400/30 transition hover:bg-violet-700 sm:w-auto"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-4 w-4 shrink-0" />
             Add address
           </Link>
         </div>
@@ -134,69 +137,66 @@ export default async function AccountPage({ searchParams }: Props) {
               return (
                 <div
                   key={addr.id}
-                  className={`relative flex gap-4 rounded-2xl border bg-white p-5 shadow-sm transition ${
+                  className={`rounded-2xl border bg-white p-4 shadow-sm transition sm:p-5 ${
                     addr.is_default ? "border-violet-200 ring-2 ring-violet-100" : "border-slate-100"
                   }`}
                 >
-                  {/* Icon */}
-                  <span
-                    className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${meta.colorClass}`}
-                  >
-                    {meta.icon}
-                  </span>
-
-                  {/* Info */}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="font-semibold text-slate-800">
-                        {addr.nickname ?? meta.label}
-                      </p>
-                      {addr.is_default ? (
-                        <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold text-violet-600">
-                          Default
-                        </span>
-                      ) : null}
+                  <div className="flex gap-3">
+                    <span
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl sm:h-11 sm:w-11 ${meta.colorClass}`}
+                    >
+                      {meta.icon}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <p className="font-semibold text-slate-800">
+                          {addr.nickname ?? meta.label}
+                        </p>
+                        {addr.is_default ? (
+                          <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold text-violet-600">
+                            Default
+                          </span>
+                        ) : null}
+                      </div>
+                      {addr.formatted_address ? (
+                        <p className="mt-1 text-sm leading-snug text-slate-500 line-clamp-2">
+                          {addr.formatted_address}
+                        </p>
+                      ) : (
+                        <p className="mt-1 text-xs text-slate-400">
+                          {addr.latitude.toFixed(5)}, {addr.longitude.toFixed(5)}
+                        </p>
+                      )}
                     </div>
-                    {addr.formatted_address ? (
-                      <p className="mt-0.5 text-sm text-slate-500 line-clamp-2">{addr.formatted_address}</p>
-                    ) : (
-                      <p className="mt-0.5 text-xs text-slate-400">
-                        {addr.latitude.toFixed(5)}, {addr.longitude.toFixed(5)}
-                      </p>
-                    )}
                   </div>
 
-                  {/* Actions */}
-                  <div className="flex shrink-0 flex-col items-end gap-2">
+                  <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
                     <Link
                       href={`/account/addresses/${addr.id}`}
-                      className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 transition hover:border-violet-300 hover:text-violet-700"
+                      className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-violet-300 hover:text-violet-700"
                     >
                       Edit
                     </Link>
                     {!addr.is_default ? (
-                      <form action={setDefaultAddressAction}>
+                      <form action={setDefaultAddressAction} className="inline">
                         <input type="hidden" name="id" value={addr.id} />
                         <button
                           type="submit"
-                          className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-500 transition hover:border-violet-300 hover:text-violet-700"
+                          className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-500 transition hover:border-violet-300 hover:text-violet-700"
                         >
                           Set default
                         </button>
                       </form>
                     ) : null}
-                    <form action={deleteCustomerAddressAction}>
+                    <form action={deleteCustomerAddressAction} className="inline">
                       <input type="hidden" name="id" value={addr.id} />
-                      <button
-                        type="submit"
-                        className="flex items-center gap-1 rounded-lg border border-transparent px-3 py-1 text-xs font-medium text-slate-400 transition hover:border-red-100 hover:bg-red-50 hover:text-red-500"
-                        onClick={(e) => {
-                          if (!confirm("Delete this address?")) e.preventDefault();
-                        }}
+                      <ConfirmSubmitButton
+                        message="Delete this address?"
+                        className="inline-flex items-center gap-1 rounded-lg border border-transparent px-3 py-1.5 text-xs font-medium text-slate-400 transition hover:border-red-100 hover:bg-red-50 hover:text-red-500"
                       >
                         <Trash2 className="h-3 w-3" />
                         Delete
-                      </button>
+                      </ConfirmSubmitButton>
                     </form>
                   </div>
                 </div>
@@ -206,10 +206,10 @@ export default async function AccountPage({ searchParams }: Props) {
         )}
 
         {/* Browse link */}
-        <div className="mt-10 text-center">
+        <div className="mt-8 text-center sm:mt-10">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 rounded-2xl border border-violet-200 bg-white px-6 py-3 text-sm font-semibold text-violet-700 shadow-sm transition hover:bg-violet-50"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-violet-200 bg-white px-6 py-3 text-sm font-semibold text-violet-700 shadow-sm transition hover:bg-violet-50 sm:w-auto"
           >
             ← Back to restaurants
           </Link>
