@@ -5,7 +5,6 @@ import {
   createCategoryAction,
   deleteCategoryAction,
   deleteMenuItemAction,
-  createMenuItemAction,
   toggleMenuItemAvailabilityAction,
   updateCategoryAction,
   updateMenuItemAction,
@@ -24,6 +23,8 @@ import { BusinessMenuItemsFilter } from "@/components/business-menu-items-filter
 import { RestaurantMapPin } from "@/components/restaurant-map-pin";
 import { RestaurantLocationsPanel } from "@/components/restaurant-locations-panel";
 import type { RestaurantLocationRow } from "@/app-actions/restaurant";
+import { MenuItemPricingFields } from "@/components/menu-item-pricing-fields";
+import { AddMenuItemForm } from "@/components/add-menu-item-form";
 
 export const dynamic = "force-dynamic";
 
@@ -692,109 +693,12 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
           </div>
         </section>
 
-        <section className="panel p-5">
-          <h2 className="panel-title">Add menu item</h2>
-          <form
-            action={createMenuItemAction}
-            className="mt-3 grid gap-3 md:grid-cols-4"
-            id="add-item"
-          >
-            <label className="space-y-1">
-              <FormFieldLabel required>Section</FormFieldLabel>
-              <select name="category_id" required className="ui-select">
-                <option value="">Section</option>
-                {categories?.map((category) => (
-                  <option key={category.id} value={category.id}>{category.name}</option>
-                ))}
-              </select>
-              <p className="text-xs text-slate-500">Where this item appears in your menu.</p>
-            </label>
-            <label className="space-y-1">
-              <FormFieldLabel required>Item name</FormFieldLabel>
-              <input name="name" required placeholder="Item name" className="ui-input" />
-              <p className="text-xs text-slate-500">Customer-facing product name.</p>
-            </label>
-            <label className="space-y-1">
-              <FormFieldLabel required>Price ($)</FormFieldLabel>
-              <input name="price" required placeholder="e.g. 4.50" type="number" step="0.01" className="ui-input" />
-              <p className="text-xs text-slate-500">US dollars ($). Base price before optional add-ons.</p>
-            </label>
-            <label className="space-y-1">
-              <FormFieldLabel optional>Weight (grams)</FormFieldLabel>
-              <input name="grams" placeholder="Optional" type="number" min={0} className="ui-input" />
-              <p className="text-xs text-slate-500">For weighted items (e.g. produce).</p>
-            </label>
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 md:col-span-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Weight-based pricing</p>
-              <p className="mt-1 text-xs text-slate-500">
-                Enable this for groceries sold by weight (e.g. 0.75kg tomatoes). Customers will choose the weight and the price will be calculated automatically.
-              </p>
-              <div className="mt-3 grid gap-3 md:grid-cols-4">
-                <label className="flex items-start gap-2 rounded-xl border border-slate-200 bg-white p-3 text-sm md:col-span-2">
-                  <input type="checkbox" name="sold_by_weight" value="true" className="mt-0.5 h-4 w-4 accent-violet-600" />
-                  <div>
-                    <p className="font-semibold text-slate-800">Sold by weight</p>
-                    <p className="text-xs text-slate-500">Show kg/grams selector in the cart</p>
-                  </div>
-                </label>
-                <label className="space-y-1">
-                  <FormFieldLabel optional>Price per kg ($/kg)</FormFieldLabel>
-                  <input name="price_per_kg" placeholder="e.g. 2.80" type="number" step="0.01" min={0} className="ui-input" />
-                  <p className="text-xs text-slate-500">Required if sold by weight.</p>
-                </label>
-                <label className="space-y-1">
-                  <FormFieldLabel optional>Step (kg)</FormFieldLabel>
-                  <input name="weight_step_kg" placeholder="0.1" type="number" step="0.01" min={0.01} defaultValue={0.1} className="ui-input" />
-                  <p className="text-xs text-slate-500">0.05 = 50g steps.</p>
-                </label>
-              </div>
-            </div>
-            <label className="space-y-1 md:col-span-2">
-              <FormFieldLabel optional>Description (what this item is)</FormFieldLabel>
-              <input
-                name="description"
-                placeholder="Example: Grilled chicken burger with sauce and fries"
-                className="ui-input"
-              />
-            </label>
-            <label className="space-y-1 md:col-span-2">
-              <FormFieldLabel optional>Contains / ingredients (allergens or key ingredients)</FormFieldLabel>
-              <input
-                name="contents"
-                placeholder="Example: wheat, milk, sesame, nuts"
-                className="ui-input"
-              />
-            </label>
-            <label className="space-y-1 md:col-span-2">
-              <FormFieldLabel optional>Option type</FormFieldLabel>
-              <input
-                name="option_label"
-                placeholder="Examples: Size, Quantity, Type, Packing"
-                className="ui-input"
-              />
-              <p className="text-xs text-slate-500">
-                Add one option type, then add values and optional extra prices below.
-              </p>
-            </label>
-            <IngredientListField
-              name="removable_ingredients"
-              label="Remove ingredients (one by one)"
-            />
-            <IngredientListField
-              name="add_ingredients"
-              label="Add ingredients (+ extra price per line)"
-              withPrice
-            />
-            <IngredientListField
-              name="option_values"
-              label="Options values (Small / Large, 1kg / 2kg, etc.)"
-              withPrice
-            />
-            <div className="md:col-span-2">
-              <ImageUploadField name="image_file" optional />
-            </div>
-            <button className="btn btn-success md:col-span-4 rounded-xl">Add item</button>
-          </form>
+        <section className="rounded-2xl border border-violet-100 bg-gradient-to-br from-[#faf9ff] to-white p-5 shadow-sm">
+          <div className="mb-5">
+            <h2 className="text-base font-bold text-slate-900">Add menu item</h2>
+            <p className="mt-0.5 text-xs text-slate-500">Fill in the details below and click "Add item to menu"</p>
+          </div>
+          <AddMenuItemForm categories={(categories ?? []).map((c) => ({ id: c.id, name: c.name }))} />
         </section>
 
         <section className="panel p-4 md:p-5">
@@ -957,63 +861,13 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                                   <input name="description" defaultValue={item.description ?? ""} placeholder="Description (what this item is)" className="ui-input" />
                                   <p className="text-xs text-slate-500">Explain what the item is.</p>
                                 </label>
-                                <label className="space-y-1">
-                                  <FormFieldLabel required>Price ($)</FormFieldLabel>
-                                  <input name="price" required type="number" step="0.01" defaultValue={item.price} placeholder="e.g. 4.50" className="ui-input" />
-                                  <p className="text-xs text-slate-500">US dollars ($). Base price before add-ons.</p>
-                                </label>
-                                <label className="space-y-1">
-                                  <FormFieldLabel optional>Weight (grams)</FormFieldLabel>
-                                  <input name="grams" type="number" min={0} defaultValue={item.grams ?? ""} placeholder="Optional" className="ui-input" />
-                                  <p className="text-xs text-slate-500">For weighted products.</p>
-                                </label>
-                                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 md:col-span-2">
-                                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Weight-based pricing</p>
-                                  <p className="mt-1 text-xs text-slate-500">
-                                    Enable this for groceries sold by weight (kg/grams). Customers choose the weight and pricing is automatic.
-                                  </p>
-                                  <div className="mt-3 grid gap-3 md:grid-cols-2">
-                                    <label className="flex items-start gap-2 rounded-xl border border-slate-200 bg-white p-3 text-sm">
-                                      <input
-                                        type="checkbox"
-                                        name="sold_by_weight"
-                                        value="true"
-                                        defaultChecked={Boolean((item as { sold_by_weight?: boolean }).sold_by_weight)}
-                                        className="mt-0.5 h-4 w-4 accent-violet-600"
-                                      />
-                                      <div>
-                                        <p className="font-semibold text-slate-800">Sold by weight</p>
-                                        <p className="text-xs text-slate-500">Allow 0.75kg, 1.2kg, etc.</p>
-                                      </div>
-                                    </label>
-                                    <label className="space-y-1">
-                                      <FormFieldLabel optional>Price per kg ($/kg)</FormFieldLabel>
-                                      <input
-                                        name="price_per_kg"
-                                        type="number"
-                                        step="0.01"
-                                        min={0}
-                                        defaultValue={(item as { price_per_kg?: number | null }).price_per_kg ?? ""}
-                                        placeholder="e.g. 2.80"
-                                        className="ui-input"
-                                      />
-                                      <p className="text-xs text-slate-500">Required if sold by weight.</p>
-                                    </label>
-                                    <label className="space-y-1">
-                                      <FormFieldLabel optional>Step (kg)</FormFieldLabel>
-                                      <input
-                                        name="weight_step_kg"
-                                        type="number"
-                                        step="0.01"
-                                        min={0.01}
-                                        defaultValue={(item as { weight_step_kg?: number | null }).weight_step_kg ?? 0.1}
-                                        placeholder="0.1"
-                                        className="ui-input"
-                                      />
-                                      <p className="text-xs text-slate-500">0.05 = 50g steps.</p>
-                                    </label>
-                                  </div>
-                                </div>
+                                <MenuItemPricingFields
+                                  defaultPrice={item.price}
+                                  defaultGrams={item.grams}
+                                  defaultSoldByWeight={Boolean((item as { sold_by_weight?: boolean }).sold_by_weight)}
+                                  defaultPricePerKg={(item as { price_per_kg?: number | null }).price_per_kg}
+                                  defaultWeightStepKg={(item as { weight_step_kg?: number | null }).weight_step_kg}
+                                />
                                 <label className="space-y-1 md:col-span-2">
                                   <FormFieldLabel optional>Contains / ingredients</FormFieldLabel>
                                   <input name="contents" defaultValue={item.contents ?? ""} placeholder="Contains / ingredients (allergens, key contents)" className="ui-input" />
