@@ -15,6 +15,11 @@ import {
   saveDeliveryLocation,
   clearDeliveryLocation,
 } from "@/lib/delivery-location";
+import {
+  addressLabelFromFormatted,
+  isPlaceholderLocationText,
+  reverseGeocodeAddress,
+} from "@/lib/google-geocode";
 
 type DeliveryLocationCtx = {
   location: DeliveryLocation | null;
@@ -40,6 +45,23 @@ export function DeliveryLocationProvider({ children }: { children: ReactNode }) 
     if (saved) {
       setLocationState(saved);
       setRadiusKmState(saved.radiusKm ?? DEFAULT_RADIUS_KM);
+
+      // Fix older saves that stored the placeholder "Current location" instead of a real address
+      if (
+        isPlaceholderLocationText(saved.address) ||
+        isPlaceholderLocationText(saved.label)
+      ) {
+        void reverseGeocodeAddress(saved.lat, saved.lng).then((geocoded) => {
+          if (!geocoded) return;
+          const updated: DeliveryLocation = {
+            ...saved,
+            address: geocoded,
+            label: addressLabelFromFormatted(geocoded),
+          };
+          setLocationState(updated);
+          saveDeliveryLocation(updated);
+        });
+      }
     }
     setHydrated(true);
   }, []);

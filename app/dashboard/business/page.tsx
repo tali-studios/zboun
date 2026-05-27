@@ -224,9 +224,9 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
   ]);
 
   const itemsSelectWithOptions =
-    "id, name, description, price, image_url, grams, contents, removable_ingredients, add_ingredients, option_label, option_values, is_available, category_id, categories(name)";
+    "id, name, description, price, image_url, grams, contents, sold_by_weight, price_per_kg, weight_step_kg, removable_ingredients, add_ingredients, option_label, option_values, is_available, category_id, categories(name)";
   const itemsSelectLegacy =
-    "id, name, description, price, image_url, grams, contents, removable_ingredients, add_ingredients, is_available, category_id, categories(name)";
+    "id, name, description, price, image_url, grams, contents, sold_by_weight, price_per_kg, weight_step_kg, removable_ingredients, add_ingredients, is_available, category_id, categories(name)";
 
   const { data: itemsWithOptions, error: itemsWithOptionsError } = await supabase
     .from("menu_items")
@@ -254,6 +254,9 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
     image_url: string | null;
     grams: number | null;
     contents: string | null;
+    sold_by_weight?: boolean;
+    price_per_kg?: number | null;
+    weight_step_kg?: number | null;
     removable_ingredients: Array<{ name?: string }>;
     add_ingredients: Array<{ name?: string; price?: number }>;
     option_label?: string | null;
@@ -718,6 +721,31 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
               <input name="grams" placeholder="Optional" type="number" min={0} className="ui-input" />
               <p className="text-xs text-slate-500">For weighted items (e.g. produce).</p>
             </label>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 md:col-span-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Weight-based pricing</p>
+              <p className="mt-1 text-xs text-slate-500">
+                Enable this for groceries sold by weight (e.g. 0.75kg tomatoes). Customers will choose the weight and the price will be calculated automatically.
+              </p>
+              <div className="mt-3 grid gap-3 md:grid-cols-4">
+                <label className="flex items-start gap-2 rounded-xl border border-slate-200 bg-white p-3 text-sm md:col-span-2">
+                  <input type="checkbox" name="sold_by_weight" value="true" className="mt-0.5 h-4 w-4 accent-violet-600" />
+                  <div>
+                    <p className="font-semibold text-slate-800">Sold by weight</p>
+                    <p className="text-xs text-slate-500">Show kg/grams selector in the cart</p>
+                  </div>
+                </label>
+                <label className="space-y-1">
+                  <FormFieldLabel optional>Price per kg ($/kg)</FormFieldLabel>
+                  <input name="price_per_kg" placeholder="e.g. 2.80" type="number" step="0.01" min={0} className="ui-input" />
+                  <p className="text-xs text-slate-500">Required if sold by weight.</p>
+                </label>
+                <label className="space-y-1">
+                  <FormFieldLabel optional>Step (kg)</FormFieldLabel>
+                  <input name="weight_step_kg" placeholder="0.1" type="number" step="0.01" min={0.01} defaultValue={0.1} className="ui-input" />
+                  <p className="text-xs text-slate-500">0.05 = 50g steps.</p>
+                </label>
+              </div>
+            </div>
             <label className="space-y-1 md:col-span-2">
               <FormFieldLabel optional>Description (what this item is)</FormFieldLabel>
               <input
@@ -936,6 +964,53 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                                   <input name="grams" type="number" min={0} defaultValue={item.grams ?? ""} placeholder="Optional" className="ui-input" />
                                   <p className="text-xs text-slate-500">For weighted products.</p>
                                 </label>
+                                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 md:col-span-2">
+                                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Weight-based pricing</p>
+                                  <p className="mt-1 text-xs text-slate-500">
+                                    Enable this for groceries sold by weight (kg/grams). Customers choose the weight and pricing is automatic.
+                                  </p>
+                                  <div className="mt-3 grid gap-3 md:grid-cols-2">
+                                    <label className="flex items-start gap-2 rounded-xl border border-slate-200 bg-white p-3 text-sm">
+                                      <input
+                                        type="checkbox"
+                                        name="sold_by_weight"
+                                        value="true"
+                                        defaultChecked={Boolean((item as { sold_by_weight?: boolean }).sold_by_weight)}
+                                        className="mt-0.5 h-4 w-4 accent-violet-600"
+                                      />
+                                      <div>
+                                        <p className="font-semibold text-slate-800">Sold by weight</p>
+                                        <p className="text-xs text-slate-500">Allow 0.75kg, 1.2kg, etc.</p>
+                                      </div>
+                                    </label>
+                                    <label className="space-y-1">
+                                      <FormFieldLabel optional>Price per kg ($/kg)</FormFieldLabel>
+                                      <input
+                                        name="price_per_kg"
+                                        type="number"
+                                        step="0.01"
+                                        min={0}
+                                        defaultValue={(item as { price_per_kg?: number | null }).price_per_kg ?? ""}
+                                        placeholder="e.g. 2.80"
+                                        className="ui-input"
+                                      />
+                                      <p className="text-xs text-slate-500">Required if sold by weight.</p>
+                                    </label>
+                                    <label className="space-y-1">
+                                      <FormFieldLabel optional>Step (kg)</FormFieldLabel>
+                                      <input
+                                        name="weight_step_kg"
+                                        type="number"
+                                        step="0.01"
+                                        min={0.01}
+                                        defaultValue={(item as { weight_step_kg?: number | null }).weight_step_kg ?? 0.1}
+                                        placeholder="0.1"
+                                        className="ui-input"
+                                      />
+                                      <p className="text-xs text-slate-500">0.05 = 50g steps.</p>
+                                    </label>
+                                  </div>
+                                </div>
                                 <label className="space-y-1 md:col-span-2">
                                   <FormFieldLabel optional>Contains / ingredients</FormFieldLabel>
                                   <input name="contents" defaultValue={item.contents ?? ""} placeholder="Contains / ingredients (allergens, key contents)" className="ui-input" />

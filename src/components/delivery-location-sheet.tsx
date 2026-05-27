@@ -5,6 +5,10 @@ import { MapPin, Navigation, X, ChevronRight, Loader2, Home, Briefcase, Star, Pl
 import dynamic from "next/dynamic";
 import { useDeliveryLocation } from "@/components/delivery-location-provider";
 import { DEFAULT_RADIUS_KM, MAX_RADIUS_KM, MIN_RADIUS_KM } from "@/lib/delivery-location";
+import {
+  addressLabelFromFormatted,
+  reverseGeocodeAddress,
+} from "@/lib/google-geocode";
 
 const GoogleMapPicker = dynamic(
   () => import("@/components/google-map-picker").then((m) => m.GoogleMapPicker),
@@ -80,15 +84,25 @@ export function DeliveryLocationSheet({ savedAddresses = [], isLoggedIn = false 
     setLocating(true);
     setLocateError("");
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLocating(false);
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+
+        const geocoded = await reverseGeocodeAddress(lat, lng);
+        const address =
+          geocoded ?? `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+        const label = geocoded
+          ? addressLabelFromFormatted(geocoded)
+          : "Near me";
+
         setLocation({
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-          address: "Current location",
-          label: "Current location",
+          lat,
+          lng,
+          address,
+          label,
           radiusKm,
         });
+        setLocating(false);
         closeSheet();
       },
       (err) => {
@@ -219,7 +233,7 @@ export function DeliveryLocationSheet({ savedAddresses = [], isLoggedIn = false 
                 <div className="min-w-0">
                   <p className="text-sm font-bold text-emerald-700">Use current location</p>
                   <p className="mt-0.5 text-xs text-emerald-600/80">
-                    {locating ? "Getting your location…" : "Automatically detect where you are"}
+                    {locating ? "Finding your address…" : "Automatically detect where you are"}
                   </p>
                 </div>
               </button>

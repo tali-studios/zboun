@@ -202,7 +202,12 @@ export async function createMenuItemAction(formData: FormData) {
 
   const categoryId = String(formData.get("category_id") ?? "").trim();
   const name = String(formData.get("name") ?? "").trim();
-  const price = Number(formData.get("price"));
+  const soldByWeight = String(formData.get("sold_by_weight") ?? "") === "true";
+  const pricePerKgRaw = String(formData.get("price_per_kg") ?? "").trim();
+  const weightStepRaw = String(formData.get("weight_step_kg") ?? "").trim();
+  const pricePerKg = pricePerKgRaw ? Number(pricePerKgRaw) : null;
+  const weightStepKg = weightStepRaw ? Number(weightStepRaw) : 0.1;
+  const price = soldByWeight ? 0 : Number(formData.get("price"));
   const gramsValue = String(formData.get("grams") ?? "").trim();
   const gramsParsed = gramsValue ? Number(gramsValue) : null;
 
@@ -211,6 +216,14 @@ export async function createMenuItemAction(formData: FormData) {
   }
   if (!Number.isFinite(price) || price < 0) {
     redirect("/dashboard/business?toast=item_create_invalid");
+  }
+  if (soldByWeight) {
+    if (pricePerKg === null || !Number.isFinite(pricePerKg) || pricePerKg < 0) {
+      redirect("/dashboard/business?toast=item_create_invalid");
+    }
+    if (!Number.isFinite(weightStepKg) || weightStepKg < 0.01) {
+      redirect("/dashboard/business?toast=item_create_invalid");
+    }
   }
   if (gramsParsed !== null && (!Number.isFinite(gramsParsed) || gramsParsed < 0)) {
     redirect("/dashboard/business?toast=item_create_invalid");
@@ -251,6 +264,9 @@ export async function createMenuItemAction(formData: FormData) {
     option_label: optionLabel || null,
     option_values: optionValues,
     is_available: true,
+    sold_by_weight: soldByWeight,
+    price_per_kg: soldByWeight ? pricePerKg : null,
+    weight_step_kg: soldByWeight ? weightStepKg : 0.1,
   });
 
   if (error) {
@@ -269,7 +285,12 @@ export async function updateMenuItemAction(formData: FormData) {
 
   const name = String(formData.get("name") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
-  const price = Number(formData.get("price") ?? 0);
+  const soldByWeight = String(formData.get("sold_by_weight") ?? "") === "true";
+  const pricePerKgRaw = String(formData.get("price_per_kg") ?? "").trim();
+  const weightStepRaw = String(formData.get("weight_step_kg") ?? "").trim();
+  const pricePerKg = pricePerKgRaw ? Number(pricePerKgRaw) : null;
+  const weightStepKg = weightStepRaw ? Number(weightStepRaw) : 0.1;
+  const price = soldByWeight ? 0 : Number(formData.get("price") ?? 0);
   const categoryId = String(formData.get("category_id") ?? "");
   const currentImageUrl = String(formData.get("current_image_url") ?? "").trim();
   const imageFile = formData.get("image_file");
@@ -290,6 +311,11 @@ export async function updateMenuItemAction(formData: FormData) {
     price: item.price ?? 0,
   }));
 
+  if (soldByWeight) {
+    if (pricePerKg === null || !Number.isFinite(pricePerKg) || pricePerKg < 0) return;
+    if (!Number.isFinite(weightStepKg) || weightStepKg < 0.01) return;
+  }
+
   const supabase = await createServerSupabaseClient();
   await supabase
     .from("menu_items")
@@ -305,6 +331,9 @@ export async function updateMenuItemAction(formData: FormData) {
       add_ingredients: addIngredients,
       option_label: optionLabel || null,
       option_values: optionValues,
+      sold_by_weight: soldByWeight,
+      price_per_kg: soldByWeight ? pricePerKg : null,
+      weight_step_kg: soldByWeight ? weightStepKg : 0.1,
     })
     .eq("id", id)
     .eq("restaurant_id", user.restaurant_id);

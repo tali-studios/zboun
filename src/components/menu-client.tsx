@@ -30,7 +30,8 @@ type CartLine = {
   key: string;
   itemId: string;
   name: string;
-  qty: number;
+  qty: number; // either count (each) or kilograms (kg) when unit==="kg"
+  unit: "each" | "kg";
   unitPrice: number;
   removedIngredients: string[];
   addedIngredients: Array<{ name: string; price: number; qty: number }>;
@@ -43,9 +44,21 @@ type CustomizationState = {
   remove: string[];
   add: Record<string, number>;
   note: string;
-  qty: number;
+  qty: number; // either count (each) or kilograms (kg) when sold_by_weight
   editingKey?: string;
 };
+
+function isSoldByWeight(item: CategoryWithItems["menu_items"][number]) {
+  return Boolean((item as { sold_by_weight?: boolean }).sold_by_weight);
+}
+
+function formatQty(unit: "each" | "kg", qty: number): string {
+  if (unit === "kg") {
+    if (qty < 1) return `${Math.round(qty * 1000)} g`;
+    return `${qty.toFixed(2).replace(/0+$/, "").replace(/\.$/, "")} kg`;
+  }
+  return `${qty}×`;
+}
 
 export function MenuClient({
   viewOnly = false,
@@ -97,7 +110,14 @@ export function MenuClient({
     () => items.reduce((sum, item) => sum + item.qty * item.unitPrice, 0),
     [items],
   );
-  const itemCount = useMemo(() => items.reduce((sum, item) => sum + item.qty, 0), [items]);
+  const itemCount = useMemo(
+    () =>
+      items.reduce((sum, item) => {
+        if (item.unit === "kg") return sum + 1;
+        return sum + item.qty;
+      }, 0),
+    [items],
+  );
 
   function normalizeAddIngredients(
     addIngredients: CategoryWithItems["menu_items"][number]["add_ingredients"] | null | undefined,
@@ -111,7 +131,8 @@ export function MenuClient({
   }
 
   function openCustomization(item: CategoryWithItems["menu_items"][number]) {
-    setCustomizing({ item, remove: [], add: {}, note: "", qty: 1 });
+    const unitQty = isSoldByWeight(item) ? 1 : 1;
+    setCustomizing({ item, remove: [], add: {}, note: "", qty: unitQty });
   }
 
   function openEditCustomization(line: CartLine) {
@@ -147,7 +168,11 @@ export function MenuClient({
       })
       .filter((option): option is AddIngredientOption & { qty: number } => Boolean(option));
     const addCost = selectedAdd.reduce((sum, option) => sum + option.price * option.qty, 0);
-    const unitPrice = Math.max(0, Number(customizing.item.price) + addCost);
+    const soldByWeight = isSoldByWeight(customizing.item);
+    const baseUnitPrice = soldByWeight
+      ? Number((customizing.item as { price_per_kg?: number | null }).price_per_kg ?? 0)
+      : Number(customizing.item.price);
+    const unitPrice = Math.max(0, baseUnitPrice + addCost);
     const lineKey = [
       customizing.item.id,
       [...customizing.remove].sort().join("|"),
@@ -177,6 +202,7 @@ export function MenuClient({
             removedIngredients: [...customizing.remove],
             addedIngredients: selectedAdd,
             unitPrice,
+            unit: soldByWeight ? "kg" : "each",
           },
         };
       }
@@ -187,6 +213,7 @@ export function MenuClient({
           itemId: customizing.item.id,
           name: customizing.item.name,
           qty: customizing.qty,
+          unit: soldByWeight ? "kg" : "each",
           unitPrice,
           removedIngredients: [...customizing.remove],
           addedIngredients: selectedAdd,
@@ -234,7 +261,9 @@ export function MenuClient({
           modifiers.push(`note: ${item.specialInstructions}`);
         }
         const modifierText = modifiers.length > 0 ? ` [${modifiers.join(" | ")}]` : "";
-        return `- ${item.qty}x ${item.name}${modifierText}`;
+        const qtyText = item.unit === "kg" ? formatQty("kg", item.qty) : `${item.qty}x`;
+        const priceText = ` (${formatUsd(item.qty * item.unitPrice)})`;
+        return `- ${qtyText} ${item.name}${modifierText}${priceText}`;
       }),
       "",
       `Name: ${cleanName}`,
@@ -298,7 +327,7 @@ export function MenuClient({
               >
                 <div className="flex items-start justify-between gap-2">
                   <p className="text-sm font-semibold text-slate-800">
-                    {item.qty}× {item.name}
+                    {formatQty(item.unit, item.qty)} {item.name}
                   </p>
                   <p className="shrink-0 text-xs font-semibold" style={{ color: BRAND }}>
                     {formatUsd(item.qty * item.unitPrice)}
@@ -668,9 +697,17 @@ export function MenuClient({
                 ) : null}
                 <div className="mt-1.5 flex items-baseline gap-2">
                   <span className="text-base font-bold" style={{ color: BRAND }}>
-                    {formatUsd(customizing.item.price)}
+                    {isSoldByWeight(customizing.item)
+                      ? `${formatUsd(
+                          Number(
+                            (customizing.item as { price_per_kg?: number | null }).price_per_kg ?? 0,
+                          ),
+                        )} / kg`
+                      : formatUsd(customizing.item.price)}
                   </span>
-                  <span className="text-sm text-slate-400">{formatLbp(customizing.item.price)}</span>
+                  <span className="text-sm text-slate-400">
+                    {isSoldByWeight(customizing.item) ? "" : formatLbp(customizing.item.price)}
+                  </span>
                 </div>
               </div>
               <button
@@ -789,41 +826,87 @@ export function MenuClient({
 
             {/* Quantity + Add to cart */}
             <div className="mt-5 flex items-center justify-between gap-3 border-t border-slate-100 pt-4">
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  className="btn btn-secondary h-10 w-10 rounded-full p-0 text-lg"
-                  onClick={() =>
-                    setCustomizing((prev) =>
-                      prev ? { ...prev, qty: Math.max(1, prev.qty - 1) } : prev,
-                    )
-                  }
-                >
-                  −
-                </button>
-                <span className="w-6 text-center text-base font-bold text-slate-900">
-                  {customizing.qty}
-                </span>
-                <button
-                  type="button"
-                  className="btn btn-secondary h-10 w-10 rounded-full p-0 text-lg"
-                  onClick={() =>
-                    setCustomizing((prev) => (prev ? { ...prev, qty: prev.qty + 1 } : prev))
-                  }
-                >
-                  +
-                </button>
-              </div>
+              {isSoldByWeight(customizing.item) ? (
+                <div className="flex items-center gap-3">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Weight</p>
+                    <div className="mt-1 flex items-center gap-2">
+                      <input
+                        type="number"
+                        min={Number((customizing.item as { weight_step_kg?: number | null }).weight_step_kg ?? 0.1)}
+                        step={Number((customizing.item as { weight_step_kg?: number | null }).weight_step_kg ?? 0.1)}
+                        value={customizing.qty}
+                        onChange={(e) => {
+                          const raw = Number(e.target.value);
+                          const step = Number((customizing.item as { weight_step_kg?: number | null }).weight_step_kg ?? 0.1);
+                          const next = Number.isFinite(raw) ? Math.max(step, raw) : step;
+                          setCustomizing((prev) => (prev ? { ...prev, qty: next } : prev));
+                        }}
+                        className="w-24 rounded-lg border border-slate-200 bg-white px-2 py-1 text-sm font-semibold text-slate-800"
+                      />
+                      <span className="text-sm font-semibold text-slate-600">kg</span>
+                    </div>
+                  </div>
+                  <div className="hidden sm:flex items-center gap-2">
+                    {[
+                      { label: "250g", kg: 0.25 },
+                      { label: "500g", kg: 0.5 },
+                      { label: "750g", kg: 0.75 },
+                      { label: "1kg", kg: 1 },
+                    ].map((p) => (
+                      <button
+                        key={p.label}
+                        type="button"
+                        onClick={() => setCustomizing((prev) => (prev ? { ...prev, qty: p.kg } : prev))}
+                        className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 transition hover:border-violet-200 hover:text-violet-700"
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    className="btn btn-secondary h-10 w-10 rounded-full p-0 text-lg"
+                    onClick={() =>
+                      setCustomizing((prev) =>
+                        prev ? { ...prev, qty: Math.max(1, prev.qty - 1) } : prev,
+                      )
+                    }
+                  >
+                    −
+                  </button>
+                  <span className="w-6 text-center text-base font-bold text-slate-900">
+                    {customizing.qty}
+                  </span>
+                  <button
+                    type="button"
+                    className="btn btn-secondary h-10 w-10 rounded-full p-0 text-lg"
+                    onClick={() =>
+                      setCustomizing((prev) => (prev ? { ...prev, qty: prev.qty + 1 } : prev))
+                    }
+                  >
+                    +
+                  </button>
+                </div>
+              )}
               <button
                 type="button"
                 onClick={addCustomizedItem}
                 className="btn btn-primary flex-1 rounded-xl py-3"
               >
                 Add to cart — {formatUsd(
-                  Math.max(0, Number(customizing.item.price) +
-                    normalizeAddIngredients(customizing.item.add_ingredients)
-                      .reduce((s, o) => s + (customizing.add[o.name] ?? 0) * o.price, 0)
-                  ) * customizing.qty
+                  (() => {
+                    const addCost = normalizeAddIngredients(customizing.item.add_ingredients)
+                      .reduce((s, o) => s + (customizing.add[o.name] ?? 0) * o.price, 0);
+                    const soldByWeight = isSoldByWeight(customizing.item);
+                    const base = soldByWeight
+                      ? Number((customizing.item as { price_per_kg?: number | null }).price_per_kg ?? 0)
+                      : Number(customizing.item.price);
+                    return Math.max(0, base + addCost) * customizing.qty;
+                  })()
                 )}
               </button>
             </div>

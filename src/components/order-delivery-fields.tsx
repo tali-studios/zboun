@@ -7,6 +7,10 @@ import { useDeliveryLocation } from "@/components/delivery-location-provider";
 import { DeliveryLocationSheet } from "@/components/delivery-location-sheet";
 import { loadDeliveryLocation } from "@/lib/delivery-location";
 import { formatSavedAddressLine } from "@/lib/format-address";
+import {
+  isPlaceholderLocationText,
+  reverseGeocodeAddress,
+} from "@/lib/google-geocode";
 
 export type SavedAddressOption = {
   id: string;
@@ -52,10 +56,41 @@ export function OrderDeliveryFields({
 }: Props) {
   const { location, openSheet, setLocation } = useDeliveryLocation();
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+
+  // base delivery address (comes from GPS / saved address); we hide it from UI.
+  const [baseAddress, setBaseAddress] = useState<string>("");
+  // extra user details (door / floor / gate) shown in UI; appended to baseAddress for WhatsApp.
+  const [extraDetails, setExtraDetails] = useState<string>("");
+
+  function buildFullAddress(base: string, extra: string) {
+    const b = base.trim();
+    const e = extra.trim();
+    if (!b) return e;
+    if (!e) return b;
+    return `${b}, ${e}`;
+  }
+
   // Pre-fill from localStorage once (e.g. location picked on home page)
   useEffect(() => {
     const saved = loadDeliveryLocation();
-    if (saved?.address) {
+    if (!saved) return;
+
+    if (
+      isPlaceholderLocationText(saved.address) ||
+      isPlaceholderLocationText(saved.label)
+    ) {
+      void reverseGeocodeAddress(saved.lat, saved.lng).then((geocoded) => {
+        const resolved = geocoded ?? `${saved.lat.toFixed(6)}, ${saved.lng.toFixed(6)}`;
+        setBaseAddress(resolved);
+        setExtraDetails("");
+        onAddressChange(resolved);
+      });
+      return;
+    }
+
+    if (saved.address) {
+      setBaseAddress(saved.address);
+      setExtraDetails("");
       onAddressChange(saved.address);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount
@@ -64,12 +99,17 @@ export function OrderDeliveryFields({
   // When delivery context updates (sheet confirm), sync into order address
   useEffect(() => {
     if (!location?.address) return;
+    if (isPlaceholderLocationText(location.address)) return;
+    setBaseAddress(location.address);
+    setExtraDetails("");
     onAddressChange(location.address);
     setSelectedAddressId(null);
   }, [location, onAddressChange]);
 
   function pickSavedAddress(addr: SavedAddressOption) {
     const line = formatSavedAddressLine(addr);
+    setBaseAddress(line);
+    setExtraDetails("");
     onAddressChange(line);
     setSelectedAddressId(addr.id);
     setLocation({
@@ -80,8 +120,6 @@ export function OrderDeliveryFields({
       radiusKm: location?.radiusKm ?? 10,
     });
   }
-
-  const deliveryLabel = location?.label ?? (address.trim() ? "Custom address" : null);
 
   return (
     <>
@@ -103,10 +141,8 @@ export function OrderDeliveryFields({
               <p className="text-[10px] font-bold uppercase tracking-widest text-violet-600">
                 Delivery location
               </p>
-              {deliveryLabel || address.trim() ? (
-                <p className="mt-0.5 line-clamp-2 text-sm font-semibold text-slate-800">
-                  {deliveryLabel || address.trim()}
-                </p>
+              {baseAddress.trim() ? (
+                <p className="mt-0.5 text-sm font-semibold text-slate-800">Location selected</p>
               ) : (
                 <p className="mt-0.5 text-sm text-slate-500">No location set yet</p>
               )}
@@ -117,7 +153,7 @@ export function OrderDeliveryFields({
               className="flex shrink-0 items-center gap-1 rounded-lg border border-violet-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-violet-700 transition hover:bg-violet-100"
             >
               <MapPin className="h-3.5 w-3.5" />
-              {address.trim() ? "Change" : "Set"}
+              {baseAddress.trim() ? "Change" : "Set"}
             </button>
           </div>
 
@@ -164,9 +200,7 @@ export function OrderDeliveryFields({
                         {addr.nickname ?? capitalise(addr.label)}
                         {addr.is_default ? " · Default" : ""}
                       </span>
-                      <span className="block truncate text-[10px] opacity-70">
-                        {addr.formatted_address ?? formatSavedAddressLine(addr)}
-                      </span>
+                      <span className="block truncate text-[10px] opacity-70">Saved</span>
                     </span>
                   </button>
                 );
@@ -175,16 +209,18 @@ export function OrderDeliveryFields({
           </div>
         ) : null}
 
-        {/* Editable full address line (sent on WhatsApp) */}
+        {/* Delivery details only (base address hidden; appended to WhatsApp behind the scenes) */}
         <div>
           <label className="mb-1 flex items-center justify-between">
             <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-              Address for this order
+              Delivery details (optional)
             </span>
             <button
               type="button"
               onClick={() => {
                 setSelectedAddressId(null);
+                setBaseAddress("");
+                setExtraDetails("");
                 onAddressChange("");
               }}
               className="text-[10px] font-medium text-slate-400 hover:text-violet-600"
@@ -193,17 +229,19 @@ export function OrderDeliveryFields({
             </button>
           </label>
           <textarea
-            value={address}
+            value={extraDetails}
             onChange={(e) => {
               setSelectedAddressId(null);
-              onAddressChange(e.target.value);
+              const nextExtra = e.target.value;
+              setExtraDetails(nextExtra);
+              onAddressChange(buildFullAddress(baseAddress, nextExtra));
             }}
-            placeholder="Street, building, floor — pre-filled from your delivery location"
+            placeholder="Door, floor, gate…"
             rows={2}
             className="ui-textarea text-sm"
           />
           <p className="mt-1 text-[10px] text-slate-400">
-            You can add floor or door details here without changing your saved location.
+            Base address is selected automatically from your GPS / saved location.
           </p>
         </div>
       </div>
