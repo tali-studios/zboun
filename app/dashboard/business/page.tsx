@@ -21,6 +21,9 @@ import { BROWSE_SECTION_OPTIONS, normalizeBrowseSections } from "@/lib/browse-se
 import { getBusinessTypeLabel, parseBusinessType, supportsHomeBrowseCategory } from "@/lib/business-types";
 import { RestaurantDashboardToast } from "@/components/restaurant-dashboard-toast";
 import { BusinessMenuItemsFilter } from "@/components/business-menu-items-filter";
+import { RestaurantMapPin } from "@/components/restaurant-map-pin";
+import { RestaurantLocationsPanel } from "@/components/restaurant-locations-panel";
+import type { RestaurantLocationRow } from "@/app-actions/restaurant";
 
 export const dynamic = "force-dynamic";
 
@@ -114,7 +117,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
     supabase
       .from("restaurants")
       .select(
-        "name, slug, phone, logo_url, banner_url, description, lbp_rate, browse_sections, location, eta_label, business_type",
+        "name, slug, phone, logo_url, banner_url, description, lbp_rate, browse_sections, location, eta_label, business_type, latitude, longitude",
       )
       .eq("id", appUser.restaurant_id)
       .single(),
@@ -304,6 +307,13 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
   const fleetActiveDeliveries = fleetEnabled ? (fleetDeliveries ?? []).length : 0;
   const clubEnabled = Boolean(clubAddon?.is_enabled);
   const clubActiveMembers = clubEnabled ? (clubMembers ?? []).filter((m) => m.status === "active").length : 0;
+
+  const { data: restaurantLocationsRaw } = await supabase
+    .from("restaurant_locations")
+    .select("id, name, latitude, longitude, address, phone, is_main, position")
+    .eq("restaurant_id", appUser.restaurant_id)
+    .order("position", { ascending: true });
+  const restaurantLocations = (restaurantLocationsRaw ?? []) as RestaurantLocationRow[];
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const menuUrl = `${appUrl.replace(/\/+$/, "")}/${restaurant?.slug ?? ""}`;
@@ -607,6 +617,13 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
             </form>
           </section>
         )}
+
+        {isMenuBusiness ? (
+          <RestaurantLocationsPanel
+            restaurantId={appUser.restaurant_id}
+            initialLocations={restaurantLocations}
+          />
+        ) : null}
 
         <section className="panel p-5">
           <div className="flex items-center justify-between gap-3">

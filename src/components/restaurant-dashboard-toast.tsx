@@ -69,6 +69,15 @@ export function RestaurantDashboardToast({ toast, sectionName, itemName }: Props
     heading = "Could not save item";
     message =
       "Something went wrong while saving to the database. Confirm the section still exists and try again. If it keeps happening, contact support.";
+  } else if (toast === "location_saved") {
+    heading = "Branch saved";
+    message = "The location was saved and is now visible to customers nearby.";
+  } else if (toast === "location_deleted") {
+    heading = "Branch removed";
+    message = "The location was deleted from your profile.";
+  } else if (toast === "location_invalid_coords") {
+    heading = "Invalid coordinates";
+    message = "Please pick a location on the map before saving.";
   } else {
     return null;
   }

@@ -353,6 +353,10 @@ export async function updateRestaurantSettingsAction(formData: FormData) {
     bannerFile instanceof File ? await uploadRestaurantBanner(bannerFile, user.restaurant_id) : null;
   const location = String(formData.get("location") ?? "").trim() || null;
   const eta_label = String(formData.get("eta_label") ?? "").trim() || null;
+  const latRaw = String(formData.get("latitude") ?? "").trim();
+  const lngRaw = String(formData.get("longitude") ?? "").trim();
+  const latitude = latRaw && Number.isFinite(Number(latRaw)) ? Number(latRaw) : null;
+  const longitude = lngRaw && Number.isFinite(Number(lngRaw)) ? Number(lngRaw) : null;
 
   const supabase = await createServerSupabaseClient();
   await supabase
@@ -367,9 +371,113 @@ export async function updateRestaurantSettingsAction(formData: FormData) {
       banner_url: uploadedBannerUrl ?? (currentBannerUrl || null),
       location,
       eta_label,
+      latitude,
+      longitude,
     })
     .eq("id", user.restaurant_id);
   revalidatePath("/dashboard/business");
   revalidatePath("/");
   redirect("/dashboard/business?toast=settings_saved");
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Restaurant locations (multi-branch)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type RestaurantLocationRow = {
+  id: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  address: string | null;
+  phone: string | null;
+  is_main: boolean;
+  position: number;
+};
+
+export async function saveRestaurantLocationAction(formData: FormData) {
+  const user = await requireRestaurantAdmin();
+  const supabase = await createServerSupabaseClient();
+
+  const lat = Number(formData.get("latitude"));
+  const lng = Number(formData.get("longitude"));
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    redirect("/dashboard/business?toast=location_invalid_coords");
+  }
+
+  const payload = {
+    restaurant_id: user.restaurant_id,
+    name: String(formData.get("name") ?? "Branch").trim() || "Branch",
+    latitude: lat,
+    longitude: lng,
+    address: String(formData.get("address") ?? "").trim() || null,
+    phone: String(formData.get("phone") ?? "").trim() || null,
+    is_main: formData.get("is_main") === "true",
+    position: Number(formData.get("position") ?? 0),
+  };
+
+  const id = String(formData.get("id") ?? "").trim();
+
+  if (id) {
+    await supabase
+      .from("restaurant_locations")
+      .update(payload)
+      .eq("id", id)
+      .eq("restaurant_id", user.restaurant_id);
+  } else {
+    // If this is marked main, clear existing main flag
+    if (payload.is_main) {
+      await supabase
+        .from("restaurant_locations")
+        .update({ is_main: false })
+        .eq("restaurant_id", user.restaurant_id);
+    }
+    await supabase.from("restaurant_locations").insert(payload);
+  }
+
+  revalidatePath("/dashboard/business");
+  revalidatePath("/");
+  redirect("/dashboard/business?toast=location_saved&jump=locations");
+}
+
+export async function deleteRestaurantLocationAction(formData: FormData) {
+  const user = await requireRestaurantAdmin();
+  const supabase = await createServerSupabaseClient();
+
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) return;
+
+  await supabase
+    .from("restaurant_locations")
+    .delete()
+    .eq("id", id)
+    .eq("restaurant_id", user.restaurant_id);
+
+  revalidatePath("/dashboard/business");
+  revalidatePath("/");
+  redirect("/dashboard/business?toast=location_deleted&jump=locations");
+}
+
+export async function setMainLocationAction(formData: FormData) {
+  const user = await requireRestaurantAdmin();
+  const supabase = await createServerSupabaseClient();
+
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) return;
+
+  await supabase
+    .from("restaurant_locations")
+    .update({ is_main: false })
+    .eq("restaurant_id", user.restaurant_id);
+
+  await supabase
+    .from("restaurant_locations")
+    .update({ is_main: true })
+    .eq("id", id)
+    .eq("restaurant_id", user.restaurant_id);
+
+  revalidatePath("/dashboard/business");
+  revalidatePath("/");
+  redirect("/dashboard/business?jump=locations");
+}
+

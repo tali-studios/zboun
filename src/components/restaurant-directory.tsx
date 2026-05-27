@@ -7,14 +7,17 @@ import {
   Croissant,
   CupSoda,
   Flame,
+  MapPin,
+  Navigation,
   Package,
   SlidersHorizontal,
   Sparkles,
   Utensils,
+  X,
   Zap,
   type LucideIcon,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   BROWSE_FILTER_ALL_ACCENT,
   BROWSE_SECTION_ACCENTS,
@@ -24,6 +27,9 @@ import {
   normalizeBrowseSections,
   type BrowseSection,
 } from "@/lib/browse-sections";
+import { useDeliveryLocation } from "@/components/delivery-location-provider";
+import { distanceKm, formatDistance } from "@/lib/geo";
+import { DeliveryLocationSheet } from "@/components/delivery-location-sheet";
 
 const PAGE = {
   ink: "#111827",
@@ -33,7 +39,6 @@ const PAGE = {
   purpleLight: "#EDE9FE",
 } as const;
 
-/** Filter sheet: Lucide icons + accent colors (shared with `BROWSE_SECTION_ACCENTS`). */
 type QuickFilterKey = "all" | BrowseSection;
 
 const FILTER_STYLES: Record<QuickFilterKey, { Icon: LucideIcon; color: string }> = {
@@ -61,6 +66,15 @@ function rgbaHex(hex: string, alpha: number): string {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
+type RestaurantBranch = {
+  id: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  address: string | null;
+  is_main: boolean;
+};
+
 type RestaurantCard = {
   id: string;
   name: string;
@@ -73,10 +87,23 @@ type RestaurantCard = {
   rating_count?: number;
   location: string | null;
   eta_label: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  branches?: RestaurantBranch[] | null;
 };
 
 type Props = {
   restaurants: RestaurantCard[];
+  savedAddresses?: Array<{
+    id: string;
+    label: string;
+    nickname: string | null;
+    latitude: number;
+    longitude: number;
+    formatted_address: string | null;
+    is_default: boolean;
+  }>;
+  isLoggedIn?: boolean;
 };
 
 function primarySection(sections: string[]): BrowseSection {
@@ -84,34 +111,57 @@ function primarySection(sections: string[]): BrowseSection {
   return normalized[0] ?? "Lunch";
 }
 
-export function RestaurantDirectory({ restaurants }: Props) {
+export function RestaurantDirectory({ restaurants, savedAddresses = [], isLoggedIn = false }: Props) {
   const [query, setQuery] = useState("");
   const [activeSection, setActiveSection] = useState<string>("all");
   const [filterOpen, setFilterOpen] = useState(false);
 
-  useEffect(() => {
-    if (!filterOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setFilterOpen(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [filterOpen]);
+  const { location, openSheet, clearLocation, radiusKm } = useDeliveryLocation();
 
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    return restaurants.filter((r) => {
-      const matchesQuery =
-        !normalized ||
-        r.name.toLowerCase().includes(normalized) ||
-        r.slug.toLowerCase().includes(normalized) ||
-        (r.description ?? "").toLowerCase().includes(normalized) ||
-        (r.location ?? "").toLowerCase().includes(normalized);
-      const sections = normalizeBrowseSections(r.browse_sections ?? []);
-      const matchesSection = activeSection === "all" || sections.includes(activeSection as BrowseSection);
-      return matchesQuery && matchesSection;
-    });
-  }, [restaurants, query, activeSection]);
+
+    return restaurants
+      .map((r) => {
+        // Collect all candidate geo-points: explicit branches + legacy single lat/lng
+        const points: { lat: number; lng: number }[] = [
+          ...(r.branches ?? []).map((b) => ({ lat: b.latitude, lng: b.longitude })),
+          ...(r.latitude != null && r.longitude != null ? [{ lat: r.latitude, lng: r.longitude }] : []),
+        ];
+
+        let distKm: number | null = null;
+        if (location && points.length > 0) {
+          const user = { lat: location.lat, lng: location.lng };
+          distKm = Math.min(...points.map((p) => distanceKm(user, p)));
+        }
+        return { ...r, distKm };
+      })
+      .filter(({ distKm, ...r }) => {
+        // Only exclude if we KNOW the restaurant is outside radius (has coords but too far)
+        if (location && distKm !== null && distKm > radiusKm) return false;
+
+        const matchesQuery =
+          !normalized ||
+          r.name.toLowerCase().includes(normalized) ||
+          r.slug.toLowerCase().includes(normalized) ||
+          (r.description ?? "").toLowerCase().includes(normalized) ||
+          (r.location ?? "").toLowerCase().includes(normalized) ||
+          (r.branches ?? []).some((b) =>
+            (b.address ?? "").toLowerCase().includes(normalized) ||
+            b.name.toLowerCase().includes(normalized),
+          );
+
+        const sections = normalizeBrowseSections(r.browse_sections ?? []);
+        const matchesSection = activeSection === "all" || sections.includes(activeSection as BrowseSection);
+        return matchesQuery && matchesSection;
+      })
+      .sort((a, b) => {
+        if (a.distKm !== null && b.distKm !== null) return a.distKm - b.distKm;
+        if (a.distKm !== null) return -1;
+        if (b.distKm !== null) return 1;
+        return 0;
+      });
+  }, [restaurants, query, activeSection, location, radiusKm]);
 
   const pickSection = (id: string) => {
     setActiveSection(id);
@@ -121,244 +171,315 @@ export function RestaurantDirectory({ restaurants }: Props) {
   const filterButtonLabel = activeSection === "all" ? "All" : activeSection;
 
   return (
-    <section className="container pb-10 pt-4 md:pt-6" style={{ color: PAGE.ink }}>
-      <header className="mb-8 md:mb-10">
-        <h1 className="max-w-3xl text-3xl font-bold leading-[1.15] tracking-tight sm:text-4xl md:text-5xl">
-          Every menu, one tap away.
-        </h1>
-        <p className="mt-4 max-w-xl text-base leading-relaxed md:text-lg" style={{ color: PAGE.muted }}>
-          Discover restaurants, browse clean menus, and send your order straight to WhatsApp.
-        </p>
-      </header>
+    <>
+      <DeliveryLocationSheet savedAddresses={savedAddresses} isLoggedIn={isLoggedIn} />
 
-      {/* Search + category (opens filter sheet) */}
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-stretch">
-        <div className="relative min-w-0 flex-1">
-          <svg
-            className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2"
-            style={{ color: PAGE.muted }}
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-            aria-hidden
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
-          </svg>
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search..."
-            className="ui-input ui-input-search h-12 w-full rounded-full border border-slate-200/90 bg-white text-base shadow-sm"
-          />
-        </div>
-        <button
-          type="button"
-          onClick={() => setFilterOpen(true)}
-          className="flex h-12 shrink-0 items-center justify-center gap-2 rounded-full bg-violet-600 px-4 text-sm font-semibold text-white shadow-md shadow-violet-600/25 transition hover:bg-violet-700 sm:min-w-[9.5rem] sm:px-5"
-          aria-label={`Category: ${filterButtonLabel}. Open filters`}
-        >
-          <SlidersHorizontal className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
-          <span className="truncate">{filterButtonLabel}</span>
-        </button>
-      </div>
+      <section className="container pb-10 pt-4 md:pt-6" style={{ color: PAGE.ink }}>
+        <header className="mb-6 md:mb-8">
+          <h1 className="max-w-3xl text-3xl font-bold leading-[1.15] tracking-tight sm:text-4xl md:text-5xl">
+            Every menu, one tap away.
+          </h1>
+          <p className="mt-4 max-w-xl text-base leading-relaxed md:text-lg" style={{ color: PAGE.muted }}>
+            Discover restaurants, browse clean menus, and send your order straight to WhatsApp.
+          </p>
+        </header>
 
-      <p className="mb-4 text-sm" style={{ color: PAGE.muted }}>
-        <span className="font-semibold" style={{ color: PAGE.ink }}>
-          {filtered.length}
-        </span>{" "}
-        {filtered.length === 1 ? "place" : "places"}
-        {query ? ` for “${query.trim()}”` : ""}
-      </p>
-
-      {/* Filter sheet */}
-      {filterOpen ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" role="dialog" aria-modal="true" aria-labelledby="filter-title">
-          <button
-            type="button"
-            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
-            aria-label="Close filters"
-            onClick={() => setFilterOpen(false)}
-          />
-          <div className="relative z-10 w-full max-w-lg rounded-t-[28px] bg-white/95 p-6 shadow-2xl sm:rounded-[28px] sm:p-8">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: PAGE.purple }}>
-                  Discover
-                </p>
-                <h2 id="filter-title" className="mt-1 text-2xl font-bold tracking-tight">
-                  Filter restaurants
-                </h2>
-              </div>
+        {/* ── Delivery location bar ── */}
+        <div className="mb-4">
+          {location ? (
+            <div className="flex items-center gap-2">
               <button
-                type="button"
-                onClick={() => setFilterOpen(false)}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-md ring-1 ring-slate-200/80 transition hover:bg-slate-50"
-                aria-label="Close"
+                onClick={openSheet}
+                className="flex min-w-0 flex-1 items-center gap-2.5 rounded-full border border-violet-200 bg-violet-50 py-2.5 pl-4 pr-5 text-left transition hover:bg-violet-100"
               >
-                <svg className="h-5 w-5 text-slate-800" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-violet-600 text-white shadow-sm">
+                  <MapPin className="h-3.5 w-3.5" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-violet-500">Delivering to</p>
+                  <p className="truncate text-sm font-semibold text-slate-800">{location.label}</p>
+                </div>
+                <span className="shrink-0 rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold text-violet-600">
+                  {radiusKm} km
+                </span>
+              </button>
+              <button
+                onClick={clearLocation}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-100"
+                aria-label="Clear location"
+              >
+                <X className="h-4 w-4" />
               </button>
             </div>
+          ) : (
+            <button
+              onClick={openSheet}
+              className="flex w-full items-center gap-3 rounded-full border border-dashed border-slate-300 bg-white px-4 py-3 text-left transition hover:border-violet-300 hover:bg-violet-50/50 sm:w-auto sm:min-w-[320px]"
+            >
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500">
+                <Navigation className="h-4 w-4" />
+              </span>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-slate-600">Set delivery location</p>
+                <p className="text-xs text-slate-400">See restaurants near you</p>
+              </div>
+              <MapPin className="h-4 w-4 shrink-0 text-slate-300" />
+            </button>
+          )}
+        </div>
 
-            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {(() => {
-                const { Icon: AllIcon, color: allColor } = FILTER_STYLES.all;
-                const allOn = activeSection === "all";
-                return (
-                  <button
-                    type="button"
-                    onClick={() => pickSection("all")}
-                    className={`flex items-center gap-2.5 rounded-full px-3 py-3 text-left text-sm font-semibold shadow-sm ring-1 ring-black/[0.04] transition hover:brightness-[0.98] ${
-                      allOn ? "text-white" : "text-slate-800"
-                    }`}
-                    style={{
-                      backgroundColor: allOn ? allColor : rgbaHex(allColor, 0.12),
-                    }}
-                  >
-                    <span
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+        {/* ── Search + category ── */}
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-stretch">
+          <div className="relative min-w-0 flex-1">
+            <svg
+              className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2"
+              style={{ color: PAGE.muted }}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+              aria-hidden
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+            </svg>
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search..."
+              className="ui-input ui-input-search h-12 w-full rounded-full border border-slate-200/90 bg-white text-base shadow-sm"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => setFilterOpen(true)}
+            className="flex h-12 shrink-0 items-center justify-center gap-2 rounded-full bg-violet-600 px-4 text-sm font-semibold text-white shadow-md shadow-violet-600/25 transition hover:bg-violet-700 sm:min-w-[9.5rem] sm:px-5"
+            aria-label={`Category: ${filterButtonLabel}. Open filters`}
+          >
+            <SlidersHorizontal className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
+            <span className="truncate">{filterButtonLabel}</span>
+          </button>
+        </div>
+
+        <p className="mb-4 text-sm" style={{ color: PAGE.muted }}>
+          <span className="font-semibold" style={{ color: PAGE.ink }}>
+            {filtered.length}
+          </span>{" "}
+          {filtered.length === 1 ? "place" : "places"}
+          {query ? ` for "${query.trim()}"` : ""}
+          {location ? ` within ${radiusKm} km` : ""}
+        </p>
+
+        {/* ── Filter sheet ── */}
+        {filterOpen ? (
+          <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" role="dialog" aria-modal="true" aria-labelledby="filter-title">
+            <button
+              type="button"
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+              aria-label="Close filters"
+              onClick={() => setFilterOpen(false)}
+            />
+            <div className="relative z-10 w-full max-w-lg rounded-t-[28px] bg-white/95 p-6 shadow-2xl sm:rounded-[28px] sm:p-8">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: PAGE.purple }}>
+                    Discover
+                  </p>
+                  <h2 id="filter-title" className="mt-1 text-2xl font-bold tracking-tight">
+                    Filter restaurants
+                  </h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setFilterOpen(false)}
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-md ring-1 ring-slate-200/80 transition hover:bg-slate-50"
+                  aria-label="Close"
+                >
+                  <X className="h-5 w-5 text-slate-800" />
+                </button>
+              </div>
+
+              <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {(() => {
+                  const { Icon: AllIcon, color: allColor } = FILTER_STYLES.all;
+                  const allOn = activeSection === "all";
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => pickSection("all")}
+                      className={`flex items-center gap-2.5 rounded-full px-3 py-3 text-left text-sm font-semibold shadow-sm ring-1 ring-black/[0.04] transition hover:brightness-[0.98] ${
+                        allOn ? "text-white" : "text-slate-800"
+                      }`}
+                      style={{ backgroundColor: allOn ? allColor : rgbaHex(allColor, 0.12) }}
+                    >
+                      <span
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+                        style={{
+                          backgroundColor: allOn ? "rgba(255,255,255,0.22)" : rgbaHex(allColor, 0.22),
+                          color: allOn ? "#fff" : allColor,
+                        }}
+                      >
+                        <AllIcon className="h-4 w-4" strokeWidth={2} aria-hidden />
+                      </span>
+                      All
+                    </button>
+                  );
+                })()}
+                {BROWSE_SECTION_OPTIONS.map((section) => {
+                  const { Icon, color } = FILTER_STYLES[section];
+                  const on = activeSection === section;
+                  return (
+                    <button
+                      key={section}
+                      type="button"
+                      onClick={() => pickSection(section)}
+                      className="flex items-center gap-2.5 rounded-full px-3 py-3 text-left text-sm font-semibold shadow-sm ring-1 ring-black/[0.04] transition hover:brightness-[0.98]"
                       style={{
-                        backgroundColor: allOn ? "rgba(255,255,255,0.22)" : rgbaHex(allColor, 0.22),
-                        color: allOn ? "#fff" : allColor,
+                        backgroundColor: on ? color : rgbaHex(color, 0.12),
+                        color: on ? "#fff" : PAGE.ink,
                       }}
                     >
-                      <AllIcon className="h-4 w-4" strokeWidth={2} aria-hidden />
-                    </span>
-                    All
-                  </button>
-                );
-              })()}
-              {BROWSE_SECTION_OPTIONS.map((section) => {
-                const { Icon, color } = FILTER_STYLES[section];
-                const on = activeSection === section;
-                return (
-                  <button
-                    key={section}
-                    type="button"
-                    onClick={() => pickSection(section)}
-                    className="flex items-center gap-2.5 rounded-full px-3 py-3 text-left text-sm font-semibold shadow-sm ring-1 ring-black/[0.04] transition hover:brightness-[0.98]"
-                    style={{
-                      backgroundColor: on ? color : rgbaHex(color, 0.12),
-                      color: on ? "#fff" : PAGE.ink,
-                    }}
-                  >
-                    <span
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
-                      style={{
-                        backgroundColor: on ? "rgba(255,255,255,0.22)" : rgbaHex(color, 0.22),
-                        color: on ? "#fff" : color,
-                      }}
-                    >
-                      <Icon className="h-4 w-4" strokeWidth={2} aria-hidden />
-                    </span>
-                    {section}
-                  </button>
-                );
-              })}
+                      <span
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+                        style={{
+                          backgroundColor: on ? "rgba(255,255,255,0.22)" : rgbaHex(color, 0.22),
+                          color: on ? "#fff" : color,
+                        }}
+                      >
+                        <Icon className="h-4 w-4" strokeWidth={2} aria-hidden />
+                      </span>
+                      {section}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
-        </div>
-      ) : null}
+        ) : null}
 
-      {/* Cards */}
-      {filtered.length === 0 ? (
-        <div
-          className="rounded-3xl border border-dashed border-slate-200 py-16 text-center"
-          style={{ backgroundColor: `${PAGE.surface}` }}
-        >
-          <p className="text-base font-semibold text-slate-700">No restaurants found</p>
-          <p className="mt-1 text-sm text-slate-400">Try another search or category.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
-          {filtered.map((restaurant) => {
-            const section = primarySection(restaurant.browse_sections ?? []);
-            const sectionAccent = BROWSE_SECTION_ACCENTS[section];
-            const rating =
-              restaurant.rating != null && Number.isFinite(Number(restaurant.rating))
-                ? Math.round(Number(restaurant.rating) * 10) / 10
-                : null;
+        {/* ── Cards ── */}
+        {filtered.length === 0 ? (
+          <div
+            className="rounded-3xl border border-dashed border-slate-200 py-16 text-center"
+            style={{ backgroundColor: PAGE.surface }}
+          >
+            <p className="text-base font-semibold text-slate-700">No restaurants found</p>
+            <p className="mt-1 text-sm text-slate-400">
+              {location
+                ? "Try increasing the search radius or choosing a different location."
+                : "Try another search or category."}
+            </p>
+            {location ? (
+              <button
+                onClick={openSheet}
+                className="mt-4 rounded-full bg-violet-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-violet-700"
+              >
+                Adjust radius
+              </button>
+            ) : null}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+            {filtered.map((restaurant) => {
+              const section = primarySection(restaurant.browse_sections ?? []);
+              const sectionAccent = BROWSE_SECTION_ACCENTS[section];
+              const rating =
+                restaurant.rating != null && Number.isFinite(Number(restaurant.rating))
+                  ? Math.round(Number(restaurant.rating) * 10) / 10
+                  : null;
 
-            return (
-              <Link key={restaurant.id} href={`/${restaurant.slug}`} className="group block">
-                <article className="relative h-[min(92vw,400px)] overflow-hidden rounded-[1.75rem] shadow-md ring-1 ring-black/[0.06] transition duration-300 hover:-translate-y-1 hover:shadow-xl sm:h-[380px]">
-                  {restaurant.banner_url ? (
-                    <Image
-                      src={restaurant.banner_url}
-                      alt=""
-                      fill
-                      className="object-cover transition duration-500 group-hover:scale-[1.03]"
-                      sizes="(max-width:640px) 100vw, (max-width:1280px) 50vw, 25vw"
-                      unoptimized
-                    />
-                  ) : (
-                    <div
-                      className="absolute inset-0 bg-gradient-to-br from-violet-400 via-fuchsia-500 to-amber-400"
-                      aria-hidden
-                    />
-                  )}
-                  {/* Dark wash so white type reads from mid-card through footer (mock) */}
-                  <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/45 to-black/80" />
-
-                  <div
-                    className="absolute left-3 top-3 z-10 inline-flex min-h-[1.75rem] items-center justify-center rounded-full px-3 py-1.5 text-[11px] font-bold uppercase leading-none tracking-wide shadow-sm"
-                    style={{
-                      backgroundColor: browseSectionChipBackground(sectionAccent),
-                      color: BROWSE_CHIP_LABEL_COLOR,
-                    }}
-                  >
-                    {section}
-                  </div>
-
-                  {/* Left stack: squircle logo → name → description → pills (lower half, mock) */}
-                  <div className="absolute inset-x-0 bottom-0 top-[30%] z-10 flex flex-col justify-end px-4 pb-6">
-                    {restaurant.logo_url ? (
-                      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl border-2 border-white bg-white shadow-lg">
-                        <Image
-                          src={restaurant.logo_url}
-                          alt=""
-                          width={56}
-                          height={56}
-                          className="h-full w-full object-cover"
-                          unoptimized
-                        />
-                      </div>
+              return (
+                <Link key={restaurant.id} href={`/${restaurant.slug}`} className="group block">
+                  <article className="relative h-[min(92vw,400px)] overflow-hidden rounded-[1.75rem] shadow-md ring-1 ring-black/[0.06] transition duration-300 hover:-translate-y-1 hover:shadow-xl sm:h-[380px]">
+                    {restaurant.banner_url ? (
+                      <Image
+                        src={restaurant.banner_url}
+                        alt=""
+                        fill
+                        className="object-cover transition duration-500 group-hover:scale-[1.03]"
+                        sizes="(max-width:640px) 100vw, (max-width:1280px) 50vw, 25vw"
+                        unoptimized
+                      />
                     ) : (
-                      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border-2 border-white bg-white/95 text-base font-bold text-[#7854ff] shadow-lg">
-                        {restaurant.name.slice(0, 2).toUpperCase()}
-                      </div>
+                      <div
+                        className="absolute inset-0 bg-gradient-to-br from-violet-400 via-fuchsia-500 to-amber-400"
+                        aria-hidden
+                      />
                     )}
-                    <h3 className="mt-3 text-left text-xl font-bold leading-tight tracking-tight text-white drop-shadow-sm">
-                      {restaurant.name}
-                    </h3>
-                    <p className="mt-1.5 line-clamp-2 text-left text-sm font-normal leading-snug text-white/95">
-                      {restaurant.description?.trim() || "Open the menu to browse dishes and order on WhatsApp."}
-                    </p>
-                    <div className="meta-row mt-3">
-                      {rating != null ? (
-                        <span>
-                          <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                          </svg>
-                          {rating.toFixed(1)}
+                    <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/45 to-black/80" />
+
+                    <div
+                      className="absolute left-3 top-3 z-10 inline-flex min-h-[1.75rem] items-center justify-center rounded-full px-3 py-1.5 text-[11px] font-bold uppercase leading-none tracking-wide shadow-sm"
+                      style={{
+                        backgroundColor: browseSectionChipBackground(sectionAccent),
+                        color: BROWSE_CHIP_LABEL_COLOR,
+                      }}
+                    >
+                      {section}
+                    </div>
+
+                    {/* Distance badge OR branches badge */}
+                    <div className="absolute right-3 top-3 z-10 flex items-center gap-1.5">
+                      {restaurant.distKm !== null && restaurant.distKm !== undefined ? (
+                        <span className="flex items-center gap-1 rounded-full bg-black/50 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
+                          <MapPin className="h-3 w-3" />
+                          {formatDistance(restaurant.distKm)}
                         </span>
                       ) : null}
-                      {restaurant.eta_label?.trim() ? <span>{restaurant.eta_label.trim()}</span> : null}
-                      {restaurant.location?.trim() ? (
-                        <span className="max-w-[160px] min-w-0 truncate sm:max-w-[200px]">
-                          {restaurant.location.trim()}
+                      {(restaurant.branches ?? []).length > 1 ? (
+                        <span className="flex items-center gap-1 rounded-full bg-black/50 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
+                          <MapPin className="h-3 w-3" />
+                          {restaurant.branches!.length} branches
                         </span>
                       ) : null}
                     </div>
-                  </div>
-                </article>
-              </Link>
-            );
-          })}
-        </div>
-      )}
-    </section>
+
+                    <div className="absolute inset-x-0 bottom-0 top-[30%] z-10 flex flex-col justify-end px-4 pb-6">
+                      {restaurant.logo_url ? (
+                        <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl border-2 border-white bg-white shadow-lg">
+                          <Image
+                            src={restaurant.logo_url}
+                            alt=""
+                            width={56}
+                            height={56}
+                            className="h-full w-full object-cover"
+                            unoptimized
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border-2 border-white bg-white/95 text-base font-bold text-[#7854ff] shadow-lg">
+                          {restaurant.name.slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                      <h3 className="mt-3 text-left text-xl font-bold leading-tight tracking-tight text-white drop-shadow-sm">
+                        {restaurant.name}
+                      </h3>
+                      <p className="mt-1.5 line-clamp-2 text-left text-sm font-normal leading-snug text-white/95">
+                        {restaurant.description?.trim() || "Open the menu to browse dishes and order on WhatsApp."}
+                      </p>
+                      <div className="meta-row mt-3">
+                        {rating != null ? (
+                          <span>
+                            <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                            </svg>
+                            {rating.toFixed(1)}
+                          </span>
+                        ) : null}
+                        {restaurant.eta_label?.trim() ? <span>{restaurant.eta_label.trim()}</span> : null}
+                        {restaurant.location?.trim() ? (
+                          <span className="max-w-[160px] min-w-0 truncate sm:max-w-[200px]">
+                            {restaurant.location.trim()}
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                  </article>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </section>
+    </>
   );
 }

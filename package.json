@@ -13,6 +13,7 @@
     "qa:seed-menu": "node scripts/qa-seed-menu.mjs"
   },
   "dependencies": {
+    "@googlemaps/js-api-loader": "^2.0.2",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.103.0",
     "@tailwindcss/node": "^4.2.2",

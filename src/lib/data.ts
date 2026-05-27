@@ -139,6 +139,15 @@ export async function getRestaurantMenu(restaurantId: string) {
   return (data ?? []) as CategoryWithItems[];
 }
 
+export type RestaurantLocationBranch = {
+  id: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  address: string | null;
+  is_main: boolean;
+};
+
 type HomeRestaurantCard = {
   id: string;
   name: string;
@@ -152,6 +161,10 @@ type HomeRestaurantCard = {
   rating_count: number;
   location: string | null;
   eta_label: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  /** All physical branches — used for multi-location distance filtering */
+  branches: RestaurantLocationBranch[];
 };
 
 function mapLegacyHomeRow(r: {
@@ -169,6 +182,9 @@ function mapLegacyHomeRow(r: {
     rating_count: 0,
     location: null,
     eta_label: null,
+    latitude: null,
+    longitude: null,
+    branches: [],
   };
 }
 
@@ -179,7 +195,7 @@ export const getHomeRestaurants = unstable_cache(
       auth: { persistSession: false, autoRefreshToken: false },
     });
     const fullSelect =
-      "id, name, slug, logo_url, banner_url, description, browse_sections, location, eta_label";
+      "id, name, slug, logo_url, banner_url, description, browse_sections, location, eta_label, latitude, longitude, restaurant_locations(id, name, latitude, longitude, address, is_main)";
 
     const full = await supabase
       .from("restaurants")
@@ -189,7 +205,9 @@ export const getHomeRestaurants = unstable_cache(
       .order("created_at", { ascending: false });
 
     if (!full.error && full.data) {
-      const rows = full.data as Omit<HomeRestaurantCard, "rating" | "rating_count">[];
+      const rows = full.data as (Omit<HomeRestaurantCard, "rating" | "rating_count" | "branches"> & {
+        restaurant_locations?: RestaurantLocationBranch[] | null;
+      })[];
       const stats = await loadRatingStatsMap(supabase, rows.map((r) => r.id));
       return rows.map((r) => {
         const s = stats.get(r.id);
@@ -197,11 +215,12 @@ export const getHomeRestaurants = unstable_cache(
           ...r,
           rating: s?.avgRating ?? null,
           rating_count: s?.ratingCount ?? 0,
+          branches: (r.restaurant_locations ?? []) as RestaurantLocationBranch[],
         };
       });
     }
 
-    // New columns may not exist until you run supabase/schema (or run-all) alters — avoid a silent empty home page.
+    // Fallback: new columns may not exist until migration is applied
     const legacy = await supabase
       .from("restaurants")
       .select("id, name, slug, logo_url, browse_sections")
@@ -214,7 +233,7 @@ export const getHomeRestaurants = unstable_cache(
     }
     return legacy.data.map(mapLegacyHomeRow);
   },
-  ["home-restaurants", "visitor-ratings-v1"],
+  ["home-restaurants", "visitor-ratings-v2", "branches-v1"],
   { revalidate: 60 },
 );
 

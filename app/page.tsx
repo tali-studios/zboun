@@ -4,6 +4,7 @@ import { getHomeRestaurants } from "@/lib/data";
 import { ZBOUN_PRICING } from "@/lib/pricing";
 import { RestaurantDirectory } from "@/components/restaurant-directory";
 import { SiteFooter } from "@/components/site-footer";
+import { DeliveryLocationProvider } from "@/components/delivery-location-provider";
 
 export default async function HomePage() {
   const restaurants = await getHomeRestaurants();
@@ -29,9 +30,11 @@ export default async function HomePage() {
           </Link>
         </div>
 
-        <section id="restaurants" className="pb-2 pt-2 sm:pt-4">
-          <RestaurantDirectory restaurants={restaurants} />
-        </section>
+        <DeliveryLocationProvider>
+          <section id="restaurants" className="pb-2 pt-2 sm:pt-4">
+            <RestaurantDirectory restaurants={restaurants} />
+          </section>
+        </DeliveryLocationProvider>
 
         {/* ── Owners CTA banner ────────────────────────────────────────────── */}
         <section className="container pb-16 pt-4">

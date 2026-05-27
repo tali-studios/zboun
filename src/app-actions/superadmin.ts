@@ -117,6 +117,22 @@ export async function createRestaurantAction(formData: FormData) {
 
     if (restaurantError) throw restaurantError;
 
+    // Optionally seed the first location
+    const initLat = Number(formData.get("init_latitude") ?? "");
+    const initLng = Number(formData.get("init_longitude") ?? "");
+    const initAddress = String(formData.get("init_address") ?? "").trim() || null;
+    if (Number.isFinite(initLat) && Number.isFinite(initLng) && initLat !== 0 && initLng !== 0) {
+      await adminClient.from("restaurant_locations").insert({
+        restaurant_id: restaurantData.id,
+        name: "Main Branch",
+        latitude: initLat,
+        longitude: initLng,
+        address: initAddress,
+        is_main: true,
+        position: 0,
+      });
+    }
+
     const inviteAdminName = `${name} Admin`;
     let userId: string | null = null;
     const initialPassword = `Zboun@${Math.random().toString(36).slice(-8)}A1`;
