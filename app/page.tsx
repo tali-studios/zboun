@@ -16,7 +16,8 @@ export default async function HomePage() {
   return (
     <div className="flex min-h-screen flex-col bg-white">
       <main className="flex-1">
-        <div className="container pt-8 sm:pt-10">
+        {/* Logo — desktop only (mobile has the sticky app-style header) */}
+        <div className="container hidden md:block pt-8 sm:pt-10">
           <Link
             href="/"
             className="inline-flex items-center outline-none transition-opacity hover:opacity-85 focus-visible:opacity-85"

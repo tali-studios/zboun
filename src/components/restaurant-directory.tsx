@@ -3,6 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import {
+  Bell,
+  ChevronDown,
   Cookie,
   Croissant,
   CupSoda,
@@ -170,12 +172,99 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
 
   const filterButtonLabel = activeSection === "all" ? "All" : activeSection;
 
+  const locationLabel = location?.label ?? null;
+
   return (
     <>
       <DeliveryLocationSheet savedAddresses={savedAddresses} isLoggedIn={isLoggedIn} />
 
+      {/* ── Mobile app-style header (phone only) ── */}
+      <div className="md:hidden sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-100 shadow-sm">
+        <div className="flex items-center gap-3 px-4 py-3">
+          {/* Logo */}
+          <Link href="/" className="shrink-0" aria-label="Zboun home">
+            <Image
+              src="/Logo.svg"
+              alt="Zboun"
+              width={80}
+              height={23}
+              priority
+              unoptimized
+              className="h-7 w-auto object-contain"
+            />
+          </Link>
+
+          {/* Divider */}
+          <div className="h-5 w-px bg-slate-200 shrink-0" aria-hidden />
+
+          {/* Location picker */}
+          <button
+            onClick={openSheet}
+            className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
+            aria-label="Change delivery location"
+          >
+            <MapPin className="h-4 w-4 shrink-0 text-violet-600" strokeWidth={2.5} />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-0.5">
+                <p className="truncate text-[14px] font-bold text-slate-900 leading-tight">
+                  {locationLabel ?? "Set location"}
+                </p>
+                <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-500" strokeWidth={2.5} />
+              </div>
+            </div>
+          </button>
+
+          {/* Right icons */}
+          <div className="flex items-center gap-2 shrink-0">
+            {location ? (
+              <button
+                onClick={clearLocation}
+                aria-label="Clear location"
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            ) : null}
+            <Link
+              href={isLoggedIn ? "/account" : "/login"}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200"
+              aria-label="Account"
+            >
+              <Bell className="h-4.5 w-4.5 h-[18px] w-[18px]" strokeWidth={2} />
+            </Link>
+          </div>
+        </div>
+
+        {/* Search bar row */}
+        <div className="flex items-center gap-2 px-4 pb-3">
+          <div className="relative flex-1">
+            <svg
+              className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+              fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+            </svg>
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search restaurants…"
+              className="h-10 w-full rounded-full border border-slate-200 bg-slate-50 pl-9 pr-4 text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 focus:bg-white transition"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => setFilterOpen(true)}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-violet-600 text-white shadow-md shadow-violet-600/25 transition hover:bg-violet-700"
+            aria-label={`Category: ${filterButtonLabel}`}
+          >
+            <SlidersHorizontal className="h-4 w-4" strokeWidth={2} />
+          </button>
+        </div>
+      </div>
+
       <section className="container pb-10 pt-4 md:pt-6" style={{ color: PAGE.ink }}>
-        <header className="mb-6 md:mb-8">
+        {/* Desktop header — hidden on mobile (mobile has sticky header above) */}
+        <header className="mb-6 hidden md:block md:mb-8">
           <h1 className="max-w-3xl text-3xl font-bold leading-[1.15] tracking-tight sm:text-4xl md:text-5xl">
             Every menu, one tap away.
           </h1>
@@ -184,8 +273,8 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
           </p>
         </header>
 
-        {/* ── Delivery location bar ── */}
-        <div className="mb-4">
+        {/* ── Desktop: delivery location bar ── */}
+        <div className="mb-4 hidden md:block">
           {location ? (
             <div className="flex items-center gap-2">
               <button
@@ -228,8 +317,8 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
           )}
         </div>
 
-        {/* ── Search + category ── */}
-        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-stretch">
+        {/* ── Desktop: search + category ── */}
+        <div className="mb-6 hidden md:flex flex-col gap-3 sm:flex-row sm:items-stretch">
           <div className="relative min-w-0 flex-1">
             <svg
               className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2"

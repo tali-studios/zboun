@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 type Props = {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; success?: string }>;
 };
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -14,7 +14,7 @@ const ERROR_MESSAGES: Record<string, string> = {
 };
 
 export default async function CustomerSignupPage({ searchParams }: Props) {
-  const { error } = await searchParams;
+  const { error, success } = await searchParams;
 
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-slate-50 via-white to-violet-50 px-4 py-12">
@@ -61,6 +61,20 @@ export default async function CustomerSignupPage({ searchParams }: Props) {
             </p>
           </div>
 
+          {/* Success: check email */}
+          {success === "check_email" ? (
+            <div className="mb-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-800">
+              <p className="font-bold">Almost there! Check your email 📬</p>
+              <p className="mt-1 text-emerald-700">
+                We sent a confirmation link to your inbox. Click it to activate your account, then{" "}
+                <Link href="/login" className="font-semibold underline underline-offset-2 hover:text-emerald-900">
+                  sign in here
+                </Link>
+                .
+              </p>
+            </div>
+          ) : null}
+
           {/* Error */}
           {error ? (
             <div className="mb-5 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
@@ -68,8 +82,8 @@ export default async function CustomerSignupPage({ searchParams }: Props) {
             </div>
           ) : null}
 
-          {/* Form */}
-          <form action={customerSignUpAction} className="space-y-3">
+          {/* Form — hide if confirmation email was just sent */}
+          <form action={customerSignUpAction} className={`space-y-3 ${success === "check_email" ? "hidden" : ""}`}>
             <div>
               <label htmlFor="name" className="mb-1.5 block text-xs font-semibold text-slate-600">
                 Full name

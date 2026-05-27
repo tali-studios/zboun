@@ -13,6 +13,18 @@ function getAdminClient() {
   });
 }
 
+/** Errors from Supabase that mean "account created but email send failed" — not a real failure. */
+function isEmailSendError(msg: string) {
+  const lower = msg.toLowerCase();
+  return (
+    lower.includes("sending confirmation email") ||
+    lower.includes("error sending") ||
+    lower.includes("smtp") ||
+    lower.includes("email rate limit") ||
+    lower.includes("confirmation email")
+  );
+}
+
 export async function customerSignUpAction(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
@@ -27,11 +39,26 @@ export async function customerSignUpAction(formData: FormData) {
     redirect("/signup?error=password_mismatch");
 
   const supabase = await createServerSupabaseClient();
+  const adminClient = getAdminClient();
 
   const { data, error } = await supabase.auth.signUp({ email, password });
-  if (error) redirect(`/signup?error=${encodeURIComponent(error.message)}`);
 
-  const userId = data.user?.id;
+  // If signUp returned an error but it's only the confirmation email failing,
+  // the user account was still created — look it up and continue.
+  let userId = data.user?.id ?? null;
+
+  if (error) {
+    if (!isEmailSendError(error.message)) {
+      // Real error (e.g. email already in use) — bail out
+      redirect(`/signup?error=${encodeURIComponent(error.message)}`);
+    }
+    // Email send failed but account may exist — find it via admin client
+    if (!userId && adminClient) {
+      const { data: list } = await adminClient.auth.admin.listUsers({ page: 1, perPage: 1000 });
+      userId = list?.users.find((u) => u.email?.toLowerCase() === email)?.id ?? null;
+    }
+  }
+
   if (!userId) redirect("/signup?error=signup_failed");
 
   const { error: profileError } = await supabase.from("customer_profiles").upsert(
@@ -40,6 +67,12 @@ export async function customerSignUpAction(formData: FormData) {
   );
   if (profileError)
     redirect(`/signup?error=${encodeURIComponent(profileError.message)}`);
+
+  // If Supabase requires email confirmation the session won't be set yet —
+  // redirect to a "check your email" page instead of /account.
+  if (!data.session) {
+    redirect("/signup?success=check_email");
+  }
 
   redirect("/account");
 }
