@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { getRestaurantBySlug, getRestaurantMenu } from "@/lib/data";
 import { MenuClient } from "@/components/menu-client";
 import { RestaurantMenuHero } from "@/components/restaurant-menu-hero";
+import { DeliveryLocationProvider } from "@/components/delivery-location-provider";
+import { getCustomerOrderContext } from "@/lib/customer-order-context";
 import { getSiteUrl } from "@/lib/site";
 import { normalizeBrowseSections } from "@/lib/browse-sections";
 
@@ -69,23 +71,29 @@ export default async function RestaurantMenuPage({ params }: Props) {
       ? Math.round(Number(restaurant.user_avg_rating) * 10) / 10
       : null;
   const ratingCount = restaurant.user_rating_count ?? 0;
+  const { isLoggedIn, defaultCustomerName, savedAddresses } = await getCustomerOrderContext();
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#F9FAFB]">
-      <RestaurantMenuHero restaurant={restaurant} heroEyebrow={heroEyebrow} tagline={tagline} />
+    <DeliveryLocationProvider>
+      <div className="min-h-screen overflow-x-hidden bg-[#F9FAFB]">
+        <RestaurantMenuHero restaurant={restaurant} heroEyebrow={heroEyebrow} tagline={tagline} />
 
-      <main className="container px-3 pb-10 pt-3 sm:px-6 sm:pb-12 sm:pt-6 lg:pb-8">
-        <MenuClient
-          restaurantName={restaurant.name}
-          restaurantPhone={restaurant.phone}
-          restaurantId={restaurant.id}
-          restaurantSlug={restaurant.slug}
-          avgRating={avgRating}
-          ratingCount={ratingCount}
-          lbpRate={Number(restaurant.lbp_rate ?? 89500)}
-          categories={categories}
-        />
-      </main>
-    </div>
+        <main className="container px-3 pb-10 pt-3 sm:px-6 sm:pb-12 sm:pt-6 lg:pb-8">
+          <MenuClient
+            restaurantName={restaurant.name}
+            restaurantPhone={restaurant.phone}
+            restaurantId={restaurant.id}
+            restaurantSlug={restaurant.slug}
+            avgRating={avgRating}
+            ratingCount={ratingCount}
+            lbpRate={Number(restaurant.lbp_rate ?? 89500)}
+            categories={categories}
+            defaultCustomerName={defaultCustomerName}
+            savedAddresses={savedAddresses}
+            isLoggedIn={isLoggedIn}
+          />
+        </main>
+      </div>
+    </DeliveryLocationProvider>
   );
 }

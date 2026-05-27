@@ -5,9 +5,13 @@ import { ZBOUN_PRICING } from "@/lib/pricing";
 import { RestaurantDirectory } from "@/components/restaurant-directory";
 import { SiteFooter } from "@/components/site-footer";
 import { DeliveryLocationProvider } from "@/components/delivery-location-provider";
+import { getCustomerOrderContext } from "@/lib/customer-order-context";
 
 export default async function HomePage() {
-  const restaurants = await getHomeRestaurants();
+  const [restaurants, customerCtx] = await Promise.all([
+    getHomeRestaurants(),
+    getCustomerOrderContext(),
+  ]);
 
   return (
     <div className="flex min-h-screen flex-col bg-white">
@@ -32,7 +36,11 @@ export default async function HomePage() {
 
         <DeliveryLocationProvider>
           <section id="restaurants" className="pb-2 pt-2 sm:pt-4">
-            <RestaurantDirectory restaurants={restaurants} />
+            <RestaurantDirectory
+              restaurants={restaurants}
+              savedAddresses={customerCtx.savedAddresses}
+              isLoggedIn={customerCtx.isLoggedIn}
+            />
           </section>
         </DeliveryLocationProvider>
 

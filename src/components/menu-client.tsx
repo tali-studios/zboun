@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useMemo, useState } from "react";
 import type { CategoryWithItems } from "@/lib/data";
 import { MenuRestaurantRating } from "@/components/menu-restaurant-rating";
+import { OrderDeliveryFields, type SavedAddressOption } from "@/components/order-delivery-fields";
 import { BRAND_HEX, BRAND_HEX_DEEP } from "@/lib/brand";
 
 const BRAND = BRAND_HEX;
@@ -20,6 +21,9 @@ type Props = {
   ratingCount: number;
   lbpRate: number;
   categories: CategoryWithItems[];
+  defaultCustomerName?: string;
+  savedAddresses?: SavedAddressOption[];
+  isLoggedIn?: boolean;
 };
 
 type CartLine = {
@@ -53,12 +57,15 @@ export function MenuClient({
   ratingCount,
   lbpRate,
   categories,
+  defaultCustomerName = "",
+  savedAddresses = [],
+  isLoggedIn = false,
 }: Props) {
   const [cart, setCart] = useState<Record<string, CartLine>>({});
   const [customizing, setCustomizing] = useState<CustomizationState | null>(null);
   const [query, setQuery] = useState("");
   const [menuCategoryFilter, setMenuCategoryFilter] = useState<string>("all");
-  const [customerName, setCustomerName] = useState("");
+  const [customerName, setCustomerName] = useState(defaultCustomerName);
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
   const [isOrderConfirmed, setIsOrderConfirmed] = useState(false);
@@ -349,25 +356,21 @@ export function MenuClient({
         ) : null}
 
         {/* Delivery details */}
-        <div className="mt-4 space-y-2.5">
-          <input
-            value={customerName}
-            onChange={(e) => setCustomerName(e.target.value)}
-            placeholder="Your name"
-            className="ui-input"
-          />
-          <input
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            placeholder="Delivery address"
-            className="ui-input"
+        <div className="mt-4">
+          <OrderDeliveryFields
+            customerName={customerName}
+            onCustomerNameChange={setCustomerName}
+            address={address}
+            onAddressChange={setAddress}
+            savedAddresses={savedAddresses}
+            isLoggedIn={isLoggedIn}
           />
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Order notes (optional)"
             rows={2}
-            className="ui-textarea"
+            className="ui-textarea mt-2.5"
           />
         </div>
 

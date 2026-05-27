@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { env } from "@/lib/env";
+import { AUTH_COOKIE_OPTIONS } from "@/lib/supabase/session";
 
 export async function createServerSupabaseClient() {
   if (!env.supabaseUrl || !env.supabaseAnonKey) {
@@ -21,7 +22,10 @@ export async function createServerSupabaseClient() {
       ) {
         try {
           cookiesToSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options as never);
+            cookieStore.set(name, value, {
+              ...options,
+              ...AUTH_COOKIE_OPTIONS,
+            } as never);
           });
         } catch {
           // Called from a Server Component — cookie writes are not permitted here.
