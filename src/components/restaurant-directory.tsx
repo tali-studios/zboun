@@ -19,7 +19,8 @@ import {
   Zap,
   type LucideIcon,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { useFavorites } from "@/hooks/use-favorites";
 import {
   BROWSE_FILTER_ALL_ACCENT,
   BROWSE_SECTION_ACCENTS,
@@ -117,6 +118,16 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
   const [query, setQuery] = useState("");
   const [activeSection, setActiveSection] = useState<string>("all");
   const [filterOpen, setFilterOpen] = useState(false);
+  const { isFavorite, toggle: toggleFavorite } = useFavorites();
+
+  const handleFavoriteClick = useCallback(
+    (e: React.MouseEvent, slug: string) => {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleFavorite(slug);
+    },
+    [toggleFavorite],
+  );
 
   const { location, openSheet, clearLocation, radiusKm } = useDeliveryLocation();
 
@@ -475,7 +486,7 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {filtered.map((restaurant) => {
+            {filtered.map((restaurant, index) => {
               const section = primarySection(restaurant.browse_sections ?? []);
               const sectionAccent = BROWSE_SECTION_ACCENTS[section];
               const rating =
@@ -495,6 +506,7 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
                           fill
                           className="object-cover transition duration-500 group-hover:scale-[1.04]"
                           sizes="(max-width:640px) 50vw, (max-width:1280px) 33vw, 25vw"
+                          loading={index < 4 ? "eager" : "lazy"}
                           unoptimized
                         />
                       ) : (
@@ -522,11 +534,31 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
                           {formatDistance(restaurant.distKm)}
                         </span>
                       ) : null}
+
+                      {/* Favourite heart — bottom-right */}
+                      <button
+                        type="button"
+                        aria-label={isFavorite(restaurant.slug) ? "Remove from favorites" : "Add to favorites"}
+                        onClick={(e) => handleFavoriteClick(e, restaurant.slug)}
+                        className="absolute bottom-2 right-2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-white/80 shadow-sm backdrop-blur-sm transition hover:bg-white"
+                      >
+                        <svg
+                          className={`h-4 w-4 transition-colors ${isFavorite(restaurant.slug) ? "fill-violet-600 text-violet-600" : "fill-none text-slate-500"}`}
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden
+                        >
+                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                        </svg>
+                      </button>
                     </div>
 
                     {/* ── White info panel ── */}
                     <div className="px-3 pb-3 pt-2.5">
-                      {/* Logo + name row */}
+                      {/* Logo + name + rating row */}
                       <div className="flex items-center gap-2">
                         {restaurant.logo_url ? (
                           <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-xl border border-slate-100 bg-white shadow-sm">
@@ -547,6 +579,14 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
                         <h3 className="min-w-0 flex-1 truncate text-sm font-bold leading-tight text-slate-900">
                           {restaurant.name}
                         </h3>
+                        {rating != null ? (
+                          <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-600 ring-1 ring-amber-200/60">
+                            <svg className="h-2.5 w-2.5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                            </svg>
+                            {rating.toFixed(1)}
+                          </span>
+                        ) : null}
                       </div>
 
                       {/* Description */}
@@ -556,14 +596,6 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
 
                       {/* Meta row */}
                       <div className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1">
-                        {rating != null ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-500">
-                            <svg className="h-3 w-3 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                            </svg>
-                            {rating.toFixed(1)}
-                          </span>
-                        ) : null}
                         {restaurant.eta_label?.trim() ? (
                           <span className="inline-flex items-center gap-0.5 text-[11px] text-slate-500">
                             <svg className="h-3 w-3 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
