@@ -4,12 +4,15 @@ import { createClient } from "@supabase/supabase-js";
 import { SuperAdminCreateRestaurantForm } from "@/components/super-admin-create-restaurant-form";
 import { SuperAdminFinancePanel } from "@/components/super-admin-finance-panel";
 import { SuperAdminRestaurantsPanel } from "@/components/super-admin-restaurants-panel";
+import { SuperAdminUsersPanel } from "@/components/super-admin-users-panel";
 import { getCurrentUserRole } from "@/lib/data";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { env } from "@/lib/env";
 import { backfillMissingSubscriptions } from "@/lib/subscription-billing";
 
 export const dynamic = "force-dynamic";
+
+type PlatformUserRole = "superadmin" | "restaurant_admin" | "customer" | "unknown";
 
 type Props = {
   searchParams: Promise<{ success?: string; error?: string }>;
@@ -79,6 +82,47 @@ export default async function SuperAdminPage({ searchParams }: Props) {
         .from("restaurant_addons")
         .select("restaurant_id, addon_key, is_enabled"),
     ]);
+
+  const { data: authUsersPage, error: authUsersError } = await dataClient.auth.admin.listUsers({
+    page: 1,
+    perPage: 1000,
+  });
+  if (authUsersError) {
+    redirect(`/dashboard/super-admin?error=${encodeURIComponent(authUsersError.message)}`);
+  }
+  const authUsers = authUsersPage.users ?? [];
+
+  const { data: appUsers } = await dataClient
+    .from("users")
+    .select("id, role, name, email");
+  const appUsersById = new Map((appUsers ?? []).map((u) => [u.id, u]));
+
+  const { data: customerProfiles } = await dataClient
+    .from("customer_profiles")
+    .select("id, name, email");
+  const customersById = new Map((customerProfiles ?? []).map((u) => [u.id, u]));
+
+  const platformUsers = authUsers.map((u) => {
+    const appRow = appUsersById.get(u.id);
+    const customerRow = customersById.get(u.id);
+    const role: PlatformUserRole =
+      appRow?.role === "superadmin"
+        ? "superadmin"
+        : appRow?.role === "restaurant_admin"
+          ? "restaurant_admin"
+          : customerRow
+            ? "customer"
+            : "unknown";
+    return {
+      id: u.id,
+      email: u.email ?? appRow?.email ?? customerRow?.email ?? "unknown",
+      role,
+      name: appRow?.name ?? customerRow?.name ?? "",
+      created_at: u.created_at ?? null,
+      last_sign_in_at: u.last_sign_in_at ?? null,
+      is_blocked: Boolean(u.banned_until && new Date(u.banned_until) > new Date()),
+    };
+  });
 
   const categoryCountByRestaurant = (categories ?? []).reduce<Record<string, number>>(
     (acc, category) => {
@@ -301,6 +345,21 @@ export default async function SuperAdminPage({ searchParams }: Props) {
             Business deleted successfully.
           </p>
         )}
+        {success === "user_blocked" && (
+          <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-medium text-amber-700">
+            User blocked successfully.
+          </p>
+        )}
+        {success === "user_unblocked" && (
+          <p className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-medium text-emerald-700">
+            User unblocked successfully.
+          </p>
+        )}
+        {success === "user_deleted" && (
+          <p className="rounded-xl border border-violet-200 bg-violet-50 p-3 text-sm font-medium text-violet-700">
+            User account deleted successfully.
+          </p>
+        )}
         {error && (
           <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700">
             {decodeURIComponent(error)}
@@ -350,6 +409,7 @@ export default async function SuperAdminPage({ searchParams }: Props) {
         </section>
 
         <SuperAdminRestaurantsPanel restaurants={restaurantsWithDetails} />
+        <SuperAdminUsersPanel users={platformUsers} currentUserId={appUser.id} />
         <SuperAdminFinancePanel
           restaurants={restaurantsWithDetails.map((restaurant) => ({
             id: restaurant.id,

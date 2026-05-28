@@ -530,6 +530,47 @@ export async function deleteRestaurantAction(formData: FormData) {
   redirect("/dashboard/super-admin?success=restaurant_deleted");
 }
 
+export async function togglePlatformUserBlockedAction(formData: FormData) {
+  const appUser = await requireSuperAdmin();
+  const id = String(formData.get("id") ?? "").trim();
+  const isBlocked = String(formData.get("is_blocked") ?? "") === "true";
+  if (!id) redirect("/dashboard/super-admin?error=missing_user_id");
+  if (id === appUser.id) redirect("/dashboard/super-admin?error=cannot_block_self");
+
+  const adminClient = getAdminClient();
+  const { error } = await adminClient.auth.admin.updateUserById(id, {
+    ban_duration: isBlocked ? "none" : "876000h",
+  });
+  if (error) {
+    redirect(`/dashboard/super-admin?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/dashboard/super-admin");
+  redirect(`/dashboard/super-admin?success=${isBlocked ? "user_unblocked" : "user_blocked"}`);
+}
+
+export async function deletePlatformUserAction(formData: FormData) {
+  const appUser = await requireSuperAdmin();
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) redirect("/dashboard/super-admin?error=missing_user_id");
+  if (id === appUser.id) redirect("/dashboard/super-admin?error=cannot_delete_self");
+
+  const adminClient = getAdminClient();
+
+  // Cleanup app-layer records first (best effort), then auth user.
+  await adminClient.from("users").delete().eq("id", id);
+  await adminClient.from("customer_profiles").delete().eq("id", id);
+  await adminClient.from("customer_addresses").delete().eq("customer_id", id);
+
+  const { error } = await adminClient.auth.admin.deleteUser(id);
+  if (error) {
+    redirect(`/dashboard/super-admin?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/dashboard/super-admin");
+  redirect("/dashboard/super-admin?success=user_deleted");
+}
+
 function getAdminClient() {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!env.supabaseUrl || !serviceRoleKey) {

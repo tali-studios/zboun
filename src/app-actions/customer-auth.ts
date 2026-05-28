@@ -1,5 +1,7 @@
 "use server";
 
+import crypto from "node:crypto";
+import nodemailer from "nodemailer";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
@@ -15,50 +17,43 @@ function getAdminClient() {
   });
 }
 
-/** Errors from Supabase that mean "account created but email send failed" — not a real failure. */
-function isEmailSendError(msg: string) {
-  const lower = msg.toLowerCase();
-  return (
-    lower.includes("sending confirmation email") ||
-    lower.includes("error sending") ||
-    lower.includes("smtp") ||
-    lower.includes("email rate limit") ||
-    lower.includes("confirmation email")
-  );
+function hashOtp(code: string) {
+  return crypto.createHash("sha256").update(code).digest("hex");
 }
 
-function logSignupEmailDiagnostics(params: {
-  email: string;
-  errorMessage: string;
-  hasUserInResponse: boolean;
-  adminFallbackAvailable: boolean;
-}) {
-  const { email, errorMessage, hasUserInResponse, adminFallbackAvailable } = params;
-  const domain = email.includes("@") ? email.split("@")[1] : "unknown";
+function generateOtp() {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
 
-  const verdict = hasUserInResponse
-    ? "Account was created; only the confirmation email failed. User can try signing in or check spam."
-    : adminFallbackAvailable
-      ? "Account was NOT created (SMTP failed before signup). Attempting admin createUser fallback."
-      : "Account was NOT created (SMTP failed before signup). Fix Supabase SMTP or disable Confirm email.";
+async function sendCustomerSignupOtpEmail(to: string, code: string) {
+  const smtpUser = process.env.SMTP_USER;
+  const smtpPass = process.env.SMTP_PASS;
+  const fromEmail = process.env.SMTP_FROM ?? smtpUser;
+  if (!smtpUser || !smtpPass || !fromEmail) {
+    throw new Error("Email server is not configured.");
+  }
 
-  console.error("[signup][email-confirmation] Supabase could not send confirmation email", {
-    email,
-    domain,
-    hasUserInResponse,
-    adminFallbackAvailable,
-    errorMessage,
-    verdict,
-    smtpChecks: {
-      senderMismatch:
-        "Supabase SMTP username and sender email must be the same mailbox (e.g. wissam8802@gmail.com).",
-      appPasswordRevokedOrExpired:
-        "Use a fresh Gmail App Password in Supabase SMTP — not your normal Gmail password.",
-      gmailDailyLimitReached:
-        "Gmail may block sends after quota; check Google Account → Security for alerts.",
-      spamOrPromotions:
-        "Only relevant if account exists and email was sent — check Spam/Promotions.",
-    },
+  const transporter = nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
+    auth: { user: smtpUser, pass: smtpPass },
+  });
+
+  await transporter.sendMail({
+    from: fromEmail,
+    to,
+    subject: "Your Zboun verification code",
+    text: [
+      "Welcome to Zboun,",
+      "",
+      `Your 6-digit verification code is: ${code}`,
+      "This code expires in 10 minutes.",
+      "",
+      "If you did not request this, you can ignore this email.",
+      "",
+      "- Zboun Team",
+    ].join("\n"),
   });
 }
 
@@ -89,85 +84,155 @@ export async function customerSignUpAction(formData: FormData) {
   const supabase = await createServerSupabaseClient();
   const adminClient = getAdminClient();
   const next = getSafeRedirectPath(formData.get("next"), "/");
-
-  const { data, error } = await supabase.auth.signUp({ email, password });
-  const userIdFromSignUp = data.user?.id ?? null;
-  const hasUserInResponse = Boolean(userIdFromSignUp);
-
-  if (error) {
-    console.error("[signup] supabase.auth.signUp returned error", {
-      email,
-      errorMessage: error.message,
-      hasUserInResponse,
-    });
-
-    if (!isEmailSendError(error.message)) {
-      // Real error (e.g. email already in use) — bail out
-      redirect(`/signup?error=${encodeURIComponent(error.message)}`);
-    }
-
-    logSignupEmailDiagnostics({
-      email,
-      errorMessage: error.message,
-      hasUserInResponse,
-      adminFallbackAvailable: Boolean(adminClient),
-    });
-
-    if (hasUserInResponse && userIdFromSignUp) {
-      await ensureCustomerProfile(userIdFromSignUp, name, email, adminClient, supabase);
-      redirect(`/signup?success=check_email&next=${encodeURIComponent(next)}`);
-    }
-
-    // SMTP failed before Supabase created the user — try admin API to bypass broken email.
-    if (adminClient) {
-      const { data: created, error: createError } = await adminClient.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true,
-        user_metadata: { name },
-      });
-
-      if (createError) {
-        console.error("[signup][admin-fallback] createUser failed", {
-          email,
-          errorMessage: createError.message,
-        });
-        redirect(`/signup?error=smtp_failed&next=${encodeURIComponent(next)}`);
-      }
-
-      const fallbackUserId = created.user?.id;
-      if (!fallbackUserId) redirect(`/signup?error=smtp_failed&next=${encodeURIComponent(next)}`);
-
-      console.info("[signup][admin-fallback] User created without confirmation email", {
-        email,
-        userId: fallbackUserId,
-      });
-
-      await ensureCustomerProfile(fallbackUserId, name, email, adminClient, supabase);
-
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-      if (signInError) {
-        redirect(`/signup?success=check_email&next=${encodeURIComponent(next)}`);
-      }
-
-      redirect(next);
-    }
-
-    redirect(`/signup?error=smtp_failed&next=${encodeURIComponent(next)}`);
+  if (!adminClient) {
+    redirect(`/signup?error=signup_unavailable&next=${encodeURIComponent(next)}`);
   }
 
-  const userId = userIdFromSignUp;
-  if (!userId) redirect("/signup?error=signup_failed");
+  // Create unconfirmed user (no Supabase SMTP involved).
+  const { data: created, error: createError } = await adminClient.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: false,
+    user_metadata: { name },
+  });
+  if (createError) {
+    redirect(`/signup?error=${encodeURIComponent(createError.message)}&next=${encodeURIComponent(next)}`);
+  }
+
+  const userId = created.user?.id;
+  if (!userId) redirect(`/signup?error=signup_failed&next=${encodeURIComponent(next)}`);
 
   await ensureCustomerProfile(userId, name, email, adminClient, supabase);
 
-  // If Supabase requires email confirmation the session won't be set yet —
-  // redirect to a "check your email" page instead of /account.
-  if (!data.session) {
-    redirect(`/signup?success=check_email&next=${encodeURIComponent(next)}`);
+  const otp = generateOtp();
+  const otpHash = hashOtp(otp);
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+  const nowIso = new Date().toISOString();
+
+  await adminClient
+    .from("customer_signup_otps")
+    .update({ used_at: nowIso })
+    .eq("user_id", userId)
+    .is("used_at", null);
+
+  const { error: otpInsertError } = await adminClient.from("customer_signup_otps").insert({
+    user_id: userId,
+    otp_hash: otpHash,
+    expires_at: expiresAt,
+  });
+  if (otpInsertError) {
+    redirect(`/signup?error=${encodeURIComponent(otpInsertError.message)}&next=${encodeURIComponent(next)}`);
   }
 
-  redirect(next);
+  try {
+    await sendCustomerSignupOtpEmail(email, otp);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "otp_send_failed";
+    redirect(`/signup?error=${encodeURIComponent(message)}&next=${encodeURIComponent(next)}`);
+  }
+
+  redirect(`/signup/verify?email=${encodeURIComponent(email)}&next=${encodeURIComponent(next)}`);
+}
+
+export async function resendCustomerSignupOtpAction(formData: FormData) {
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const next = getSafeRedirectPath(formData.get("next"), "/");
+  if (!email) redirect(`/signup/verify?error=missing_email&next=${encodeURIComponent(next)}`);
+
+  const adminClient = getAdminClient();
+  if (!adminClient) redirect(`/signup/verify?error=signup_unavailable&next=${encodeURIComponent(next)}`);
+
+  const { data: profile } = await adminClient
+    .from("customer_profiles")
+    .select("id")
+    .eq("email", email)
+    .maybeSingle();
+  const userId = profile?.id;
+  if (!userId) redirect(`/signup/verify?error=account_not_found&next=${encodeURIComponent(next)}`);
+
+  const otp = generateOtp();
+  const otpHash = hashOtp(otp);
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+  const nowIso = new Date().toISOString();
+
+  await adminClient
+    .from("customer_signup_otps")
+    .update({ used_at: nowIso })
+    .eq("user_id", userId)
+    .is("used_at", null);
+
+  const { error: otpInsertError } = await adminClient.from("customer_signup_otps").insert({
+    user_id: userId,
+    otp_hash: otpHash,
+    expires_at: expiresAt,
+  });
+  if (otpInsertError) {
+    redirect(`/signup/verify?error=${encodeURIComponent(otpInsertError.message)}&email=${encodeURIComponent(email)}&next=${encodeURIComponent(next)}`);
+  }
+
+  try {
+    await sendCustomerSignupOtpEmail(email, otp);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "otp_send_failed";
+    redirect(`/signup/verify?error=${encodeURIComponent(message)}&email=${encodeURIComponent(email)}&next=${encodeURIComponent(next)}`);
+  }
+
+  redirect(`/signup/verify?success=otp_sent&email=${encodeURIComponent(email)}&next=${encodeURIComponent(next)}`);
+}
+
+export async function verifyCustomerSignupOtpAction(formData: FormData) {
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const otp = String(formData.get("otp") ?? "").trim();
+  const next = getSafeRedirectPath(formData.get("next"), "/");
+
+  if (!email) redirect(`/signup/verify?error=missing_email&next=${encodeURIComponent(next)}`);
+  if (!otp || otp.length !== 6) {
+    redirect(`/signup/verify?error=invalid_otp&email=${encodeURIComponent(email)}&next=${encodeURIComponent(next)}`);
+  }
+
+  const adminClient = getAdminClient();
+  if (!adminClient) redirect(`/signup/verify?error=signup_unavailable&next=${encodeURIComponent(next)}`);
+
+  const { data: profile } = await adminClient
+    .from("customer_profiles")
+    .select("id")
+    .eq("email", email)
+    .maybeSingle();
+  const userId = profile?.id;
+  if (!userId) redirect(`/signup/verify?error=account_not_found&next=${encodeURIComponent(next)}`);
+
+  const nowIso = new Date().toISOString();
+  const { data: otpRow } = await adminClient
+    .from("customer_signup_otps")
+    .select("id, otp_hash, expires_at")
+    .eq("user_id", userId)
+    .is("used_at", null)
+    .gte("expires_at", nowIso)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!otpRow) {
+    redirect(`/signup/verify?error=otp_not_found_or_expired&email=${encodeURIComponent(email)}&next=${encodeURIComponent(next)}`);
+  }
+  if (hashOtp(otp) !== otpRow.otp_hash) {
+    redirect(`/signup/verify?error=invalid_otp&email=${encodeURIComponent(email)}&next=${encodeURIComponent(next)}`);
+  }
+
+  const { error: confirmError } = await adminClient.auth.admin.updateUserById(userId, {
+    email_confirm: true,
+  });
+  if (confirmError) {
+    redirect(`/signup/verify?error=${encodeURIComponent(confirmError.message)}&email=${encodeURIComponent(email)}&next=${encodeURIComponent(next)}`);
+  }
+
+  await adminClient
+    .from("customer_signup_otps")
+    .update({ used_at: nowIso })
+    .eq("id", otpRow.id)
+    .eq("user_id", userId);
+
+  redirect(`/login?success=email_verified&next=${encodeURIComponent(next)}`);
 }
 
 export async function customerSignInAction(formData: FormData) {
@@ -181,8 +246,13 @@ export async function customerSignInAction(formData: FormData) {
 
   const supabase = await createServerSupabaseClient();
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error)
+  if (error) {
+    const msg = error.message.toLowerCase();
+    if (msg.includes("email not confirmed")) {
+      redirect(`/login?error=email_not_verified&next=${nextQuery}`);
+    }
     redirect(`/login?error=invalid_credentials&next=${nextQuery}`);
+  }
 
   const userId = data.user?.id;
   if (!userId)
