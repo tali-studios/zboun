@@ -76,6 +76,11 @@ export default async function AccountPage({ searchParams }: Props) {
             Address saved successfully.
           </div>
         ) : null}
+        {success === "password_changed" ? (
+          <div className="mb-4 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+            Password updated successfully.
+          </div>
+        ) : null}
         {error ? (
           <div className="mb-4 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
             {decodeURIComponent(error)}
@@ -193,19 +198,20 @@ export default async function AccountPage({ searchParams }: Props) {
 
         {/* ── Security ── */}
         <div className="mb-4 overflow-hidden rounded-2xl bg-white shadow-sm">
-          <SettingsRow
-            icon={<Lock className="h-4 w-4" />}
-            label="Change password"
-          >
+          <Link href="/account/change-password" className="flex items-center gap-4 border-b border-slate-100 px-4 py-3.5 transition hover:bg-slate-50">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
+              <Lock className="h-4 w-4" />
+            </span>
+            <span className="flex-1 text-sm font-medium text-slate-800">Change password</span>
             <ChevronRight className="h-4 w-4 text-slate-300" />
-          </SettingsRow>
-          <SettingsRow
-            icon={<Trash className="h-4 w-4 text-red-400" />}
-            label="Delete account"
-            border={false}
-          >
+          </Link>
+          <div className="flex items-center gap-4 px-4 py-3.5">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-red-50 text-red-400">
+              <Trash className="h-4 w-4" />
+            </span>
+            <span className="flex-1 text-sm font-medium text-slate-800">Delete account</span>
             <ChevronRight className="h-4 w-4 text-slate-300" />
-          </SettingsRow>
+          </div>
         </div>
 
         {/* ── Sign out ── */}

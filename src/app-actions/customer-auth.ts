@@ -445,3 +445,33 @@ export async function setDefaultAddressAction(formData: FormData) {
 
   redirect("/account");
 }
+
+export async function changePasswordAction(formData: FormData) {
+  const current   = String(formData.get("current_password")  ?? "");
+  const newPass   = String(formData.get("new_password")      ?? "");
+  const confirm   = String(formData.get("confirm_password")  ?? "");
+
+  if (!current || !newPass || !confirm)
+    redirect("/account/change-password?error=missing_fields");
+  if (newPass.length < 8)
+    redirect("/account/change-password?error=too_short");
+  if (newPass !== confirm)
+    redirect("/account/change-password?error=mismatch");
+
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user?.email) redirect("/login");
+
+  // Re-authenticate with current password first
+  const { error: signInError } = await supabase.auth.signInWithPassword({
+    email: user.email,
+    password: current,
+  });
+  if (signInError) redirect("/account/change-password?error=wrong_current");
+
+  // Update to new password
+  const { error } = await supabase.auth.updateUser({ password: newPass });
+  if (error) redirect(`/account/change-password?error=update_failed`);
+
+  redirect("/account?success=password_changed");
+}
