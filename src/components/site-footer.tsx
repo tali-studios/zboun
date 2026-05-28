@@ -1,25 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { customerSignOutAction } from "@/app-actions/customer-auth";
-import { signOutAction } from "@/app-actions/auth";
 
 export async function SiteFooter() {
   const year = new Date().getFullYear();
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  let isRestaurantOrAdmin = false;
-  if (user) {
-    const { data: adminRow } = await supabase
-      .from("users")
-      .select("id")
-      .eq("id", user.id)
-      .maybeSingle();
-    isRestaurantOrAdmin = Boolean(adminRow);
-  }
 
   const linkClass =
     "inline-flex py-1 text-[15px] font-medium text-slate-600 transition-colors hover:text-violet-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white rounded-sm";
@@ -118,21 +101,6 @@ export async function SiteFooter() {
               </svg>
               WhatsApp us
             </a>
-            {user ? (
-              <form action={isRestaurantOrAdmin ? signOutAction : customerSignOutAction} className="mt-3">
-                <button
-                  type="submit"
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-5 py-3.5 text-sm font-semibold text-red-600 transition hover:bg-red-100 hover:border-red-300 active:scale-[0.99] sm:py-4"
-                >
-                  <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                    <polyline points="16 17 21 12 16 7" />
-                    <line x1="21" y1="12" x2="9" y2="12" />
-                  </svg>
-                  Sign out
-                </button>
-              </form>
-            ) : null}
           </div>
         </div>
 
