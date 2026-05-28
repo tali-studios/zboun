@@ -292,18 +292,51 @@ export default async function SuperAdminPage({ searchParams }: Props) {
             </p>
             <p className="mt-1 text-2xl font-bold text-violet-700">{stats.activeRestaurants}</p>
           </div>
-          {/* <div className="panel p-4">
+          <div className="panel p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Total categories
+              Total users
             </p>
-            <p className="mt-1 text-2xl font-bold text-slate-900">{stats.totalSections}</p>
+            <p className="mt-1 text-2xl font-bold text-slate-900">{platformUsers.length}</p>
           </div>
           <div className="panel p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Total catalog items
+              Active users
             </p>
-            <p className="mt-1 text-2xl font-bold text-slate-900">{stats.totalItems}</p>
-          </div> */}
+            <p className="mt-1 text-2xl font-bold text-emerald-700">{platformUsers.filter((u) => !u.is_blocked).length}</p>
+          </div>
+        </section>
+
+        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          <div className="panel p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Expected monthly
+            </p>
+            <p className="mt-1 text-2xl font-bold text-slate-900">${stats.expectedMonthlyRevenue.toFixed(2)}</p>
+          </div>
+          <div className="panel p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Collected this month
+            </p>
+            <p className="mt-1 text-2xl font-bold text-violet-700">${stats.collectedThisMonth.toFixed(2)}</p>
+          </div>
+          <div className="panel p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Overdue amount
+            </p>
+            <p className="mt-1 text-2xl font-bold text-amber-700">${stats.overdueAmount.toFixed(2)}</p>
+          </div>
+          <div className="panel p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Overdue invoices
+            </p>
+            <p className="mt-1 text-2xl font-bold text-amber-700">{stats.overdueInvoicesCount}</p>
+          </div>
+          <div className="panel p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Outstanding total
+            </p>
+            <p className="mt-1 text-2xl font-bold text-slate-900">${stats.outstandingAmount.toFixed(2)}</p>
+          </div>
         </section>
 
         {(success === "restaurant_created_and_invited" ||
@@ -360,7 +393,27 @@ export default async function SuperAdminPage({ searchParams }: Props) {
             User account deleted successfully.
           </p>
         )}
-        {error && (
+        {success === "user_password_updated" && (
+          <p className="rounded-xl border border-violet-200 bg-violet-50 p-3 text-sm font-medium text-violet-700">
+            User password updated successfully.
+          </p>
+        )}
+        {error === "password_too_short" && (
+          <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700">
+            Password must be at least 8 characters.
+          </p>
+        )}
+        {error === "password_mismatch" && (
+          <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700">
+            Passwords do not match.
+          </p>
+        )}
+        {error === "missing_password" && (
+          <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700">
+            Please enter a new password.
+          </p>
+        )}
+        {error && error !== "password_too_short" && error !== "password_mismatch" && error !== "missing_password" && (
           <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700">
             {decodeURIComponent(error)}
           </p>
@@ -373,39 +426,6 @@ export default async function SuperAdminPage({ searchParams }: Props) {
             An invitation email is sent to the admin with a secure set-password link and dashboard
             access URL.
           </p> */}
-        </section>
-
-        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-          <div className="panel p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Expected monthly
-            </p>
-            <p className="mt-1 text-2xl font-bold text-slate-900">${stats.expectedMonthlyRevenue.toFixed(2)}</p>
-          </div>
-          <div className="panel p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Collected this month
-            </p>
-            <p className="mt-1 text-2xl font-bold text-violet-700">${stats.collectedThisMonth.toFixed(2)}</p>
-          </div>
-          <div className="panel p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Overdue amount
-            </p>
-            <p className="mt-1 text-2xl font-bold text-amber-700">${stats.overdueAmount.toFixed(2)}</p>
-          </div>
-          <div className="panel p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Overdue invoices
-            </p>
-            <p className="mt-1 text-2xl font-bold text-amber-700">{stats.overdueInvoicesCount}</p>
-          </div>
-          <div className="panel p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Outstanding total
-            </p>
-            <p className="mt-1 text-2xl font-bold text-slate-900">${stats.outstandingAmount.toFixed(2)}</p>
-          </div>
         </section>
 
         <SuperAdminRestaurantsPanel restaurants={restaurantsWithDetails} />

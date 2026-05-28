@@ -571,6 +571,27 @@ export async function deletePlatformUserAction(formData: FormData) {
   redirect("/dashboard/super-admin?success=user_deleted");
 }
 
+export async function setPlatformUserPasswordAction(formData: FormData) {
+  await requireSuperAdmin();
+  const id = String(formData.get("id") ?? "").trim();
+  const password = String(formData.get("password") ?? "");
+  const confirmPassword = String(formData.get("confirm_password") ?? "");
+
+  if (!id) redirect("/dashboard/super-admin?error=missing_user_id");
+  if (!password) redirect("/dashboard/super-admin?error=missing_password");
+  if (password.length < 8) redirect("/dashboard/super-admin?error=password_too_short");
+  if (password !== confirmPassword) redirect("/dashboard/super-admin?error=password_mismatch");
+
+  const adminClient = getAdminClient();
+  const { error } = await adminClient.auth.admin.updateUserById(id, { password });
+  if (error) {
+    redirect(`/dashboard/super-admin?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/dashboard/super-admin");
+  redirect("/dashboard/super-admin?success=user_password_updated");
+}
+
 function getAdminClient() {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!env.supabaseUrl || !serviceRoleKey) {
