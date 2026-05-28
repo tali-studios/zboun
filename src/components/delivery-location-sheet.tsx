@@ -417,11 +417,7 @@ export function DeliveryLocationSheet({ savedAddresses = [], isLoggedIn = false 
           </div>
         ) : step === "save" && pendingSave ? (
           <div className="flex flex-col overflow-y-auto overscroll-contain">
-            <div className="flex justify-center pb-1 pt-3">
-              <div className="h-1.5 w-12 rounded-full bg-slate-200" />
-            </div>
-
-            <div className="flex items-start justify-between px-5 pb-1 pt-3">
+              <div className="flex items-start justify-between px-5 pb-1 pt-4">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-violet-600">Save address</p>
                 <h2 className="mt-0.5 text-xl font-bold tracking-tight text-slate-900">Save this location</h2>
@@ -551,11 +547,7 @@ export function DeliveryLocationSheet({ savedAddresses = [], isLoggedIn = false 
           </div>
         ) : (
           <div className="flex flex-col overflow-y-auto overscroll-contain">
-            <div className="flex justify-center pb-1 pt-3">
-              <div className="h-1.5 w-12 rounded-full bg-slate-200" />
-            </div>
-
-            <div className="flex items-start justify-between px-5 pb-1 pt-3">
+              <div className="flex items-start justify-between px-5 pb-1 pt-4">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-violet-600">Delivery</p>
                 <h2 className="mt-0.5 text-xl font-bold tracking-tight text-slate-900">Where should we deliver?</h2>

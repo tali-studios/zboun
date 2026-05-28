@@ -3,7 +3,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import {
-  Bell,
   ChevronDown,
   Cookie,
   Croissant,
@@ -247,13 +246,6 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
                 </svg>
               </Link>
             ) : null}
-            <Link
-              href={isLoggedIn ? "/account" : "/login"}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200"
-              aria-label="Account"
-            >
-              <Bell className="h-[18px] w-[18px]" strokeWidth={2} />
-            </Link>
           </div>
         </div>
 

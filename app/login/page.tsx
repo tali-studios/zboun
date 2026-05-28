@@ -38,8 +38,7 @@ export default async function CustomerLoginPage({ searchParams }: Props) {
         <div className="rounded-[28px] border border-violet-100/80 bg-white p-8 shadow-[0_24px_64px_rgba(120,84,255,0.18)]">
           {/* Logo + nav */}
           <div className="mb-8 flex items-center justify-between">
-            <Link href="/" className="outline-none transition-opacity hover:opacity-80">
-              <Image
+            <Image
                 src="/Logo.svg"
                 alt="Zboun"
                 width={120}
@@ -48,13 +47,12 @@ export default async function CustomerLoginPage({ searchParams }: Props) {
                 priority
                 unoptimized
               />
-            </Link>
-            <BackButton
+            {/* <BackButton
               fallbackHref="/"
               className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-500 transition hover:border-violet-300 hover:text-violet-700"
             >
               ← Back
-            </BackButton>
+            </BackButton> */}
           </div>
 
           {/* Heading */}

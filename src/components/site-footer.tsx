@@ -106,7 +106,12 @@ export async function SiteFooter() {
 
         <div className="mt-10 flex flex-col items-center gap-3 border-t border-slate-200/80 pt-8 text-center sm:flex-row sm:justify-between sm:text-left">
           <p className="text-xs text-slate-500">© {year} Zboun. All rights reserved.</p>
-          <p className="text-xs text-slate-400">Menus · QR codes · WhatsApp ordering</p>
+          <div className="flex items-center gap-4">
+            <Link href="/terms" className="text-xs text-slate-400 underline underline-offset-2 transition hover:text-slate-600">
+              Terms of Service
+            </Link>
+            <p className="text-xs text-slate-400">Menus · QR codes · WhatsApp ordering</p>
+          </div>
         </div>
       </div>
     </footer>

@@ -23,9 +23,11 @@ type Props = {
   tagline: string;
   /** Shown under tagline on in-store menu pages */
   modeBadge?: string;
+  /** When true the parent already handles container/padding; apply rounded corners */
+  desktop?: boolean;
 };
 
-export function RestaurantMenuHero({ restaurant, heroEyebrow, tagline, modeBadge }: Props) {
+export function RestaurantMenuHero({ restaurant, heroEyebrow, tagline, modeBadge, desktop }: Props) {
   const avgRating =
     restaurant.user_avg_rating != null && Number.isFinite(Number(restaurant.user_avg_rating))
       ? Math.round(Number(restaurant.user_avg_rating) * 10) / 10
@@ -53,78 +55,69 @@ export function RestaurantMenuHero({ restaurant, heroEyebrow, tagline, modeBadge
   return (
     <header className="relative z-0 w-full">
       <div
-        className="relative h-[min(48vh,360px)] w-full sm:h-[min(44vh,440px)] lg:h-[min(46vh,480px)]"
-        style={{
-          background: `linear-gradient(135deg, ${BRAND} 0%, ${BRAND_HEX_ACCENT} 48%, ${BRAND_HEX_DEEP} 100%)`,
-        }}
-      >
-        {restaurant.banner_url ? (
-          <>
-            <Image
-              src={restaurant.banner_url}
-              alt=""
-              fill
-              className="object-cover"
-              sizes="100vw"
-              priority
-              unoptimized
-            />
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/75 sm:from-black/35 sm:via-black/25 sm:to-black/70" />
-          </>
-        ) : (
-          <div
-            className="absolute inset-0 bg-gradient-to-br from-[#7854ff] via-[#9f3bfe] to-[#5b21b6]"
-            aria-hidden
-          />
-        )}
-
-        <Link
-          href="/"
-          className="absolute left-3 top-[max(0.75rem,env(safe-area-inset-top))] z-30 flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-md ring-1 ring-black/5 transition hover:bg-slate-50 sm:left-5 sm:top-5"
-          aria-label="Back to restaurants"
+          className={`relative h-[46vw] w-full overflow-hidden sm:h-64 md:h-72 lg:h-80 ${desktop ? "rounded-2xl" : ""}`}
+          style={{
+            background: `linear-gradient(135deg, ${BRAND} 0%, ${BRAND_HEX_ACCENT} 48%, ${BRAND_HEX_DEEP} 100%)`,
+          }}
         >
-          <svg className="h-5 w-5 text-slate-800" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-        </Link>
+          {restaurant.banner_url ? (
+            <>
+              <Image
+                src={restaurant.banner_url}
+                alt=""
+                fill
+                className="object-cover"
+                sizes="(max-width:768px) 100vw, (max-width:1280px) 90vw, 1200px"
+                priority
+                unoptimized
+              />
+              {/* Strong gradient so text is always legible over any banner */}
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/40 via-black/25 to-black/75" />
+            </>
+          ) : (
+            <div
+              className="absolute inset-0 bg-gradient-to-br from-[#7854ff] via-[#9f3bfe] to-[#5b21b6]"
+              aria-hidden
+            />
+          )}
 
-        <div className="absolute inset-0 z-20 flex flex-col justify-end">
-          <div className="container flex items-end gap-3 pb-6 pt-20 sm:gap-5 sm:pb-8 sm:pt-24 lg:pb-10 lg:pt-28">
-            {restaurant.logo_url ? (
-              <div className="relative z-30 h-16 w-16 shrink-0 overflow-hidden rounded-2xl border-[3px] border-white bg-white shadow-lg sm:h-[4.75rem] sm:w-[4.75rem] lg:h-20 lg:w-20">
-                <Image
-                  src={restaurant.logo_url}
-                  alt={`${restaurant.name} logo`}
-                  width={80}
-                  height={80}
-                  className="h-full w-full object-cover"
-                  unoptimized
-                />
-              </div>
-            ) : null}
-            <div className="min-w-0 flex-1 pb-0.5 text-left text-white">
-              <p
-                className="text-[11px] font-bold uppercase tracking-[0.18em] sm:text-xs sm:tracking-[0.2em]"
-                style={{ color: HERO_CATEGORY_COLOR }}
-              >
-                {heroEyebrow}
-              </p>
-              <h1 className="mt-1.5 text-[1.65rem] font-bold leading-[1.1] tracking-tight text-white sm:mt-2 sm:text-4xl lg:text-5xl">
-                {restaurant.name}
-              </h1>
-              <p className="mt-2 max-w-2xl text-[15px] font-normal leading-relaxed text-white/95 sm:text-lg lg:text-[1.05rem]">
-                {tagline}
-              </p>
-              {modeBadge ? (
-                <p className="mt-2 inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white ring-1 ring-white/25">
-                  {modeBadge}
-                </p>
+          <div className="absolute inset-0 z-20 flex flex-col justify-end">
+            <div className="flex items-end gap-3 px-4 pb-5 pt-16 sm:gap-5 sm:px-6 sm:pb-6 sm:pt-20 lg:pb-7">
+              {restaurant.logo_url ? (
+                <div className="relative z-30 h-14 w-14 shrink-0 overflow-hidden rounded-2xl border-[3px] border-white bg-white shadow-lg sm:h-16 sm:w-16 lg:h-[4.5rem] lg:w-[4.5rem]">
+                  <Image
+                    src={restaurant.logo_url}
+                    alt={`${restaurant.name} logo`}
+                    width={72}
+                    height={72}
+                    className="h-full w-full object-cover"
+                    unoptimized
+                  />
+                </div>
               ) : null}
-              {heroPills}
+              <div className="min-w-0 flex-1 pb-0.5 text-left text-white drop-shadow-sm">
+                <p
+                  className="text-[10px] font-bold uppercase tracking-[0.18em] sm:text-[11px]"
+                  style={{ color: HERO_CATEGORY_COLOR }}
+                >
+                  {heroEyebrow}
+                </p>
+                <h1 className="mt-1 text-2xl font-bold leading-tight tracking-tight text-white sm:text-3xl lg:text-4xl">
+                  {restaurant.name}
+                </h1>
+                <p className="mt-1 max-w-2xl text-sm font-normal leading-relaxed text-white/90 sm:text-[15px]">
+                  {tagline}
+                </p>
+                {modeBadge ? (
+                  <p className="mt-1.5 inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white ring-1 ring-white/25">
+                    {modeBadge}
+                  </p>
+                ) : null}
+                {heroPills}
+              </div>
             </div>
           </div>
         </div>
-      </div>
     </header>
   );
 }
