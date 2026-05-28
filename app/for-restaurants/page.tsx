@@ -1,6 +1,8 @@
 import Link from "next/link";
+import Image from "next/image";
 import { SiteFooter } from "@/components/site-footer";
 import { BackToTopButton } from "@/components/back-to-top-button";
+import { BackButton } from "@/components/back-button";
 import { ZBOUN_PRICING } from "@/lib/pricing";
 
 const steps = [
@@ -40,6 +42,45 @@ const onboardingRequirements = [
 export default function ForRestaurantsPage() {
   return (
     <div className="flex min-h-screen flex-col bg-[#f8f8ff]">
+
+      {/* ── Header ── */}
+      <header className="sticky top-0 z-30 border-b border-slate-200/60 bg-white/95 backdrop-blur-md shadow-sm">
+        <div className="container flex h-16 items-center justify-between gap-4 px-4 sm:px-6">
+          {/* Left: logo + breadcrumb */}
+          <div className="flex items-center gap-3">
+            <Link href="/" className="shrink-0 outline-none transition-opacity hover:opacity-80" aria-label="Zboun home">
+              <Image
+                src="/Logo.svg"
+                alt="Zboun"
+                width={120}
+                height={34}
+                className="h-8 w-auto"
+                unoptimized
+                priority
+              />
+            </Link>
+            <span className="text-slate-300" aria-hidden>/</span>
+            <p className="text-sm font-semibold text-slate-600">Plans &amp; Pricing</p>
+          </div>
+
+          {/* Right: back + CTA */}
+          <div className="flex items-center gap-2">
+            <BackButton
+              fallbackHref="/"
+              className="hidden rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-500 transition hover:border-violet-300 hover:text-violet-700 sm:inline-flex"
+            >
+              ← Back
+            </BackButton>
+            <Link
+              href="/contact"
+              className="inline-flex items-center gap-1.5 rounded-full bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-violet-400/30 transition hover:bg-violet-700"
+            >
+              Get started
+            </Link>
+          </div>
+        </div>
+      </header>
+
       <main className="flex-1">
 
         {/* ── Pricing ──────────────────────────────────────────────────────── */}
@@ -127,7 +168,7 @@ export default function ForRestaurantsPage() {
         </section>
 
         {/* ── Add-on modules ───────────────────────────────────────────────── */}
-        <section className="container py-12 md:py-16">
+        {/* <section className="container py-12 md:py-16">
           <div className="mx-auto max-w-lg text-center">
             <p className="text-[11px] font-bold uppercase tracking-widest text-violet-600">ERP Add-ons</p>
             <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">Grow with your business</h2>
@@ -220,7 +261,7 @@ export default function ForRestaurantsPage() {
               Get in touch →
             </a>
           </p>
-        </section>
+        </section> */}
 
         {/* ── CTA ──────────────────────────────────────────────────────────── */}
         <section className="container py-12 md:py-16">

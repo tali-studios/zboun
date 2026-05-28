@@ -4,12 +4,11 @@ import { useCallback, useState } from "react";
 
 import { ZBOUN_WHATSAPP_DIGITS } from "@/lib/zboun-contact";
 
-function buildMessage(name: string, phone: string, message: string) {
+function buildMessage(name: string, message: string) {
   const lines = [
     "Hello Zboun 👋",
     "",
     `Name: ${name.trim()}`,
-    `Phone: ${phone.trim()}`,
     "",
     "Message:",
     message.trim(),
@@ -19,21 +18,20 @@ function buildMessage(name: string, phone: string, message: string) {
 
 export function ContactWhatsAppForm() {
   const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
   const [message, setMessage] = useState("");
 
   const submit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
-      if (!name.trim() || !phone.trim() || !message.trim()) {
-        window.alert("Please fill Name, Phone, and Message.");
+      if (!name.trim() || !message.trim()) {
+        window.alert("Please fill Name and Message.");
         return;
       }
-      const text = buildMessage(name, phone, message);
+      const text = buildMessage(name, message);
       const url = `https://wa.me/${ZBOUN_WHATSAPP_DIGITS}?text=${encodeURIComponent(text)}`;
       window.location.assign(url);
     },
-    [name, phone, message],
+    [name, message],
   );
 
   return (
@@ -47,16 +45,6 @@ export function ContactWhatsAppForm() {
         onChange={(ev) => setName(ev.target.value)}
         required
         autoComplete="name"
-      />
-      <input
-        type="tel"
-        name="phone"
-        placeholder="Phone"
-        className="ui-input"
-        value={phone}
-        onChange={(ev) => setPhone(ev.target.value)}
-        required
-        autoComplete="tel"
       />
       <textarea
         name="message"

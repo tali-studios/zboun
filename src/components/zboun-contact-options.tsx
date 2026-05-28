@@ -105,13 +105,13 @@ function ContactEmailForm({ restaurantName }: { restaurantName?: string }) {
 
   return (
     <form className="space-y-4" onSubmit={submit} noValidate>
-      <p className="text-sm text-slate-600">
+      {/* <p className="text-sm text-slate-600">
         Your email app will open a message to{" "}
         <a href={`mailto:${ZBOUN_OPS_EMAIL}`} className="font-semibold text-violet-700 underline">
           {ZBOUN_OPS_EMAIL}
         </a>
         .
-      </p>
+      </p> */}
       <input
         type="text"
         name="name"
@@ -122,7 +122,7 @@ function ContactEmailForm({ restaurantName }: { restaurantName?: string }) {
         required
         autoComplete="name"
       />
-      <input
+      {/* <input
         type="tel"
         name="phone"
         placeholder="Phone (optional)"
@@ -130,7 +130,7 @@ function ContactEmailForm({ restaurantName }: { restaurantName?: string }) {
         value={phone}
         onChange={(ev) => setPhone(ev.target.value)}
         autoComplete="tel"
-      />
+      /> */}
       <textarea
         name="message"
         placeholder="How can we help?"
