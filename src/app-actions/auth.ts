@@ -89,9 +89,9 @@ function generateOtp() {
 }
 
 async function sendOtpEmail(to: string, code: string) {
-  const smtpUser = process.env.SMTP_USER;
-  const smtpPass = process.env.SMTP_PASS;
-  const fromEmail = process.env.SMTP_FROM ?? smtpUser;
+  const smtpUser = String(process.env.SMTP_USER ?? "").trim();
+  const smtpPass = String(process.env.SMTP_PASS ?? "").replace(/\s+/g, "");
+  const fromEmail = String(process.env.SMTP_FROM ?? smtpUser).trim();
   if (!smtpUser || !smtpPass || !fromEmail) {
     throw new Error("Email server is not configured.");
   }
