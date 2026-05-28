@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { signOutAction } from "@/app-actions/auth";
 import type { CategoryDashboardSharedProps } from "@/components/category-dashboards/types";
 
@@ -24,7 +25,7 @@ export function DashboardShell({
               <p className="mt-0.5 text-xs text-violet-200 md:text-sm">{businessTypeLabel}</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <a href="/dashboard/change-password" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">Password</a>
+              <Link href="/dashboard/change-password" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">Password</Link>
               <form action={signOutAction} className="w-full sm:w-auto">
                 <button
                   type="submit"
@@ -166,16 +167,16 @@ export function ModuleGrid({
       <h2 className="panel-title">Active modules</h2>
       {moduleCount > 0 ? (
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {clubEnabled && <a href="/dashboard/business/club" className="rounded-2xl border border-purple-200 bg-purple-50 p-4 text-sm font-semibold text-purple-800">Club Management</a>}
-        {pmsEnabled && <a href="/dashboard/business/pms" className="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm font-semibold text-sky-800">Property Management</a>}
-        {crmEnabled && <a href="/dashboard/business/crm" className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-800">CRM</a>}
-        {accountingEnabled && <a href="/dashboard/business/accounting" className="rounded-2xl border border-indigo-200 bg-indigo-50 p-4 text-sm font-semibold text-indigo-800">Accounting & Payroll</a>}
-        {eventsEnabled && <a href="/dashboard/business/events" className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">Event Management</a>}
-        {fleetEnabled && <a href="/dashboard/business/fleet" className="rounded-2xl border border-cyan-200 bg-cyan-50 p-4 text-sm font-semibold text-cyan-800">Fleet Management</a>}
-        {ecommerceEnabled && <a href="/dashboard/business/ecommerce" className="rounded-2xl border border-orange-200 bg-orange-50 p-4 text-sm font-semibold text-orange-800">E-commerce</a>}
-        {posEnabled && <a href="/dashboard/business/pos" className="rounded-2xl border border-cyan-200 bg-cyan-50 p-4 text-sm font-semibold text-cyan-800">POS</a>}
-        {inventoryEnabled && <a href="/dashboard/business/inventory" className="rounded-2xl border border-teal-200 bg-teal-50 p-4 text-sm font-semibold text-teal-800">Inventory</a>}
-        {loyaltyEnabled && <a href="/dashboard/business/loyalty" className="rounded-2xl border border-violet-200 bg-violet-50 p-4 text-sm font-semibold text-violet-800">Loyalty</a>}
+        {clubEnabled && <Link href="/dashboard/business/club" className="rounded-2xl border border-purple-200 bg-purple-50 p-4 text-sm font-semibold text-purple-800 transition hover:bg-purple-100">Club Management</Link>}
+        {pmsEnabled && <Link href="/dashboard/business/pms" className="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm font-semibold text-sky-800 transition hover:bg-sky-100">Property Management</Link>}
+        {crmEnabled && <Link href="/dashboard/business/crm" className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-800 transition hover:bg-rose-100">CRM</Link>}
+        {accountingEnabled && <Link href="/dashboard/business/accounting" className="rounded-2xl border border-indigo-200 bg-indigo-50 p-4 text-sm font-semibold text-indigo-800 transition hover:bg-indigo-100">Accounting & Payroll</Link>}
+        {eventsEnabled && <Link href="/dashboard/business/events" className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100">Event Management</Link>}
+        {fleetEnabled && <Link href="/dashboard/business/fleet" className="rounded-2xl border border-cyan-200 bg-cyan-50 p-4 text-sm font-semibold text-cyan-800 transition hover:bg-cyan-100">Fleet Management</Link>}
+        {ecommerceEnabled && <Link href="/dashboard/business/ecommerce" className="rounded-2xl border border-orange-200 bg-orange-50 p-4 text-sm font-semibold text-orange-800 transition hover:bg-orange-100">E-commerce</Link>}
+        {posEnabled && <Link href="/dashboard/business/pos" className="rounded-2xl border border-cyan-200 bg-cyan-50 p-4 text-sm font-semibold text-cyan-800 transition hover:bg-cyan-100">POS</Link>}
+        {inventoryEnabled && <Link href="/dashboard/business/inventory" className="rounded-2xl border border-teal-200 bg-teal-50 p-4 text-sm font-semibold text-teal-800 transition hover:bg-teal-100">Inventory</Link>}
+        {loyaltyEnabled && <Link href="/dashboard/business/loyalty" className="rounded-2xl border border-violet-200 bg-violet-50 p-4 text-sm font-semibold text-violet-800 transition hover:bg-violet-100">Loyalty</Link>}
         </div>
       ) : (
         <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">

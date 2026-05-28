@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUserRole } from "@/lib/data";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +34,7 @@ export default async function PosReceiptsPage() {
         <header className="panel p-5">
           <p className="text-xs font-bold uppercase tracking-widest text-cyan-600">Cloud POS</p>
           <h1 className="mt-1 text-2xl font-bold text-slate-900">Receipt Center</h1>
-          <a href="/dashboard/business/pos" className="mt-2 inline-flex text-sm font-semibold text-cyan-700 hover:underline">Back to POS →</a>
+          <Link href="/dashboard/business/pos" className="mt-2 inline-flex text-sm font-semibold text-cyan-700 hover:underline">Back to POS →</Link>
         </header>
         <section className="panel p-5">
           <div className="overflow-x-auto">
@@ -56,7 +57,7 @@ export default async function PosReceiptsPage() {
                     <td className="py-2 capitalize">{order.status}</td>
                     <td className="py-2 font-semibold">${Number(order.total_amount).toFixed(2)}</td>
                     <td className="py-2">{new Date(order.created_at).toLocaleString()}</td>
-                    <td className="py-2"><a href={`/dashboard/business/pos/receipts/${order.id}`} className="text-cyan-700 hover:underline">Open</a></td>
+                    <td className="py-2"><Link href={`/dashboard/business/pos/receipts/${order.id}`} className="text-cyan-700 hover:underline">Open</Link></td>
                   </tr>
                 ))}
               </tbody>

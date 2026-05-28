@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { getCurrentUserRole } from "@/lib/data";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { PrintReceiptButton } from "@/components/print-receipt-button";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -90,7 +91,7 @@ export default async function ReceiptPage({ params }: Props) {
             <span className="font-semibold text-slate-700">Notes:</span> {expense.notes ?? "No notes"}
           </div>
           <div className="mt-6 flex gap-2 print:hidden">
-            <a href="/dashboard/business/accounting/receipts" className="btn btn-secondary rounded-xl">Back</a>
+            <Link href="/dashboard/business/accounting/receipts" className="btn btn-secondary rounded-xl">Back</Link>
             <PrintReceiptButton />
           </div>
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
@@ -160,7 +161,7 @@ export default async function ReceiptPage({ params }: Props) {
           <p><span className="font-semibold text-slate-700">Status:</span> {entry.paid_at ? `Paid on ${new Date(entry.paid_at).toLocaleDateString()}` : "Pending payment"}</p>
         </div>
         <div className="mt-6 flex gap-2 print:hidden">
-          <a href="/dashboard/business/accounting/receipts" className="btn btn-secondary rounded-xl">Back</a>
+          <Link href="/dashboard/business/accounting/receipts" className="btn btn-secondary rounded-xl">Back</Link>
           <PrintReceiptButton />
         </div>
         <div className="mt-6 grid gap-3 sm:grid-cols-2">

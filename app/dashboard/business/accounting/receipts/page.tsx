@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUserRole } from "@/lib/data";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -50,9 +51,9 @@ export default async function AccountingReceiptsPage() {
           <p className="text-xs font-bold uppercase tracking-widest text-indigo-600">Accounting</p>
           <h1 className="mt-1 text-2xl font-bold text-slate-900">Receipt & Export Center</h1>
           <p className="mt-1 text-sm text-slate-500">Open any receipt and print to PDF using your browser.</p>
-          <a href="/dashboard/business/accounting" className="mt-3 inline-flex text-sm font-semibold text-indigo-600 hover:underline">
+          <Link href="/dashboard/business/accounting" className="mt-3 inline-flex text-sm font-semibold text-indigo-600 hover:underline">
             Back to Accounting →
-          </a>
+          </Link>
         </header>
 
         <section className="panel p-5">
@@ -76,9 +77,9 @@ export default async function AccountingReceiptsPage() {
                     <td className="py-2">{expense.category}</td>
                     <td className="py-2 font-semibold text-red-600">${Number(expense.amount).toFixed(2)}</td>
                     <td className="py-2">
-                      <a href={`/dashboard/business/accounting/receipts/expense/${expense.id}`} className="text-indigo-600 hover:underline">
+                      <Link href={`/dashboard/business/accounting/receipts/expense/${expense.id}`} className="text-indigo-600 hover:underline">
                         Open receipt
-                      </a>
+                      </Link>
                     </td>
                   </tr>
                 ))}
@@ -110,9 +111,9 @@ export default async function AccountingReceiptsPage() {
                     <td className="py-2 font-semibold text-indigo-700">${Number(entry.net_amount).toFixed(2)}</td>
                     <td className="py-2">{entry.paid_at ? "Paid" : "Pending"}</td>
                     <td className="py-2">
-                      <a href={`/dashboard/business/accounting/receipts/payroll/${entry.id}`} className="text-indigo-600 hover:underline">
+                      <Link href={`/dashboard/business/accounting/receipts/payroll/${entry.id}`} className="text-indigo-600 hover:underline">
                         Open receipt
-                      </a>
+                      </Link>
                     </td>
                   </tr>
                 ))}

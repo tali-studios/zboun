@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, useMemo } from "react";
+import Link from "next/link";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -284,7 +285,7 @@ export function CrmPanel({
               <h1 className="mt-1 text-xl font-bold md:text-2xl">{restaurantName}</h1>
               <p className="mt-0.5 text-xs text-violet-200 md:text-sm">Customer profiles, notes, tags, and order history.</p>
             </div>
-            <a href="/dashboard/restaurant" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">← Dashboard</a>
+            <Link href="/dashboard/restaurant" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">← Dashboard</Link>
           </div>
         </header>
 
@@ -813,14 +814,14 @@ export function CrmPanel({
                           {(ordersByCustomer[profileCustomer.id] ?? []).map((o) => (
                             <tr key={o.id} className="hover:bg-slate-50">
                               <td className="py-2 pr-4 font-mono text-xs text-slate-600">
-                                <a
+                                <Link
                                   href={`/dashboard/restaurant/pos/receipts/${o.id}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="font-semibold text-rose-600 hover:underline"
                                 >
                                   {o.receipt_number ?? o.id.slice(0, 8)}
-                                </a>
+                                </Link>
                               </td>
                               <td className="py-2 pr-4 capitalize text-slate-500">{o.order_type ?? "—"}</td>
                               <td className="py-2 pr-4 font-semibold text-slate-700">${fmt(o.total_amount)}</td>

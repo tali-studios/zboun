@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import NextTopLoader from "nextjs-toploader";
 import { SiteJsonLd } from "@/components/site-json-ld";
 import { env } from "@/lib/env";
 import { getMetadataBase, getSiteUrl } from "@/lib/site";
@@ -100,6 +101,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png?v=7" />
       </head>
       <body className="flex min-h-full flex-col">
+        <NextTopLoader color="#7c3aed" showSpinner={false} />
         <SiteJsonLd />
         {children}
       </body>

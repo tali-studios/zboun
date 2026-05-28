@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 type PriorityOrder = {
   id: string;
@@ -79,9 +80,9 @@ export function CloudKitchenOpsPanel({
               <p className="mt-0.5 text-xs text-violet-200 md:text-sm">SLA queue, priority engine, and dispatch control tower.</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <a href="/dashboard/business/ecommerce" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">Orders</a>
-              <a href="/dashboard/business/fleet" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">Fleet</a>
-              <a href="/dashboard/business" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">Dashboard</a>
+              <Link href="/dashboard/business/ecommerce" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">Orders</Link>
+              <Link href="/dashboard/business/fleet" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">Fleet</Link>
+              <Link href="/dashboard/business" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">Dashboard</Link>
             </div>
           </div>
         </header>

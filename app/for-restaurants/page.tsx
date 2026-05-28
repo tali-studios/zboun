@@ -257,9 +257,9 @@ export default function ForRestaurantsPage() {
           </div>
           <p className="mt-6 text-center text-xs text-slate-500">
             Add-ons are enabled by contacting us.{" "}
-            <a href="/contact" className="font-semibold text-violet-600 hover:underline">
+            <Link href="/contact" className="font-semibold text-violet-600 hover:underline">
               Get in touch →
-            </a>
+            </Link>
           </p>
         </section> */}
 

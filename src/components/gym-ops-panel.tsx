@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import Link from "next/link";
 
 type Trainer = {
   id: string;
@@ -103,7 +104,7 @@ export function GymOpsPanel({
               <h1 className="mt-1 text-xl font-bold md:text-2xl">{restaurantName}</h1>
               <p className="mt-0.5 text-xs text-violet-200">Trainers, PT sessions, attendance, and payroll operations.</p>
             </div>
-            <a href="/dashboard/business" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">Back to dashboard</a>
+            <Link href="/dashboard/business" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">Back to dashboard</Link>
           </div>
         </header>
 

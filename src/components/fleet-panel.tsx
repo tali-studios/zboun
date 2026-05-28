@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, useMemo } from "react";
+import Link from "next/link";
 
 type Vehicle = { id: string; plate_number: string; make: string|null; model: string|null; vehicle_type: string; year: number|null; color: string|null; status: string; insurance_expiry: string|null; notes: string|null; is_active: boolean; created_at: string; updated_at: string };
 type Driver = { id: string; full_name: string; phone: string; license_number: string|null; license_expiry: string|null; vehicle_id: string|null; status: string; notes: string|null; is_active: boolean; created_at: string; updated_at: string };
@@ -68,7 +69,7 @@ export function FleetPanel({ restaurantName, vehicles, drivers, deliveries, vehi
               <h1 className="mt-1 text-xl font-bold md:text-2xl">{restaurantName}</h1>
               <p className="mt-0.5 text-xs text-violet-200 md:text-sm">Drivers, vehicles, deliveries, and maintenance logs.</p>
             </div>
-            <a href="/dashboard/restaurant" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">← Dashboard</a>
+            <Link href="/dashboard/restaurant" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">← Dashboard</Link>
           </div>
         </header>
 

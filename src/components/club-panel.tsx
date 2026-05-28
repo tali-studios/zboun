@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, useMemo } from "react";
+import Link from "next/link";
 
 type Plan = { id: string; name: string; description: string|null; price: number; billing_cycle: string; duration_days: number|null; max_guests: number; benefits: string[]|null; color: string; is_active: boolean };
 type Member = { id: string; plan_id: string|null; full_name: string; phone: string|null; email: string|null; member_number: string|null; joined_at: string; expiry_date: string|null; status: string; total_visits: number; total_spent: number; crm_customer_id: string|null; loyalty_member_id: string|null; notes: string|null; created_at: string; updated_at: string };
@@ -78,7 +79,7 @@ export function ClubPanel({ restaurantName, plans, members, checkIns, invoices,
               <h1 className="mt-1 text-xl font-bold md:text-2xl">{restaurantName}</h1>
               <p className="mt-0.5 text-xs text-violet-200 md:text-sm">Membership plans, check-ins, and subscription invoicing.</p>
             </div>
-            <a href="/dashboard/restaurant" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">← Dashboard</a>
+            <Link href="/dashboard/restaurant" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">← Dashboard</Link>
           </div>
         </header>
 

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { signOutAction } from "@/app-actions/auth";
 import {
@@ -408,32 +409,32 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
             <div className="flex flex-wrap gap-2">
               {isMenuBusiness ? (
                 <>
-                  <a
+                  <Link
                     href={menuUrl}
                     target="_blank"
                     rel="noreferrer"
                     className="btn rounded-full bg-white text-violet-700 shadow-sm hover:bg-violet-50"
                   >
                     Open menu
-                  </a>
+                  </Link>
                   <CopyMenuLinkButton url={menuUrl} />
-                  <a href="/dashboard/business/orders" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20 relative">
+                  <Link href="/dashboard/business/orders" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20 relative">
                     📋 Orders
-                  </a>
-                  <a href="/dashboard/business/qr" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">
+                  </Link>
+                  <Link href="/dashboard/business/qr" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">
                     QR codes
-                  </a>
-                  <a href="/dashboard/business/flyer" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">
+                  </Link>
+                  <Link href="/dashboard/business/flyer" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">
                     Print flyer
-                  </a>
+                  </Link>
                 </>
               ) : null}
-              <a href="/dashboard/billing" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">
+              <Link href="/dashboard/billing" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">
                 Billing
-              </a>
-              <a href="/dashboard/change-password" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">
+              </Link>
+              <Link href="/dashboard/change-password" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">
                 Password
-              </a>
+              </Link>
               <form action={signOutAction} className="w-full sm:w-auto">
                 <button
                   type="submit"

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { signOutAction } from "@/app-actions/auth";
 import { createClient } from "@supabase/supabase-js";
@@ -55,6 +56,9 @@ export default async function SuperAdminPage({ searchParams }: Props) {
     { data: invoices },
     { data: payments },
     { data: addons },
+    { data: authUsersPage, error: authUsersError },
+    { data: appUsers },
+    { data: customerProfiles },
   ] =
     await Promise.all([
       dataClient.from("categories").select("id, restaurant_id"),
@@ -81,25 +85,17 @@ export default async function SuperAdminPage({ searchParams }: Props) {
       dataClient
         .from("restaurant_addons")
         .select("restaurant_id, addon_key, is_enabled"),
+      dataClient.auth.admin.listUsers({ page: 1, perPage: 1000 }),
+      dataClient.from("users").select("id, role, name, email"),
+      dataClient.from("customer_profiles").select("id, name, email"),
     ]);
 
-  const { data: authUsersPage, error: authUsersError } = await dataClient.auth.admin.listUsers({
-    page: 1,
-    perPage: 1000,
-  });
   if (authUsersError) {
     redirect(`/dashboard/super-admin?error=${encodeURIComponent(authUsersError.message)}`);
   }
-  const authUsers = authUsersPage.users ?? [];
+  const authUsers = authUsersPage?.users ?? [];
 
-  const { data: appUsers } = await dataClient
-    .from("users")
-    .select("id, role, name, email");
   const appUsersById = new Map((appUsers ?? []).map((u) => [u.id, u]));
-
-  const { data: customerProfiles } = await dataClient
-    .from("customer_profiles")
-    .select("id, name, email");
   const customersById = new Map((customerProfiles ?? []).map((u) => [u.id, u]));
 
   const platformUsers = authUsers.map((u) => {
@@ -270,9 +266,9 @@ export default async function SuperAdminPage({ searchParams }: Props) {
             </div>
             <form action={signOutAction}>
               <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
-                <a href="/dashboard/change-password" className="btn btn-secondary">
+                <Link href="/dashboard/change-password" className="btn btn-secondary">
                   Change password
-                </a>
+                </Link>
                 <button className="btn btn-secondary">Sign out</button>
               </div>
             </form>

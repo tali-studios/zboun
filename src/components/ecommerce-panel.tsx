@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, useMemo } from "react";
+import Link from "next/link";
 
 type Store = {
   id: string; store_name: string; tagline: string | null; is_open: boolean;
@@ -113,7 +114,7 @@ export function EcommercePanel({
                   {store.is_open ? "🟢 Open" : "🔴 Closed"}
                 </button>
               )}
-              <a href="/dashboard/restaurant" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">← Dashboard</a>
+              <Link href="/dashboard/restaurant" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">← Dashboard</Link>
             </div>
           </div>
         </header>

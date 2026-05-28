@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 type MenuItem = { id: string; name: string; price: number; is_available: boolean };
 type PosOrder = {
@@ -122,8 +123,8 @@ export function PosPanel({
               <p className="mt-0.5 text-xs text-violet-200">Create sales, collect payments, and print customer receipts.</p>
             </div>
             <div className="flex gap-2">
-              <a href="/dashboard/restaurant/pos/receipts" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">Receipts</a>
-              <a href="/dashboard/restaurant" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">Dashboard</a>
+              <Link href="/dashboard/restaurant/pos/receipts" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">Receipts</Link>
+              <Link href="/dashboard/restaurant" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">Dashboard</Link>
             </div>
           </div>
         </header>
@@ -253,7 +254,7 @@ export function PosPanel({
                       <td className="py-2 font-semibold">${Number(order.total_amount).toFixed(2)}</td>
                       <td className="py-2">{new Date(order.created_at).toLocaleString()}</td>
                       <td className="py-2">
-                        <a href={`/dashboard/restaurant/pos/receipts/${order.id}`} className="text-cyan-700 hover:underline">Open receipt</a>
+                        <Link href={`/dashboard/restaurant/pos/receipts/${order.id}`} className="text-cyan-700 hover:underline">Open receipt</Link>
                       </td>
                       <td className="py-2">
                         <div className="flex gap-1">

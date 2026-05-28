@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { PrintReceiptButton } from "@/components/print-receipt-button";
 import { getCurrentUserRole } from "@/lib/data";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -95,7 +96,7 @@ export default async function PosReceiptPage({ params }: Props) {
         </div>
 
         <div className="mt-6 flex gap-2 print:hidden">
-          <a href="/dashboard/business/pos/receipts" className="btn btn-secondary rounded-xl">Back</a>
+          <Link href="/dashboard/business/pos/receipts" className="btn btn-secondary rounded-xl">Back</Link>
           <PrintReceiptButton />
         </div>
       </div>

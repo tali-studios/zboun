@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 
 type StockRiskItem = {
   id: string;
@@ -112,10 +113,10 @@ export function RetailOpsPanel({
               <p className="mt-0.5 text-xs text-violet-200 md:text-sm">Omnichannel sales, stock risk, and customer growth control center.</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <a href="/dashboard/business/pos" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">POS</a>
-              <a href="/dashboard/business/inventory" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">Inventory</a>
-              <a href="/dashboard/business/ecommerce" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">E-commerce</a>
-              <a href="/dashboard/business" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">Dashboard</a>
+              <Link href="/dashboard/business/pos" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">POS</Link>
+              <Link href="/dashboard/business/inventory" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">Inventory</Link>
+              <Link href="/dashboard/business/ecommerce" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">E-commerce</Link>
+              <Link href="/dashboard/business" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">Dashboard</Link>
             </div>
           </div>
         </header>
@@ -228,9 +229,9 @@ export function RetailOpsPanel({
               <p className="mt-1 text-sm text-slate-600">End-of-day controls for finance, stock replenishment, and growth actions.</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <a href="/dashboard/business/pos" className="btn btn-secondary rounded-xl text-sm">Reconcile POS</a>
-              <a href="/dashboard/business/inventory" className="btn btn-secondary rounded-xl text-sm">Approve purchases</a>
-              <a href="/dashboard/business/crm" className="btn btn-secondary rounded-xl text-sm">Launch campaign</a>
+              <Link href="/dashboard/business/pos" className="btn btn-secondary rounded-xl text-sm">Reconcile POS</Link>
+              <Link href="/dashboard/business/inventory" className="btn btn-secondary rounded-xl text-sm">Approve purchases</Link>
+              <Link href="/dashboard/business/crm" className="btn btn-secondary rounded-xl text-sm">Launch campaign</Link>
               <form action={markRetailDailyCloseAction} className="flex items-start gap-2">
                 <input type="hidden" name="pos_open_orders" value={closePayload.posOpenOrders} />
                 <input type="hidden" name="ecommerce_active_orders" value={closePayload.ecommerceActiveOrders} />

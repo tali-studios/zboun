@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 type Employee = {
   id: string;
@@ -124,12 +125,12 @@ export function AccountingPanel({
               <p className="mt-0.5 text-xs text-violet-200">Expenses, payroll, and operational finance in one place.</p>
             </div>
             <div className="flex gap-2">
-              <a href="/dashboard/restaurant/accounting/receipts" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">
+              <Link href="/dashboard/restaurant/accounting/receipts" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">
                 Receipts
-              </a>
-              <a href="/dashboard/restaurant" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">
+              </Link>
+              <Link href="/dashboard/restaurant" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">
                 Dashboard
-              </a>
+              </Link>
             </div>
           </div>
         </header>
@@ -193,9 +194,9 @@ export function AccountingPanel({
                         <td>{expense.vendor ?? "—"}</td>
                         <td>{expense.reference ?? "—"}</td>
                         <td>
-                          <a href={`/dashboard/restaurant/accounting/receipts/expense/${expense.id}`} className="text-indigo-600 hover:underline">
+                          <Link href={`/dashboard/restaurant/accounting/receipts/expense/${expense.id}`} className="text-indigo-600 hover:underline">
                             Open
-                          </a>
+                          </Link>
                         </td>
                         <td className="text-slate-500">{expense.notes ?? "—"}</td>
                       </tr>
@@ -257,9 +258,9 @@ export function AccountingPanel({
                         <td className="font-semibold text-indigo-700">${Number(entry.net_amount).toFixed(2)}</td>
                         <td>{entry.paid_at ? "Paid" : "Pending"}</td>
                         <td>
-                          <a href={`/dashboard/restaurant/accounting/receipts/payroll/${entry.id}`} className="text-indigo-600 hover:underline">
+                          <Link href={`/dashboard/restaurant/accounting/receipts/payroll/${entry.id}`} className="text-indigo-600 hover:underline">
                             Open receipt
-                          </a>
+                          </Link>
                         </td>
                         <td>
                           {!entry.paid_at ? (
