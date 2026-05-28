@@ -2,6 +2,7 @@ import { customerSignUpAction } from "@/app-actions/customer-auth";
 import { getSafeRedirectPath } from "@/lib/auth-redirect";
 import Image from "next/image";
 import Link from "next/link";
+import { BackButton } from "@/components/back-button";
 
 type Props = {
   searchParams: Promise<{ error?: string; success?: string; next?: string }>;
@@ -19,7 +20,6 @@ const ERROR_MESSAGES: Record<string, string> = {
 export default async function CustomerSignupPage({ searchParams }: Props) {
   const { error, success, next: nextRaw } = await searchParams;
   const next = getSafeRedirectPath(nextRaw, "/");
-  const previewTarget = next === "/" ? "/for-restaurants" : next;
 
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-slate-50 via-white to-violet-50 px-4 py-12">
@@ -38,7 +38,7 @@ export default async function CustomerSignupPage({ searchParams }: Props) {
         <div className="rounded-[28px] border border-violet-100/80 bg-white p-8 shadow-[0_24px_64px_rgba(120,84,255,0.18)]">
           {/* Logo + nav */}
           <div className="mb-8 flex items-center justify-between">
-            <Link href={previewTarget} className="outline-none transition-opacity hover:opacity-80">
+            <Link href="/" className="outline-none transition-opacity hover:opacity-80">
               <Image
                 src="/Logo.svg"
                 alt="Zboun"
@@ -49,12 +49,12 @@ export default async function CustomerSignupPage({ searchParams }: Props) {
                 unoptimized
               />
             </Link>
-            <Link
-              href={previewTarget}
+            <BackButton
+              fallbackHref="/"
               className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-500 transition hover:border-violet-300 hover:text-violet-700"
             >
               ← Back
-            </Link>
+            </BackButton>
           </div>
 
           {/* Heading */}

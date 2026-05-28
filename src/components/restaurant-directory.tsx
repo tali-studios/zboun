@@ -285,17 +285,6 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
                 Discover restaurants, browse clean menus, and place your order online.
               </p>
             </div>
-            {isLoggedIn ? (
-              <Link
-                href="/account/orders"
-                className="inline-flex shrink-0 items-center gap-2 rounded-full bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-violet-400/30 transition hover:bg-violet-700"
-              >
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                  <path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                </svg>
-                My Orders
-              </Link>
-            ) : null}
           </div>
         </header>
 
@@ -375,14 +364,6 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
           </button>
         </div>
 
-        <p className="mb-4 text-sm" style={{ color: PAGE.muted }}>
-          <span className="font-semibold" style={{ color: PAGE.ink }}>
-            {filtered.length}
-          </span>{" "}
-          {filtered.length === 1 ? "place" : "places"}
-          {query ? ` for "${query.trim()}"` : ""}
-          {location ? ` within ${radiusKm} km` : ""}
-        </p>
 
         {/* ── Filter sheet ── */}
         {filterOpen ? (
@@ -493,7 +474,7 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
             ) : null}
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-4">
             {filtered.map((restaurant) => {
               const section = primarySection(restaurant.browse_sections ?? []);
               const sectionAccent = BROWSE_SECTION_ACCENTS[section];
@@ -504,86 +485,102 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
 
               return (
                 <Link key={restaurant.id} href={`/${restaurant.slug}`} className="group block">
-                  <article className="relative h-[min(92vw,400px)] overflow-hidden rounded-[1.75rem] shadow-md ring-1 ring-black/[0.06] transition duration-300 hover:-translate-y-1 hover:shadow-xl sm:h-[380px]">
-                    {restaurant.banner_url ? (
-                      <Image
-                        src={restaurant.banner_url}
-                        alt=""
-                        fill
-                        className="object-cover transition duration-500 group-hover:scale-[1.03]"
-                        sizes="(max-width:640px) 100vw, (max-width:1280px) 50vw, 25vw"
-                        unoptimized
-                      />
-                    ) : (
+                  <article className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/[0.06] transition duration-300 hover:-translate-y-1 hover:shadow-lg">
+                    {/* ── Banner image ── */}
+                    <div className="relative h-[42vw] w-full sm:h-44 overflow-hidden bg-slate-100">
+                      {restaurant.banner_url ? (
+                        <Image
+                          src={restaurant.banner_url}
+                          alt={restaurant.name}
+                          fill
+                          className="object-cover transition duration-500 group-hover:scale-[1.04]"
+                          sizes="(max-width:640px) 50vw, (max-width:1280px) 33vw, 25vw"
+                          unoptimized
+                        />
+                      ) : (
+                        <div
+                          className="absolute inset-0 bg-gradient-to-br from-violet-400 via-fuchsia-500 to-amber-400"
+                          aria-hidden
+                        />
+                      )}
+
+                      {/* Category chip — top-left */}
                       <div
-                        className="absolute inset-0 bg-gradient-to-br from-violet-400 via-fuchsia-500 to-amber-400"
-                        aria-hidden
-                      />
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/45 to-black/80" />
+                        className="absolute left-2 top-2 z-10 inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide shadow-sm"
+                        style={{
+                          backgroundColor: browseSectionChipBackground(sectionAccent),
+                          color: BROWSE_CHIP_LABEL_COLOR,
+                        }}
+                      >
+                        {section}
+                      </div>
 
-                    <div
-                      className="absolute left-3 top-3 z-10 inline-flex min-h-[1.75rem] items-center justify-center rounded-full px-3 py-1.5 text-[11px] font-bold uppercase leading-none tracking-wide shadow-sm"
-                      style={{
-                        backgroundColor: browseSectionChipBackground(sectionAccent),
-                        color: BROWSE_CHIP_LABEL_COLOR,
-                      }}
-                    >
-                      {section}
-                    </div>
-
-                    {/* Distance badge OR branches badge */}
-                    <div className="absolute right-3 top-3 z-10 flex items-center gap-1.5">
+                      {/* Distance — top-right */}
                       {restaurant.distKm !== null && restaurant.distKm !== undefined ? (
-                        <span className="flex items-center gap-1 rounded-full bg-black/50 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
-                          <MapPin className="h-3 w-3" />
+                        <span className="absolute right-2 top-2 z-10 flex items-center gap-1 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-semibold text-white backdrop-blur-sm">
+                          <MapPin className="h-2.5 w-2.5" />
                           {formatDistance(restaurant.distKm)}
                         </span>
                       ) : null}
-                      {(restaurant.branches ?? []).length > 1 ? (
-                        <span className="flex items-center gap-1 rounded-full bg-black/50 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
-                          <MapPin className="h-3 w-3" />
-                          {restaurant.branches!.length} branches
-                        </span>
-                      ) : null}
                     </div>
 
-                    <div className="absolute inset-x-0 bottom-0 top-[30%] z-10 flex flex-col justify-end px-4 pb-6">
-                      {restaurant.logo_url ? (
-                        <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl border-2 border-white bg-white shadow-lg">
-                          <Image
-                            src={restaurant.logo_url}
-                            alt=""
-                            width={56}
-                            height={56}
-                            className="h-full w-full object-cover"
-                            unoptimized
-                          />
-                        </div>
-                      ) : (
-                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border-2 border-white bg-white/95 text-base font-bold text-[#7854ff] shadow-lg">
-                          {restaurant.name.slice(0, 2).toUpperCase()}
-                        </div>
-                      )}
-                      <h3 className="mt-3 text-left text-xl font-bold leading-tight tracking-tight text-white drop-shadow-sm">
-                        {restaurant.name}
-                      </h3>
-                      <p className="mt-1.5 line-clamp-2 text-left text-sm font-normal leading-snug text-white/95">
-                        {restaurant.description?.trim() || "Open the menu to browse dishes and order on WhatsApp."}
+                    {/* ── White info panel ── */}
+                    <div className="px-3 pb-3 pt-2.5">
+                      {/* Logo + name row */}
+                      <div className="flex items-center gap-2">
+                        {restaurant.logo_url ? (
+                          <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-xl border border-slate-100 bg-white shadow-sm">
+                            <Image
+                              src={restaurant.logo_url}
+                              alt=""
+                              width={36}
+                              height={36}
+                              className="h-full w-full object-cover"
+                              unoptimized
+                            />
+                          </div>
+                        ) : (
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-100 bg-violet-50 text-xs font-bold text-violet-700">
+                            {restaurant.name.slice(0, 2).toUpperCase()}
+                          </div>
+                        )}
+                        <h3 className="min-w-0 flex-1 truncate text-sm font-bold leading-tight text-slate-900">
+                          {restaurant.name}
+                        </h3>
+                      </div>
+
+                      {/* Description */}
+                      <p className="mt-1.5 line-clamp-2 text-[11px] leading-snug text-slate-500">
+                        {restaurant.description?.trim() || "Browse the menu and order online."}
                       </p>
-                      <div className="meta-row mt-3">
+
+                      {/* Meta row */}
+                      <div className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1">
                         {rating != null ? (
-                          <span>
-                            <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-500">
+                            <svg className="h-3 w-3 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
                               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                             </svg>
                             {rating.toFixed(1)}
                           </span>
                         ) : null}
-                        {restaurant.eta_label?.trim() ? <span>{restaurant.eta_label.trim()}</span> : null}
-                        {restaurant.location?.trim() ? (
-                          <span className="max-w-[160px] min-w-0 truncate sm:max-w-[200px]">
-                            {restaurant.location.trim()}
+                        {restaurant.eta_label?.trim() ? (
+                          <span className="inline-flex items-center gap-0.5 text-[11px] text-slate-500">
+                            <svg className="h-3 w-3 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                              <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                            </svg>
+                            {restaurant.eta_label.trim()}
+                          </span>
+                        ) : null}
+                        {(restaurant.branches ?? []).length > 1 ? (
+                          <span className="inline-flex items-center gap-0.5 text-[11px] text-violet-600">
+                            <MapPin className="h-3 w-3 shrink-0" />
+                            {restaurant.branches!.length} branches
+                          </span>
+                        ) : restaurant.location?.trim() ? (
+                          <span className="inline-flex min-w-0 items-center gap-0.5 truncate text-[11px] text-slate-400">
+                            <MapPin className="h-3 w-3 shrink-0" />
+                            <span className="truncate">{restaurant.location.trim()}</span>
                           </span>
                         ) : null}
                       </div>

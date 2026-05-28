@@ -187,6 +187,30 @@ export type CustomerOrderRow = OrderRow & {
   restaurant_slug: string;
 };
 
+export async function getCustomerOrder(orderId: string): Promise<CustomerOrderRow | null> {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data } = await supabase
+    .from("orders")
+    .select(
+      "id, customer_name, customer_phone, delivery_address, delivery_lat, delivery_lng, items, notes, total_usd, status, whatsapp_sent, created_at, updated_at, restaurants(name, slug)",
+    )
+    .eq("id", orderId)
+    .eq("customer_id", user.id)
+    .maybeSingle();
+
+  if (!data) return null;
+  const r = data as unknown as Record<string, unknown>;
+  const rest = r.restaurants as { name: string; slug: string } | null;
+  return {
+    ...(r as unknown as OrderRow),
+    restaurant_name: rest?.name ?? "Restaurant",
+    restaurant_slug: rest?.slug ?? "",
+  };
+}
+
 export async function getCustomerOrders(): Promise<CustomerOrderRow[]> {
   const supabase = await createServerSupabaseClient();
   const {

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SiteFooter } from "@/components/site-footer";
+import { BackToTopButton } from "@/components/back-to-top-button";
 import { ZBOUN_PRICING } from "@/lib/pricing";
 
 const steps = [
@@ -249,6 +250,7 @@ export default function ForRestaurantsPage() {
       </main>
 
       <SiteFooter />
+      <BackToTopButton />
     </div>
   );
 }

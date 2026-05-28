@@ -1,5 +1,6 @@
 import { ZbounContactOptions } from "@/components/zboun-contact-options";
 import { SiteFooter } from "@/components/site-footer";
+import { BackToTopButton } from "@/components/back-to-top-button";
 
 export default function ContactPage() {
   return (
@@ -25,6 +26,7 @@ export default function ContactPage() {
       </main>
 
       <SiteFooter />
+      <BackToTopButton />
     </div>
   );
 }

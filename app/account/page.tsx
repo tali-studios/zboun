@@ -1,16 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import {
-  MapPin,
-  Plus,
-  Star,
-  Home,
-  Briefcase,
-  Trash2,
-  LogOut,
-  User,
-} from "lucide-react";
+import { Home, Briefcase, Star, MapPin, Plus, Trash2, ChevronRight, Lock, Trash } from "lucide-react";
 import {
   getCustomerSession,
   getCustomerAddresses,
@@ -19,6 +10,9 @@ import {
   setDefaultAddressAction,
 } from "@/app-actions/customer-auth";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
+import { CustomerMobileFooterNav } from "@/components/customer-mobile-footer-nav";
+import { BackToTopButton } from "@/components/back-to-top-button";
+import { CustomerDesktopNav } from "@/components/customer-desktop-nav";
 
 export const dynamic = "force-dynamic";
 
@@ -27,12 +21,34 @@ type Props = {
 };
 
 const LABEL_META: Record<string, { label: string; colorClass: string; icon: React.ReactNode }> = {
-  home: { label: "Home", colorClass: "bg-emerald-100 text-emerald-700", icon: <Home className="h-4 w-4" /> },
-  work: { label: "Work", colorClass: "bg-blue-100 text-blue-700", icon: <Briefcase className="h-4 w-4" /> },
-  moms: { label: "Mom's", colorClass: "bg-pink-100 text-pink-700", icon: <Star className="h-4 w-4" /> },
-  other: { label: "Other", colorClass: "bg-slate-100 text-slate-600", icon: <MapPin className="h-4 w-4" /> },
-  custom: { label: "Custom", colorClass: "bg-violet-100 text-violet-700", icon: <MapPin className="h-4 w-4" /> },
+  home: { label: "Home", colorClass: "bg-emerald-50 text-emerald-600", icon: <Home className="h-4 w-4" /> },
+  work: { label: "Work", colorClass: "bg-blue-50 text-blue-600", icon: <Briefcase className="h-4 w-4" /> },
+  moms: { label: "Mom's", colorClass: "bg-pink-50 text-pink-600", icon: <Star className="h-4 w-4" /> },
+  other: { label: "Other", colorClass: "bg-slate-100 text-slate-500", icon: <MapPin className="h-4 w-4" /> },
+  custom: { label: "Custom", colorClass: "bg-violet-50 text-violet-600", icon: <MapPin className="h-4 w-4" /> },
 };
+
+function SettingsRow({
+  icon,
+  label,
+  children,
+  border = true,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  children?: React.ReactNode;
+  border?: boolean;
+}) {
+  return (
+    <div className={`flex items-center gap-4 px-4 py-3.5 ${border ? "border-b border-slate-100" : ""}`}>
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
+        {icon}
+      </span>
+      <span className="flex-1 text-sm font-medium text-slate-800">{label}</span>
+      {children}
+    </div>
+  );
+}
 
 export default async function AccountPage({ searchParams }: Props) {
   const session = await getCustomerSession();
@@ -42,179 +58,179 @@ export default async function AccountPage({ searchParams }: Props) {
   const { success, error } = await searchParams;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-violet-50">
-      {/* Header */}
-      <header className="border-b border-slate-100 bg-white/80 backdrop-blur-md">
-        <div className="container flex h-14 items-center justify-between gap-3 px-4 sm:h-16 sm:px-6">
-          <Link href="/" className="shrink-0 outline-none transition-opacity hover:opacity-80">
-            <Image
-              src="/Logo.svg"
-              alt="Zboun"
-              width={120}
-              height={36}
-              className="h-7 w-auto object-contain sm:h-8"
-              unoptimized
-            />
-          </Link>
-          <form action={customerSignOutAction}>
-            <button
-              type="submit"
-              className="flex shrink-0 items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-red-200 hover:text-red-600 sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"
-            >
-              <LogOut className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              Sign out
-            </button>
-          </form>
-        </div>
+    <div className="min-h-screen bg-[#f2f2f7]">
+      {/* ── Mobile-style top bar ── */}
+      <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-slate-200/60 bg-white/95 px-4 backdrop-blur sm:hidden">
+        <div className="w-9" aria-hidden />
+        <p className="text-[15px] font-semibold text-slate-900">Account</p>
+        <div className="w-9" aria-hidden />
       </header>
 
-      <main className="container px-4 py-6 sm:px-6 sm:py-12">
-        {/* Profile card */}
-        <div className="mb-6 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm sm:mb-8 sm:rounded-3xl sm:p-6">
-          <div className="flex items-center gap-3 sm:gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 text-lg font-bold text-white shadow-md shadow-violet-300/40 sm:h-14 sm:w-14 sm:rounded-2xl sm:text-xl">
-              {session.name.charAt(0).toUpperCase()}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                <p className="truncate text-base font-bold text-slate-900 sm:text-lg">{session.name}</p>
-                <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold text-violet-700 sm:px-3 sm:text-xs">
-                  <User className="h-3 w-3" />
-                  Customer
-                </span>
-              </div>
-              <p className="mt-0.5 truncate text-xs text-slate-500 sm:text-sm">{session.email}</p>
-            </div>
-          </div>
-        </div>
+      <CustomerDesktopNav title="Account Settings" />
 
-        {/* Toast messages */}
+      <main className="mx-auto max-w-lg px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-6 sm:max-w-2xl sm:pb-16 sm:pt-10">
+
+        {/* Toasts */}
         {success === "address_saved" ? (
-          <div className="mb-6 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+          <div className="mb-4 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
             Address saved successfully.
           </div>
         ) : null}
         {error ? (
-          <div className="mb-6 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+          <div className="mb-4 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
             {decodeURIComponent(error)}
           </div>
         ) : null}
 
-        {/* Addresses section */}
-        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-          <div className="min-w-0">
-            <h2 className="text-lg font-bold text-slate-900">Saved addresses</h2>
-            <p className="mt-0.5 text-sm text-slate-500">Quickly pick your delivery location when ordering.</p>
+        {/* ── Profile info card ── */}
+        <div className="mb-4 overflow-hidden rounded-2xl bg-white shadow-sm">
+          <div className="border-b border-slate-100 px-4 py-3">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Profile</p>
           </div>
-          <Link
-            href="/account/addresses/new"
-            className="inline-flex w-full shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-violet-400/30 transition hover:bg-violet-700 sm:w-auto"
-          >
-            <Plus className="h-4 w-4 shrink-0" />
-            Add address
-          </Link>
+          <div className="px-4 py-3">
+            <p className="mb-1 text-xs text-slate-400">Full name</p>
+            <p className="text-sm font-semibold text-slate-900">{session.name}</p>
+          </div>
+          <div className="border-t border-slate-100 px-4 py-3">
+            <p className="mb-1 text-xs text-slate-400">Email address</p>
+            <p className="text-sm font-semibold text-slate-900">{session.email}</p>
+          </div>
         </div>
 
-        {addresses.length === 0 ? (
-          <div className="rounded-3xl border border-dashed border-slate-200 bg-white py-14 text-center shadow-sm">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100">
-              <MapPin className="h-6 w-6 text-slate-400" />
-            </div>
-            <p className="text-base font-semibold text-slate-700">No saved addresses yet</p>
-            <p className="mt-1 text-sm text-slate-400">Add your home, work or any other address.</p>
+        {/* ── Saved addresses ── */}
+        <div className="mb-4 overflow-hidden rounded-2xl bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Saved addresses</p>
             <Link
               href="/account/addresses/new"
-              className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-violet-400/30 transition hover:bg-violet-700"
+              className="inline-flex items-center gap-1 rounded-full bg-violet-600 px-3 py-1 text-[11px] font-semibold text-white transition hover:bg-violet-700"
             >
-              <Plus className="h-4 w-4" />
-              Add first address
+              <Plus className="h-3 w-3" />
+              Add
             </Link>
           </div>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
-            {addresses.map((addr) => {
-              const meta = LABEL_META[addr.label] ?? LABEL_META.other;
-              return (
-                <div
-                  key={addr.id}
-                  className={`rounded-2xl border bg-white p-4 shadow-sm transition sm:p-5 ${
-                    addr.is_default ? "border-violet-200 ring-2 ring-violet-100" : "border-slate-100"
-                  }`}
-                >
-                  <div className="flex gap-3">
-                    <span
-                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl sm:h-11 sm:w-11 ${meta.colorClass}`}
-                    >
+
+          {addresses.length === 0 ? (
+            <div className="px-4 py-8 text-center">
+              <MapPin className="mx-auto mb-2 h-8 w-8 text-slate-300" />
+              <p className="text-sm font-medium text-slate-600">No saved addresses</p>
+              <p className="mt-0.5 text-xs text-slate-400">Tap "Add" to save your home or work location.</p>
+            </div>
+          ) : (
+            <div>
+              {addresses.map((addr, i) => {
+                const meta = LABEL_META[addr.label] ?? LABEL_META.other;
+                return (
+                  <div
+                    key={addr.id}
+                    className={`flex items-center gap-3 px-4 py-3.5 ${i < addresses.length - 1 ? "border-b border-slate-100" : ""}`}
+                  >
+                    <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl ${meta.colorClass}`}>
                       {meta.icon}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                        <p className="font-semibold text-slate-800">
-                          {addr.nickname ?? meta.label}
-                        </p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-slate-900">{addr.nickname ?? meta.label}</p>
                         {addr.is_default ? (
-                          <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold text-violet-600">
-                            Default
-                          </span>
+                          <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold text-violet-600">Default</span>
                         ) : null}
                       </div>
                       {addr.formatted_address ? (
-                        <p className="mt-1 text-sm leading-snug text-slate-500 line-clamp-2">
-                          {addr.formatted_address}
-                        </p>
-                      ) : (
-                        <p className="mt-1 text-xs text-slate-400">
-                          {addr.latitude.toFixed(5)}, {addr.longitude.toFixed(5)}
-                        </p>
-                      )}
+                        <p className="mt-0.5 truncate text-xs text-slate-400">{addr.formatted_address}</p>
+                      ) : null}
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1">
+                      {!addr.is_default ? (
+                        <form action={setDefaultAddressAction}>
+                          <input type="hidden" name="id" value={addr.id} />
+                          <button type="submit" className="rounded-lg px-2.5 py-1 text-[11px] font-semibold text-violet-600 transition hover:bg-violet-50">
+                            Default
+                          </button>
+                        </form>
+                      ) : null}
+                      <Link
+                        href={`/account/addresses/${addr.id}`}
+                        className="flex h-8 w-8 items-center justify-center rounded-full transition hover:bg-slate-100"
+                      >
+                        <ChevronRight className="h-4 w-4 text-slate-400" />
+                      </Link>
+                      <form action={deleteCustomerAddressAction}>
+                        <input type="hidden" name="id" value={addr.id} />
+                        <ConfirmSubmitButton
+                          message="Delete this address?"
+                          className="flex h-8 w-8 items-center justify-center rounded-full transition hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4 text-slate-300 hover:text-red-400" />
+                        </ConfirmSubmitButton>
+                      </form>
                     </div>
                   </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
-                  <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
-                    <Link
-                      href={`/account/addresses/${addr.id}`}
-                      className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-violet-300 hover:text-violet-700"
-                    >
-                      Edit
-                    </Link>
-                    {!addr.is_default ? (
-                      <form action={setDefaultAddressAction} className="inline">
-                        <input type="hidden" name="id" value={addr.id} />
-                        <button
-                          type="submit"
-                          className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-500 transition hover:border-violet-300 hover:text-violet-700"
-                        >
-                          Set default
-                        </button>
-                      </form>
-                    ) : null}
-                    <form action={deleteCustomerAddressAction} className="inline">
-                      <input type="hidden" name="id" value={addr.id} />
-                      <ConfirmSubmitButton
-                        message="Delete this address?"
-                        className="inline-flex items-center gap-1 rounded-lg border border-transparent px-3 py-1.5 text-xs font-medium text-slate-400 transition hover:border-red-100 hover:bg-red-50 hover:text-red-500"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                        Delete
-                      </ConfirmSubmitButton>
-                    </form>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Browse link */}
-        <div className="mt-8 text-center sm:mt-10">
-          <Link
-            href="/"
-            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-violet-200 bg-white px-6 py-3 text-sm font-semibold text-violet-700 shadow-sm transition hover:bg-violet-50 sm:w-auto"
-          >
-            ← Back to restaurants
+        {/* ── Account actions ── */}
+        <div className="mb-4 overflow-hidden rounded-2xl bg-white shadow-sm">
+          <Link href="/account/orders" className="flex items-center gap-4 border-b border-slate-100 px-4 py-3.5 transition hover:bg-slate-50">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-violet-50 text-violet-600">
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+              </svg>
+            </span>
+            <span className="flex-1 text-sm font-medium text-slate-800">My orders</span>
+            <ChevronRight className="h-4 w-4 text-slate-300" />
+          </Link>
+          <Link href="/account/addresses/new" className="flex items-center gap-4 px-4 py-3.5 transition hover:bg-slate-50">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+              <MapPin className="h-4 w-4" />
+            </span>
+            <span className="flex-1 text-sm font-medium text-slate-800">Add new address</span>
+            <ChevronRight className="h-4 w-4 text-slate-300" />
           </Link>
         </div>
+
+        {/* ── Security ── */}
+        <div className="mb-4 overflow-hidden rounded-2xl bg-white shadow-sm">
+          <SettingsRow
+            icon={<Lock className="h-4 w-4" />}
+            label="Change password"
+          >
+            <ChevronRight className="h-4 w-4 text-slate-300" />
+          </SettingsRow>
+          <SettingsRow
+            icon={<Trash className="h-4 w-4 text-red-400" />}
+            label="Delete account"
+            border={false}
+          >
+            <ChevronRight className="h-4 w-4 text-slate-300" />
+          </SettingsRow>
+        </div>
+
+        {/* ── Sign out ── */}
+        <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
+          <form action={customerSignOutAction}>
+            <button
+              type="submit"
+              className="flex w-full items-center gap-4 px-4 py-3.5 transition hover:bg-red-50"
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-red-50 text-red-500">
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+              </span>
+              <span className="flex-1 text-left text-sm font-semibold text-red-500">Sign out</span>
+            </button>
+          </form>
+        </div>
+
       </main>
+
+      <CustomerMobileFooterNav />
+      <BackToTopButton />
     </div>
   );
 }

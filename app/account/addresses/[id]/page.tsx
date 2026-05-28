@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCustomerSession, getCustomerAddresses } from "@/app-actions/customer-auth";
 import { AddressForm } from "@/components/address-form";
+import { CustomerMobileFooterNav } from "@/components/customer-mobile-footer-nav";
+import { CustomerDesktopNav } from "@/components/customer-desktop-nav";
 
 export const dynamic = "force-dynamic";
 
@@ -17,17 +19,29 @@ export default async function EditAddressPage({ params }: Props) {
   if (!address) redirect("/account");
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-violet-50">
-      <div className="container max-w-lg py-8 md:py-12">
+    <div className="min-h-screen bg-[#f2f2f7]">
+      {/* Desktop nav */}
+      <CustomerDesktopNav title="Edit Address" backHref="/account" />
+
+      {/* Mobile top bar */}
+      <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-slate-200/60 bg-white/95 px-4 backdrop-blur md:hidden">
         <Link
           href="/account"
-          className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-violet-700"
+          className="flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-slate-100"
+          aria-label="Back"
         >
-          ← Back to addresses
+          <svg className="h-5 w-5 text-slate-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M19 12H5M12 5l-7 7 7 7" />
+          </svg>
         </Link>
-        <h1 className="mb-6 text-2xl font-bold tracking-tight text-slate-900">Edit address</h1>
+        <p className="text-[15px] font-semibold text-slate-900">Edit Address</p>
+        <div className="w-9" aria-hidden />
+      </header>
+
+      <div className="mx-auto max-w-lg px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-5 md:py-10">
         <AddressForm address={address} />
       </div>
+      <CustomerMobileFooterNav />
     </div>
   );
 }

@@ -6,6 +6,8 @@ import { RestaurantDirectory } from "@/components/restaurant-directory";
 import { SiteFooter } from "@/components/site-footer";
 import { DeliveryLocationProvider } from "@/components/delivery-location-provider";
 import { getCustomerOrderContext } from "@/lib/customer-order-context";
+import { CustomerMobileFooterNav } from "@/components/customer-mobile-footer-nav";
+import { BackToTopButton } from "@/components/back-to-top-button";
 
 export default async function HomePage() {
   const [restaurants, customerCtx] = await Promise.all([
@@ -15,25 +17,70 @@ export default async function HomePage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-white">
-      <main className="flex-1">
-        {/* Logo — desktop only (mobile has the sticky app-style header) */}
-        <div className="container hidden md:block pt-8 sm:pt-10">
-          <Link
-            href="/"
-            className="inline-flex items-center outline-none transition-opacity hover:opacity-85 focus-visible:opacity-85"
-            aria-label="Zboun home"
-          >
-            <Image
-              src="/Logo.svg"
-              alt="Zboun"
-              width={500}
-              height={142}
-              priority
-              unoptimized
-              className="h-16 w-auto object-contain sm:h-20 md:h-24 lg:h-28"
-            />
-          </Link>
-        </div>
+      <main className="flex-1 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-0">
+        {/* Desktop navbar — hidden on mobile (mobile uses sticky header in RestaurantDirectory) */}
+        <header className="sticky top-0 z-30 hidden border-b border-slate-100 bg-white/95 backdrop-blur-md shadow-sm md:block">
+          <div className="container flex h-16 items-center justify-between gap-6">
+            {/* Logo */}
+            <Link
+              href="/"
+              className="shrink-0 outline-none transition-opacity hover:opacity-85 focus-visible:opacity-85"
+              aria-label="Zboun home"
+            >
+              <Image
+                src="/Logo.svg"
+                alt="Zboun"
+                width={120}
+                height={34}
+                priority
+                unoptimized
+                className="h-9 w-auto object-contain"
+              />
+            </Link>
+
+            {/* Right-side actions */}
+            <div className="flex items-center gap-2">
+              {customerCtx.isLoggedIn ? (
+                <>
+                  <Link
+                    href="/account/orders"
+                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:border-slate-300"
+                  >
+                    <svg className="h-4 w-4 text-violet-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                      <path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                    </svg>
+                    My Orders
+                  </Link>
+                  <Link
+                    href="/account"
+                    className="inline-flex items-center gap-2 rounded-full bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-violet-400/30 transition hover:bg-violet-700"
+                  >
+                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                      <circle cx="12" cy="8" r="4" />
+                      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+                    </svg>
+                    Account
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:border-slate-300"
+                  >
+                    Sign in
+                  </Link>
+                  <Link
+                    href="/signup"
+                    className="inline-flex items-center gap-2 rounded-full bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-violet-400/30 transition hover:bg-violet-700"
+                  >
+                    Create account
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+        </header>
 
         <DeliveryLocationProvider>
           <section id="restaurants" className="pb-2 pt-2 sm:pt-4">
@@ -96,6 +143,8 @@ export default async function HomePage() {
       </main>
 
       <SiteFooter />
+      <CustomerMobileFooterNav />
+      <BackToTopButton />
     </div>
   );
 }

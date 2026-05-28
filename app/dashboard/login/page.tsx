@@ -1,6 +1,7 @@
 import { signInAction } from "@/app-actions/auth";
 import Image from "next/image";
 import Link from "next/link";
+import { BackButton } from "@/components/back-button";
 
 type Props = {
   searchParams: Promise<{ error?: string }>;
@@ -8,105 +9,131 @@ type Props = {
 
 export default async function LoginPage({ searchParams }: Props) {
   const { error } = await searchParams;
+
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#f8f8ff] px-4 py-12">
-      {/* Background gradient blobs */}
+    <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-slate-50 via-white to-violet-50 px-4 py-12">
+      {/* Background orbs */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -top-32 left-1/2 -translate-x-1/2 h-[420px] w-[700px] rounded-full bg-gradient-to-br from-violet-300/35 via-fuchsia-200/20 to-transparent blur-3xl"
+        className="pointer-events-none absolute -top-40 left-1/2 h-[500px] w-[800px] -translate-x-1/2 rounded-full bg-gradient-to-br from-violet-300/30 via-fuchsia-200/20 to-transparent blur-3xl"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute bottom-0 right-0 h-64 w-64 rounded-full bg-fuchsia-300/20 blur-3xl"
+        className="pointer-events-none absolute bottom-0 right-0 h-72 w-72 rounded-full bg-fuchsia-300/15 blur-3xl"
       />
 
-      <form
-        action={signInAction}
-        className="relative w-full max-w-sm rounded-3xl border border-violet-100 bg-white p-7 shadow-[0_20px_60px_rgba(120,84,255,0.16)] sm:p-8"
-      >
-        {/* Logo + back link */}
-        <div className="mb-7 flex items-center justify-between">
-          <Link href="/" className="flex rounded-xl outline-none transition-opacity hover:opacity-80">
-            <Image
-              src="/Logo.svg"
-              alt="Zboun"
-              width={120}
-              height={36}
-              className="h-8 w-auto object-contain"
-              priority
-              unoptimized
-            />
-          </Link>
-          <Link
-            href="/"
-            className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-500 transition hover:border-violet-300 hover:text-violet-700"
-          >
-            ← Home
-          </Link>
+      <div className="relative w-full max-w-sm">
+        {/* Card */}
+        <div className="rounded-[28px] border border-violet-100/80 bg-white p-8 shadow-[0_24px_64px_rgba(120,84,255,0.18)]">
+          {/* Logo + back */}
+          <div className="mb-8 flex items-center justify-between">
+            <Link href="/" className="outline-none transition-opacity hover:opacity-80">
+              <Image
+                src="/Logo.svg"
+                alt="Zboun"
+                width={120}
+                height={36}
+                className="h-8 w-auto object-contain"
+                priority
+                unoptimized
+              />
+            </Link>
+            <BackButton
+              fallbackHref="/"
+              className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-500 transition hover:border-violet-300 hover:text-violet-700"
+            >
+              ← Back
+            </BackButton>
+          </div>
+
+          {/* Heading */}
+          <div className="mb-6">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-violet-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-violet-600">
+              <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                <polyline points="9 22 9 12 15 12 15 22" />
+              </svg>
+              Restaurant Admin
+            </span>
+            <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">Welcome back</h1>
+            <p className="mt-1 text-sm text-slate-500">Sign in to manage your menu and orders.</p>
+          </div>
+
+          {/* Errors */}
+          {error === "invalid_credentials" && (
+            <div className="mb-5 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+              Invalid credentials. Please try again.
+            </div>
+          )}
+          {error === "missing_profile" && (
+            <div className="mb-5 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+              Account exists but has no app profile. Please contact{" "}
+              <a href="mailto:zbounlb@outlook.com" className="underline">zbounlb@outlook.com</a>.
+            </div>
+          )}
+          {error === "missing_restaurant_link" && (
+            <div className="mb-5 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+              No restaurant linked to your account. Please contact support.
+            </div>
+          )}
+          {error === "account_deactivated" && (
+            <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+              Your account is deactivated. Please contact{" "}
+              <a href="mailto:zbounlb@outlook.com" className="underline">zbounlb@outlook.com</a>{" "}
+              to renew your subscription.
+            </div>
+          )}
+
+          {/* Form */}
+          <form action={signInAction} className="space-y-3">
+            <div>
+              <label htmlFor="email" className="mb-1.5 block text-xs font-semibold text-slate-600">
+                Email address
+              </label>
+              <input
+                id="email"
+                type="email"
+                name="email"
+                required
+                placeholder="you@restaurant.com"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                autoComplete="username"
+                className="ui-input"
+              />
+            </div>
+            <div>
+              <label htmlFor="password" className="mb-1.5 block text-xs font-semibold text-slate-600">
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                name="password"
+                required
+                placeholder="••••••••"
+                autoComplete="current-password"
+                className="ui-input"
+              />
+            </div>
+            <button
+              type="submit"
+              className="mt-2 flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 py-3.5 text-sm font-bold text-white shadow-md shadow-violet-400/30 transition hover:brightness-110 active:scale-[0.98]"
+            >
+              Sign in to dashboard
+            </button>
+          </form>
         </div>
 
-        {/* Heading */}
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Sign in</h1>
-        <p className="mt-1 text-sm text-slate-500">Restaurant &amp; super admin dashboard.</p>
-
-        {/* Errors */}
-        {error === "invalid_credentials" && (
-          <div className="mt-4 rounded-xl border border-red-100 bg-red-50 px-3.5 py-2.5 text-sm font-medium text-red-700">
-            Invalid credentials. Please try again.
-          </div>
-        )}
-        {error === "missing_profile" && (
-          <div className="mt-4 rounded-xl border border-red-100 bg-red-50 px-3.5 py-2.5 text-sm text-red-700">
-            Account exists but is missing an app profile row in{" "}
-            <code className="font-mono">public.users</code>. Please contact your admin.
-          </div>
-        )}
-        {error === "missing_restaurant_link" && (
-          <div className="mt-4 rounded-xl border border-red-100 bg-red-50 px-3.5 py-2.5 text-sm text-red-700">
-            No restaurant linked to your account. Set{" "}
-            <code className="font-mono">restaurant_id</code> in{" "}
-            <code className="font-mono">public.users</code>.
-          </div>
-        )}
-        {error === "account_deactivated" && (
-          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-sm font-medium text-amber-800">
-            Your account is deactivated because your subscription ended. Contact{" "}
-            <a href="mailto:zbounlb@outlook.com" className="underline">
-              zbounlb@outlook.com
-            </a>{" "}
-            to renew your contract and restore access.
-          </div>
-        )}
-
-        {/* Fields */}
-        <div className="mt-5 space-y-3">
-          <input
-            type="email"
-            name="email"
-            required
-            placeholder="Email address"
-            autoCapitalize="none"
-            autoCorrect="off"
-            spellCheck={false}
-            autoComplete="username"
-            className="ui-input"
-          />
-          <input
-            type="password"
-            name="password"
-            required
-            placeholder="Password"
-            autoComplete="current-password"
-            className="ui-input"
-          />
-          <button
-            type="submit"
-            className="mt-1 flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 py-3.5 text-sm font-bold text-white shadow-md shadow-violet-400/30 transition hover:brightness-110"
-          >
-            Sign in
-          </button>
-        </div>
-      </form>
+        {/* Customer login note */}
+        <p className="mt-5 text-center text-xs text-slate-400">
+          Customer?{" "}
+          <Link href="/login" className="text-slate-500 underline underline-offset-2 hover:text-slate-700">
+            Sign in to your account
+          </Link>
+        </p>
+      </div>
     </main>
   );
 }

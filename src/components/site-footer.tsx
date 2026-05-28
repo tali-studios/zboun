@@ -118,9 +118,6 @@ export async function SiteFooter() {
               </svg>
               WhatsApp us
             </a>
-            <p className="mt-2.5 text-center text-xs leading-relaxed text-slate-500 lg:text-left">
-              Quick support &amp; onboarding
-            </p>
             {user ? (
               <form action={isRestaurantOrAdmin ? signOutAction : customerSignOutAction} className="mt-3">
                 <button
