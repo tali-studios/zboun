@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getRestaurantBySlug, getRestaurantMenu } from "@/lib/data";
 import { MenuClient } from "@/components/menu-client";
+import { parseOpeningHours } from "@/lib/opening-hours";
 import { RestaurantMenuHero } from "@/components/restaurant-menu-hero";
 import { DeliveryLocationProvider } from "@/components/delivery-location-provider";
 import { getCustomerOrderContext } from "@/lib/customer-order-context";
@@ -68,12 +69,9 @@ export default async function RestaurantMenuPage({ params }: Props) {
 
   const tagline = restaurant.description?.trim() || "Browse the menu and send your order on WhatsApp.";
 
-  const avgRating =
-    restaurant.user_avg_rating != null && Number.isFinite(Number(restaurant.user_avg_rating))
-      ? Math.round(Number(restaurant.user_avg_rating) * 10) / 10
-      : null;
-  const ratingCount = restaurant.user_rating_count ?? 0;
   const { isLoggedIn, defaultCustomerName, savedAddresses } = await getCustomerOrderContext();
+  const openingHours = parseOpeningHours(restaurant.opening_hours);
+  const orderingEnabled = !restaurant.is_temporarily_closed;
 
   return (
     <DeliveryLocationProvider>
@@ -136,13 +134,17 @@ export default async function RestaurantMenuPage({ params }: Props) {
             restaurantPhone={restaurant.phone}
             restaurantId={restaurant.id}
             restaurantSlug={restaurant.slug}
-            avgRating={avgRating}
-            ratingCount={ratingCount}
             lbpRate={Number(restaurant.lbp_rate ?? 89500)}
             categories={categories}
             defaultCustomerName={defaultCustomerName}
             savedAddresses={savedAddresses}
             isLoggedIn={isLoggedIn}
+            openingHours={restaurant.opening_hours}
+            isTemporarilyClosed={restaurant.is_temporarily_closed}
+            etaLabel={restaurant.eta_label}
+            freeDelivery={restaurant.free_delivery}
+            deliveryFeeUsd={Number(restaurant.delivery_fee_usd ?? 0)}
+            orderingEnabled={orderingEnabled}
           />
         </main>
       </div>

@@ -78,6 +78,12 @@ export function RestaurantDashboardToast({ toast, sectionName, itemName }: Props
   } else if (toast === "location_invalid_coords") {
     heading = "Invalid coordinates";
     message = "Please pick a location on the map before saving.";
+  } else if (toast === "hours_saved") {
+    heading = "Hours saved";
+    message = "Your opening hours were updated.";
+  } else if (toast === "hours_invalid") {
+    heading = "Invalid hours";
+    message = "Could not save opening hours. Check each day and try again.";
   } else {
     return null;
   }

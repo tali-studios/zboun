@@ -19,7 +19,8 @@ import { ImageUploadField } from "@/components/image-upload-field";
 import { IngredientListField } from "@/components/ingredient-list-field";
 import { BROWSE_SECTION_OPTIONS, normalizeBrowseSections } from "@/lib/browse-sections";
 import { getBusinessTypeLabel, parseBusinessType, supportsHomeBrowseCategory } from "@/lib/business-types";
-import { RestaurantDashboardToast } from "@/components/restaurant-dashboard-toast";
+import { RestaurantHoursPanel } from "@/components/restaurant-hours-panel";
+import { parseOpeningHours } from "@/lib/opening-hours";
 import { BusinessMenuItemsFilter } from "@/components/business-menu-items-filter";
 import { RestaurantMapPin } from "@/components/restaurant-map-pin";
 import { RestaurantLocationsPanel } from "@/components/restaurant-locations-panel";
@@ -119,7 +120,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
     supabase
       .from("restaurants")
       .select(
-        "name, slug, phone, logo_url, banner_url, description, lbp_rate, browse_sections, location, eta_label, business_type, latitude, longitude",
+        "name, slug, phone, logo_url, banner_url, description, lbp_rate, browse_sections, location, eta_label, business_type, latitude, longitude, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd",
       )
       .eq("id", appUser.restaurant_id)
       .single(),
@@ -448,6 +449,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
         </header>
 
         {isMenuBusiness ? (
+        <>
         <section className="grid gap-4 lg:grid-cols-3">
           <form
             action={updateRestaurantSettingsAction}
@@ -494,6 +496,43 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                 />
                 <p className="text-xs text-slate-500">Short text for the time pill on home cards (optional).</p>
               </label>
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 md:col-span-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Delivery fee</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Set a delivery charge added to every order, or enable free delivery to show a badge on the home page.
+                </p>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700">
+                    <input
+                      type="checkbox"
+                      name="free_delivery"
+                      value="true"
+                      defaultChecked={restaurant?.free_delivery ?? false}
+                      className="h-4 w-4 accent-violet-600"
+                    />
+                    <span className="font-medium">Free delivery</span>
+                  </label>
+                  <label className="space-y-1">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Delivery fee (USD)
+                    </span>
+                    <input
+                      name="delivery_fee_usd"
+                      type="number"
+                      step="0.01"
+                      min={0}
+                      defaultValue={
+                        restaurant?.free_delivery
+                          ? "0"
+                          : String(restaurant?.delivery_fee_usd ?? 0)
+                      }
+                      placeholder="e.g. 2.50"
+                      className="ui-input"
+                    />
+                    <p className="text-xs text-slate-500">Ignored when free delivery is enabled.</p>
+                  </label>
+                </div>
+              </div>
               <label className="space-y-1">
                 <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Phone Number</span>
                 <input
@@ -570,6 +609,12 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
             </div>
           </form>
         </section>
+
+        <RestaurantHoursPanel
+          openingHours={parseOpeningHours(restaurant?.opening_hours)}
+          isTemporarilyClosed={restaurant?.is_temporarily_closed ?? false}
+        />
+        </>
         ) : (
           <section className="panel p-5">
             <h2 className="panel-title">Business profile</h2>

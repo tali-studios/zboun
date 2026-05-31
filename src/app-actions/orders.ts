@@ -5,6 +5,11 @@ import { createClient } from "@supabase/supabase-js";
 import { env } from "@/lib/env";
 import { revalidatePath } from "next/cache";
 import {
+  isRestaurantOpenNow,
+  isScheduledTimeValid,
+  parseOpeningHours,
+} from "@/lib/opening-hours";
+import {
   sendNewOrderEmailNotification,
   buildRestaurantWhatsAppNotifyUrl,
   type OrderNotificationItem,
@@ -21,6 +26,7 @@ export type PlaceOrderInput = {
   items: OrderNotificationItem[];
   notes?: string | null;
   totalUsd: number;
+  scheduledFor?: string | null;
 };
 
 export type PlaceOrderResult =
@@ -80,6 +86,49 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
   const serviceClient = getServiceClient();
   const insertClient = serviceClient ?? supabase;
 
+  const { data: restaurantRow, error: restaurantError } = await insertClient
+    .from("restaurants")
+    .select("is_active, is_temporarily_closed, opening_hours, free_delivery, delivery_fee_usd")
+    .eq("id", input.restaurantId)
+    .maybeSingle();
+
+  if (restaurantError || !restaurantRow) {
+    return { ok: false, error: "Restaurant not found." };
+  }
+  if (!restaurantRow.is_active) {
+    return { ok: false, error: "This restaurant is not accepting orders." };
+  }
+  if (restaurantRow.is_temporarily_closed) {
+    return { ok: false, error: "This restaurant is temporarily closed." };
+  }
+
+  const hours = parseOpeningHours(restaurantRow.opening_hours);
+  const scheduledFor = input.scheduledFor?.trim() || null;
+
+  if (scheduledFor) {
+    if (!isScheduledTimeValid(hours, scheduledFor, { maxDays: 5 })) {
+      return { ok: false, error: "Please choose a valid scheduled delivery time during opening hours." };
+    }
+  } else if (!isRestaurantOpenNow(hours, { isTemporarilyClosed: false })) {
+    return { ok: false, error: "The restaurant is closed right now. Please schedule your delivery." };
+  }
+
+  if (!input.customerName.trim() || !input.items.length) {
+    return { ok: false, error: "Invalid order details." };
+  }
+
+  const itemsSubtotal = input.items.reduce(
+    (sum, item) => sum + Number(item.qty) * Number(item.unitPrice),
+    0,
+  );
+  const deliveryFeeUsd = restaurantRow.free_delivery
+    ? 0
+    : Math.max(0, Number(restaurantRow.delivery_fee_usd) || 0);
+  const expectedTotal = Math.round((itemsSubtotal + deliveryFeeUsd) * 100) / 100;
+  if (Math.abs(expectedTotal - input.totalUsd) > 0.02) {
+    return { ok: false, error: "Order total does not match. Please refresh and try again." };
+  }
+
   const { data: order, error: insertError } = await insertClient
     .from("orders")
     .insert({
@@ -92,7 +141,9 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
       delivery_lng: input.deliveryLng ?? null,
       items: input.items,
       notes: input.notes?.trim() || null,
-      total_usd: input.totalUsd,
+      total_usd: expectedTotal,
+      delivery_fee_usd: deliveryFeeUsd,
+      scheduled_for: scheduledFor,
       status: "pending",
       whatsapp_sent: false,
     })
@@ -183,8 +234,11 @@ export async function getRestaurantOrders(restaurantId: string): Promise<OrderRo
 }
 
 export type CustomerOrderRow = OrderRow & {
+  restaurant_id: string;
   restaurant_name: string;
   restaurant_slug: string;
+  restaurant_avg_rating: number | null;
+  restaurant_rating_count: number;
 };
 
 export async function getCustomerOrder(orderId: string): Promise<CustomerOrderRow | null> {
@@ -195,7 +249,7 @@ export async function getCustomerOrder(orderId: string): Promise<CustomerOrderRo
   const { data } = await supabase
     .from("orders")
     .select(
-      "id, customer_name, customer_phone, delivery_address, delivery_lat, delivery_lng, items, notes, total_usd, status, whatsapp_sent, created_at, updated_at, restaurants(name, slug)",
+      "id, restaurant_id, customer_name, customer_phone, delivery_address, delivery_lat, delivery_lng, items, notes, total_usd, status, whatsapp_sent, created_at, updated_at, restaurants(name, slug)",
     )
     .eq("id", orderId)
     .eq("customer_id", user.id)
@@ -204,10 +258,28 @@ export async function getCustomerOrder(orderId: string): Promise<CustomerOrderRo
   if (!data) return null;
   const r = data as unknown as Record<string, unknown>;
   const rest = r.restaurants as { name: string; slug: string } | null;
+  const restaurantId = String(r.restaurant_id ?? "");
+  let restaurant_avg_rating: number | null = null;
+  let restaurant_rating_count = 0;
+  if (restaurantId) {
+    const { data: ratingRows } = await supabase.rpc("restaurant_rating_stats", {
+      p_ids: [restaurantId],
+    });
+    const row = Array.isArray(ratingRows) ? ratingRows[0] : null;
+    if (row) {
+      const avg = Number((row as { avg_rating: unknown }).avg_rating);
+      const cnt = Number((row as { rating_count: unknown }).rating_count);
+      if (Number.isFinite(avg)) restaurant_avg_rating = Math.round(avg * 10) / 10;
+      if (Number.isFinite(cnt)) restaurant_rating_count = cnt;
+    }
+  }
   return {
     ...(r as unknown as OrderRow),
+    restaurant_id: restaurantId,
     restaurant_name: rest?.name ?? "Restaurant",
     restaurant_slug: rest?.slug ?? "",
+    restaurant_avg_rating,
+    restaurant_rating_count,
   };
 }
 
@@ -232,8 +304,11 @@ export async function getCustomerOrders(): Promise<CustomerOrderRow[]> {
     const rest = r.restaurants as { name: string; slug: string } | null;
     return {
       ...(r as unknown as OrderRow),
+      restaurant_id: String(r.restaurant_id ?? ""),
       restaurant_name: rest?.name ?? "Restaurant",
       restaurant_slug: rest?.slug ?? "",
+      restaurant_avg_rating: null,
+      restaurant_rating_count: 0,
     };
   });
 }

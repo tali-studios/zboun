@@ -4,6 +4,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getCustomerOrder } from "@/app-actions/orders";
 import { CustomerMobileFooterNav } from "@/components/customer-mobile-footer-nav";
 import { CustomerDesktopNav } from "@/components/customer-desktop-nav";
+import { MenuRestaurantRating } from "@/components/menu-restaurant-rating";
 
 export const dynamic = "force-dynamic";
 
@@ -175,6 +176,19 @@ export default async function OrderDetailPage({ params }: Params) {
               <p className="mb-1 text-xs font-bold uppercase tracking-widest text-slate-400">Note</p>
               <p className="text-sm text-slate-700">{order.notes}</p>
             </div>
+          ) : null}
+
+          {order.status === "delivered" && order.restaurant_id ? (
+            <MenuRestaurantRating
+              variant="order"
+              restaurantId={order.restaurant_id}
+              slug={order.restaurant_slug}
+              raterId={user.id}
+              avgRating={order.restaurant_avg_rating}
+              ratingCount={order.restaurant_rating_count}
+              title="Rate your experience"
+              hint="Your order was delivered. How was it? Tap a star to rate."
+            />
           ) : null}
 
         </div>

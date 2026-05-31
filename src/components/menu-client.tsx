@@ -1,10 +1,14 @@
-﻿"use client";
+"use client";
 
 import Image from "next/image";
+import { ArrowLeft, Minus, Plus, Trash2, UtensilsCrossed } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { CategoryWithItems } from "@/lib/data";
-import { MenuRestaurantRating } from "@/components/menu-restaurant-rating";
-import { OrderDeliveryFields, type SavedAddressOption } from "@/components/order-delivery-fields";
+import { CheckoutDeliverySections } from "@/components/checkout-delivery-sections";
+import type { DeliveryTimeChoice } from "@/components/delivery-time-sheet";
+import type { SavedAddressOption } from "@/components/order-delivery-fields";
+import { formatDeliveryTimeLabel, isRestaurantOpenNow, parseOpeningHours } from "@/lib/opening-hours";
 import { BRAND_HEX, BRAND_HEX_DEEP } from "@/lib/brand";
 import { placeOrderAction } from "@/app-actions/orders";
 import { useDeliveryLocation } from "@/components/delivery-location-provider";
@@ -19,19 +23,24 @@ type Props = {
   restaurantPhone: string;
   restaurantId: string;
   restaurantSlug: string;
-  avgRating: number | null;
-  ratingCount: number;
   lbpRate: number;
   categories: CategoryWithItems[];
   defaultCustomerName?: string;
   savedAddresses?: SavedAddressOption[];
   isLoggedIn?: boolean;
+  openingHours?: unknown;
+  isTemporarilyClosed?: boolean;
+  etaLabel?: string | null;
+  freeDelivery?: boolean;
+  deliveryFeeUsd?: number;
+  orderingEnabled?: boolean;
 };
 
 type CartLine = {
   key: string;
   itemId: string;
   name: string;
+  imageUrl: string | null;
   qty: number; // either count (each) or kilograms (kg) when unit==="kg"
   unit: "each" | "kg";
   unitPrice: number;
@@ -68,14 +77,25 @@ export function MenuClient({
   restaurantPhone,
   restaurantId,
   restaurantSlug,
-  avgRating,
-  ratingCount,
   lbpRate,
   categories,
   defaultCustomerName = "",
   savedAddresses = [],
   isLoggedIn = false,
+  openingHours: openingHoursRaw,
+  isTemporarilyClosed = false,
+  etaLabel = null,
+  freeDelivery = false,
+  deliveryFeeUsd = 0,
+  orderingEnabled = true,
 }: Props) {
+  const parsedOpeningHours = useMemo(() => parseOpeningHours(openingHoursRaw), [openingHoursRaw]);
+  const isOpenNow = useMemo(
+    () => isRestaurantOpenNow(parsedOpeningHours, { isTemporarilyClosed }),
+    [parsedOpeningHours, isTemporarilyClosed],
+  );
+  const orderingBlocked = isTemporarilyClosed || !orderingEnabled;
+  const canShop = !viewOnly && !orderingBlocked;
   const [cart, setCart] = useState<Record<string, CartLine>>({});
   const [customizing, setCustomizing] = useState<CustomizationState | null>(null);
   const [query, setQuery] = useState("");
@@ -83,8 +103,12 @@ export function MenuClient({
   const [customerName, setCustomerName] = useState(defaultCustomerName);
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
+  const [noCutlery, setNoCutlery] = useState(false);
   const [isOrderConfirmed, setIsOrderConfirmed] = useState(false);
   const [showMobileCart, setShowMobileCart] = useState(false);
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [checkoutBackToCart, setCheckoutBackToCart] = useState(false);
+  const [deliveryTime, setDeliveryTime] = useState<DeliveryTimeChoice>({ mode: "now" });
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [placedOrder, setPlacedOrder] = useState<{ orderId: string; whatsappUrl: string | null } | null>(null);
   const [orderError, setOrderError] = useState<string | null>(null);
@@ -117,6 +141,11 @@ export function MenuClient({
     () => items.reduce((sum, item) => sum + item.qty * item.unitPrice, 0),
     [items],
   );
+  const deliveryCharge = useMemo(
+    () => (freeDelivery ? 0 : Math.max(0, deliveryFeeUsd)),
+    [freeDelivery, deliveryFeeUsd],
+  );
+  const orderTotal = useMemo(() => total + deliveryCharge, [total, deliveryCharge]);
   const itemCount = useMemo(
     () =>
       items.reduce((sum, item) => {
@@ -205,6 +234,7 @@ export function MenuClient({
           [lineKey]: {
             ...existing,
             qty: customizing.editingKey ? customizing.qty : existing.qty + customizing.qty,
+            imageUrl: customizing.item.image_url ?? existing.imageUrl ?? null,
             specialInstructions: customizing.note.trim(),
             removedIngredients: [...customizing.remove],
             addedIngredients: selectedAdd,
@@ -219,6 +249,7 @@ export function MenuClient({
           key: lineKey,
           itemId: customizing.item.id,
           name: customizing.item.name,
+          imageUrl: customizing.item.image_url ?? null,
           qty: customizing.qty,
           unit: soldByWeight ? "kg" : "each",
           unitPrice,
@@ -236,6 +267,58 @@ export function MenuClient({
     setCart((prev) => Object.fromEntries(Object.entries(prev).filter(([lineKey]) => lineKey !== key)));
   }
 
+  function getMenuItemById(itemId: string) {
+    return categories.flatMap((category) => category.menu_items).find((item) => item.id === itemId);
+  }
+
+  function getLineImageUrl(line: CartLine) {
+    if (line.imageUrl) return line.imageUrl;
+    return getMenuItemById(line.itemId)?.image_url ?? null;
+  }
+
+  function getQtyStepForLine(line: CartLine) {
+    if (line.unit !== "kg") return 1;
+    const item = getMenuItemById(line.itemId);
+    const step = Number((item as { weight_step_kg?: number | null } | undefined)?.weight_step_kg ?? 0.25);
+    return step > 0 ? step : 0.25;
+  }
+
+  function incrementCartLine(key: string) {
+    setCart((prev) => {
+      const line = prev[key];
+      if (!line) return prev;
+      const step = getQtyStepForLine(line);
+      const newQty = Math.round((line.qty + step) * 1000) / 1000;
+      return { ...prev, [key]: { ...line, qty: newQty } };
+    });
+  }
+
+  function decrementCartLine(key: string) {
+    setCart((prev) => {
+      const line = prev[key];
+      if (!line) return prev;
+      const step = getQtyStepForLine(line);
+      if (line.qty <= step) {
+        return Object.fromEntries(Object.entries(prev).filter(([k]) => k !== key));
+      }
+      const newQty = Math.round((line.qty - step) * 1000) / 1000;
+      return { ...prev, [key]: { ...line, qty: newQty } };
+    });
+  }
+
+  function canDecrementCartLine(line: CartLine) {
+    const step = getQtyStepForLine(line);
+    return line.qty > step + 1e-9;
+  }
+
+  function displayCartQty(line: CartLine) {
+    if (line.unit === "kg") {
+      if (line.qty >= 1 && Number.isInteger(line.qty)) return String(line.qty);
+      return formatQty("kg", line.qty).replace(" kg", "").replace(" g", "g");
+    }
+    return String(line.qty);
+  }
+
   function formatUsd(amount: number) {
     return `$${amount.toFixed(2)}`;
   }
@@ -245,9 +328,21 @@ export function MenuClient({
     return `L.L ${lbp.toLocaleString()}`;
   }
 
+  function buildOrderNotes() {
+    const parts: string[] = [];
+    if (noCutlery) parts.push("Please do not send cutlery.");
+    if (deliveryTime.mode === "scheduled") {
+      parts.push(`Scheduled delivery: ${formatDeliveryTimeLabel(deliveryTime, etaLabel)}`);
+    }
+    const trimmed = notes.trim();
+    if (trimmed) parts.push(trimmed);
+    return parts.length > 0 ? parts.join("\n") : null;
+  }
+
   function createWhatsAppMessage() {
     const cleanName = customerName.trim();
     const cleanAddress = address.trim();
+    const orderNotes = buildOrderNotes();
     const lines = [
       "Hello 👋",
       `I'd like to order from ${restaurantName}:`,
@@ -275,20 +370,23 @@ export function MenuClient({
       "",
       `Name: ${cleanName}`,
       `Address: ${cleanAddress}`,
-      notes ? `Notes: ${notes}` : "",
+      orderNotes ? `Notes: ${orderNotes}` : "",
     ].filter(Boolean);
 
     return encodeURIComponent(lines.join("\n"));
   }
 
   const orderLink = `https://wa.me/${restaurantPhone.replace(/\D/g, "")}?text=${createWhatsAppMessage()}`;
-  const canOrder =
-    items.length > 0 &&
-    customerName.trim().length > 0 &&
-    address.trim().length > 0 &&
-    isOrderConfirmed;
 
   async function handleOrderClick() {
+    if (orderingBlocked) {
+      setOrderError("This restaurant is closed and not accepting online orders right now.");
+      return;
+    }
+    if (deliveryTime.mode === "now" && !isOpenNow) {
+      setOrderError("The restaurant is closed right now. Please schedule your delivery for later.");
+      return;
+    }
     if (!customerName.trim() || !address.trim()) {
       setOrderError("Please fill in your name and delivery address before ordering.");
       return;
@@ -321,8 +419,9 @@ export function MenuClient({
           addedIngredients: item.addedIngredients,
           specialInstructions: item.specialInstructions,
         })),
-        notes: notes.trim() || null,
-        totalUsd: total,
+        notes: buildOrderNotes(),
+        totalUsd: orderTotal,
+        scheduledFor: deliveryTime.mode === "scheduled" ? deliveryTime.at : null,
       });
       if (!result.ok) {
         setOrderError(result.error);
@@ -330,13 +429,63 @@ export function MenuClient({
       }
       setPlacedOrder({ orderId: result.orderId, whatsappUrl: result.whatsappNotifyUrl });
       setCart({});
+      setNoCutlery(false);
       setIsOrderConfirmed(false);
+      setShowCheckout(false);
+      setCheckoutBackToCart(false);
       orderTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (err) {
       setOrderError(err instanceof Error ? err.message : "Failed to place order. Please try again.");
     } finally {
       setIsPlacingOrder(false);
     }
+  }
+
+  /* ─── Suggested items: items from the menu not already in cart ─── */
+  function renderSuggestedItems() {
+    const cartItemIds = new Set(items.map((l) => l.itemId));
+    const allItems = categories.flatMap((c) => c.menu_items);
+    const suggestions = allItems
+      .filter((m) => m.is_available && !cartItemIds.has(m.id))
+      .slice(0, 10);
+    if (suggestions.length === 0) return null;
+    return (
+      <div className="mt-5">
+        <p className="mb-2.5 text-xs font-bold uppercase tracking-wide text-slate-400">Complete your order with</p>
+        <div className="flex gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {suggestions.map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              onClick={() => openCustomization(m)}
+              className="group relative flex w-28 shrink-0 flex-col overflow-hidden rounded-2xl bg-white shadow ring-1 ring-black/[0.06] transition hover:shadow-md"
+            >
+              <div className="h-24 w-full overflow-hidden bg-slate-100">
+                {m.image_url ? (
+                  <Image
+                    src={m.image_url}
+                    alt=""
+                    width={112}
+                    height={96}
+                    className="h-full w-full object-cover transition group-hover:scale-105"
+                    unoptimized
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-2xl text-slate-200" aria-hidden>···</div>
+                )}
+              </div>
+              <div className="flex h-6 w-6 items-center justify-center rounded-full text-white absolute bottom-[3.4rem] right-2 shadow-sm text-lg font-light leading-none" style={{ backgroundColor: BRAND }}>
+                +
+              </div>
+              <div className="px-2 pb-2.5 pt-1.5 text-left">
+                <p className="line-clamp-2 text-[11px] font-semibold leading-snug text-slate-800">{m.name}</p>
+                <p className="mt-0.5 text-[11px] font-bold" style={{ color: BRAND }}>{formatLbp(m.price)}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   /* ─── Cart panel (shared between desktop sidebar and mobile sheet) ─── */
@@ -358,146 +507,317 @@ export function MenuClient({
         </div>
 
         {/* Items list */}
-        <div className="mt-3 max-h-52 flex-1 space-y-2 overflow-y-auto lg:max-h-64">
+        <div className="mt-4 max-h-[min(50vh,320px)] flex-1 overflow-y-auto lg:max-h-80">
           {items.length === 0 ? (
-            <p className="py-4 text-center text-sm text-slate-400">Your cart is empty.</p>
+            <p className="py-8 text-center text-sm text-slate-400">Your cart is empty.</p>
           ) : (
-            items.map((item) => (
-              <div
-                key={item.key}
-                className="rounded-xl border border-slate-100 bg-slate-50 p-2.5"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-sm font-semibold text-slate-800">
-                    {formatQty(item.unit, item.qty)} {item.name}
-                  </p>
-                  <p className="shrink-0 text-xs font-semibold" style={{ color: BRAND }}>
-                    {formatUsd(item.qty * item.unitPrice)}
-                  </p>
-                </div>
-                {item.removedIngredients.length > 0 ? (
-                  <p className="mt-0.5 text-xs text-slate-400">
-                    Remove: {item.removedIngredients.join(", ")}
-                  </p>
-                ) : null}
-                {item.addedIngredients.length > 0 ? (
-                  <p className="mt-0.5 text-xs text-slate-400">
-                    Add:{" "}
-                    {item.addedIngredients
-                      .map((a) => `${a.name} x${a.qty}${a.price > 0 ? ` (+${formatUsd(a.price * a.qty)})` : ""}`)
-                      .join(", ")}
-                  </p>
-                ) : null}
-                {item.specialInstructions ? (
-                  <p className="mt-0.5 text-xs text-slate-400">Note: {item.specialInstructions}</p>
-                ) : null}
-                <div className="mt-1.5 flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => openEditCustomization(item)}
-                    className="text-xs font-semibold hover:underline"
-                    style={{ color: BRAND }}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => removeCartLine(item.key)}
-                    className="text-xs font-semibold text-red-500 hover:underline"
-                  >
-                    Remove
-                  </button>
-                </div>
-              </div>
-            ))
+            <div className="space-y-4">
+              {items.map((item) => {
+                const lineTotal = item.qty * item.unitPrice;
+                const imageUrl = getLineImageUrl(item);
+                const hasModifiers =
+                  item.removedIngredients.length > 0 ||
+                  item.addedIngredients.length > 0 ||
+                  Boolean(item.specialInstructions);
+
+                return (
+                  <div key={item.key} className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => openEditCustomization(item)}
+                      className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                      aria-label={`Edit ${item.name}`}
+                    >
+                      <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-slate-100">
+                        {imageUrl ? (
+                          <Image
+                            src={imageUrl}
+                            alt=""
+                            width={64}
+                            height={64}
+                            className="h-full w-full object-cover"
+                            unoptimized
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-lg text-slate-300" aria-hidden>
+                            ···
+                          </div>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="line-clamp-2 text-sm font-bold leading-snug text-slate-900">
+                          {item.name}
+                        </p>
+                        <p className="mt-1 text-sm font-bold text-slate-900">{formatLbp(lineTotal)}</p>
+                        {hasModifiers ? (
+                          <p className="mt-0.5 text-[11px] text-slate-400">Tap to edit options</p>
+                        ) : null}
+                      </div>
+                    </button>
+
+                    <div className="flex shrink-0 items-center rounded-full bg-slate-100 px-1 py-1">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          canDecrementCartLine(item) ? decrementCartLine(item.key) : removeCartLine(item.key)
+                        }
+                        className="flex h-8 w-8 items-center justify-center rounded-full text-slate-500 transition hover:bg-white hover:text-slate-800"
+                        aria-label={
+                          canDecrementCartLine(item)
+                            ? `Decrease quantity of ${item.name}`
+                            : `Remove ${item.name}`
+                        }
+                      >
+                        {canDecrementCartLine(item) ? (
+                          <Minus className="h-4 w-4" strokeWidth={2.5} />
+                        ) : (
+                          <Trash2 className="h-4 w-4" strokeWidth={2} />
+                        )}
+                      </button>
+                      <span className="min-w-[1.75rem] px-1 text-center text-sm font-bold tabular-nums text-slate-900">
+                        {displayCartQty(item)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => incrementCartLine(item.key)}
+                        className="flex h-8 w-8 items-center justify-center rounded-full text-slate-700 transition hover:bg-white"
+                        aria-label={`Add one more ${item.name}`}
+                      >
+                        <Plus className="h-4 w-4" strokeWidth={2.5} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
 
-        {/* Total */}
+        {/* Subtotal */}
         {items.length > 0 ? (
-          <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
-            <p className="text-sm font-bold text-slate-900">Total</p>
-            <div className="text-right">
-              <p className="text-base font-bold" style={{ color: BRAND }}>
-                {formatUsd(total)}
-              </p>
-              <p className="text-xs text-slate-400">{formatLbp(total)}</p>
+          <div className="mt-5 border-t border-dashed border-slate-200 pt-4">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm font-bold text-slate-900">Subtotal</p>
+              <div className="flex items-baseline gap-2">
+                <span className="text-sm font-bold text-slate-900">{formatLbp(total)}</span>
+                <span className="text-xs text-slate-400">{formatUsd(total)}</span>
+              </div>
+            </div>
+
+            <div className="mt-3 flex items-center gap-3 overflow-hidden rounded-2xl bg-white px-4 py-3.5 shadow-sm ring-1 ring-slate-100">
+              <UtensilsCrossed className="h-5 w-5 shrink-0 text-slate-800" strokeWidth={2} aria-hidden />
+              <span className="min-w-0 flex-1 text-sm font-semibold leading-snug text-slate-900">
+                Please do not send cutlery
+              </span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={noCutlery}
+                aria-label="Please do not send cutlery"
+                onClick={() => setNoCutlery((value) => !value)}
+                className={`inline-flex h-7 w-12 shrink-0 items-center rounded-full p-0.5 transition-colors ${
+                  noCutlery ? "bg-emerald-500" : "bg-slate-200"
+                }`}
+              >
+                <span
+                  className={`block h-6 w-6 rounded-full bg-white shadow transition-transform duration-200 ease-out ${
+                    noCutlery ? "translate-x-5" : "translate-x-0"
+                  }`}
+                />
+              </button>
             </div>
           </div>
         ) : null}
 
-        {/* Delivery details */}
-        <div className="mt-4">
-          <OrderDeliveryFields
-            customerName={customerName}
-            onCustomerNameChange={setCustomerName}
-            address={address}
-            onAddressChange={setAddress}
-            savedAddresses={savedAddresses}
-            isLoggedIn={isLoggedIn}
-          />
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Order notes (optional)"
-            rows={2}
-            className="ui-textarea mt-2.5"
-          />
-        </div>
+        {/* Suggested items */}
+        {items.length > 0 ? renderSuggestedItems() : null}
 
-        {/* Confirm checkbox */}
-        <label className="mt-3 flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
-          <input
-            type="checkbox"
-            checked={isOrderConfirmed}
-            onChange={(e) => { setIsOrderConfirmed(e.target.checked); setOrderError(null); }}
-            className="mt-0.5 h-4 w-4 accent-[#7854ff]"
-          />
-          <div>
-            <p className="font-semibold text-slate-800">I confirm my order above.</p>
-            <p className="text-xs text-slate-500">
-              Total to pay: <span className="font-semibold text-slate-700">{formatUsd(total)}</span>
-            </p>
+        {/* Two-button footer */}
+        {items.length > 0 ? (
+          <div className="mt-5 grid grid-cols-2 gap-2.5">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-full border border-slate-200 bg-white py-3.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+            >
+              Add items
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setCheckoutBackToCart(Boolean(onClose));
+                setShowCheckout(true);
+                if (onClose) onClose();
+              }}
+              className="flex flex-col items-center justify-center rounded-full py-2.5 text-white shadow-md transition hover:brightness-105"
+              style={{ background: "linear-gradient(135deg, #7854ff 0%, #a855f7 100%)" }}
+            >
+              <span className="text-[11px] font-semibold leading-none opacity-80">Checkout</span>
+              <span className="mt-0.5 text-sm font-bold leading-none">{formatLbp(orderTotal)}</span>
+            </button>
           </div>
-        </label>
-
-        {orderError ? (
-          <p className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-xs font-medium text-red-600">{orderError}</p>
         ) : null}
+      </div>
+    );
+  }
 
-        <MenuRestaurantRating
-          variant="cart"
-          restaurantId={restaurantId}
-          slug={restaurantSlug}
-          avgRating={avgRating}
-          ratingCount={ratingCount}
+  /* ─── Checkout sheet ─── */
+  function renderCheckoutSheet() {
+    const canOrder =
+      items.length > 0 &&
+      customerName.trim().length > 0 &&
+      address.trim().length > 0 &&
+      isOrderConfirmed &&
+      !orderingBlocked &&
+      (deliveryTime.mode === "scheduled" || isOpenNow);
+
+    return (
+      <div className="fixed inset-0 z-[60]">
+        <div
+          className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
+          onClick={() => {
+            setShowCheckout(false);
+            if (checkoutBackToCart) {
+              setShowMobileCart(true);
+              setCheckoutBackToCart(false);
+            }
+          }}
         />
+        <div className="absolute inset-x-0 bottom-0 z-10 flex max-h-[96dvh] flex-col overflow-hidden rounded-t-3xl bg-slate-100 shadow-2xl lg:inset-y-0 lg:left-auto lg:right-0 lg:w-[min(100vw,28rem)] lg:max-h-none lg:rounded-none lg:rounded-l-3xl">
+          {/* Header */}
+          <div className="sticky top-0 z-10 grid shrink-0 grid-cols-[2.5rem_1fr_2.5rem] items-center border-b border-slate-200/80 bg-white px-4 py-3.5">
+            <button
+              type="button"
+              onClick={() => {
+                setShowCheckout(false);
+                if (checkoutBackToCart) {
+                  setShowMobileCart(true);
+                  setCheckoutBackToCart(false);
+                }
+              }}
+              className="flex h-10 w-10 items-center justify-center rounded-full text-slate-900 transition hover:bg-slate-100"
+              aria-label="Back to cart"
+            >
+              <ArrowLeft className="h-5 w-5" strokeWidth={2.25} aria-hidden />
+            </button>
+            <h2 className="text-center text-base font-bold text-slate-900">Checkout</h2>
+            <div aria-hidden />
+          </div>
 
-        {/* Place Order button */}
-        <button
-          type="button"
-          onClick={() => void handleOrderClick()}
-          disabled={!canOrder || isPlacingOrder}
-          className="mt-3 flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-sm font-bold text-white shadow-md transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40"
-          style={{ background: "linear-gradient(135deg, #7854ff 0%, #a855f7 100%)" }}
-        >
-          {isPlacingOrder ? (
-            <>
-              <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} aria-hidden>
-                <circle cx="12" cy="12" r="10" strokeOpacity={0.25} />
-                <path d="M12 2a10 10 0 0 1 10 10" />
-              </svg>
-              Placing order…
-            </>
-          ) : (
-            <>
-              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                <path d="M5 12h14M12 5l7 7-7 7" />
-              </svg>
-              Place Order
-            </>
-          )}
-        </button>
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-4">
+            <CheckoutDeliverySections
+              customerName={customerName}
+              onCustomerNameChange={setCustomerName}
+              address={address}
+              onAddressChange={setAddress}
+              notes={notes}
+              onNotesChange={setNotes}
+              savedAddresses={savedAddresses}
+              isLoggedIn={isLoggedIn}
+              openingHours={parsedOpeningHours}
+              etaLabel={etaLabel}
+              deliveryTime={deliveryTime}
+              onDeliveryTimeChange={setDeliveryTime}
+            />
+
+            {/* Order summary */}
+            <section className="mt-3 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/[0.04]">
+              <p className="text-sm font-bold text-slate-900">Order summary</p>
+              <div className="mt-3 space-y-2">
+                {items.map((item) => (
+                  <div key={item.key} className="flex items-start justify-between gap-2">
+                    <p className="text-sm text-slate-600">
+                      <span className="font-semibold text-slate-800">
+                        {item.unit === "kg" ? formatQty("kg", item.qty) : `${item.qty}×`}
+                      </span>{" "}
+                      {item.name}
+                    </p>
+                    <p className="shrink-0 text-sm font-semibold text-slate-800">
+                      {formatLbp(item.qty * item.unitPrice)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-3 flex items-center justify-between border-t border-dashed border-slate-200 pt-3">
+                <p className="text-sm text-slate-600">Subtotal</p>
+                <p className="text-sm font-bold text-slate-900">{formatLbp(total)}</p>
+              </div>
+              <div className="mt-2 flex items-center justify-between">
+                <p className="text-sm text-slate-600">Delivery</p>
+                <p className="text-sm font-semibold text-slate-800">
+                  {deliveryCharge === 0 ? "Free" : formatLbp(deliveryCharge)}
+                </p>
+              </div>
+              <div className="mt-2 flex items-center justify-between">
+                <p className="text-sm font-bold text-slate-900">Total</p>
+                <div className="text-right">
+                  <p className="text-base font-bold text-slate-900">{formatLbp(orderTotal)}</p>
+                  <p className="text-xs text-slate-400">{formatUsd(orderTotal)}</p>
+                </div>
+              </div>
+            </section>
+
+            {/* No cutlery */}
+            <section className="mt-3 flex items-center gap-3 rounded-2xl bg-white px-4 py-3.5 shadow-sm ring-1 ring-black/[0.04]">
+              <UtensilsCrossed className="h-5 w-5 shrink-0 text-slate-800" strokeWidth={2} aria-hidden />
+              <span className="min-w-0 flex-1 text-sm font-semibold leading-snug text-slate-900">
+                Please do not send cutlery
+              </span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={noCutlery}
+                aria-label="Please do not send cutlery"
+                onClick={() => setNoCutlery((v) => !v)}
+                className={`inline-flex h-7 w-12 shrink-0 items-center rounded-full p-0.5 transition-colors ${noCutlery ? "bg-emerald-500" : "bg-slate-200"}`}
+              >
+                <span
+                  className={`block h-6 w-6 rounded-full bg-white shadow transition-transform duration-200 ease-out ${noCutlery ? "translate-x-5" : "translate-x-0"}`}
+                />
+              </button>
+            </section>
+
+            <label className="mt-3 flex cursor-pointer items-start gap-3 rounded-2xl bg-white p-3 text-sm shadow-sm ring-1 ring-black/[0.04]">
+              <input
+                type="checkbox"
+                checked={isOrderConfirmed}
+                onChange={(e) => {
+                  setIsOrderConfirmed(e.target.checked);
+                  setOrderError(null);
+                }}
+                className="mt-0.5 h-4 w-4 accent-emerald-600"
+              />
+              <div>
+                <p className="font-semibold text-slate-800">I confirm my order above.</p>
+                <p className="text-xs text-slate-500">
+                  Total to pay: <span className="font-semibold text-slate-700">{formatUsd(orderTotal)}</span>
+                </p>
+              </div>
+            </label>
+
+            {orderError ? (
+              <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-xs font-medium text-red-600">{orderError}</p>
+            ) : null}
+          </div>
+
+          {/* Sticky footer */}
+          <div className="shrink-0 border-t border-slate-200 bg-white px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <div className="flex items-center gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] text-slate-500">Total payment</p>
+                <p className="text-lg font-bold tabular-nums text-slate-900">{formatLbp(orderTotal)}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => void handleOrderClick()}
+                disabled={!canOrder || isPlacingOrder}
+                className="min-w-[9.5rem] shrink-0 rounded-2xl bg-emerald-500 px-6 py-3.5 text-sm font-bold text-white shadow-md transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {isPlacingOrder ? "Placing…" : "Place order"}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -518,6 +838,13 @@ export function MenuClient({
         <p className="mt-3 text-sm leading-relaxed text-slate-600">
           Your order has been received by <span className="font-semibold">{restaurantName}</span>.
           They will confirm it shortly.
+        </p>
+        <p className="mt-2 text-xs text-slate-500">
+          Once your order is delivered, you can rate the restaurant from{" "}
+          <a href="/account/orders" className="font-semibold text-violet-600 hover:underline">
+            My Orders
+          </a>
+          .
         </p>
 
         {placedOrder.whatsappUrl ? (
@@ -560,6 +887,26 @@ export function MenuClient({
       ) : null}
       {!placedOrder ? (
       <>
+      {!viewOnly && (orderingBlocked || !isOpenNow) ? (
+        <div
+          className={`mb-4 rounded-2xl px-4 py-3 text-sm ${
+            orderingBlocked
+              ? "border border-rose-200 bg-rose-50 text-rose-800"
+              : "border border-amber-200 bg-amber-50 text-amber-900"
+          }`}
+        >
+          {orderingBlocked ? (
+            <p className="font-semibold">Closed now — online ordering is unavailable.</p>
+          ) : (
+            <>
+              <p className="font-semibold">Closed now</p>
+              <p className="mt-0.5 text-xs opacity-90">
+                You can still browse the menu and schedule delivery at checkout during opening hours.
+              </p>
+            </>
+          )}
+        </div>
+      ) : null}
       <div
         className={`grid min-w-0 gap-4 ${
           viewOnly ? "" : "lg:grid-cols-[minmax(0,1fr)_360px]"
@@ -668,7 +1015,7 @@ export function MenuClient({
 
                     {/* Info */}
                     <div
-                      className={`flex min-h-[88px] min-w-0 flex-1 flex-col ${viewOnly ? "" : "pr-12"}`}
+                      className={`flex min-h-[88px] min-w-0 flex-1 flex-col ${canShop ? "pr-12" : ""}`}
                     >
                       <h3 className="text-[15px] font-bold leading-snug text-slate-900 sm:text-base">
                         {item.name}
@@ -694,7 +1041,7 @@ export function MenuClient({
                       </div>
                     </div>
 
-                    {!viewOnly ? (
+                    {canShop ? (
                       <button
                         disabled={!item.is_available}
                         onClick={() => openCustomization(item)}
@@ -711,18 +1058,9 @@ export function MenuClient({
             </div>
           ))}
 
-          {viewOnly ? (
-            <MenuRestaurantRating
-              variant="cart"
-              restaurantId={restaurantId}
-              slug={restaurantSlug}
-              avgRating={avgRating}
-              ratingCount={ratingCount}
-            />
-          ) : null}
         </section>
 
-        {!viewOnly ? (
+        {canShop ? (
           <aside
             className="hidden h-fit rounded-2xl border border-slate-200/80 bg-white p-5 shadow-md lg:block lg:sticky lg:top-6"
             style={{ boxShadow: "0 8px 30px rgba(120, 84, 255, 0.12)" }}
@@ -733,7 +1071,7 @@ export function MenuClient({
       </div>
 
       {/* ── Mobile cart — purple card (tap → cart sheet) ───── */}
-      {!viewOnly && items.length > 0 ? (
+      {canShop && items.length > 0 ? (
         <div className="fixed bottom-0 left-0 right-0 z-30 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-2 lg:hidden">
           <div className="container mx-auto min-w-0 max-w-full px-3 sm:px-6">
             <button
@@ -769,9 +1107,9 @@ export function MenuClient({
                 {/* Price */}
                 <div className="shrink-0 text-right">
                   <p className="text-[17px] font-bold tabular-nums leading-none tracking-tight text-white">
-                    {formatUsd(total)}
+                    {formatUsd(orderTotal)}
                   </p>
-                  <p className="mt-0.5 text-[10px] font-medium tabular-nums text-white/60">{formatLbp(total)}</p>
+                  <p className="mt-0.5 text-[10px] font-medium tabular-nums text-white/60">{formatLbp(orderTotal)}</p>
                 </div>
                 {/* Chevron */}
                 <svg className="h-4 w-4 shrink-0 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden>
@@ -784,7 +1122,7 @@ export function MenuClient({
       ) : null}
 
       {/* ── Mobile cart sheet ──────────────────────────────────────────── */}
-      {!viewOnly && showMobileCart ? (
+      {canShop && showMobileCart ? (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div
             className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
@@ -796,8 +1134,13 @@ export function MenuClient({
         </div>
       ) : null}
 
+      {/* ── Checkout sheet ─────────────────────────────────────────────── */}
+      {canShop && showCheckout && typeof document !== "undefined"
+        ? createPortal(renderCheckoutSheet(), document.body)
+        : null}
+
       {/* ── Customization modal ────────────────────────────────────────── */}
-      {!viewOnly && customizing ? (
+      {canShop && customizing ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/50 backdrop-blur-sm p-0 sm:items-center sm:p-4">
           <div className="w-full max-h-[95dvh] overflow-y-auto rounded-t-3xl bg-white px-5 pb-6 pt-5 shadow-2xl sm:max-h-[90vh] sm:max-w-xl sm:rounded-3xl sm:px-6 sm:pb-6 sm:pt-5">
             {/* Header */}

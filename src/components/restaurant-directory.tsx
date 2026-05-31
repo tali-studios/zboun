@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import {
+  Bike,
   ChevronDown,
   Cookie,
   Croissant,
@@ -32,6 +33,7 @@ import {
 import { useDeliveryLocation } from "@/components/delivery-location-provider";
 import { distanceKm, formatDistance } from "@/lib/geo";
 import { DeliveryLocationSheet } from "@/components/delivery-location-sheet";
+import { isRestaurantOpenNow, parseOpeningHours } from "@/lib/opening-hours";
 
 const PAGE = {
   ink: "#111827",
@@ -89,6 +91,10 @@ type RestaurantCard = {
   rating_count?: number;
   location: string | null;
   eta_label: string | null;
+  free_delivery?: boolean;
+  delivery_fee_usd?: number;
+  opening_hours?: unknown;
+  is_temporarily_closed?: boolean;
   latitude: number | null;
   longitude: number | null;
   branches?: RestaurantBranch[] | null;
@@ -481,6 +487,12 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
             {filtered.map((restaurant, index) => {
               const section = primarySection(restaurant.browse_sections ?? []);
               const sectionAccent = BROWSE_SECTION_ACCENTS[section];
+              const hours = parseOpeningHours(restaurant.opening_hours);
+              const isClosed =
+                restaurant.is_temporarily_closed ||
+                !isRestaurantOpenNow(hours, {
+                  isTemporarilyClosed: restaurant.is_temporarily_closed,
+                });
               const rating =
                 restaurant.rating != null && Number.isFinite(Number(restaurant.rating))
                   ? Math.round(Number(restaurant.rating) * 10) / 10
@@ -550,7 +562,7 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
 
                     {/* ── White info panel ── */}
                     <div className="px-3 pb-3 pt-2.5">
-                      {/* Logo + name + rating row */}
+                      {/* Name row */}
                       <div className="flex items-center gap-2">
                         {restaurant.logo_url ? (
                           <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-xl border border-slate-100 bg-white shadow-sm">
@@ -571,14 +583,6 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
                         <h3 className="min-w-0 flex-1 truncate text-sm font-bold leading-tight text-slate-900">
                           {restaurant.name}
                         </h3>
-                        {rating != null ? (
-                          <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-600 ring-1 ring-amber-200/60">
-                            <svg className="h-2.5 w-2.5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                            </svg>
-                            {rating.toFixed(1)}
-                          </span>
-                        ) : null}
                       </div>
 
                       {/* Description */}
@@ -586,14 +590,34 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
                         {restaurant.description?.trim() || "Browse the menu and order online."}
                       </p>
 
-                      {/* Meta row */}
+                      {isClosed ? (
+                        <span className="mt-2 inline-flex rounded-md bg-rose-50 px-2 py-1 text-[11px] font-semibold text-rose-600 ring-1 ring-rose-100">
+                          Closed now
+                        </span>
+                      ) : null}
+
+                      {/* Meta row: free delivery · eta · rating */}
                       <div className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                        {restaurant.free_delivery ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-[#E23744]">
+                            <Bike className="h-3.5 w-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
+                            Free delivery
+                          </span>
+                        ) : null}
                         {restaurant.eta_label?.trim() ? (
                           <span className="inline-flex items-center gap-0.5 text-[11px] text-slate-500">
                             <svg className="h-3 w-3 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                               <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
                             </svg>
                             {restaurant.eta_label.trim()}
+                          </span>
+                        ) : null}
+                        {rating != null ? (
+                          <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-slate-500">
+                            <svg className="h-3 w-3 shrink-0 text-emerald-500" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                            </svg>
+                            {rating.toFixed(1)}
                           </span>
                         ) : null}
                         {(restaurant.branches ?? []).length > 1 ? (

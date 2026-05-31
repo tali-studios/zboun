@@ -24,8 +24,12 @@ type Props = {
   slug: string;
   avgRating: number | null;
   ratingCount: number;
-  /** `cart` = light panel to match checkout / confirm card */
-  variant?: "hero" | "cart";
+  /** When set (e.g. logged-in customer), used instead of anonymous localStorage id */
+  raterId?: string;
+  /** `order` = post-delivery rating on account order page */
+  variant?: "hero" | "cart" | "order";
+  title?: string;
+  hint?: string;
 };
 
 export function MenuRestaurantRating({
@@ -33,7 +37,10 @@ export function MenuRestaurantRating({
   slug,
   avgRating,
   ratingCount,
+  raterId: raterIdProp,
   variant = "hero",
+  title = "Rate this restaurant",
+  hint = "Tap a star to save (you can change it anytime).",
 }: Props) {
   const router = useRouter();
   const [mine, setMine] = useState<number | null>(null);
@@ -41,13 +48,13 @@ export function MenuRestaurantRating({
   const [hover, setHover] = useState<number | null>(null);
 
   useEffect(() => {
-    const rid = ensureRaterId();
+    const rid = raterIdProp ?? ensureRaterId();
     if (!rid) return;
     void getMyRestaurantRatingAction(restaurantId, rid).then(setMine);
-  }, [restaurantId]);
+  }, [restaurantId, raterIdProp]);
 
   async function submit(value: number) {
-    const rid = ensureRaterId();
+    const rid = raterIdProp ?? ensureRaterId();
     if (!rid) return;
     setPending(true);
     const fd = new FormData();
@@ -67,10 +74,12 @@ export function MenuRestaurantRating({
 
   const highlight = hover ?? mine ?? 0;
 
-  const isCart = variant === "cart";
+  const isLight = variant === "cart" || variant === "order";
 
-  const shell = isCart
-    ? "mt-3 rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm ring-1 ring-slate-100/80"
+  const shell = isLight
+    ? variant === "order"
+      ? "rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm"
+      : "mt-3 rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm ring-1 ring-slate-100/80"
     : "mt-3 rounded-2xl bg-black/35 px-4 py-4 backdrop-blur-md sm:mt-4";
 
   const starBtnBase =
@@ -82,29 +91,29 @@ export function MenuRestaurantRating({
         <header className="min-w-0">
           <p
             className={`text-[11px] font-bold uppercase tracking-[0.12em] ${
-              isCart ? "text-slate-600" : "text-white/90"
+              isLight ? "text-slate-600" : "text-white/90"
             }`}
           >
-            Rate this restaurant
+            {title}
           </p>
-          <p className={`mt-1 text-xs leading-snug ${isCart ? "text-slate-500" : "text-white/70"}`}>
-            Tap a star to save (you can change it anytime).
+          <p className={`mt-1 text-xs leading-snug ${isLight ? "text-slate-500" : "text-white/70"}`}>
+            {hint}
           </p>
         </header>
 
         <div
-          className={`min-h-[1.5rem] text-sm leading-snug ${isCart ? "text-slate-600" : "text-white/85"}`}
+          className={`min-h-[1.5rem] text-sm leading-snug ${isLight ? "text-slate-600" : "text-white/85"}`}
         >
           {avgRating != null && ratingCount > 0 ? (
             <span
               className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${
-                isCart
+                isLight
                   ? "border border-amber-200/90 bg-amber-50 text-amber-950"
                   : "bg-black/30 text-white"
               }`}
             >
               <svg
-                className={`h-4 w-4 shrink-0 ${isCart ? "text-amber-500" : "text-amber-300"}`}
+                className={`h-4 w-4 shrink-0 ${isLight ? "text-amber-500" : "text-amber-300"}`}
                 viewBox="0 0 24 24"
                 fill="currentColor"
                 aria-hidden
@@ -112,12 +121,12 @@ export function MenuRestaurantRating({
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
               </svg>
               {avgRating.toFixed(1)}
-              <span className={`font-normal ${isCart ? "text-amber-900/75" : "text-white/75"}`}>
+              <span className={`font-normal ${isLight ? "text-amber-900/75" : "text-white/75"}`}>
                 ({ratingCount})
               </span>
             </span>
           ) : (
-            <span className={isCart ? "font-medium text-slate-600" : "font-medium text-white/85"}>
+            <span className={isLight ? "font-medium text-slate-600" : "font-medium text-white/85"}>
               No ratings yet — tap a star below.
             </span>
           )}
@@ -125,7 +134,7 @@ export function MenuRestaurantRating({
 
         <div
           className={`flex w-full max-w-full flex-wrap justify-center gap-1 border-t pt-3 sm:justify-start ${
-            isCart ? "border-slate-100" : "border-white/10"
+            isLight ? "border-slate-100" : "border-white/10"
           }`}
         >
           {[1, 2, 3, 4, 5].map((n) => {
@@ -139,7 +148,7 @@ export function MenuRestaurantRating({
                 onMouseLeave={() => setHover(null)}
                 onClick={() => submit(n)}
                 className={`${starBtnBase} ${
-                  isCart
+                  isLight
                     ? filled
                       ? "text-amber-500 hover:text-amber-400"
                       : "text-slate-400 hover:text-amber-400/90"

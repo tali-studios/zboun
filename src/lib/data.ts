@@ -19,6 +19,10 @@ export type RestaurantForMenuPage = {
   browse_sections?: string[] | null;
   location: string | null;
   eta_label: string | null;
+  opening_hours: unknown;
+  is_temporarily_closed: boolean;
+  free_delivery: boolean;
+  delivery_fee_usd: number;
   user_avg_rating: number | null;
   user_rating_count: number;
 };
@@ -73,12 +77,16 @@ type RestaurantRowCore = {
   browse_sections?: string[] | null;
   location: string | null;
   eta_label: string | null;
+  opening_hours?: unknown;
+  is_temporarily_closed?: boolean;
+  free_delivery?: boolean;
+  delivery_fee_usd?: number;
 };
 
 export async function getRestaurantBySlug(slug: string): Promise<RestaurantForMenuPage | null> {
   const supabase = await createServerSupabaseClient();
   const fullSelect =
-    "id, name, slug, phone, logo_url, banner_url, description, lbp_rate, is_active, browse_sections, location, eta_label";
+    "id, name, slug, phone, logo_url, banner_url, description, lbp_rate, is_active, browse_sections, location, eta_label, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd";
   const { data, error } = await supabase.from("restaurants").select(fullSelect).eq("slug", slug).single();
 
   let row: RestaurantRowCore | null = null;
@@ -123,6 +131,10 @@ export async function getRestaurantBySlug(slug: string): Promise<RestaurantForMe
     browse_sections: row.browse_sections,
     location: row.location,
     eta_label: row.eta_label,
+    opening_hours: row.opening_hours ?? null,
+    is_temporarily_closed: row.is_temporarily_closed ?? false,
+    free_delivery: row.free_delivery ?? false,
+    delivery_fee_usd: Number(row.delivery_fee_usd ?? 0),
     user_avg_rating: agg?.avgRating ?? null,
     user_rating_count: agg?.ratingCount ?? 0,
   };
@@ -164,6 +176,10 @@ type HomeRestaurantCard = {
   rating_count: number;
   location: string | null;
   eta_label: string | null;
+  opening_hours: unknown;
+  is_temporarily_closed: boolean;
+  free_delivery: boolean;
+  delivery_fee_usd: number;
   latitude: number | null;
   longitude: number | null;
   /** All physical branches — used for multi-location distance filtering */
@@ -185,6 +201,10 @@ function mapLegacyHomeRow(r: {
     rating_count: 0,
     location: null,
     eta_label: null,
+    opening_hours: null,
+    is_temporarily_closed: false,
+    free_delivery: false,
+    delivery_fee_usd: 0,
     latitude: null,
     longitude: null,
     branches: [],
@@ -198,7 +218,7 @@ export const getHomeRestaurants = unstable_cache(
       auth: { persistSession: false, autoRefreshToken: false },
     });
     const fullSelect =
-      "id, name, slug, logo_url, banner_url, description, browse_sections, location, eta_label, latitude, longitude, restaurant_locations(id, name, latitude, longitude, address, is_main)";
+      "id, name, slug, logo_url, banner_url, description, browse_sections, location, eta_label, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, latitude, longitude, restaurant_locations(id, name, latitude, longitude, address, is_main)";
 
     const full = await supabase
       .from("restaurants")
@@ -218,6 +238,10 @@ export const getHomeRestaurants = unstable_cache(
           ...r,
           rating: s?.avgRating ?? null,
           rating_count: s?.ratingCount ?? 0,
+          opening_hours: (r as { opening_hours?: unknown }).opening_hours ?? null,
+          is_temporarily_closed: (r as { is_temporarily_closed?: boolean }).is_temporarily_closed ?? false,
+          free_delivery: (r as { free_delivery?: boolean }).free_delivery ?? false,
+          delivery_fee_usd: Number((r as { delivery_fee_usd?: number }).delivery_fee_usd ?? 0),
           branches: (r.restaurant_locations ?? []) as RestaurantLocationBranch[],
         };
       });
@@ -236,7 +260,7 @@ export const getHomeRestaurants = unstable_cache(
     }
     return legacy.data.map(mapLegacyHomeRow);
   },
-  ["home-restaurants", "visitor-ratings-v2", "branches-v1"],
+  ["home-restaurants", "visitor-ratings-v2", "branches-v1", "hours-v1", "delivery-fee-v1"],
   { revalidate: 60 },
 );
 

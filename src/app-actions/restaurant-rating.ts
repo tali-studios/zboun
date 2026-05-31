@@ -50,6 +50,7 @@ export async function submitRestaurantRatingAction(formData: FormData) {
   }
 
   revalidatePath("/");
+  revalidatePath("/account/orders");
   if (slug) {
     revalidatePath(`/${slug}`);
   }

@@ -62,12 +62,6 @@ export default async function RestaurantInStoreMenuPage({ params }: Props) {
     restaurant.description?.trim() ||
     "Browse our menu — items and prices for reference while you dine in.";
 
-  const avgRating =
-    restaurant.user_avg_rating != null && Number.isFinite(Number(restaurant.user_avg_rating))
-      ? Math.round(Number(restaurant.user_avg_rating) * 10) / 10
-      : null;
-  const ratingCount = restaurant.user_rating_count ?? 0;
-
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#F9FAFB]">
       <RestaurantMenuHero
@@ -84,8 +78,6 @@ export default async function RestaurantInStoreMenuPage({ params }: Props) {
           restaurantPhone={restaurant.phone}
           restaurantId={restaurant.id}
           restaurantSlug={restaurant.slug}
-          avgRating={avgRating}
-          ratingCount={ratingCount}
           lbpRate={Number(restaurant.lbp_rate ?? 89500)}
           categories={categories}
         />

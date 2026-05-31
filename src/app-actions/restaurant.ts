@@ -386,6 +386,13 @@ export async function updateRestaurantSettingsAction(formData: FormData) {
   const lngRaw = String(formData.get("longitude") ?? "").trim();
   const latitude = latRaw && Number.isFinite(Number(latRaw)) ? Number(latRaw) : null;
   const longitude = lngRaw && Number.isFinite(Number(lngRaw)) ? Number(lngRaw) : null;
+  const freeDelivery = formData.get("free_delivery") === "true" || formData.get("free_delivery") === "on";
+  const deliveryFeeRaw = String(formData.get("delivery_fee_usd") ?? "0").trim();
+  let deliveryFeeUsd = Number(deliveryFeeRaw);
+  if (!Number.isFinite(deliveryFeeUsd) || deliveryFeeUsd < 0) {
+    redirect("/dashboard/business?q=invalid_delivery_fee");
+  }
+  if (freeDelivery) deliveryFeeUsd = 0;
 
   const supabase = await createServerSupabaseClient();
   await supabase
@@ -402,11 +409,77 @@ export async function updateRestaurantSettingsAction(formData: FormData) {
       eta_label,
       latitude,
       longitude,
+      free_delivery: freeDelivery,
+      delivery_fee_usd: Math.round(deliveryFeeUsd * 100) / 100,
     })
     .eq("id", user.restaurant_id);
   revalidatePath("/dashboard/business");
   revalidatePath("/");
   redirect("/dashboard/business?toast=settings_saved");
+}
+
+function parseOpeningHoursFromForm(raw: string): Array<{ day: number; open: string; close: string; closed: boolean }> {
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((row) => {
+        if (!row || typeof row !== "object") return null;
+        const day = Number((row as { day?: unknown }).day);
+        const open = String((row as { open?: unknown }).open ?? "").trim();
+        const close = String((row as { close?: unknown }).close ?? "").trim();
+        const closed = (row as { closed?: unknown }).closed === true;
+        if (!Number.isInteger(day) || day < 0 || day > 6 || !open || !close) return null;
+        return { day, open, close, closed };
+      })
+      .filter((row): row is { day: number; open: string; close: string; closed: boolean } => Boolean(row));
+  } catch {
+    return [];
+  }
+}
+
+export async function updateRestaurantHoursAction(formData: FormData) {
+  const user = await requireRestaurantAdmin();
+  const hours = parseOpeningHoursFromForm(String(formData.get("opening_hours") ?? ""));
+  if (hours.length === 0) {
+    redirect("/dashboard/business?toast=hours_invalid");
+  }
+
+  const supabase = await createServerSupabaseClient();
+  const { data: restaurant } = await supabase
+    .from("restaurants")
+    .select("slug")
+    .eq("id", user.restaurant_id)
+    .maybeSingle();
+
+  await supabase
+    .from("restaurants")
+    .update({ opening_hours: hours })
+    .eq("id", user.restaurant_id);
+
+  revalidatePath("/dashboard/business");
+  revalidatePath("/");
+  if (restaurant?.slug) revalidatePath(`/${restaurant.slug}`);
+  redirect("/dashboard/business?toast=hours_saved");
+}
+
+export async function toggleTemporaryCloseAction(closed: boolean) {
+  const user = await requireRestaurantAdmin();
+  const supabase = await createServerSupabaseClient();
+  const { data: restaurant } = await supabase
+    .from("restaurants")
+    .select("slug")
+    .eq("id", user.restaurant_id)
+    .maybeSingle();
+
+  await supabase
+    .from("restaurants")
+    .update({ is_temporarily_closed: closed })
+    .eq("id", user.restaurant_id);
+
+  revalidatePath("/dashboard/business");
+  revalidatePath("/");
+  if (restaurant?.slug) revalidatePath(`/${restaurant.slug}`);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
