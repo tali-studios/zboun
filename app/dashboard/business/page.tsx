@@ -20,6 +20,7 @@ import { IngredientListField } from "@/components/ingredient-list-field";
 import { BROWSE_SECTION_OPTIONS, normalizeBrowseSections } from "@/lib/browse-sections";
 import { getBusinessTypeLabel, parseBusinessType, supportsHomeBrowseCategory } from "@/lib/business-types";
 import { RestaurantHoursPanel } from "@/components/restaurant-hours-panel";
+import { RestaurantDashboardToast } from "@/components/restaurant-dashboard-toast";
 import { parseOpeningHours } from "@/lib/opening-hours";
 import { BusinessMenuItemsFilter } from "@/components/business-menu-items-filter";
 import { RestaurantMapPin } from "@/components/restaurant-map-pin";

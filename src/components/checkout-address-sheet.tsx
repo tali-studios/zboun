@@ -152,14 +152,14 @@ export function CheckoutAddressSheet({
             <div className="shrink-0 px-5 pb-3">
               <div className="relative">
                 <Search
-                  className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                  className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
                   aria-hidden
                 />
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search for an address"
-                  className="ui-input w-full rounded-xl border-slate-200 py-3 pl-10 pr-4 text-sm shadow-sm"
+                  className="ui-input ui-input-search w-full rounded-xl border-slate-200 py-3 pr-4 text-sm shadow-sm"
                 />
               </div>
             </div>

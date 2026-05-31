@@ -145,9 +145,9 @@ input[type="time"].ui-input {
   box-sizing: border-box;
 }
 
-/* Search fields with a leading icon */
-.ui-input-search {
-  padding-left: 2.5rem;
+/* Search fields with a leading icon (must override .ui-input shorthand padding) */
+.ui-input.ui-input-search {
+  padding-left: 2.75rem;
 }
 
 /* ─── Buttons ───────────────────────────────────────────────────────────────── */

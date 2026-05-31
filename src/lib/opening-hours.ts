@@ -198,7 +198,7 @@ export function formatDeliveryTimeLabel(
 export function isScheduledTimeValid(
   hours: DayHours[],
   iso: string,
-  options?: { now?: Date; maxDays?: number },
+  options?: { now?: Date; maxDays?: number; intervalMinutes?: number },
 ): boolean {
   const target = new Date(iso);
   if (Number.isNaN(target.getTime())) return false;
