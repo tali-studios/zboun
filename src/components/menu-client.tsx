@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import { ArrowLeft, Minus, Plus, Trash2, UtensilsCrossed } from "lucide-react";
@@ -755,26 +755,6 @@ export function MenuClient({
                   <p className="text-xs text-slate-400">{formatUsd(orderTotal)}</p>
                 </div>
               </div>
-            </section>
-
-            {/* No cutlery */}
-            <section className="mt-3 flex items-center gap-3 rounded-2xl bg-white px-4 py-3.5 shadow-sm ring-1 ring-black/[0.04]">
-              <UtensilsCrossed className="h-5 w-5 shrink-0 text-slate-800" strokeWidth={2} aria-hidden />
-              <span className="min-w-0 flex-1 text-sm font-semibold leading-snug text-slate-900">
-                Please do not send cutlery
-              </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={noCutlery}
-                aria-label="Please do not send cutlery"
-                onClick={() => setNoCutlery((v) => !v)}
-                className={`inline-flex h-7 w-12 shrink-0 items-center rounded-full p-0.5 transition-colors ${noCutlery ? "bg-emerald-500" : "bg-slate-200"}`}
-              >
-                <span
-                  className={`block h-6 w-6 rounded-full bg-white shadow transition-transform duration-200 ease-out ${noCutlery ? "translate-x-5" : "translate-x-0"}`}
-                />
-              </button>
             </section>
 
             <label className="mt-3 flex cursor-pointer items-start gap-3 rounded-2xl bg-white p-3 text-sm shadow-sm ring-1 ring-black/[0.04]">
