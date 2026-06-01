@@ -392,7 +392,6 @@ export async function updateRestaurantSettingsAction(formData: FormData) {
   if (!Number.isFinite(deliveryFeeUsd) || deliveryFeeUsd < 0) {
     redirect("/dashboard/business?q=invalid_delivery_fee");
   }
-  if (freeDelivery) deliveryFeeUsd = 0;
 
   const supabase = await createServerSupabaseClient();
   await supabase
