@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import {
   BellOff,
   Camera,
@@ -10,6 +9,7 @@ import {
   DoorOpen,
   Home,
   Info,
+  Mic,
   Pencil,
   Phone,
   UserRound,
@@ -50,6 +50,12 @@ type Props = {
 
 const CHECKOUT_CHANGE =
   "shrink-0 rounded-lg border border-emerald-500 px-4 py-1.5 text-xs font-semibold text-emerald-600 transition hover:bg-emerald-50";
+
+const ADDRESS_ACTIONS = [
+  { label: "Take address photo", icon: Camera },
+  { label: "Add address by voice", icon: Mic },
+  { label: "Add more details", icon: Pencil },
+] as const;
 
 function capitalise(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
@@ -157,7 +163,17 @@ export function CheckoutDeliverySections({
   const [saveInstructionsDefault, setSaveInstructionsDefault] = useState(false);
   const [showDeliveryTimeSheet, setShowDeliveryTimeSheet] = useState(false);
   const [showAddressSheet, setShowAddressSheet] = useState(false);
+  const [showExtraDetails, setShowExtraDetails] = useState(false);
+  const [addressActionIndex, setAddressActionIndex] = useState(0);
   const notesRef = useRef<HTMLTextAreaElement>(null);
+  const extraDetailsRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setAddressActionIndex((i) => (i + 1) % ADDRESS_ACTIONS.length);
+    }, 3000);
+    return () => window.clearInterval(id);
+  }, []);
 
   function buildFullAddress(base: string, extra: string) {
     const b = base.trim();
@@ -217,7 +233,6 @@ export function CheckoutDeliverySections({
     location?.label ??
     "Delivery address";
 
-  const addressLine = address.trim() || baseAddress.trim() || "Set your delivery address";
   const mapUrl =
     location?.lat != null && location?.lng != null
       ? staticMapUrl(location.lat, location.lng)
@@ -314,13 +329,13 @@ export function CheckoutDeliverySections({
         {/* Delivery address */}
         <CheckoutCard title="Delivery Address" onChange={() => setShowAddressSheet(true)}>
           <div className="flex gap-3">
-            <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-slate-100 ring-1 ring-slate-200">
+            <div className="relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-xl bg-slate-100 ring-1 ring-slate-200">
               {mapUrl ? (
                 <Image
                   src={mapUrl}
                   alt=""
-                  width={80}
-                  height={80}
+                  width={72}
+                  height={72}
                   className="h-full w-full object-cover"
                   unoptimized
                 />
@@ -330,50 +345,59 @@ export function CheckoutDeliverySections({
                 </div>
               )}
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-bold text-slate-900">{addressTitle}</p>
-              <p className="mt-0.5 text-sm leading-snug text-slate-500">{addressLine}</p>
-              {!isLoggedIn ? (
-                <p className="mt-2 text-[11px] text-slate-500">
-                  <Link href="/login" className="font-semibold text-emerald-600 hover:underline">
-                    Sign in
-                  </Link>{" "}
-                  to use saved addresses.
-                </p>
-              ) : null}
+            <div className="flex min-w-0 flex-1 flex-col justify-between gap-2">
+              <p className="text-sm font-semibold text-slate-900">{addressTitle}</p>
+              {(() => {
+                const action = ADDRESS_ACTIONS[addressActionIndex];
+                const ActionIcon = action.icon;
+                return (
+                  <button
+                    type="button"
+                    key={action.label}
+                    className="inline-flex w-full items-center gap-2 rounded-full bg-cyan-50 px-3 py-2 text-left text-xs font-medium text-slate-900 transition hover:bg-cyan-100"
+                    onClick={() => {
+                      if (action.label === "Add more details") {
+                        setShowExtraDetails(true);
+                        requestAnimationFrame(() => extraDetailsRef.current?.focus());
+                        return;
+                      }
+                      setShowAddressSheet(true);
+                    }}
+                  >
+                    <ActionIcon className="h-3.5 w-3.5 shrink-0 text-slate-700" strokeWidth={2} aria-hidden />
+                    <span className="min-w-0 flex-1 truncate">{action.label}</span>
+                    <ChevronRight className="h-3.5 w-3.5 shrink-0 text-slate-500" aria-hidden />
+                  </button>
+                );
+              })()}
             </div>
           </div>
 
-          <input
-            value={customerName}
-            onChange={(e) => onCustomerNameChange(e.target.value)}
-            placeholder="Your name"
-            className="ui-input mt-3 text-sm"
-            autoComplete="name"
-          />
+          {showExtraDetails || extraDetails.trim() ? (
+            <textarea
+              ref={extraDetailsRef}
+              value={extraDetails}
+              onChange={(e) => {
+                setSelectedAddressId(null);
+                const nextExtra = e.target.value;
+                setExtraDetails(nextExtra);
+                onAddressChange(buildFullAddress(baseAddress, nextExtra));
+              }}
+              placeholder="Apartment, floor, building…"
+              rows={2}
+              className="ui-textarea mt-3 text-sm"
+            />
+          ) : null}
 
-          <textarea
-            value={extraDetails}
-            onChange={(e) => {
-              setSelectedAddressId(null);
-              const nextExtra = e.target.value;
-              setExtraDetails(nextExtra);
-              onAddressChange(buildFullAddress(baseAddress, nextExtra));
-            }}
-            placeholder="Apartment, floor, building… (optional)"
-            rows={2}
-            className="ui-textarea mt-2 text-sm"
-          />
-
-          <button
-            type="button"
-            className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100"
-            onClick={() => setShowAddressSheet(true)}
-          >
-            <Camera className="h-3.5 w-3.5" aria-hidden />
-            Take address photo
-            <ChevronRight className="h-3.5 w-3.5 opacity-60" aria-hidden />
-          </button>
+          {!customerName.trim() ? (
+            <input
+              value={customerName}
+              onChange={(e) => onCustomerNameChange(e.target.value)}
+              placeholder="Your name (required for delivery)"
+              className="ui-input mt-3 text-sm"
+              autoComplete="name"
+            />
+          ) : null}
         </CheckoutCard>
 
         {/* Delivery instructions */}

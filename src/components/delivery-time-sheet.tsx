@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { CalendarClock, Clock } from "lucide-react";
+import { CalendarClock, Clock, X } from "lucide-react";
 import {
   formatDeliveryTimeLabel,
   getScheduleDays,
@@ -180,13 +180,22 @@ export function DeliveryTimeSheet({
   const sheet = (
     <div className="fixed inset-0 z-[70] flex items-end justify-center sm:items-center">
       <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 flex max-h-[min(90dvh,640px)] w-full max-w-md flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:rounded-3xl">
-        <div className="flex justify-center pt-3 sm:hidden">
-          <div className="h-1 w-10 rounded-full bg-slate-200" aria-hidden />
-        </div>
-
-        <div className="px-5 pb-2 pt-4">
+      <div
+        className="relative z-10 flex max-h-[min(90dvh,640px)] w-full max-w-md flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:rounded-3xl"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Delivery time"
+      >
+        <div className="flex items-center justify-between gap-3 px-5 pb-2 pt-5">
           <h3 className="text-lg font-bold text-slate-900">Delivery time</h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition hover:bg-slate-200"
+            aria-label="Close"
+          >
+            <X className="h-4 w-4" strokeWidth={2} />
+          </button>
         </div>
 
         <div className="space-y-1 px-3 pb-3">
