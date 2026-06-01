@@ -24,6 +24,9 @@ export type SavedAddressOption = {
   apartment: string | null;
   driver_notes: string | null;
   phone: string | null;
+  country_code?: string | null;
+  voice_directions_url?: string | null;
+  address_photo_urls?: string[] | null;
   is_default: boolean;
 };
 

@@ -40,6 +40,7 @@ type Props = {
   selectedAddressId?: string | null;
   onSelectAddress: (addr: SavedAddressOption) => void;
   onSelectMapLocation: (result: { lat: number; lng: number; address: string }) => void;
+  onEditAddress: (addr: SavedAddressOption) => void;
 };
 
 const LABEL_ICONS: Record<string, typeof Home> = {
@@ -68,6 +69,7 @@ export function CheckoutAddressSheet({
   selectedAddressId = null,
   onSelectAddress,
   onSelectMapLocation,
+  onEditAddress,
 }: Props) {
   const { location } = useDeliveryLocation();
   const [search, setSearch] = useState("");
@@ -198,35 +200,42 @@ export function CheckoutAddressSheet({
                               : "border-slate-100"
                           }`}
                         >
-                          <button
-                            type="button"
-                            onClick={() => {
-                              onSelectAddress(addr);
-                              onClose();
-                            }}
-                            className="flex w-full items-center gap-3 px-3 py-3.5 text-left"
-                          >
-                            <span
-                              className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
-                                selected ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-500"
-                              }`}
+                          <div className="flex items-center gap-1 pr-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onSelectAddress(addr);
+                                onClose();
+                              }}
+                              className="flex min-w-0 flex-1 items-center gap-3 px-3 py-3.5 text-left"
                             >
-                              <Icon className="h-4 w-4" strokeWidth={2} aria-hidden />
-                              {selected ? (
-                                <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500" />
-                              ) : null}
-                            </span>
-                            <div className="min-w-0 flex-1 overflow-hidden">
-                              <p className="truncate text-sm font-bold text-slate-900">{displayName(addr)}</p>
-                              <p className="mt-0.5 truncate text-xs text-slate-500">{addressLine(addr)}</p>
-                            </div>
-                            <span
-                              className="flex h-8 w-8 shrink-0 items-center justify-center text-slate-400"
-                              aria-hidden
+                              <span
+                                className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+                                  selected ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-500"
+                                }`}
+                              >
+                                <Icon className="h-4 w-4" strokeWidth={2} aria-hidden />
+                                {selected ? (
+                                  <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500" />
+                                ) : null}
+                              </span>
+                              <div className="min-w-0 flex-1 overflow-hidden">
+                                <p className="truncate text-sm font-bold text-slate-900">{displayName(addr)}</p>
+                                <p className="mt-0.5 truncate text-xs text-slate-500">{addressLine(addr)}</p>
+                              </div>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onEditAddress(addr);
+                                onClose();
+                              }}
+                              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+                              aria-label={`Edit ${displayName(addr)}`}
                             >
                               <MoreHorizontal className="h-4 w-4" />
-                            </span>
-                          </button>
+                            </button>
+                          </div>
                         </div>
                       );
                     })}

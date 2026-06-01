@@ -316,12 +316,186 @@ export async function getCustomerAddresses() {
 
   const { data } = await supabase
     .from("customer_addresses")
-    .select("id, label, nickname, latitude, longitude, formatted_address, street, building, apartment, phone, driver_notes, is_default, created_at")
+    .select(
+      "id, label, nickname, latitude, longitude, formatted_address, street, building, apartment, phone, country_code, driver_notes, voice_directions_url, address_photo_urls, is_default, created_at",
+    )
     .eq("customer_id", user.id)
     .order("is_default", { ascending: false })
     .order("created_at", { ascending: false });
 
   return data ?? [];
+}
+
+export type CheckoutAddressInput = {
+  id?: string | null;
+  label: string;
+  nickname: string;
+  latitude: number;
+  longitude: number;
+  formatted_address?: string | null;
+  street?: string | null;
+  building?: string | null;
+  apartment?: string | null;
+  phone?: string | null;
+  country_code?: string | null;
+  driver_notes?: string | null;
+  voice_directions_url?: string | null;
+  address_photo_urls?: string[];
+  is_default?: boolean;
+};
+
+export type CheckoutAddressResult =
+  | {
+      ok: true;
+      address: {
+        id: string;
+        label: string;
+        nickname: string | null;
+        latitude: number;
+        longitude: number;
+        formatted_address: string | null;
+        street: string | null;
+        building: string | null;
+        apartment: string | null;
+        phone: string | null;
+        country_code: string | null;
+        driver_notes: string | null;
+        voice_directions_url: string | null;
+        address_photo_urls: string[];
+        is_default: boolean;
+      };
+    }
+  | { ok: false; error: string };
+
+async function ensureAddressMediaBucket(admin: ReturnType<typeof getAdminClient>) {
+  if (!admin) throw new Error("Storage unavailable");
+  const bucket = "customer-address-media";
+  const { data: buckets } = await admin.storage.listBuckets();
+  if (!(buckets ?? []).some((b) => b.name === bucket)) {
+    await admin.storage.createBucket(bucket, { public: true, fileSizeLimit: 10 * 1024 * 1024 });
+  }
+  return bucket;
+}
+
+export async function uploadCustomerAddressMediaAction(
+  formData: FormData,
+): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  const supabase = await createServerSupabaseClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "not_logged_in" };
+
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) return { ok: false, error: "no_file" };
+  if (file.size > 10 * 1024 * 1024) return { ok: false, error: "file_too_large" };
+
+  const admin = getAdminClient();
+  if (!admin) return { ok: false, error: "storage_unavailable" };
+
+  try {
+    const bucket = await ensureAddressMediaBucket(admin);
+    const kind = String(formData.get("kind") ?? "file");
+    const ext =
+      file.name.includes(".") ? file.name.split(".").pop() : kind === "voice" ? "webm" : "jpg";
+    const filePath = `${user.id}/${Date.now()}-${crypto.randomUUID()}.${ext}`;
+    const { error } = await admin.storage.from(bucket).upload(filePath, file, {
+      contentType: file.type || (kind === "voice" ? "audio/webm" : "image/jpeg"),
+      upsert: false,
+    });
+    if (error) return { ok: false, error: error.message };
+    const { data } = admin.storage.from(bucket).getPublicUrl(filePath);
+    return { ok: true, url: data.publicUrl };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "upload_failed" };
+  }
+}
+
+export async function saveCheckoutAddressAction(
+  input: CheckoutAddressInput,
+): Promise<CheckoutAddressResult> {
+  const supabase = await createServerSupabaseClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "not_logged_in" };
+
+  const lat = Number(input.latitude);
+  const lng = Number(input.longitude);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return { ok: false, error: "invalid_location" };
+
+  const label = String(input.label ?? "other").trim() || "other";
+  const isDefault = Boolean(input.is_default);
+  const row = {
+    label,
+    nickname: String(input.nickname ?? "").trim() || null,
+    latitude: lat,
+    longitude: lng,
+    formatted_address: String(input.formatted_address ?? "").trim() || null,
+    street: String(input.street ?? "").trim() || null,
+    building: String(input.building ?? "").trim() || null,
+    apartment: String(input.apartment ?? "").trim() || null,
+    phone: String(input.phone ?? "").trim() || null,
+    country_code: String(input.country_code ?? "+961").trim() || "+961",
+    driver_notes: String(input.driver_notes ?? "").trim() || null,
+    voice_directions_url: String(input.voice_directions_url ?? "").trim() || null,
+    address_photo_urls: Array.isArray(input.address_photo_urls) ? input.address_photo_urls : [],
+    is_default: isDefault,
+  };
+
+  if (isDefault) {
+    await supabase.from("customer_addresses").update({ is_default: false }).eq("customer_id", user.id);
+  }
+
+  const id = String(input.id ?? "").trim();
+  if (id) {
+    const { data, error } = await supabase
+      .from("customer_addresses")
+      .update(row)
+      .eq("id", id)
+      .eq("customer_id", user.id)
+      .select(
+        "id, label, nickname, latitude, longitude, formatted_address, street, building, apartment, phone, country_code, driver_notes, voice_directions_url, address_photo_urls, is_default",
+      )
+      .single();
+    if (error || !data) return { ok: false, error: error?.message ?? "update_failed" };
+    revalidatePath("/");
+    revalidatePath("/account");
+    return { ok: true, address: { ...data, address_photo_urls: data.address_photo_urls ?? [] } };
+  }
+
+  const { data, error } = await supabase
+    .from("customer_addresses")
+    .insert({ ...row, customer_id: user.id })
+    .select(
+      "id, label, nickname, latitude, longitude, formatted_address, street, building, apartment, phone, country_code, driver_notes, voice_directions_url, address_photo_urls, is_default",
+    )
+    .single();
+  if (error || !data) return { ok: false, error: error?.message ?? "save_failed" };
+  revalidatePath("/");
+  revalidatePath("/account");
+  return { ok: true, address: { ...data, address_photo_urls: data.address_photo_urls ?? [] } };
+}
+
+export async function deleteCheckoutAddressAction(
+  id: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const supabase = await createServerSupabaseClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "not_logged_in" };
+  const trimmed = id.trim();
+  if (!trimmed) return { ok: false, error: "missing_id" };
+  const { error } = await supabase
+    .from("customer_addresses")
+    .delete()
+    .eq("id", trimmed)
+    .eq("customer_id", user.id);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/");
+  revalidatePath("/account");
+  return { ok: true };
 }
 
 export type QuickSaveAddressInput = {

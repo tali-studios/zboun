@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import {
   BellOff,
@@ -16,6 +16,10 @@ import {
 } from "lucide-react";
 import { useDeliveryLocation } from "@/components/delivery-location-provider";
 import { CheckoutAddressSheet } from "@/components/checkout-address-sheet";
+import {
+  CheckoutAddressDetailsSheet,
+  type AddressDetailsAction,
+} from "@/components/checkout-address-details-sheet";
 import { loadDeliveryLocation } from "@/lib/delivery-location";
 import { formatSavedAddressLine } from "@/lib/format-address";
 import { env } from "@/lib/env";
@@ -51,11 +55,15 @@ type Props = {
 const CHECKOUT_CHANGE =
   "shrink-0 rounded-lg border border-emerald-500 px-4 py-1.5 text-xs font-semibold text-emerald-600 transition hover:bg-emerald-50";
 
-const ADDRESS_ACTIONS = [
-  { label: "Take address photo", icon: Camera },
-  { label: "Add address by voice", icon: Mic },
-  { label: "Add more details", icon: Pencil },
-] as const;
+const ADDRESS_ACTIONS: Array<{
+  label: string;
+  icon: typeof Camera;
+  action: AddressDetailsAction;
+}> = [
+  { label: "Take address photo", icon: Camera, action: "photo" },
+  { label: "Add address by voice", icon: Mic, action: "voice" },
+  { label: "Add more details", icon: Pencil, action: "details" },
+];
 
 function capitalise(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
@@ -156,6 +164,7 @@ export function CheckoutDeliverySections({
   onDeliveryTimeChange,
 }: Props) {
   const { location, setLocation, radiusKm } = useDeliveryLocation();
+  const [addressBook, setAddressBook] = useState<SavedAddressOption[]>(savedAddresses);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const [baseAddress, setBaseAddress] = useState("");
   const [extraDetails, setExtraDetails] = useState("");
@@ -163,10 +172,14 @@ export function CheckoutDeliverySections({
   const [saveInstructionsDefault, setSaveInstructionsDefault] = useState(false);
   const [showDeliveryTimeSheet, setShowDeliveryTimeSheet] = useState(false);
   const [showAddressSheet, setShowAddressSheet] = useState(false);
-  const [showExtraDetails, setShowExtraDetails] = useState(false);
+  const [showAddressDetailsSheet, setShowAddressDetailsSheet] = useState(false);
+  const [detailsInitialAction, setDetailsInitialAction] = useState<AddressDetailsAction>("details");
   const [addressActionIndex, setAddressActionIndex] = useState(0);
   const notesRef = useRef<HTMLTextAreaElement>(null);
-  const extraDetailsRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    setAddressBook(savedAddresses);
+  }, [savedAddresses]);
 
   useEffect(() => {
     const id = window.setInterval(() => {
@@ -201,7 +214,7 @@ export function CheckoutDeliverySections({
       setBaseAddress(saved.address);
       setExtraDetails("");
       onAddressChange(saved.address);
-      const match = findMatchingSavedAddress(savedAddresses, saved.lat, saved.lng, saved.address);
+      const match = findMatchingSavedAddress(addressBook, saved.lat, saved.lng, saved.address);
       if (match) setSelectedAddressId(match.id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mount once
@@ -213,25 +226,36 @@ export function CheckoutDeliverySections({
     setExtraDetails("");
     onAddressChange(location.address);
     const match = findMatchingSavedAddress(
-      savedAddresses,
+      addressBook,
       location.lat,
       location.lng,
       location.address,
     );
-    setSelectedAddressId(match?.id ?? null);
-  }, [location, onAddressChange, savedAddresses]);
+    setSelectedAddressId((current) => current ?? match?.id ?? null);
+  }, [location, onAddressChange, addressBook]);
 
-  const matchedSaved = selectedAddressId
-    ? savedAddresses.find((a) => a.id === selectedAddressId) ?? null
+  const activeSaved = selectedAddressId
+    ? addressBook.find((a) => a.id === selectedAddressId) ?? null
     : location
-      ? findMatchingSavedAddress(savedAddresses, location.lat, location.lng, address)
+      ? findMatchingSavedAddress(addressBook, location.lat, location.lng, address)
       : null;
+
+  const matchedSaved = activeSaved;
 
   const addressTitle =
     matchedSaved?.nickname ??
     (matchedSaved ? capitalise(matchedSaved.label) : null) ??
     location?.label ??
     "Delivery address";
+
+  const addressSummary =
+    matchedSaved
+      ? [matchedSaved.street, matchedSaved.building, matchedSaved.apartment]
+          .filter(Boolean)
+          .join(", ") ||
+        matchedSaved.formatted_address?.trim() ||
+        formatSavedAddressLine(matchedSaved)
+      : address.trim() || baseAddress.trim() || "";
 
   const mapUrl =
     location?.lat != null && location?.lng != null
@@ -257,12 +281,26 @@ export function CheckoutDeliverySections({
     return phrase ? notes.includes(phrase) : showCustomInstructions;
   }
 
-  function pickSavedAddress(addr: SavedAddressOption) {
-    const line = formatSavedAddressLine(addr);
+  function applySavedAddress(addr: SavedAddressOption) {
+    const line =
+      [addr.street, addr.building, addr.apartment].filter(Boolean).join(", ") ||
+      addr.formatted_address?.trim() ||
+      formatSavedAddressLine(addr);
+
+    setAddressBook((prev) => {
+      const index = prev.findIndex((a) => a.id === addr.id);
+      if (index >= 0) {
+        const next = [...prev];
+        next[index] = addr;
+        return next;
+      }
+      return [...prev, addr];
+    });
+
     setBaseAddress(addr.formatted_address?.trim() || line);
     setExtraDetails("");
     onAddressChange(line);
-    setSelectedAddressId(addr.id);
+    setSelectedAddressId(addr.id === "local-draft" ? null : addr.id);
     setLocation({
       lat: addr.latitude,
       lng: addr.longitude,
@@ -271,6 +309,52 @@ export function CheckoutDeliverySections({
       radiusKm,
     });
   }
+
+  function openAddressDetails(action: AddressDetailsAction, addr?: SavedAddressOption) {
+    if (addr) setSelectedAddressId(addr.id);
+    setDetailsInitialAction(action);
+    setShowAddressDetailsSheet(true);
+  }
+
+  function handleEditSavedAddress(addr: SavedAddressOption) {
+    setShowAddressSheet(false);
+    openAddressDetails("details", addr);
+  }
+
+  const detailsInitial = useMemo(
+    () =>
+      matchedSaved
+        ? {
+            label: matchedSaved.label,
+            nickname: matchedSaved.nickname,
+            latitude: matchedSaved.latitude,
+            longitude: matchedSaved.longitude,
+            formatted_address: matchedSaved.formatted_address,
+            street: matchedSaved.street,
+            building: matchedSaved.building,
+            apartment: matchedSaved.apartment,
+            phone: matchedSaved.phone,
+            country_code: matchedSaved.country_code,
+            driver_notes: matchedSaved.driver_notes,
+            voice_directions_url: matchedSaved.voice_directions_url,
+            address_photo_urls: matchedSaved.address_photo_urls,
+          }
+        : location
+          ? {
+              label: "other",
+              nickname: location.label ?? "Home",
+              latitude: location.lat,
+              longitude: location.lng,
+              formatted_address: baseAddress || location.address,
+              street: "",
+              building: "",
+              apartment: extraDetails,
+              phone: null,
+              driver_notes: null,
+            }
+          : undefined,
+    [matchedSaved, location, baseAddress, extraDetails],
+  );
 
   function pickMapLocation(result: { lat: number; lng: number; address: string }) {
     setSelectedAddressId(null);
@@ -288,14 +372,31 @@ export function CheckoutDeliverySections({
 
   return (
     <>
+      <CheckoutAddressDetailsSheet
+        open={showAddressDetailsSheet}
+        onClose={() => setShowAddressDetailsSheet(false)}
+        initialAction={detailsInitialAction}
+        isLoggedIn={isLoggedIn}
+        addressId={selectedAddressId ?? matchedSaved?.id ?? null}
+        initial={detailsInitial}
+        onSaved={applySavedAddress}
+        onDeleted={() => {
+          setAddressBook((prev) => prev.filter((a) => a.id !== selectedAddressId));
+          setSelectedAddressId(null);
+          setBaseAddress("");
+          setExtraDetails("");
+          onAddressChange("");
+        }}
+      />
       <CheckoutAddressSheet
         open={showAddressSheet}
         onClose={() => setShowAddressSheet(false)}
-        savedAddresses={savedAddresses}
+        savedAddresses={addressBook}
         isLoggedIn={isLoggedIn}
         selectedAddressId={selectedAddressId}
-        onSelectAddress={pickSavedAddress}
+        onSelectAddress={applySavedAddress}
         onSelectMapLocation={pickMapLocation}
+        onEditAddress={handleEditSavedAddress}
       />
       <DeliveryTimeSheet
         open={showDeliveryTimeSheet}
@@ -346,7 +447,12 @@ export function CheckoutDeliverySections({
               )}
             </div>
             <div className="flex min-w-0 flex-1 flex-col justify-between gap-2">
-              <p className="text-sm font-semibold text-slate-900">{addressTitle}</p>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-slate-900">{addressTitle}</p>
+                {addressSummary ? (
+                  <p className="mt-0.5 line-clamp-2 text-xs leading-snug text-slate-500">{addressSummary}</p>
+                ) : null}
+              </div>
               {(() => {
                 const action = ADDRESS_ACTIONS[addressActionIndex];
                 const ActionIcon = action.icon;
@@ -355,14 +461,7 @@ export function CheckoutDeliverySections({
                     type="button"
                     key={action.label}
                     className="inline-flex w-full items-center gap-2 rounded-full bg-cyan-50 px-3 py-2 text-left text-xs font-medium text-slate-900 transition hover:bg-cyan-100"
-                    onClick={() => {
-                      if (action.label === "Add more details") {
-                        setShowExtraDetails(true);
-                        requestAnimationFrame(() => extraDetailsRef.current?.focus());
-                        return;
-                      }
-                      setShowAddressSheet(true);
-                    }}
+                    onClick={() => openAddressDetails(action.action)}
                   >
                     <ActionIcon className="h-3.5 w-3.5 shrink-0 text-slate-700" strokeWidth={2} aria-hidden />
                     <span className="min-w-0 flex-1 truncate">{action.label}</span>
@@ -372,22 +471,6 @@ export function CheckoutDeliverySections({
               })()}
             </div>
           </div>
-
-          {showExtraDetails || extraDetails.trim() ? (
-            <textarea
-              ref={extraDetailsRef}
-              value={extraDetails}
-              onChange={(e) => {
-                setSelectedAddressId(null);
-                const nextExtra = e.target.value;
-                setExtraDetails(nextExtra);
-                onAddressChange(buildFullAddress(baseAddress, nextExtra));
-              }}
-              placeholder="Apartment, floor, building…"
-              rows={2}
-              className="ui-textarea mt-3 text-sm"
-            />
-          ) : null}
 
           {!customerName.trim() ? (
             <input
