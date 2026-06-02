@@ -1,7 +1,7 @@
 "use server";
 
 import crypto from "node:crypto";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import { getCurrentUserRole } from "@/lib/data";
@@ -458,6 +458,7 @@ export async function updateRestaurantHoursAction(formData: FormData) {
 
   revalidatePath("/dashboard/business");
   revalidatePath("/");
+  revalidateTag("home-restaurants", "max");
   if (restaurant?.slug) revalidatePath(`/${restaurant.slug}`);
   redirect("/dashboard/business?toast=hours_saved");
 }
@@ -478,6 +479,7 @@ export async function toggleTemporaryCloseAction(closed: boolean) {
 
   revalidatePath("/dashboard/business");
   revalidatePath("/");
+  revalidateTag("home-restaurants", "max");
   if (restaurant?.slug) revalidatePath(`/${restaurant.slug}`);
 }
 

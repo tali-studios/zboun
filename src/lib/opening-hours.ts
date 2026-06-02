@@ -31,6 +31,35 @@ export type ScheduleDayOption = {
   dayOffset: number;
 };
 
+/** Lebanon — used for open/closed checks and delivery scheduling. */
+export const RESTAURANT_TIMEZONE = "Asia/Beirut";
+
+const WEEKDAY_SHORT_TO_NUM: Record<string, number> = {
+  Sun: 0,
+  Mon: 1,
+  Tue: 2,
+  Wed: 3,
+  Thu: 4,
+  Fri: 5,
+  Sat: 6,
+};
+
+export function getDayAndMinutesInTimezone(
+  date: Date,
+  timeZone: string = RESTAURANT_TIMEZONE,
+): { day: number; minutes: number } {
+  const weekday = new Intl.DateTimeFormat("en-US", { timeZone, weekday: "short" }).format(date);
+  const day = WEEKDAY_SHORT_TO_NUM[weekday] ?? date.getDay();
+  const hm = new Intl.DateTimeFormat("en-GB", {
+    timeZone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(date);
+  const [h, m] = hm.split(":").map((v) => Number(v));
+  return { day, minutes: (Number.isFinite(h) ? h : 0) * 60 + (Number.isFinite(m) ? m : 0) };
+}
+
 export const DEFAULT_OPENING_HOURS: DayHours[] = [
   { day: 0, open: "10:00", close: "22:00", closed: false },
   { day: 1, open: "09:00", close: "22:00", closed: false },
@@ -42,7 +71,7 @@ export const DEFAULT_OPENING_HOURS: DayHours[] = [
 ];
 
 function parseTimeToMinutes(hhmm: string): number | null {
-  const match = /^(\d{1,2}):(\d{2})$/.exec(hhmm.trim());
+  const match = /^(\d{1,2}):(\d{2})(?::\d{2})?$/.exec(hhmm.trim());
   if (!match) return null;
   const h = Number(match[1]);
   const m = Number(match[2]);
@@ -66,29 +95,41 @@ function normalizeDayHours(raw: unknown): DayHours | null {
   };
 }
 
-export function parseOpeningHours(raw: unknown): DayHours[] {
-  if (!Array.isArray(raw) || raw.length === 0) return DEFAULT_OPENING_HOURS;
+export function parseOpeningHours(
+  raw: unknown,
+  options?: { fallbackToDefault?: boolean },
+): DayHours[] {
+  const fallbackToDefault = options?.fallbackToDefault !== false;
+  if (!Array.isArray(raw) || raw.length === 0) {
+    return fallbackToDefault ? DEFAULT_OPENING_HOURS : [];
+  }
   const byDay = new Map<number, DayHours>();
   for (const item of raw) {
     const parsed = normalizeDayHours(item);
     if (parsed) byDay.set(parsed.day, parsed);
   }
-  if (byDay.size === 0) return DEFAULT_OPENING_HOURS;
+  if (byDay.size === 0) return fallbackToDefault ? DEFAULT_OPENING_HOURS : [];
   return DEFAULT_OPENING_HOURS.map((fallback) => byDay.get(fallback.day) ?? fallback);
+}
+
+export function hasConfiguredOpeningHours(raw: unknown): boolean {
+  return Array.isArray(raw) && raw.length > 0 && parseOpeningHours(raw, { fallbackToDefault: false }).length > 0;
 }
 
 export function isRestaurantOpenNow(
   hours: DayHours[],
-  options?: { isTemporarilyClosed?: boolean; now?: Date },
+  options?: { isTemporarilyClosed?: boolean; now?: Date; timeZone?: string },
 ): boolean {
   if (options?.isTemporarilyClosed) return false;
+  if (hours.length === 0) return false;
   const now = options?.now ?? new Date();
-  const dayConfig = hours.find((h) => h.day === now.getDay());
+  const timeZone = options?.timeZone ?? RESTAURANT_TIMEZONE;
+  const { day, minutes: currentMin } = getDayAndMinutesInTimezone(now, timeZone);
+  const dayConfig = hours.find((h) => h.day === day);
   if (!dayConfig || dayConfig.closed) return false;
   const openMin = parseTimeToMinutes(dayConfig.open);
   const closeMin = parseTimeToMinutes(dayConfig.close);
   if (openMin == null || closeMin == null || closeMin <= openMin) return false;
-  const currentMin = now.getHours() * 60 + now.getMinutes();
   return currentMin >= openMin && currentMin < closeMin;
 }
 
@@ -145,7 +186,8 @@ export function getScheduleSlots(
     const dayKey = dayStart.toISOString().slice(0, 10);
     if (options?.dayKey && options.dayKey !== dayKey) continue;
 
-    const dayConfig = hours.find((h) => h.day === dayStart.getDay());
+    const { day: weekday } = getDayAndMinutesInTimezone(dayStart, RESTAURANT_TIMEZONE);
+    const dayConfig = hours.find((h) => h.day === weekday);
     if (!dayConfig || dayConfig.closed) continue;
 
     const openMin = parseTimeToMinutes(dayConfig.open);

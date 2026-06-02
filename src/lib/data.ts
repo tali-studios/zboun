@@ -211,6 +211,28 @@ function mapLegacyHomeRow(r: {
   };
 }
 
+async function mapHomeRestaurantRows(
+  rows: (Omit<HomeRestaurantCard, "rating" | "rating_count" | "branches"> & {
+    restaurant_locations?: RestaurantLocationBranch[] | null;
+  })[],
+  supabase: SupabaseClient,
+): Promise<HomeRestaurantCard[]> {
+  const stats = await loadRatingStatsMap(supabase, rows.map((r) => r.id));
+  return rows.map((r) => {
+    const s = stats.get(r.id);
+    return {
+      ...r,
+      rating: s?.avgRating ?? null,
+      rating_count: s?.ratingCount ?? 0,
+      opening_hours: (r as { opening_hours?: unknown }).opening_hours ?? null,
+      is_temporarily_closed: (r as { is_temporarily_closed?: boolean }).is_temporarily_closed ?? false,
+      free_delivery: (r as { free_delivery?: boolean }).free_delivery ?? false,
+      delivery_fee_usd: Number((r as { delivery_fee_usd?: number }).delivery_fee_usd ?? 0),
+      branches: (r.restaurant_locations ?? []) as RestaurantLocationBranch[],
+    };
+  });
+}
+
 export const getHomeRestaurants = unstable_cache(
   async (): Promise<HomeRestaurantCard[]> => {
     if (!env.supabaseUrl || !env.supabaseAnonKey) return [];
@@ -228,23 +250,34 @@ export const getHomeRestaurants = unstable_cache(
       .order("created_at", { ascending: false });
 
     if (!full.error && full.data) {
-      const rows = full.data as (Omit<HomeRestaurantCard, "rating" | "rating_count" | "branches"> & {
-        restaurant_locations?: RestaurantLocationBranch[] | null;
-      })[];
-      const stats = await loadRatingStatsMap(supabase, rows.map((r) => r.id));
-      return rows.map((r) => {
-        const s = stats.get(r.id);
-        return {
+      return mapHomeRestaurantRows(
+        full.data as (Omit<HomeRestaurantCard, "rating" | "rating_count" | "branches"> & {
+          restaurant_locations?: RestaurantLocationBranch[] | null;
+        })[],
+        supabase,
+      );
+    }
+
+    // Partial fallback when optional columns/joins are missing (still load hours for "Closed now")
+    const withHours = await supabase
+      .from("restaurants")
+      .select(
+        "id, name, slug, logo_url, banner_url, description, browse_sections, location, eta_label, opening_hours, is_temporarily_closed, latitude, longitude",
+      )
+      .eq("is_active", true)
+      .eq("show_on_home", true)
+      .order("created_at", { ascending: false });
+
+    if (!withHours.error && withHours.data) {
+      return mapHomeRestaurantRows(
+        withHours.data.map((r) => ({
           ...r,
-          rating: s?.avgRating ?? null,
-          rating_count: s?.ratingCount ?? 0,
-          opening_hours: (r as { opening_hours?: unknown }).opening_hours ?? null,
-          is_temporarily_closed: (r as { is_temporarily_closed?: boolean }).is_temporarily_closed ?? false,
-          free_delivery: (r as { free_delivery?: boolean }).free_delivery ?? false,
-          delivery_fee_usd: Number((r as { delivery_fee_usd?: number }).delivery_fee_usd ?? 0),
-          branches: (r.restaurant_locations ?? []) as RestaurantLocationBranch[],
-        };
-      });
+          restaurant_locations: [],
+          free_delivery: false,
+          delivery_fee_usd: 0,
+        })),
+        supabase,
+      );
     }
 
     // Fallback: new columns may not exist until migration is applied
@@ -260,8 +293,8 @@ export const getHomeRestaurants = unstable_cache(
     }
     return legacy.data.map(mapLegacyHomeRow);
   },
-  ["home-restaurants", "visitor-ratings-v2", "branches-v1", "hours-v1", "delivery-fee-v1"],
-  { revalidate: 60 },
+  ["home-restaurants", "visitor-ratings-v2", "branches-v1", "hours-v2", "delivery-fee-v1"],
+  { revalidate: 60, tags: ["home-restaurants"] },
 );
 
 export async function getCurrentUserRole() {

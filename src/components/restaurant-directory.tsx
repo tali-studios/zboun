@@ -33,7 +33,12 @@ import {
 import { useDeliveryLocation } from "@/components/delivery-location-provider";
 import { distanceKm, formatDistance } from "@/lib/geo";
 import { DeliveryLocationSheet } from "@/components/delivery-location-sheet";
-import { isRestaurantOpenNow, parseOpeningHours } from "@/lib/opening-hours";
+import {
+  hasConfiguredOpeningHours,
+  isRestaurantOpenNow,
+  parseOpeningHours,
+  RESTAURANT_TIMEZONE,
+} from "@/lib/opening-hours";
 
 const PAGE = {
   ink: "#111827",
@@ -487,12 +492,17 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
             {filtered.map((restaurant, index) => {
               const section = primarySection(restaurant.browse_sections ?? []);
               const sectionAccent = BROWSE_SECTION_ACCENTS[section];
-              const hours = parseOpeningHours(restaurant.opening_hours);
+              const hasHours = hasConfiguredOpeningHours(restaurant.opening_hours);
+              const hours = parseOpeningHours(restaurant.opening_hours, {
+                fallbackToDefault: false,
+              });
               const isClosed =
                 restaurant.is_temporarily_closed ||
-                !isRestaurantOpenNow(hours, {
-                  isTemporarilyClosed: restaurant.is_temporarily_closed,
-                });
+                (hasHours &&
+                  !isRestaurantOpenNow(hours, {
+                    isTemporarilyClosed: restaurant.is_temporarily_closed,
+                    timeZone: RESTAURANT_TIMEZONE,
+                  }));
               const rating =
                 restaurant.rating != null && Number.isFinite(Number(restaurant.rating))
                   ? Math.round(Number(restaurant.rating) * 10) / 10
