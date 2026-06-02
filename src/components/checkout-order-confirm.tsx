@@ -182,11 +182,11 @@ export function CheckoutOrderConfirm({
           type="button"
           onClick={onCancel}
           disabled={isPlacingOrder}
-          className="w-full rounded-2xl border-2 border-slate-200 bg-white py-3.5 text-sm font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full rounded-2xl border-2 border-rose-300 bg-rose-50 py-3.5 text-sm font-bold text-rose-700 transition hover:border-rose-400 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Cancel order
         </button>
-        <p className="text-center text-[11px] text-slate-400">
+        <p className="pb-1 text-center text-[11px] text-slate-400">
           Cancel returns you to checkout to edit your order.
         </p>
       </div>

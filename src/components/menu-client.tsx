@@ -733,7 +733,7 @@ export function MenuClient({
           </div>
 
           {isConfirmStep ? (
-            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pb-4 pt-4">
+            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pt-4 pb-[max(2.5rem,calc(1.5rem+env(safe-area-inset-bottom)))]">
               <CheckoutOrderConfirm
                 orderTotal={orderTotal}
                 itemCount={itemCount}
@@ -807,7 +807,7 @@ export function MenuClient({
                 ) : null}
               </div>
 
-              <div className="shrink-0 border-t border-slate-200 bg-white px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+              <div className="shrink-0 border-t border-slate-200 bg-white pl-6 pr-4 pt-4 pb-[max(2.5rem,calc(1.25rem+env(safe-area-inset-bottom)))]">
                 <div className="flex items-center gap-3">
                   <div className="min-w-0 flex-1">
                     <p className="text-[11px] text-slate-500">Total payment</p>
