@@ -30,7 +30,7 @@ export function CheckoutOrderConfirm({
 }: Props) {
   const [secondsLeft, setSecondsLeft] = useState(durationSeconds);
   const placedRef = useRef(false);
-  const tickRef = useRef<ReturnType<typeof window.setInterval> | null>(null);
+  const tickRef = useRef<number | null>(null);
   const onPlaceOrderRef = useRef(onPlaceOrder);
   onPlaceOrderRef.current = onPlaceOrder;
 
