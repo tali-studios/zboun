@@ -150,6 +150,10 @@ input[type="time"].ui-input {
   padding-left: 2.75rem;
 }
 
+.ui-input.ui-input-currency {
+  padding-left: 2.25rem;
+}
+
 /* ─── Buttons ───────────────────────────────────────────────────────────────── */
 .btn {
   display: inline-flex;

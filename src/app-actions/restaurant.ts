@@ -387,10 +387,10 @@ export async function updateRestaurantSettingsAction(formData: FormData) {
   const latitude = latRaw && Number.isFinite(Number(latRaw)) ? Number(latRaw) : null;
   const longitude = lngRaw && Number.isFinite(Number(lngRaw)) ? Number(lngRaw) : null;
   const freeDelivery = formData.get("free_delivery") === "true" || formData.get("free_delivery") === "on";
-  const deliveryFeeRaw = String(formData.get("delivery_fee_usd") ?? "0").trim();
+  const deliveryFeeRaw = String(formData.get("delivery_fee_usd") ?? "").trim();
   let deliveryFeeUsd = Number(deliveryFeeRaw);
-  if (!Number.isFinite(deliveryFeeUsd) || deliveryFeeUsd < 0) {
-    redirect("/dashboard/business?q=invalid_delivery_fee");
+  if (!Number.isFinite(deliveryFeeUsd) || deliveryFeeUsd <= 0) {
+    redirect("/dashboard/business?toast=invalid_delivery_fee");
   }
 
   const supabase = await createServerSupabaseClient();

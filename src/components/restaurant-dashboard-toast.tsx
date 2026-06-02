@@ -84,6 +84,9 @@ export function RestaurantDashboardToast({ toast, sectionName, itemName }: Props
   } else if (toast === "hours_invalid") {
     heading = "Invalid hours";
     message = "Could not save opening hours. Check each day and try again.";
+  } else if (toast === "invalid_delivery_fee") {
+    heading = "Invalid delivery fee";
+    message = "Enter a delivery fee greater than $0.00 (for example $2.50).";
   } else {
     return null;
   }
@@ -115,7 +118,8 @@ export function RestaurantDashboardToast({ toast, sectionName, itemName }: Props
               background:
                 toast === "section_name_required" ||
                 toast === "item_create_invalid" ||
-                toast === "item_create_failed"
+                toast === "item_create_failed" ||
+                toast === "invalid_delivery_fee"
                   ? "linear-gradient(135deg,#f59e0b,#d97706)"
                   : "linear-gradient(135deg,#7854ff,#9f3bfe)",
             }}
@@ -123,7 +127,8 @@ export function RestaurantDashboardToast({ toast, sectionName, itemName }: Props
           >
             {toast === "section_name_required" ||
             toast === "item_create_invalid" ||
-            toast === "item_create_failed" ? (
+            toast === "item_create_failed" ||
+            toast === "invalid_delivery_fee" ? (
               "!"
             ) : (
               "✓"

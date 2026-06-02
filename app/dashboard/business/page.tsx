@@ -421,8 +421,11 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                     Open menu
                   </Link>
                   <CopyMenuLinkButton url={menuUrl} />
-                  <Link href="/dashboard/business/orders" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20 relative">
-                    📋 Orders
+                  <Link
+                    href="/dashboard/business/orders"
+                    className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20"
+                  >
+                    Orders
                   </Link>
                   <Link href="/dashboard/business/qr" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">
                     QR codes
@@ -455,8 +458,9 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
         <section className="grid gap-4 lg:grid-cols-3">
           <form
             action={updateRestaurantSettingsAction}
-            className="panel p-5 lg:col-span-2"
+            className="flex flex-col gap-4 lg:col-span-2"
           >
+          <div className="panel p-5">
             <h2 className="panel-title">Store settings</h2>
             <div className="mt-3 grid gap-2 md:grid-cols-3">
               <input type="hidden" name="current_logo_url" value={restaurant?.logo_url ?? ""} />
@@ -498,10 +502,6 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                 />
                 <p className="text-xs text-slate-500">Short text for the time pill on home cards (optional).</p>
               </label>
-              <DeliveryFeeSettings
-                freeDeliveryDefault={restaurant?.free_delivery ?? false}
-                deliveryFeeDefault={Number(restaurant?.delivery_fee_usd ?? 0)}
-              />
               <label className="space-y-1">
                 <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Phone Number</span>
                 <input
@@ -565,8 +565,19 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                 />
                 <p className="mt-1 text-xs text-slate-500">Recommended wide image (for top profile header on menu page).</p>
               </div>
-              <button className="btn btn-primary md:col-span-3 rounded-xl">Save settings</button>
             </div>
+          </div>
+
+          <DeliveryFeeSettings
+            freeDeliveryDefault={restaurant?.free_delivery ?? false}
+            deliveryFeeDefault={Number(restaurant?.delivery_fee_usd ?? 0)}
+          />
+
+          <div className="panel p-5">
+            <button type="submit" className="btn btn-primary w-full rounded-xl sm:w-auto">
+              Save store &amp; delivery settings
+            </button>
+          </div>
           </form>
 
           <form action={createCategoryAction} className="panel p-5">
