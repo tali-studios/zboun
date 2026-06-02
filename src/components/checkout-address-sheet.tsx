@@ -19,6 +19,7 @@ import {
 import { useDeliveryLocation } from "@/components/delivery-location-provider";
 import { formatSavedAddressLine } from "@/lib/format-address";
 import type { SavedAddressOption } from "@/components/order-delivery-fields";
+import { BRAND_HEX, BRAND_HEX_DEEP } from "@/lib/brand";
 
 const GoogleMapPicker = dynamic(
   () => import("@/components/google-map-picker").then((m) => m.GoogleMapPicker),
@@ -26,7 +27,7 @@ const GoogleMapPicker = dynamic(
     ssr: false,
     loading: () => (
       <div className="flex h-full items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
+        <Loader2 className="h-6 w-6 animate-spin text-violet-500" />
       </div>
     ),
   },
@@ -196,7 +197,7 @@ export function CheckoutAddressSheet({
                           key={addr.id}
                           className={`overflow-hidden rounded-2xl border bg-white shadow-sm transition ${
                             selected
-                              ? "border-emerald-500 ring-1 ring-emerald-500/30"
+                              ? "border-violet-500 ring-1 ring-violet-500/30"
                               : "border-slate-100"
                           }`}
                         >
@@ -211,12 +212,12 @@ export function CheckoutAddressSheet({
                             >
                               <span
                                 className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
-                                  selected ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-500"
+                                  selected ? "bg-violet-50 text-violet-600" : "bg-slate-100 text-slate-500"
                                 }`}
                               >
                                 <Icon className="h-4 w-4" strokeWidth={2} aria-hidden />
                                 {selected ? (
-                                  <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500" />
+                                  <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-violet-500" />
                                 ) : null}
                               </span>
                               <div className="min-w-0 flex-1 overflow-hidden">
@@ -252,7 +253,8 @@ export function CheckoutAddressSheet({
                     <Link
                       href="/login"
                       onClick={onClose}
-                      className="rounded-full bg-emerald-500 px-4 py-2 text-xs font-bold text-white"
+                      className="rounded-full px-4 py-2 text-xs font-bold text-white shadow-sm"
+                      style={{ background: `linear-gradient(135deg, ${BRAND_HEX} 0%, ${BRAND_HEX_DEEP} 100%)` }}
                     >
                       Sign in
                     </Link>

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { CalendarClock, Clock, X } from "lucide-react";
+import { BRAND_HEX, BRAND_HEX_DEEP } from "@/lib/brand";
 import {
   formatDeliveryTimeLabel,
   getScheduleDays,
@@ -204,12 +205,12 @@ export function DeliveryTimeSheet({
             onClick={() => setDraftMode("now")}
             className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3.5 text-left transition ${
               draftMode === "now"
-                ? "border-emerald-500 bg-emerald-50/60 shadow-sm"
+                ? "border-violet-500 bg-violet-50/60 shadow-sm"
                 : "border-transparent bg-white hover:bg-slate-50"
             }`}
           >
             {draftMode === "now" ? (
-              <span className="h-10 w-1 shrink-0 rounded-full bg-emerald-500" aria-hidden />
+              <span className="h-10 w-1 shrink-0 rounded-full bg-violet-500" aria-hidden />
             ) : (
               <span className="w-1 shrink-0" aria-hidden />
             )}
@@ -226,12 +227,12 @@ export function DeliveryTimeSheet({
             disabled={!hasAnySlots}
             className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3.5 text-left transition disabled:cursor-not-allowed disabled:opacity-50 ${
               draftMode === "scheduled"
-                ? "border-emerald-500 bg-emerald-50/60 shadow-sm"
+                ? "border-violet-500 bg-violet-50/60 shadow-sm"
                 : "border-transparent bg-white hover:bg-slate-50"
             }`}
           >
             {draftMode === "scheduled" ? (
-              <span className="h-10 w-1 shrink-0 rounded-full bg-emerald-500" aria-hidden />
+              <span className="h-10 w-1 shrink-0 rounded-full bg-violet-500" aria-hidden />
             ) : (
               <span className="w-1 shrink-0" aria-hidden />
             )}
@@ -283,7 +284,8 @@ export function DeliveryTimeSheet({
             type="button"
             onClick={handleConfirm}
             disabled={draftMode === "scheduled" && !draftSlot}
-            className="w-full rounded-2xl bg-emerald-500 py-3.5 text-sm font-bold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-40"
+            className="w-full rounded-2xl py-3.5 text-sm font-bold text-white shadow-md transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40"
+            style={{ background: `linear-gradient(135deg, ${BRAND_HEX} 0%, ${BRAND_HEX_DEEP} 100%)` }}
           >
             Set delivery time
           </button>

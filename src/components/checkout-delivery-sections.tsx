@@ -53,7 +53,7 @@ type Props = {
 };
 
 const CHECKOUT_CHANGE =
-  "shrink-0 rounded-lg border border-emerald-500 px-4 py-1.5 text-xs font-semibold text-emerald-600 transition hover:bg-emerald-50";
+  "shrink-0 rounded-lg border border-violet-500 px-4 py-1.5 text-xs font-semibold text-violet-600 transition hover:bg-violet-50";
 
 const ADDRESS_ACTIONS: Array<{
   label: string;
@@ -507,8 +507,8 @@ export function CheckoutDeliverySections({
                     disabled
                       ? "cursor-not-allowed border-slate-100 bg-slate-50 opacity-50"
                       : active
-                        ? "border-emerald-500 bg-emerald-50 text-emerald-800"
-                        : "border-slate-200 bg-white text-slate-700 hover:border-emerald-300"
+                        ? "border-violet-500 bg-violet-50 text-violet-800"
+                        : "border-slate-200 bg-white text-slate-700 hover:border-violet-300"
                   }`}
                 >
                   <Icon className="h-5 w-5 shrink-0" strokeWidth={1.75} aria-hidden />
@@ -535,7 +535,7 @@ export function CheckoutDeliverySections({
                 type="checkbox"
                 checked={saveInstructionsDefault}
                 onChange={(e) => setSaveInstructionsDefault(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-300 accent-emerald-600"
+                className="h-4 w-4 rounded border-slate-300 accent-violet-600"
               />
               Save as my default for this address
             </label>

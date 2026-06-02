@@ -25,7 +25,7 @@ import {
 import { formatSavedAddressLine } from "@/lib/format-address";
 import { env } from "@/lib/env";
 import type { SavedAddressOption } from "@/components/order-delivery-fields";
-import { BRAND_HEX } from "@/lib/brand";
+import { BRAND_HEX, BRAND_HEX_DEEP } from "@/lib/brand";
 
 const GoogleMapPicker = dynamic(
   () => import("@/components/google-map-picker").then((m) => m.GoogleMapPicker),
@@ -429,7 +429,8 @@ export function CheckoutAddressDetailsSheet({
                 <button
                   type="button"
                   onClick={() => setStep("map")}
-                  className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-teal-500 px-4 py-1.5 text-xs font-semibold text-white shadow-md transition hover:bg-teal-600"
+                  className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full px-4 py-1.5 text-xs font-semibold text-white shadow-md transition hover:brightness-105"
+                  style={{ background: `linear-gradient(135deg, ${BRAND_HEX} 0%, ${BRAND_HEX_DEEP} 100%)` }}
                 >
                   Adjust pin
                 </button>
@@ -509,7 +510,7 @@ export function CheckoutAddressDetailsSheet({
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-1.5">
                         <p className="text-sm font-bold text-slate-900">Help the shopper find you!</p>
-                        <BadgeCheck className="h-4 w-4 text-teal-500" aria-hidden />
+                        <BadgeCheck className="h-4 w-4 text-violet-500" aria-hidden />
                         <span className="rounded-md bg-violet-600 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
                           New
                         </span>

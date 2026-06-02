@@ -6,6 +6,7 @@ import { useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { CategoryWithItems } from "@/lib/data";
 import { CheckoutDeliverySections } from "@/components/checkout-delivery-sections";
+import { CheckoutOrderConfirm } from "@/components/checkout-order-confirm";
 import type { DeliveryTimeChoice } from "@/components/delivery-time-sheet";
 import type { SavedAddressOption } from "@/components/order-delivery-fields";
 import { formatDeliveryTimeLabel, isRestaurantOpenNow, parseOpeningHours } from "@/lib/opening-hours";
@@ -104,9 +105,9 @@ export function MenuClient({
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
   const [noCutlery, setNoCutlery] = useState(false);
-  const [isOrderConfirmed, setIsOrderConfirmed] = useState(false);
   const [showMobileCart, setShowMobileCart] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
+  const [checkoutStep, setCheckoutStep] = useState<"review" | "confirm">("review");
   const [checkoutBackToCart, setCheckoutBackToCart] = useState(false);
   const [deliveryTime, setDeliveryTime] = useState<DeliveryTimeChoice>({ mode: "now" });
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
@@ -391,10 +392,6 @@ export function MenuClient({
       setOrderError("Please fill in your name and delivery address before ordering.");
       return;
     }
-    if (!isOrderConfirmed) {
-      setOrderError("Please confirm your order by checking the box below.");
-      return;
-    }
     if (items.length === 0) {
       setOrderError("Your cart is empty.");
       return;
@@ -430,8 +427,8 @@ export function MenuClient({
       setPlacedOrder({ orderId: result.orderId, whatsappUrl: result.whatsappNotifyUrl });
       setCart({});
       setNoCutlery(false);
-      setIsOrderConfirmed(false);
       setShowCheckout(false);
+      setCheckoutStep("review");
       setCheckoutBackToCart(false);
       orderTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (err) {
@@ -646,6 +643,7 @@ export function MenuClient({
               type="button"
               onClick={() => {
                 setCheckoutBackToCart(Boolean(onClose));
+                setCheckoutStep("review");
                 setShowCheckout(true);
                 if (onClose) onClose();
               }}
@@ -661,26 +659,53 @@ export function MenuClient({
     );
   }
 
+  function closeCheckoutSheet() {
+    setShowCheckout(false);
+    setCheckoutStep("review");
+    if (checkoutBackToCart) {
+      setShowMobileCart(true);
+      setCheckoutBackToCart(false);
+    }
+  }
+
+  function proceedToOrderConfirm() {
+    if (orderingBlocked) {
+      setOrderError("This restaurant is closed and not accepting online orders right now.");
+      return;
+    }
+    if (deliveryTime.mode === "now" && !isOpenNow) {
+      setOrderError("The restaurant is closed right now. Please schedule your delivery for later.");
+      return;
+    }
+    if (!customerName.trim() || !address.trim()) {
+      setOrderError("Please fill in your name and delivery address before ordering.");
+      return;
+    }
+    if (items.length === 0) {
+      setOrderError("Your cart is empty.");
+      return;
+    }
+    setOrderError(null);
+    setCheckoutStep("confirm");
+  }
+
   /* ─── Checkout sheet ─── */
   function renderCheckoutSheet() {
-    const canOrder =
+    const canProceed =
       items.length > 0 &&
       customerName.trim().length > 0 &&
       address.trim().length > 0 &&
-      isOrderConfirmed &&
       !orderingBlocked &&
       (deliveryTime.mode === "scheduled" || isOpenNow);
+
+    const isConfirmStep = checkoutStep === "confirm";
 
     return (
       <div className="fixed inset-0 z-[60]">
         <div
           className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
           onClick={() => {
-            setShowCheckout(false);
-            if (checkoutBackToCart) {
-              setShowMobileCart(true);
-              setCheckoutBackToCart(false);
-            }
+            if (!isPlacingOrder) closeCheckoutSheet();
           }}
         />
         <div className="absolute inset-x-0 bottom-0 z-10 flex max-h-[96dvh] flex-col overflow-hidden rounded-t-3xl bg-slate-100 shadow-2xl lg:inset-y-0 lg:left-auto lg:right-0 lg:w-[min(100vw,28rem)] lg:max-h-none lg:rounded-none lg:rounded-l-3xl">
@@ -689,114 +714,118 @@ export function MenuClient({
             <button
               type="button"
               onClick={() => {
-                setShowCheckout(false);
-                if (checkoutBackToCart) {
-                  setShowMobileCart(true);
-                  setCheckoutBackToCart(false);
+                if (isConfirmStep && !isPlacingOrder) {
+                  setCheckoutStep("review");
+                  return;
                 }
+                if (!isPlacingOrder) closeCheckoutSheet();
               }}
-              className="flex h-10 w-10 items-center justify-center rounded-full text-slate-900 transition hover:bg-slate-100"
-              aria-label="Back to cart"
+              className="flex h-10 w-10 items-center justify-center rounded-full text-slate-900 transition hover:bg-slate-100 disabled:opacity-40"
+              aria-label={isConfirmStep ? "Back to checkout" : "Back to cart"}
+              disabled={isPlacingOrder}
             >
               <ArrowLeft className="h-5 w-5" strokeWidth={2.25} aria-hidden />
             </button>
-            <h2 className="text-center text-base font-bold text-slate-900">Checkout</h2>
+            <h2 className="text-center text-base font-bold text-slate-900">
+              {isConfirmStep ? "Confirm order" : "Checkout"}
+            </h2>
             <div aria-hidden />
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-4">
-            <CheckoutDeliverySections
-              customerName={customerName}
-              onCustomerNameChange={setCustomerName}
-              address={address}
-              onAddressChange={setAddress}
-              notes={notes}
-              onNotesChange={setNotes}
-              savedAddresses={savedAddresses}
-              isLoggedIn={isLoggedIn}
-              openingHours={parsedOpeningHours}
-              etaLabel={etaLabel}
-              deliveryTime={deliveryTime}
-              onDeliveryTimeChange={setDeliveryTime}
-            />
+          {isConfirmStep ? (
+            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pb-4 pt-4">
+              <CheckoutOrderConfirm
+                orderTotal={orderTotal}
+                itemCount={itemCount}
+                formatLbp={formatLbp}
+                formatUsd={formatUsd}
+                restaurantName={restaurantName}
+                onCancel={() => setCheckoutStep("review")}
+                onPlaceOrder={handleOrderClick}
+                isPlacingOrder={isPlacingOrder}
+              />
+              {orderError ? (
+                <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-xs font-medium text-red-600">{orderError}</p>
+              ) : null}
+            </div>
+          ) : (
+            <>
+              <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-4">
+                <CheckoutDeliverySections
+                  customerName={customerName}
+                  onCustomerNameChange={setCustomerName}
+                  address={address}
+                  onAddressChange={setAddress}
+                  notes={notes}
+                  onNotesChange={setNotes}
+                  savedAddresses={savedAddresses}
+                  isLoggedIn={isLoggedIn}
+                  openingHours={parsedOpeningHours}
+                  etaLabel={etaLabel}
+                  deliveryTime={deliveryTime}
+                  onDeliveryTimeChange={setDeliveryTime}
+                />
 
-            {/* Order summary */}
-            <section className="mt-3 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/[0.04]">
-              <p className="text-sm font-bold text-slate-900">Order summary</p>
-              <div className="mt-3 space-y-2">
-                {items.map((item) => (
-                  <div key={item.key} className="flex items-start justify-between gap-2">
-                    <p className="text-sm text-slate-600">
-                      <span className="font-semibold text-slate-800">
-                        {item.unit === "kg" ? formatQty("kg", item.qty) : `${item.qty}×`}
-                      </span>{" "}
-                      {item.name}
-                    </p>
-                    <p className="shrink-0 text-sm font-semibold text-slate-800">
-                      {formatLbp(item.qty * item.unitPrice)}
+                <section className="mt-3 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/[0.04]">
+                  <p className="text-sm font-bold text-slate-900">Order summary</p>
+                  <div className="mt-3 space-y-2">
+                    {items.map((item) => (
+                      <div key={item.key} className="flex items-start justify-between gap-2">
+                        <p className="text-sm text-slate-600">
+                          <span className="font-semibold text-slate-800">
+                            {item.unit === "kg" ? formatQty("kg", item.qty) : `${item.qty}×`}
+                          </span>{" "}
+                          {item.name}
+                        </p>
+                        <p className="shrink-0 text-sm font-semibold text-slate-800">
+                          {formatLbp(item.qty * item.unitPrice)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-3 flex items-center justify-between border-t border-dashed border-slate-200 pt-3">
+                    <p className="text-sm text-slate-600">Subtotal</p>
+                    <p className="text-sm font-bold text-slate-900">{formatLbp(total)}</p>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between">
+                    <p className="text-sm text-slate-600">Delivery</p>
+                    <p className="text-sm font-semibold text-slate-800">
+                      {deliveryCharge === 0 ? "Free" : formatLbp(deliveryCharge)}
                     </p>
                   </div>
-                ))}
+                  <div className="mt-2 flex items-center justify-between">
+                    <p className="text-sm font-bold text-slate-900">Total</p>
+                    <div className="text-right">
+                      <p className="text-base font-bold text-slate-900">{formatLbp(orderTotal)}</p>
+                      <p className="text-xs text-slate-400">{formatUsd(orderTotal)}</p>
+                    </div>
+                  </div>
+                </section>
+
+                {orderError ? (
+                  <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-xs font-medium text-red-600">{orderError}</p>
+                ) : null}
               </div>
-              <div className="mt-3 flex items-center justify-between border-t border-dashed border-slate-200 pt-3">
-                <p className="text-sm text-slate-600">Subtotal</p>
-                <p className="text-sm font-bold text-slate-900">{formatLbp(total)}</p>
-              </div>
-              <div className="mt-2 flex items-center justify-between">
-                <p className="text-sm text-slate-600">Delivery</p>
-                <p className="text-sm font-semibold text-slate-800">
-                  {deliveryCharge === 0 ? "Free" : formatLbp(deliveryCharge)}
-                </p>
-              </div>
-              <div className="mt-2 flex items-center justify-between">
-                <p className="text-sm font-bold text-slate-900">Total</p>
-                <div className="text-right">
-                  <p className="text-base font-bold text-slate-900">{formatLbp(orderTotal)}</p>
-                  <p className="text-xs text-slate-400">{formatUsd(orderTotal)}</p>
+
+              <div className="shrink-0 border-t border-slate-200 bg-white px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+                <div className="flex items-center gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] text-slate-500">Total payment</p>
+                    <p className="text-lg font-bold tabular-nums text-slate-900">{formatLbp(orderTotal)}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={proceedToOrderConfirm}
+                    disabled={!canProceed}
+                    className="min-w-[9.5rem] shrink-0 rounded-2xl px-6 py-3.5 text-sm font-bold text-white shadow-md transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40"
+                    style={{ background: `linear-gradient(135deg, ${BRAND_HEX} 0%, ${BRAND_HEX_DEEP} 100%)` }}
+                  >
+                    Continue
+                  </button>
                 </div>
               </div>
-            </section>
-
-            <label className="mt-3 flex cursor-pointer items-start gap-3 rounded-2xl bg-white p-3 text-sm shadow-sm ring-1 ring-black/[0.04]">
-              <input
-                type="checkbox"
-                checked={isOrderConfirmed}
-                onChange={(e) => {
-                  setIsOrderConfirmed(e.target.checked);
-                  setOrderError(null);
-                }}
-                className="mt-0.5 h-4 w-4 accent-emerald-600"
-              />
-              <div>
-                <p className="font-semibold text-slate-800">I confirm my order above.</p>
-                <p className="text-xs text-slate-500">
-                  Total to pay: <span className="font-semibold text-slate-700">{formatUsd(orderTotal)}</span>
-                </p>
-              </div>
-            </label>
-
-            {orderError ? (
-              <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-xs font-medium text-red-600">{orderError}</p>
-            ) : null}
-          </div>
-
-          {/* Sticky footer */}
-          <div className="shrink-0 border-t border-slate-200 bg-white px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-            <div className="flex items-center gap-3">
-              <div className="min-w-0 flex-1">
-                <p className="text-[11px] text-slate-500">Total payment</p>
-                <p className="text-lg font-bold tabular-nums text-slate-900">{formatLbp(orderTotal)}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => void handleOrderClick()}
-                disabled={!canOrder || isPlacingOrder}
-                className="min-w-[9.5rem] shrink-0 rounded-2xl bg-emerald-500 px-6 py-3.5 text-sm font-bold text-white shadow-md transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                {isPlacingOrder ? "Placing…" : "Place order"}
-              </button>
-            </div>
-          </div>
+            </>
+          )}
         </div>
       </div>
     );
