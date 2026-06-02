@@ -488,7 +488,7 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
             ) : null}
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-2 items-stretch gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-4">
             {filtered.map((restaurant, index) => {
               const section = primarySection(restaurant.browse_sections ?? []);
               const sectionAccent = BROWSE_SECTION_ACCENTS[section];
@@ -509,8 +509,8 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
                   : null;
 
               return (
-                <Link key={restaurant.id} href={`/${restaurant.slug}`} className="group block">
-                  <article className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/[0.06] transition duration-300 hover:-translate-y-1 hover:shadow-lg">
+                <Link key={restaurant.id} href={`/${restaurant.slug}`} className="group flex h-full flex-col">
+                  <article className="flex h-full flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/[0.06] transition duration-300 hover:-translate-y-1 hover:shadow-lg">
                     {/* ── Banner image ── */}
                     <div className="relative h-[42vw] w-full sm:h-44 overflow-hidden bg-slate-100">
                       {restaurant.banner_url ? (
@@ -549,6 +549,12 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
                         </span>
                       ) : null}
 
+                      {isClosed ? (
+                        <span className="absolute bottom-2 left-2 z-10 rounded-md bg-rose-600/95 px-2 py-1 text-[10px] font-bold text-white shadow-sm backdrop-blur-sm">
+                          Closed now
+                        </span>
+                      ) : null}
+
                       {/* Favourite heart — bottom-right */}
                       <button
                         type="button"
@@ -571,9 +577,9 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
                     </div>
 
                     {/* ── White info panel ── */}
-                    <div className="px-3 pb-3 pt-2.5">
+                    <div className="flex flex-1 flex-col px-3 pb-3 pt-2.5">
                       {/* Name row */}
-                      <div className="flex items-center gap-2">
+                      <div className="flex shrink-0 items-center gap-2">
                         {restaurant.logo_url ? (
                           <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-xl border border-slate-100 bg-white shadow-sm">
                             <Image
@@ -595,52 +601,61 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
                         </h3>
                       </div>
 
-                      {/* Description */}
-                      <p className="mt-1.5 line-clamp-2 text-[11px] leading-snug text-slate-500">
+                      <p className="mt-1.5 line-clamp-2 h-9 text-[11px] leading-[1.125rem] text-slate-500">
                         {restaurant.description?.trim() || "Browse the menu and order online."}
                       </p>
 
-                      {isClosed ? (
-                        <span className="mt-2 inline-flex rounded-md bg-rose-50 px-2 py-1 text-[11px] font-semibold text-rose-600 ring-1 ring-rose-100">
-                          Closed now
-                        </span>
-                      ) : null}
-
-                      {/* Meta row: free delivery · eta · rating */}
-                      <div className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1">
-                        {restaurant.free_delivery ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-[#E23744]">
-                            <Bike className="h-3.5 w-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
-                            Free delivery
-                          </span>
-                        ) : null}
-                        {restaurant.eta_label?.trim() ? (
-                          <span className="inline-flex items-center gap-0.5 text-[11px] text-slate-500">
-                            <svg className="h-3 w-3 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                              <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-                            </svg>
-                            {restaurant.eta_label.trim()}
-                          </span>
-                        ) : null}
-                        {rating != null ? (
-                          <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-slate-500">
-                            <svg className="h-3 w-3 shrink-0 text-amber-500" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                            </svg>
-                            {rating.toFixed(1)}
-                          </span>
-                        ) : null}
-                        {(restaurant.branches ?? []).length > 1 ? (
-                          <span className="inline-flex items-center gap-0.5 text-[11px] text-violet-600">
-                            <MapPin className="h-3 w-3 shrink-0" />
-                            {restaurant.branches!.length} branches
-                          </span>
-                        ) : restaurant.location?.trim() ? (
-                          <span className="inline-flex min-w-0 items-center gap-0.5 truncate text-[11px] text-slate-400">
-                            <MapPin className="h-3 w-3 shrink-0" />
-                            <span className="truncate">{restaurant.location.trim()}</span>
-                          </span>
-                        ) : null}
+                      <div className="mt-auto pt-2.5">
+                        <div className="flex min-h-5 flex-wrap items-center gap-x-2.5 gap-y-1">
+                          {restaurant.free_delivery ? (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-[#E23744]">
+                              <Bike className="h-3.5 w-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
+                              Free delivery
+                            </span>
+                          ) : null}
+                          {restaurant.eta_label?.trim() ? (
+                            <span className="inline-flex items-center gap-0.5 text-[11px] text-slate-500">
+                              <svg
+                                className="h-3 w-3 shrink-0 text-slate-400"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth={2}
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                aria-hidden
+                              >
+                                <circle cx="12" cy="12" r="10" />
+                                <polyline points="12 6 12 12 16 14" />
+                              </svg>
+                              {restaurant.eta_label.trim()}
+                            </span>
+                          ) : null}
+                          {rating != null ? (
+                            <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-slate-600">
+                              <svg
+                                className="h-3 w-3 shrink-0 text-amber-500"
+                                viewBox="0 0 24 24"
+                                fill="currentColor"
+                                aria-hidden
+                              >
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                              </svg>
+                              {rating.toFixed(1)}
+                            </span>
+                          ) : null}
+                          {(restaurant.branches ?? []).length > 1 ? (
+                            <span className="inline-flex items-center gap-0.5 text-[11px] text-slate-500">
+                              <MapPin className="h-3 w-3 shrink-0 text-slate-400" />
+                              {restaurant.branches!.length} branches
+                            </span>
+                          ) : restaurant.location?.trim() ? (
+                            <span className="inline-flex min-w-0 items-center gap-0.5 truncate text-[11px] text-slate-500">
+                              <MapPin className="h-3 w-3 shrink-0 text-slate-400" />
+                              <span className="truncate">{restaurant.location.trim()}</span>
+                            </span>
+                          ) : null}
+                        </div>
                       </div>
                     </div>
                   </article>
