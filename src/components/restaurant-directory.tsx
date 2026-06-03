@@ -601,10 +601,6 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
                         </h3>
                       </div>
 
-                      <p className="mt-1.5 line-clamp-2 h-9 text-[11px] leading-[1.125rem] text-slate-500">
-                        {restaurant.description?.trim() || "Browse the menu and order online."}
-                      </p>
-
                       <div className="mt-auto pt-2.5">
                         <div className="flex min-h-5 flex-wrap items-center gap-x-2.5 gap-y-1">
                           {restaurant.free_delivery ? (
