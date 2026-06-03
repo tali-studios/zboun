@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import Image from "next/image";
-import { ArrowLeft, Minus, Plus, Trash2, UtensilsCrossed } from "lucide-react";
+import { ArrowLeft, Minus, Plus, Trash2 } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { CategoryWithItems } from "@/lib/data";
@@ -104,7 +104,6 @@ export function MenuClient({
   const [customerName, setCustomerName] = useState(defaultCustomerName);
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
-  const [noCutlery, setNoCutlery] = useState(false);
   const [showMobileCart, setShowMobileCart] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
   const [checkoutStep, setCheckoutStep] = useState<"review" | "confirm">("review");
@@ -331,7 +330,6 @@ export function MenuClient({
 
   function buildOrderNotes() {
     const parts: string[] = [];
-    if (noCutlery) parts.push("Please do not send cutlery.");
     if (deliveryTime.mode === "scheduled") {
       parts.push(`Scheduled delivery: ${formatDeliveryTimeLabel(deliveryTime, etaLabel)}`);
     }
@@ -426,7 +424,6 @@ export function MenuClient({
       }
       setPlacedOrder({ orderId: result.orderId, whatsappUrl: result.whatsappNotifyUrl });
       setCart({});
-      setNoCutlery(false);
       setShowCheckout(false);
       setCheckoutStep("review");
       setCheckoutBackToCart(false);
@@ -599,29 +596,6 @@ export function MenuClient({
                 <span className="text-sm font-bold text-slate-900">{formatLbp(total)}</span>
                 <span className="text-xs text-slate-400">{formatUsd(total)}</span>
               </div>
-            </div>
-
-            <div className="mt-3 flex items-center gap-3 overflow-hidden rounded-2xl bg-white px-4 py-3.5 shadow-sm ring-1 ring-slate-100">
-              <UtensilsCrossed className="h-5 w-5 shrink-0 text-slate-800" strokeWidth={2} aria-hidden />
-              <span className="min-w-0 flex-1 text-sm font-semibold leading-snug text-slate-900">
-                Please do not send cutlery
-              </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={noCutlery}
-                aria-label="Please do not send cutlery"
-                onClick={() => setNoCutlery((value) => !value)}
-                className={`inline-flex h-7 w-12 shrink-0 items-center rounded-full p-0.5 transition-colors ${
-                  noCutlery ? "bg-emerald-500" : "bg-slate-200"
-                }`}
-              >
-                <span
-                  className={`block h-6 w-6 rounded-full bg-white shadow transition-transform duration-200 ease-out ${
-                    noCutlery ? "translate-x-5" : "translate-x-0"
-                  }`}
-                />
-              </button>
             </div>
           </div>
         ) : null}

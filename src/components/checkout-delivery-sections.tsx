@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import {
   BellOff,
@@ -32,6 +32,7 @@ import {
   DeliveryTimeSheet,
   type DeliveryTimeChoice,
 } from "@/components/delivery-time-sheet";
+import { CheckoutDeliveryInstructionsSheet } from "@/components/checkout-delivery-instructions-sheet";
 import {
   formatDeliveryTimeLabel,
   type DayHours,
@@ -168,14 +169,14 @@ export function CheckoutDeliverySections({
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const [baseAddress, setBaseAddress] = useState("");
   const [extraDetails, setExtraDetails] = useState("");
-  const [showCustomInstructions, setShowCustomInstructions] = useState(false);
+  const [showInstructionsSheet, setShowInstructionsSheet] = useState(false);
+  const [customInstructionsSet, setCustomInstructionsSet] = useState(() => notes.trim().length > 0);
   const [saveInstructionsDefault, setSaveInstructionsDefault] = useState(false);
   const [showDeliveryTimeSheet, setShowDeliveryTimeSheet] = useState(false);
   const [showAddressSheet, setShowAddressSheet] = useState(false);
   const [showAddressDetailsSheet, setShowAddressDetailsSheet] = useState(false);
   const [detailsInitialAction, setDetailsInitialAction] = useState<AddressDetailsAction>("details");
   const [addressActionIndex, setAddressActionIndex] = useState(0);
-  const notesRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     setAddressBook(savedAddresses);
@@ -278,7 +279,12 @@ export function CheckoutDeliverySections({
   }
 
   function isPhraseActive(phrase: string | null) {
-    return phrase ? notes.includes(phrase) : showCustomInstructions;
+    return phrase ? notes.includes(phrase) : customInstructionsSet;
+  }
+
+  function handleSaveInstructions(next: string) {
+    onNotesChange(next);
+    setCustomInstructionsSet(next.trim().length > 0);
   }
 
   function applySavedAddress(addr: SavedAddressOption) {
@@ -406,6 +412,12 @@ export function CheckoutDeliverySections({
         openingHours={openingHours}
         etaLabel={etaLabel}
       />
+      <CheckoutDeliveryInstructionsSheet
+        open={showInstructionsSheet}
+        onClose={() => setShowInstructionsSheet(false)}
+        value={notes}
+        onSave={handleSaveInstructions}
+      />
 
       <div className="space-y-3">
         {/* Delivery time */}
@@ -460,12 +472,12 @@ export function CheckoutDeliverySections({
                   <button
                     type="button"
                     key={action.label}
-                    className="inline-flex w-full items-center gap-2 rounded-full bg-cyan-50 px-3 py-2 text-left text-xs font-medium text-slate-900 transition hover:bg-cyan-100"
+                    className="inline-flex w-full items-center gap-2 rounded-full border border-violet-300/70 bg-[color-mix(in_srgb,var(--brand)_20%,white)] px-3 py-2 text-left text-xs font-semibold text-violet-900 transition hover:border-violet-400 hover:bg-[color-mix(in_srgb,var(--brand)_28%,white)]"
                     onClick={() => openAddressDetails(action.action)}
                   >
-                    <ActionIcon className="h-3.5 w-3.5 shrink-0 text-slate-700" strokeWidth={2} aria-hidden />
+                    <ActionIcon className="h-3.5 w-3.5 shrink-0 text-violet-700" strokeWidth={2} aria-hidden />
                     <span className="min-w-0 flex-1 truncate">{action.label}</span>
-                    <ChevronRight className="h-3.5 w-3.5 shrink-0 text-slate-500" aria-hidden />
+                    <ChevronRight className="h-3.5 w-3.5 shrink-0 text-violet-600" aria-hidden />
                   </button>
                 );
               })()}
@@ -490,6 +502,7 @@ export function CheckoutDeliverySections({
               const Icon = opt.icon;
               const active = isPhraseActive(opt.phrase);
               const disabled = "disabled" in opt && opt.disabled;
+              const phraseChip = opt.id === "call" || opt.id === "bell";
               return (
                 <button
                   key={opt.id}
@@ -497,37 +510,35 @@ export function CheckoutDeliverySections({
                   disabled={disabled}
                   onClick={() => {
                     if (opt.id === "write") {
-                      setShowCustomInstructions(true);
-                      notesRef.current?.focus();
+                      setShowInstructionsSheet(true);
                       return;
                     }
                     if (opt.phrase) toggleInstructionPhrase(opt.phrase);
                   }}
-                  className={`flex w-[88px] shrink-0 flex-col items-center gap-1.5 rounded-xl border px-2 py-3 text-center transition ${
+                  className={`flex w-[88px] shrink-0 flex-col rounded-xl border px-2 py-2.5 transition ${
+                    phraseChip ? "justify-between text-left" : "items-center gap-1.5 text-center"
+                  } ${
                     disabled
-                      ? "cursor-not-allowed border-slate-100 bg-slate-50 opacity-50"
+                      ? "cursor-not-allowed border-slate-100 bg-slate-50 opacity-50 text-slate-400"
                       : active
-                        ? "border-violet-500 bg-violet-50 text-violet-800"
-                        : "border-slate-200 bg-white text-slate-700 hover:border-violet-300"
+                        ? "border-[var(--brand)] bg-white text-[var(--brand)]"
+                        : phraseChip
+                          ? "border-slate-200 bg-white text-slate-600 hover:border-violet-300"
+                          : "border-slate-200 bg-white text-slate-700 hover:border-violet-300"
                   }`}
                 >
-                  <Icon className="h-5 w-5 shrink-0" strokeWidth={1.75} aria-hidden />
-                  <span className="text-[10px] font-medium leading-tight">{opt.label}</span>
+                  <Icon
+                    className={`shrink-0 ${phraseChip ? "h-4 w-4" : "h-5 w-5"}`}
+                    strokeWidth={1.75}
+                    aria-hidden
+                  />
+                  <span className="text-[10px] font-medium leading-tight">
+                    {opt.label}
+                  </span>
                 </button>
               );
             })}
           </div>
-
-          {showCustomInstructions || notes.trim() ? (
-            <textarea
-              ref={notesRef}
-              value={notes}
-              onChange={(e) => onNotesChange(e.target.value)}
-              placeholder="Add delivery instructions…"
-              rows={2}
-              className="ui-textarea mt-3 text-sm"
-            />
-          ) : null}
 
           {isLoggedIn && matchedSaved ? (
             <label className="mt-3 flex cursor-pointer items-center gap-2.5 text-sm text-slate-700">
