@@ -26,6 +26,9 @@ import { formatSavedAddressLine } from "@/lib/format-address";
 import { env } from "@/lib/env";
 import type { SavedAddressOption } from "@/components/order-delivery-fields";
 import { BRAND_HEX, BRAND_HEX_DEEP } from "@/lib/brand";
+import { resolveAddressNicknameForSave } from "@/lib/customer-address";
+import { DEFAULT_COUNTRY_DIAL } from "@/lib/country-calling-codes";
+import { PhoneCountrySelect } from "@/components/phone-country-select";
 
 const GoogleMapPicker = dynamic(
   () => import("@/components/google-map-picker").then((m) => m.GoogleMapPicker),
@@ -132,8 +135,7 @@ export function CheckoutAddressDetailsSheet({
   const [building, setBuilding] = useState("");
   const [apartment, setApartment] = useState("");
   const [phone, setPhone] = useState("");
-  const [countryCode] = useState("+961");
-  const [driverNotes, setDriverNotes] = useState("");
+  const [countryCode, setCountryCode] = useState(DEFAULT_COUNTRY_DIAL);
   const [lat, setLat] = useState(33.8938);
   const [lng, setLng] = useState(35.5018);
   const [formattedAddress, setFormattedAddress] = useState("");
@@ -176,7 +178,7 @@ export function CheckoutAddressDetailsSheet({
     setBuilding(initial?.building ?? "");
     setApartment(initial?.apartment ?? "");
     setPhone(initial?.phone ?? "");
-    setDriverNotes(initial?.driver_notes ?? "");
+    setCountryCode(initial?.country_code ?? DEFAULT_COUNTRY_DIAL);
     setVoiceUrl(initial?.voice_directions_url ?? null);
     setPhotoUrls(initial?.address_photo_urls ?? []);
     setLat(initial?.latitude ?? 33.8938);
@@ -283,11 +285,17 @@ export function CheckoutAddressDetailsSheet({
       const userLine = [street, building, apartment].filter(Boolean).join(", ");
       const fullFormatted = userLine || formattedAddress.trim() || null;
 
+      const resolvedNickname = resolveAddressNicknameForSave(label, nickname, selectedLabel.label);
+      if (!resolvedNickname.ok) {
+        setError(resolvedNickname.error);
+        return;
+      }
+
       if (isLoggedIn) {
         const result = await saveCheckoutAddressAction({
           id: addressId,
           label,
-          nickname: nickname.trim() || selectedLabel.label,
+          nickname: resolvedNickname.nickname,
           latitude: lat,
           longitude: lng,
           formatted_address: fullFormatted,
@@ -296,7 +304,7 @@ export function CheckoutAddressDetailsSheet({
           apartment: apartment.trim() || null,
           phone: phone.trim() || null,
           country_code: countryCode,
-          driver_notes: driverNotes.trim() || null,
+          driver_notes: null,
           voice_directions_url: voiceUrl,
           address_photo_urls: uploadedPhotos,
           is_default: false,
@@ -313,7 +321,7 @@ export function CheckoutAddressDetailsSheet({
       onSaved({
         id: addressId ?? "local-draft",
         label,
-        nickname: nickname.trim() || selectedLabel.label,
+        nickname: resolvedNickname.nickname,
         latitude: lat,
         longitude: lng,
         formatted_address: fullFormatted,
@@ -322,7 +330,7 @@ export function CheckoutAddressDetailsSheet({
         apartment: apartment.trim() || null,
         phone: phone.trim() || null,
         country_code: countryCode,
-        driver_notes: driverNotes.trim() || null,
+        driver_notes: null,
         voice_directions_url: voiceUrl,
         address_photo_urls: uploadedPhotos,
         is_default: false,
@@ -463,7 +471,11 @@ export function CheckoutAddressDetailsSheet({
                             type="button"
                             onClick={() => {
                               setLabel(opt.value);
-                              if (!nickname.trim()) setNickname(opt.label);
+                              if (opt.value === "other") {
+                                if (label !== "other") setNickname("");
+                              } else {
+                                setNickname("");
+                              }
                               setShowLabelMenu(false);
                             }}
                             className="flex w-full items-center gap-3 px-3 py-3 text-left transition hover:bg-slate-50"
@@ -480,21 +492,30 @@ export function CheckoutAddressDetailsSheet({
                   ) : null}
                 </div>
 
-                <LabeledField label="Nickname" value={nickname} onChange={setNickname} />
+                {label === "other" ? (
+                  <LabeledField
+                    label="Location name"
+                    value={nickname}
+                    onChange={setNickname}
+                    placeholder="e.g. Second Home"
+                  />
+                ) : null}
                 <LabeledField label="Area/Street" value={street} onChange={setStreet} />
                 <LabeledField label="Building name/no." value={building} onChange={setBuilding} />
                 <LabeledField label="Floor/Address no." value={apartment} onChange={setApartment} />
 
-                <div className="grid grid-cols-[88px_1fr] gap-2">
-                  <label className="flex items-center justify-center gap-1 rounded-xl border border-slate-200 bg-white px-2 py-3 text-sm font-medium text-slate-700 shadow-sm">
-                    <span aria-hidden>🇱🇧</span>
-                    {countryCode}
-                  </label>
+                <div className="flex flex-col gap-2 sm:grid sm:grid-cols-[minmax(10.5rem,12.5rem)_1fr] sm:items-stretch">
+                  <PhoneCountrySelect
+                    variant="card"
+                    value={countryCode}
+                    onChange={setCountryCode}
+                  />
                   <LabeledField
-                    label="Phone Number"
+                    label="Phone number"
                     value={phone}
                     onChange={setPhone}
                     type="tel"
+                    placeholder="Mobile number"
                   />
                 </div>
 
@@ -540,14 +561,6 @@ export function CheckoutAddressDetailsSheet({
                     </span>
                     <Mic className="h-4 w-4 shrink-0" />
                   </button>
-
-                  <textarea
-                    value={driverNotes}
-                    onChange={(e) => setDriverNotes(e.target.value)}
-                    placeholder="Nearby landmarks, delivery instructions…"
-                    rows={2}
-                    className="ui-textarea mt-3 text-sm"
-                  />
 
                   <input
                     ref={photoInputRef}

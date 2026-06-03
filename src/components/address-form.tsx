@@ -4,6 +4,8 @@ import { useState } from "react";
 import { MapPin, Home, Briefcase, Star } from "lucide-react";
 import dynamic from "next/dynamic";
 import { saveCustomerAddressAction } from "@/app-actions/customer-auth";
+import { PhoneCountrySelect } from "@/components/phone-country-select";
+import { DEFAULT_COUNTRY_DIAL } from "@/lib/country-calling-codes";
 import { Loader2 } from "lucide-react";
 
 const GoogleMapPicker = dynamic(
@@ -22,12 +24,14 @@ type AddressData = {
   building: string | null;
   apartment: string | null;
   phone: string | null;
+  country_code?: string | null;
   driver_notes: string | null;
   is_default: boolean;
 };
 
 type Props = {
   address?: AddressData;
+  duplicateNameError?: boolean;
 };
 
 const LABEL_OPTIONS = [
@@ -37,16 +41,27 @@ const LABEL_OPTIONS = [
   { value: "other", label: "Other", icon: <MapPin className="h-4 w-4" /> },
 ];
 
-export function AddressForm({ address }: Props) {
+export function AddressForm({ address, duplicateNameError = false }: Props) {
   const [label, setLabel] = useState(address?.label ?? "home");
+  const [nickname, setNickname] = useState(() => {
+    if (!address) return "";
+    if (address.label === "other") return address.nickname?.trim() ?? "";
+    return "";
+  });
   const [lat, setLat] = useState(address?.latitude ?? 33.8938);
   const [lng, setLng] = useState(address?.longitude ?? 35.5018);
   const [formattedAddress, setFormattedAddress] = useState(address?.formatted_address ?? "");
   const [showMap, setShowMap] = useState(!address);
   const [isDefault, setIsDefault] = useState(address?.is_default ?? false);
+  const [countryCode, setCountryCode] = useState(address?.country_code ?? DEFAULT_COUNTRY_DIAL);
 
   return (
     <div className="space-y-6">
+      {duplicateNameError ? (
+        <p className="rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+          You already have an address with this name. Choose a different nickname or category.
+        </p>
+      ) : null}
       {/* Form */}
       <form action={saveCustomerAddressAction} className="space-y-5">
         {address ? <input type="hidden" name="id" value={address.id} /> : null}
@@ -55,7 +70,13 @@ export function AddressForm({ address }: Props) {
         <input type="hidden" name="longitude" value={lng} />
         <input type="hidden" name="formatted_address" value={formattedAddress} />
         <input type="hidden" name="is_default" value={String(isDefault)} />
-        <input type="hidden" name="nickname" defaultValue={address?.nickname ?? ""} />
+        {label !== "other" ? (
+          <input
+            type="hidden"
+            name="nickname"
+            value={LABEL_OPTIONS.find((o) => o.value === label)?.label ?? ""}
+          />
+        ) : null}
 
         {/* Map location picker */}
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
@@ -109,7 +130,14 @@ export function AddressForm({ address }: Props) {
               <button
                 key={opt.value}
                 type="button"
-                onClick={() => setLabel(opt.value)}
+                onClick={() => {
+                  setLabel(opt.value);
+                  if (opt.value === "other") {
+                    if (label !== "other") setNickname("");
+                  } else {
+                    setNickname("");
+                  }
+                }}
                 className={`flex flex-col items-center gap-1 rounded-none border px-2 py-3 text-xs transition ${
                   label === opt.value
                     ? "border-violet-400 bg-violet-50 text-violet-700"
@@ -123,6 +151,20 @@ export function AddressForm({ address }: Props) {
               </button>
             ))}
           </div>
+          {label === "other" ? (
+            <div className="mt-3">
+              <label className="mb-1.5 block text-xs font-semibold text-slate-600">Location name</label>
+              <input
+                name="nickname"
+                type="text"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                placeholder="e.g. Second Home"
+                required
+                className="ui-input rounded-md"
+              />
+            </div>
+          ) : null}
         </div>
 
         <div>
@@ -159,29 +201,18 @@ export function AddressForm({ address }: Props) {
           />
         </div>
 
-        <div className="grid grid-cols-[80px_1fr] gap-2">
-          <input
-            type="text"
-            value="LB +961"
-            readOnly
-            className="ui-input rounded-md bg-slate-50 px-3 text-xs font-medium text-slate-600"
+        <div className="flex flex-col gap-2 sm:grid sm:grid-cols-[minmax(10.5rem,12.5rem)_1fr] sm:items-stretch">
+          <PhoneCountrySelect
+            name="country_code"
+            value={countryCode}
+            onChange={setCountryCode}
           />
           <input
             name="phone"
             type="tel"
             defaultValue={address?.phone ?? ""}
-            placeholder="Phone Number"
-            className="ui-input rounded-md"
-          />
-        </div>
-
-        <div>
-          <textarea
-            name="driver_notes"
-            defaultValue={address?.driver_notes ?? ""}
-            placeholder="Instructions For Your Driver? (Optional)"
-            rows={2}
-            className="ui-input resize-none rounded-md"
+            placeholder="Phone number"
+            className="ui-input h-11 min-w-0 rounded-xl"
           />
         </div>
 

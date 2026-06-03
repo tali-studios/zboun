@@ -139,7 +139,7 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
     [toggleFavorite],
   );
 
-  const { location, openSheet, clearLocation, radiusKm } = useDeliveryLocation();
+  const { location, openSheet, clearLocation, radiusKm, isResolvingLocation } = useDeliveryLocation();
 
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -193,7 +193,9 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
 
   const filterButtonLabel = activeSection === "all" ? "All" : activeSection;
 
-  const locationLabel = location?.label ?? null;
+  const locationLabel = isResolvingLocation
+    ? "Finding location…"
+    : (location?.label ?? null);
 
   return (
     <>
@@ -240,7 +242,7 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
             {location ? (
               <button
                 onClick={clearLocation}
-                aria-label="Clear location"
+                aria-label="Use current location"
                 className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200"
               >
                 <X className="h-4 w-4" />
@@ -324,7 +326,7 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
               <button
                 onClick={clearLocation}
                 className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-100"
-                aria-label="Clear location"
+                aria-label="Use current location"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -338,8 +340,12 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
                 <Navigation className="h-4 w-4" />
               </span>
               <div className="flex-1">
-                <p className="text-sm font-semibold text-slate-600">Set delivery location</p>
-                <p className="text-xs text-slate-400">See restaurants near you</p>
+                <p className="text-sm font-semibold text-slate-600">
+                  {isResolvingLocation ? "Finding your location…" : "Choose saved address"}
+                </p>
+                <p className="text-xs text-slate-400">
+                  {isResolvingLocation ? "Allow location access if prompted" : "Or wait for GPS to finish"}
+                </p>
               </div>
               <MapPin className="h-4 w-4 shrink-0 text-slate-300" />
             </button>

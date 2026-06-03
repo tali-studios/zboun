@@ -11,15 +11,11 @@ import {
 import {
   type DeliveryLocation,
   DEFAULT_RADIUS_KM,
+  formatGeolocationError,
   loadDeliveryLocation,
+  resolveCurrentDeliveryLocation,
   saveDeliveryLocation,
-  clearDeliveryLocation,
 } from "@/lib/delivery-location";
-import {
-  addressLabelFromFormatted,
-  isPlaceholderLocationText,
-  reverseGeocodeAddress,
-} from "@/lib/google-geocode";
 
 type DeliveryLocationCtx = {
   location: DeliveryLocation | null;
@@ -30,6 +26,8 @@ type DeliveryLocationCtx = {
   closeSheet: () => void;
   radiusKm: number;
   setRadiusKm: (km: number) => void;
+  isResolvingLocation: boolean;
+  locateError: string | null;
 };
 
 const Ctx = createContext<DeliveryLocationCtx | null>(null);
@@ -38,44 +36,67 @@ export function DeliveryLocationProvider({ children }: { children: ReactNode }) 
   const [location, setLocationState] = useState<DeliveryLocation | null>(null);
   const [radiusKm, setRadiusKmState] = useState(DEFAULT_RADIUS_KM);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const [hydrated, setHydrated] = useState(false);
-
-  useEffect(() => {
-    const saved = loadDeliveryLocation();
-    if (saved) {
-      setLocationState(saved);
-      setRadiusKmState(saved.radiusKm ?? DEFAULT_RADIUS_KM);
-
-      // Fix older saves that stored the placeholder "Current location" instead of a real address
-      if (
-        isPlaceholderLocationText(saved.address) ||
-        isPlaceholderLocationText(saved.label)
-      ) {
-        void reverseGeocodeAddress(saved.lat, saved.lng).then((geocoded) => {
-          if (!geocoded) return;
-          const updated: DeliveryLocation = {
-            ...saved,
-            address: geocoded,
-            label: addressLabelFromFormatted(geocoded),
-          };
-          setLocationState(updated);
-          saveDeliveryLocation(updated);
-        });
-      }
-    }
-    setHydrated(true);
-  }, []);
+  const [isResolvingLocation, setIsResolvingLocation] = useState(true);
+  const [locateError, setLocateError] = useState<string | null>(null);
 
   const setLocation = useCallback((loc: DeliveryLocation) => {
     setLocationState(loc);
     setRadiusKmState(loc.radiusKm);
     saveDeliveryLocation(loc);
+    setLocateError(null);
+  }, []);
+
+  const applyCurrentLocation = useCallback(async (radius = radiusKm) => {
+    setIsResolvingLocation(true);
+    setLocateError(null);
+    try {
+      const resolved = await resolveCurrentDeliveryLocation(radius);
+      setLocation(resolved);
+    } catch (err) {
+      setLocateError(formatGeolocationError(err));
+      const saved = loadDeliveryLocation();
+      if (saved) {
+        setLocationState(saved);
+        setRadiusKmState(saved.radiusKm ?? DEFAULT_RADIUS_KM);
+      }
+    } finally {
+      setIsResolvingLocation(false);
+    }
+  }, [radiusKm, setLocation]);
+
+  useEffect(() => {
+    const saved = loadDeliveryLocation();
+    const radius = saved?.radiusKm ?? DEFAULT_RADIUS_KM;
+    if (saved?.radiusKm) setRadiusKmState(saved.radiusKm);
+
+    let cancelled = false;
+    setIsResolvingLocation(true);
+    setLocateError(null);
+    void resolveCurrentDeliveryLocation(radius)
+      .then((resolved) => {
+        if (!cancelled) setLocation(resolved);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setLocateError(formatGeolocationError(err));
+        if (saved) {
+          setLocationState(saved);
+          setRadiusKmState(saved.radiusKm ?? DEFAULT_RADIUS_KM);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsResolvingLocation(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount
   }, []);
 
   const clearLocation = useCallback(() => {
-    setLocationState(null);
-    clearDeliveryLocation();
-  }, []);
+    void applyCurrentLocation();
+  }, [applyCurrentLocation]);
 
   const setRadiusKm = useCallback(
     (km: number) => {
@@ -92,10 +113,6 @@ export function DeliveryLocationProvider({ children }: { children: ReactNode }) 
   const openSheet = useCallback(() => setIsSheetOpen(true), []);
   const closeSheet = useCallback(() => setIsSheetOpen(false), []);
 
-  // Always render the provider — hydrated flag just gates localStorage reads.
-  // Never skip the context wrapper or useDeliveryLocation() will throw.
-  void hydrated;
-
   return (
     <Ctx.Provider
       value={{
@@ -107,6 +124,8 @@ export function DeliveryLocationProvider({ children }: { children: ReactNode }) 
         closeSheet,
         radiusKm,
         setRadiusKm,
+        isResolvingLocation,
+        locateError,
       }}
     >
       {children}

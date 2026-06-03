@@ -7,7 +7,10 @@ import { CustomerDesktopNav } from "@/components/customer-desktop-nav";
 
 export const dynamic = "force-dynamic";
 
-export default async function NewAddressPage() {
+type Props = { searchParams: Promise<{ error?: string }> };
+
+export default async function NewAddressPage({ searchParams }: Props) {
+  const { error } = await searchParams;
   const session = await getCustomerSession();
   if (!session) redirect("/login");
 
@@ -32,7 +35,7 @@ export default async function NewAddressPage() {
       </header>
 
       <div className="mx-auto max-w-lg px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-5 md:py-10">
-        <AddressForm />
+        <AddressForm duplicateNameError={error === "duplicate_name"} />
       </div>
       <CustomerMobileFooterNav />
     </div>

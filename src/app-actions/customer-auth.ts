@@ -6,8 +6,38 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import { getSafeRedirectPath } from "@/lib/auth-redirect";
+import {
+  customerAddressDisplayName,
+  duplicateAddressNameMessage,
+  normalizeAddressNameKey,
+} from "@/lib/customer-address";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { env } from "@/lib/env";
+
+type AddressNameRow = { id: string; label: string; nickname: string | null };
+
+async function findDuplicateAddressName(
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+  customerId: string,
+  label: string,
+  nickname: string | null,
+  excludeId?: string | null,
+): Promise<string | null> {
+  const displayName = customerAddressDisplayName(label, nickname);
+  const key = normalizeAddressNameKey(displayName);
+
+  const { data: existing } = await supabase
+    .from("customer_addresses")
+    .select("id, label, nickname")
+    .eq("customer_id", customerId);
+
+  for (const row of (existing ?? []) as AddressNameRow[]) {
+    if (excludeId && row.id === excludeId) continue;
+    const other = customerAddressDisplayName(row.label, row.nickname);
+    if (normalizeAddressNameKey(other) === key) return displayName;
+  }
+  return null;
+}
 
 function getAdminClient() {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -448,6 +478,9 @@ export async function saveCheckoutAddressAction(
   }
 
   const id = String(input.id ?? "").trim();
+  const duplicate = await findDuplicateAddressName(supabase, user.id, label, row.nickname, id || null);
+  if (duplicate) return { ok: false, error: duplicateAddressNameMessage(duplicate) };
+
   if (id) {
     const { data, error } = await supabase
       .from("customer_addresses")
@@ -575,6 +608,9 @@ export async function quickSaveCustomerAddressAction(
     is_default: isDefault,
   };
 
+  const duplicate = await findDuplicateAddressName(supabase, user.id, label, nickname, null);
+  if (duplicate) return { ok: false, error: duplicateAddressNameMessage(duplicate) };
+
   const { data, error } = await supabase
     .from("customer_addresses")
     .insert(row)
@@ -604,6 +640,8 @@ export async function saveCustomerAddressAction(formData: FormData) {
     redirect("/account?error=invalid_location");
 
   const label = String(formData.get("label") ?? "other");
+  const nickname = String(formData.get("nickname") ?? "").trim() || null;
+  const countryCode = String(formData.get("country_code") ?? "+961").trim() || "+961";
   const isDefault = formData.get("is_default") === "true";
 
   if (isDefault) {
@@ -614,12 +652,18 @@ export async function saveCustomerAddressAction(formData: FormData) {
   }
 
   const id = String(formData.get("id") ?? "").trim();
+  const duplicate = await findDuplicateAddressName(supabase, user.id, label, nickname, id || null);
+  if (duplicate) {
+    if (id) redirect(`/account/addresses/${id}?error=duplicate_name`);
+    redirect("/account/addresses/new?error=duplicate_name");
+  }
+
   if (id) {
     await supabase
       .from("customer_addresses")
       .update({
         label,
-        nickname: String(formData.get("nickname") ?? "").trim() || null,
+        nickname,
         latitude: lat,
         longitude: lng,
         formatted_address: String(formData.get("formatted_address") ?? "").trim() || null,
@@ -627,6 +671,7 @@ export async function saveCustomerAddressAction(formData: FormData) {
         building: String(formData.get("building") ?? "").trim() || null,
         apartment: String(formData.get("apartment") ?? "").trim() || null,
         phone: String(formData.get("phone") ?? "").trim() || null,
+        country_code: countryCode,
         driver_notes: String(formData.get("driver_notes") ?? "").trim() || null,
         is_default: isDefault,
       })
@@ -636,7 +681,7 @@ export async function saveCustomerAddressAction(formData: FormData) {
     await supabase.from("customer_addresses").insert({
       customer_id: user.id,
       label,
-      nickname: String(formData.get("nickname") ?? "").trim() || null,
+      nickname,
       latitude: lat,
       longitude: lng,
       formatted_address: String(formData.get("formatted_address") ?? "").trim() || null,
@@ -644,6 +689,7 @@ export async function saveCustomerAddressAction(formData: FormData) {
       building: String(formData.get("building") ?? "").trim() || null,
       apartment: String(formData.get("apartment") ?? "").trim() || null,
       phone: String(formData.get("phone") ?? "").trim() || null,
+      country_code: countryCode,
       driver_notes: String(formData.get("driver_notes") ?? "").trim() || null,
       is_default: isDefault,
     });
