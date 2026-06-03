@@ -31,7 +31,7 @@ import {
   type BrowseSection,
 } from "@/lib/browse-sections";
 import { useDeliveryLocation } from "@/components/delivery-location-provider";
-import { distanceKm, formatDistance } from "@/lib/geo";
+import { distanceKm } from "@/lib/geo";
 import { DeliveryLocationSheet } from "@/components/delivery-location-sheet";
 import {
   hasConfiguredOpeningHours,
@@ -541,14 +541,6 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
                         {section}
                       </div>
 
-                      {/* Distance — top-right */}
-                      {restaurant.distKm !== null && restaurant.distKm !== undefined ? (
-                        <span className="absolute right-2 top-2 z-10 flex items-center gap-1 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-semibold text-white backdrop-blur-sm">
-                          <MapPin className="h-2.5 w-2.5" />
-                          {formatDistance(restaurant.distKm)}
-                        </span>
-                      ) : null}
-
                       {isClosed ? (
                         <span className="absolute bottom-2 left-2 z-10 rounded-md bg-rose-600/95 px-2 py-1 text-[10px] font-bold text-white shadow-sm backdrop-blur-sm">
                           Closed now
@@ -563,7 +555,7 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
                         className="absolute bottom-2 right-2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-white/80 shadow-sm backdrop-blur-sm transition hover:bg-white"
                       >
                         <svg
-                          className={`h-4 w-4 transition-colors ${isFavorite(restaurant.slug) ? "fill-violet-600 text-violet-600" : "fill-none text-slate-500"}`}
+                          className={`h-4 w-4 transition-colors ${isFavorite(restaurant.slug) ? "fill-amber-500 text-amber-500" : "fill-none text-slate-500"}`}
                           viewBox="0 0 24 24"
                           stroke="currentColor"
                           strokeWidth={2}

@@ -93,7 +93,7 @@ export function FavoritesView({ restaurants }: Props) {
                   className="absolute bottom-2 right-2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-white/80 shadow-sm backdrop-blur-sm transition hover:bg-white"
                 >
                   <svg
-                    className="h-4 w-4 fill-violet-600 text-violet-600"
+                    className="h-4 w-4 fill-amber-500 text-amber-500"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
                     strokeWidth={2}
