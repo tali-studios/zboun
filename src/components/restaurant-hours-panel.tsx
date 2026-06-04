@@ -18,6 +18,67 @@ type Props = {
   isTemporarilyClosed: boolean;
 };
 
+const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
+const MINUTE_OPTIONS = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, "0"));
+
+function parseTimeValue(value: string): { hour: string; minute: string } {
+  const [hour = "09", minute = "00"] = value.split(":");
+  return {
+    hour: HOUR_OPTIONS.includes(hour) ? hour : "09",
+    minute: MINUTE_OPTIONS.includes(minute) ? minute : "00",
+  };
+}
+
+/** Native time inputs overflow on mobile; dropdowns stay within the card. */
+function MobileTimeSelect({
+  value,
+  onChange,
+  label,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  label: string;
+}) {
+  const { hour, minute } = parseTimeValue(value);
+
+  return (
+    <div className="min-w-0">
+      <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+        {label}
+      </span>
+      <div className="grid min-w-0 grid-cols-[1fr_auto_1fr] items-center gap-1.5">
+        <select
+          value={hour}
+          onChange={(e) => onChange(`${e.target.value}:${minute}`)}
+          className="ui-select min-w-0 py-2 text-sm"
+          aria-label={`${label} hour`}
+        >
+          {HOUR_OPTIONS.map((h) => (
+            <option key={h} value={h}>
+              {h}
+            </option>
+          ))}
+        </select>
+        <span className="text-sm font-semibold text-slate-400" aria-hidden>
+          :
+        </span>
+        <select
+          value={minute}
+          onChange={(e) => onChange(`${hour}:${e.target.value}`)}
+          className="ui-select min-w-0 py-2 text-sm"
+          aria-label={`${label} minute`}
+        >
+          {MINUTE_OPTIONS.map((m) => (
+            <option key={m} value={m}>
+              {m}
+            </option>
+          ))}
+        </select>
+      </div>
+    </div>
+  );
+}
+
 function HoursDayTableCells({
   row,
   onUpdate,
@@ -88,7 +149,7 @@ export function RestaurantHoursPanel({ openingHours, isTemporarilyClosed }: Prop
   }
 
   return (
-    <div className="panel p-5">
+    <div className="panel min-w-0 overflow-x-hidden p-4 sm:p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
         <div className="min-w-0">
           <h2 className="panel-title">Opening hours</h2>
@@ -117,15 +178,15 @@ export function RestaurantHoursPanel({ openingHours, isTemporarilyClosed }: Prop
         </div>
       ) : null}
 
-      <form action={updateRestaurantHoursAction} className="mt-4 space-y-3">
+      <form action={updateRestaurantHoursAction} className="mt-4 min-w-0 space-y-3">
         <input type="hidden" name="opening_hours" value={serialized} />
 
-        {/* Mobile: one card per day */}
-        <ul className="space-y-2.5 lg:hidden">
+        {/* Mobile: one card per day (dropdown times — native time inputs overflow) */}
+        <ul className="min-w-0 space-y-2.5 lg:hidden">
           {rows.map((row) => (
             <li
               key={row.day}
-              className="rounded-xl border border-slate-200 bg-slate-50/50 p-3.5 shadow-sm"
+              className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-50/50 p-3.5 shadow-sm"
             >
               <div className="flex items-center justify-between gap-3">
                 <span className="text-base font-semibold text-slate-900">{WEEKDAY_LABELS[row.day]}</span>
@@ -142,29 +203,17 @@ export function RestaurantHoursPanel({ openingHours, isTemporarilyClosed }: Prop
               {row.closed ? (
                 <p className="mt-2.5 text-sm text-slate-500">Closed all day</p>
               ) : (
-                <div className="mt-3 grid grid-cols-2 gap-3">
-                  <label className="block min-w-0">
-                    <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Open
-                    </span>
-                    <input
-                      type="time"
-                      value={row.open}
-                      onChange={(e) => updateDay(row.day, { open: e.target.value })}
-                      className="ui-input w-full min-w-0 py-2.5 text-base"
-                    />
-                  </label>
-                  <label className="block min-w-0">
-                    <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Close
-                    </span>
-                    <input
-                      type="time"
-                      value={row.close}
-                      onChange={(e) => updateDay(row.day, { close: e.target.value })}
-                      className="ui-input w-full min-w-0 py-2.5 text-base"
-                    />
-                  </label>
+                <div className="mt-3 flex min-w-0 flex-col gap-3">
+                  <MobileTimeSelect
+                    label="Open"
+                    value={row.open}
+                    onChange={(open) => updateDay(row.day, { open })}
+                  />
+                  <MobileTimeSelect
+                    label="Close"
+                    value={row.close}
+                    onChange={(close) => updateDay(row.day, { close })}
+                  />
                 </div>
               )}
             </li>
