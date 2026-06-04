@@ -175,10 +175,7 @@ export function ZbounContactOptions({ variant = "page", restaurantName }: Props)
             className="flex items-center justify-center gap-2 rounded-xl border-2 border-violet-200 bg-violet-50 px-4 py-3.5 text-sm font-semibold text-violet-800 transition hover:border-violet-400 hover:bg-violet-100"
           >
             <MailIcon className="h-5 w-5 shrink-0" />
-            <span>
-              Email
-              <span className="mt-0.5 block text-xs font-normal text-violet-600">{ZBOUN_OPS_EMAIL}</span>
-            </span>
+            Email
           </a>
           <a
             href={buildWhatsAppUrl(waText)}
