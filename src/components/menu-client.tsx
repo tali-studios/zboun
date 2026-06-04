@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { ArrowLeft, Minus, Plus, Trash2 } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -850,13 +851,12 @@ export function MenuClient({
           </div>
         ) : null}
 
-        <button
-          type="button"
-          onClick={() => setPlacedOrder(null)}
-          className="mt-5 w-full rounded-full border border-slate-200 py-3 text-sm font-semibold text-slate-600 transition hover:border-violet-300 hover:text-violet-700"
+        <Link
+          href="/"
+          className="mt-5 flex w-full items-center justify-center rounded-full border border-slate-200 py-3 text-sm font-semibold text-slate-600 transition hover:border-violet-300 hover:text-violet-700"
         >
           Order something else
-        </button>
+        </Link>
       </div>
     );
   }
