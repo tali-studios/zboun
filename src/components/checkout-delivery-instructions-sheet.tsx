@@ -70,7 +70,7 @@ export function CheckoutDeliveryInstructionsSheet({ open, onClose, value, onSave
         aria-modal="true"
         aria-labelledby="delivery-instructions-title"
       >
-        <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-3">
+        <div className="flex items-center justify-between gap-3 px-5 pb-1 pt-3">
           <h2 id="delivery-instructions-title" className="text-lg font-bold text-slate-900">
             Add Delivery Instructions
           </h2>
