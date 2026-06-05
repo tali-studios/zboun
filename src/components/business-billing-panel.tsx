@@ -64,6 +64,20 @@ export function BusinessBillingPanel({
       <ZbounContactOptions variant="billing" restaurantName={restaurantName} />
 
       <section className="panel rounded-2xl p-5">
+        <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">Service agreement</h2>
+        <p className="mt-2 text-sm text-slate-600">
+          Download your Zboun Restaurant Platform Service Agreement, sign it, and return a copy to us
+          to keep on file.
+        </p>
+        <a
+          href="/api/contract"
+          className="mt-4 inline-flex items-center justify-center rounded-full border border-violet-200 bg-violet-50 px-5 py-2.5 text-sm font-bold text-violet-800 transition hover:border-violet-400 hover:bg-violet-100"
+        >
+          Download contract (PDF)
+        </a>
+      </section>
+
+      <section className="panel rounded-2xl p-5">
         <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">Account status</h2>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <span

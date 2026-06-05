@@ -79,11 +79,36 @@ export async function sendRestaurantOnboardingEmail(params: {
     `,
   );
 
+  const effectiveDate = new Date();
+  const pdf = await generateContractPdfBuffer({
+    restaurantName: params.businessName,
+    adminEmail: params.to,
+    effectiveDate,
+    subscriptionEndDate: params.subscriptionEndsAt,
+    monthlyPrice: params.monthlyPrice,
+  });
+  const filename = contractPdfFilename(params.businessName);
+
   await sendMail({
     to: params.to,
     subject: `Welcome to Zboun — ${params.businessName}`,
-    text,
-    html,
+    text: [
+      text,
+      ``,
+      `Attached is your Restaurant Platform Service Agreement (PDF). Please review, sign, and return a copy if required by your business.`,
+    ].join("\n"),
+    html: html.replace(
+      `<p>Please sign in and update your password when you can.</p>`,
+      `<p>Please sign in and update your password when you can.</p>
+      <p>The attached <strong>Restaurant Platform Service Agreement (PDF)</strong> is provided for your records. Please review it, sign where indicated, and return a scanned copy if required.</p>`,
+    ),
+    attachments: [
+      {
+        filename,
+        content: pdf,
+        contentType: "application/pdf",
+      },
+    ],
   });
 }
 
@@ -104,7 +129,7 @@ export async function sendSubscriptionRenewalEmail(params: {
   const price = params.monthlyPrice.toFixed(2);
   const effectiveDate = params.periodStart;
 
-  const pdf = generateContractPdfBuffer({
+  const pdf = await generateContractPdfBuffer({
     restaurantName: params.restaurantName,
     adminEmail: params.adminEmail,
     effectiveDate,

@@ -1,7 +1,9 @@
 # RESTAURANT PLATFORM SERVICE AGREEMENT
 
 **IMPORTANT — NOT LEGAL ADVICE**  
-This document is a **draft template** for discussion and customization only. It is **not** tailored to your jurisdiction, regulatory regime, or facts. **You must retain a qualified attorney** licensed in the place(s) where you and each Restaurant operate before asking anyone to sign. Zboun (or your counsel) should replace all text in square brackets `[ ]` and optional clauses marked `«OPTIONAL»`.
+This document is a **draft template** for discussion and customization only. It is **not** tailored to your jurisdiction, regulatory regime, or facts. **You must retain a qualified attorney** licensed in the place(s) where you and each Restaurant operate before asking anyone to sign.
+
+**PDF generation:** Signed restaurant contracts are produced automatically from `src/lib/contract-content.ts` via `src/lib/contract-pdf.ts` (attached on onboarding/renewal emails and downloadable from **Dashboard → Billing**). Update the TypeScript content files—not this markdown—when changing live agreement text.
 
 ---
 

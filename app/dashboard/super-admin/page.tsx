@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { signOutAction } from "@/app-actions/auth";
 import { createClient } from "@supabase/supabase-js";
+import { SuperAdminContractGenerator } from "@/components/super-admin-contract-generator";
 import { SuperAdminCreateRestaurantForm } from "@/components/super-admin-create-restaurant-form";
 import { SuperAdminFinancePanel } from "@/components/super-admin-finance-panel";
 import { SuperAdminRestaurantsPanel } from "@/components/super-admin-restaurants-panel";
@@ -74,7 +75,7 @@ export default async function SuperAdminPage({ searchParams }: Props) {
         .order("price", { ascending: true }),
       dataClient
         .from("restaurant_subscriptions")
-        .select("id, restaurant_id, plan_id, status, next_due_at, billing_cycle_price, created_at"),
+        .select("id, restaurant_id, plan_id, status, start_at, next_due_at, billing_cycle_price, created_at"),
       dataClient
         .from("invoices")
         .select("id, restaurant_id, subscription_id, amount_due, amount_paid, status, due_at, created_at"),
@@ -151,6 +152,7 @@ export default async function SuperAdminPage({ searchParams }: Props) {
       {
         id: string;
         status: string;
+        start_at: string | null;
         next_due_at: string | null;
         billing_cycle_price: number;
         created_at: string;
@@ -162,6 +164,7 @@ export default async function SuperAdminPage({ searchParams }: Props) {
     const next = {
       id: sub.id,
       status: sub.status,
+      start_at: sub.start_at ?? null,
       next_due_at: sub.next_due_at,
       billing_cycle_price: Number(sub.billing_cycle_price ?? 0),
       created_at: sub.created_at,
@@ -242,6 +245,20 @@ export default async function SuperAdminPage({ searchParams }: Props) {
     }
     return sum;
   }, 0);
+
+  const contractPresets = restaurantsWithDetails.map((restaurant) => {
+    const sub = latestSubscriptionByRestaurant[restaurant.id];
+    return {
+      id: restaurant.id,
+      name: restaurant.name,
+      adminEmail:
+        restaurant.admin_email && restaurant.admin_email !== "No admin linked"
+          ? restaurant.admin_email
+          : "",
+      effectiveDate: sub?.start_at ?? restaurant.created_at ?? null,
+      subscriptionEndDate: restaurant.next_due_at ?? null,
+    };
+  });
 
   const stats = {
     totalRestaurants: restaurantsWithDetails.length,
@@ -414,6 +431,14 @@ export default async function SuperAdminPage({ searchParams }: Props) {
             {decodeURIComponent(error)}
           </p>
         )}
+
+        <section className="panel p-4 md:p-5">
+          <h2 className="panel-title">Generate contract</h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Fill in the agreement details and download a signed-ready PDF for any restaurant.
+          </p>
+          <SuperAdminContractGenerator restaurants={contractPresets} />
+        </section>
 
         <section className="panel p-4 md:p-5">
           <h2 className="panel-title">Create business + admin invite</h2>
