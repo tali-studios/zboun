@@ -42,7 +42,7 @@ export async function GET() {
   });
 
   const filename = contractPdfFilename(restaurantName);
-  return new NextResponse(pdf, {
+  return new NextResponse(new Uint8Array(pdf), {
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="${filename}"`,
