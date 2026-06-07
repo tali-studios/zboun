@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, Minus, Plus, Trash2 } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { CategoryWithItems } from "@/lib/data";
 import { CheckoutDeliverySections } from "@/components/checkout-delivery-sections";
@@ -14,6 +14,12 @@ import { formatDeliveryTimeLabel, isRestaurantOpenNow, parseOpeningHours } from 
 import { BRAND_HEX, BRAND_HEX_DEEP } from "@/lib/brand";
 import { placeOrderAction, type DeliverySpeed } from "@/app-actions/orders";
 import { useDeliveryLocation } from "@/components/delivery-location-provider";
+import {
+  formatPaymentNote,
+  parsePaymentNoteDraft,
+  type PaymentCurrency,
+} from "@/lib/payment-note";
+import { buildCartFromReorder, type MenuReorderPayload } from "@/lib/reorder-cart";
 
 const BRAND = BRAND_HEX;
 const WHATSAPP_GREEN = "#25D366";
@@ -38,6 +44,7 @@ type Props = {
   fastDeliveryEnabled?: boolean;
   fastDeliveryFeeUsd?: number;
   orderingEnabled?: boolean;
+  reorderFrom?: MenuReorderPayload | null;
 };
 
 type CartLine = {
@@ -94,6 +101,7 @@ export function MenuClient({
   fastDeliveryEnabled = false,
   fastDeliveryFeeUsd = 0,
   orderingEnabled = true,
+  reorderFrom = null,
 }: Props) {
   const parsedOpeningHours = useMemo(() => parseOpeningHours(openingHoursRaw), [openingHoursRaw]);
   const isOpenNow = useMemo(
@@ -115,6 +123,11 @@ export function MenuClient({
   const [checkoutBackToCart, setCheckoutBackToCart] = useState(false);
   const [deliveryTime, setDeliveryTime] = useState<DeliveryTimeChoice>({ mode: "now" });
   const [deliverySpeed, setDeliverySpeed] = useState<DeliverySpeed>("standard");
+  const [paymentCurrency, setPaymentCurrency] = useState<PaymentCurrency>("usd");
+  const [payingExact, setPayingExact] = useState(false);
+  const [payingWith, setPayingWith] = useState<number | null>(null);
+  const [reorderBanner, setReorderBanner] = useState<string | null>(null);
+  const reorderAppliedRef = useRef(false);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [placedOrder, setPlacedOrder] = useState<{ orderId: string; whatsappUrl: string | null } | null>(null);
   const [orderError, setOrderError] = useState<string | null>(null);
@@ -159,6 +172,40 @@ export function MenuClient({
     return "Standard delivery";
   }, [deliverySpeed, fastDeliveryEnabled]);
   const orderTotal = useMemo(() => total + deliveryCharge, [total, deliveryCharge]);
+  const orderTotalLbp = useMemo(() => Math.round(orderTotal * lbpRate), [orderTotal, lbpRate]);
+  const paymentNote = useMemo(
+    () =>
+      formatPaymentNote(
+        { exactAmount: payingExact, currency: paymentCurrency, payingWith },
+        { usd: orderTotal, lbp: orderTotalLbp },
+      ),
+    [payingExact, paymentCurrency, payingWith, orderTotal, orderTotalLbp],
+  );
+  useEffect(() => {
+    if (!reorderFrom?.items.length || viewOnly || reorderAppliedRef.current) return;
+    reorderAppliedRef.current = true;
+    const nextCart = buildCartFromReorder(reorderFrom.items, categories);
+    if (Object.keys(nextCart).length === 0) return;
+
+    setCart(nextCart);
+    if (reorderFrom.customerName?.trim()) setCustomerName(reorderFrom.customerName.trim());
+    if (reorderFrom.deliveryAddress?.trim()) setAddress(reorderFrom.deliveryAddress.trim());
+    if (reorderFrom.deliveryNotes?.trim()) setNotes(reorderFrom.deliveryNotes.trim());
+    if (reorderFrom.deliverySpeed === "fast" && fastDeliveryEnabled) {
+      setDeliverySpeed("fast");
+    }
+    if (reorderFrom.paymentNote) {
+      const parsed = parsePaymentNoteDraft(reorderFrom.paymentNote);
+      setPaymentCurrency(parsed.currency);
+      setPayingExact(parsed.exactAmount);
+      setPayingWith(parsed.payingWith);
+    }
+    setReorderBanner("Your previous order was added to the cart. Review and place when ready.");
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      setShowMobileCart(true);
+    }
+  }, [reorderFrom, categories, fastDeliveryEnabled, viewOnly]);
+
   const itemCount = useMemo(
     () =>
       items.reduce((sum, item) => {
@@ -428,6 +475,7 @@ export function MenuClient({
           specialInstructions: item.specialInstructions,
         })),
         notes: buildOrderNotes(),
+        paymentNote,
         totalUsd: orderTotal,
         scheduledFor: deliveryTime.mode === "scheduled" ? deliveryTime.at : null,
         deliverySpeed: fastDeliveryEnabled ? deliverySpeed : "standard",
@@ -759,6 +807,14 @@ export function MenuClient({
                   deliverySpeed={deliverySpeed}
                   onDeliverySpeedChange={setDeliverySpeed}
                   formatPrice={formatLbp}
+                  orderTotalUsd={orderTotal}
+                  orderTotalLbp={orderTotalLbp}
+                  paymentCurrency={paymentCurrency}
+                  onPaymentCurrencyChange={setPaymentCurrency}
+                  payingExact={payingExact}
+                  onPayingExactChange={setPayingExact}
+                  payingWith={payingWith}
+                  onPayingWithChange={setPayingWith}
                 />
 
                 <section className="mt-3 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/[0.04]">
@@ -788,6 +844,14 @@ export function MenuClient({
                       {deliveryCharge === 0 ? "Free" : formatLbp(deliveryCharge)}
                     </p>
                   </div>
+                  {paymentNote ? (
+                    <div className="mt-2 flex items-start justify-between gap-2">
+                      <p className="text-sm text-slate-600">Cash payment</p>
+                      <p className="max-w-[60%] text-right text-xs font-medium leading-snug text-slate-700">
+                        {paymentNote}
+                      </p>
+                    </div>
+                  ) : null}
                   <div className="mt-2 flex items-center justify-between">
                     <p className="text-sm font-bold text-slate-900">Total</p>
                     <div className="text-right">
@@ -908,6 +972,18 @@ export function MenuClient({
               </p>
             </>
           )}
+        </div>
+      ) : null}
+      {!viewOnly && reorderBanner ? (
+        <div className="mb-4 flex items-start justify-between gap-3 rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm text-violet-900">
+          <p>{reorderBanner}</p>
+          <button
+            type="button"
+            onClick={() => setReorderBanner(null)}
+            className="shrink-0 text-xs font-semibold text-violet-600 hover:underline"
+          >
+            Dismiss
+          </button>
         </div>
       ) : null}
       <div

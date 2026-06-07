@@ -27,6 +27,7 @@ export type PlaceOrderInput = {
   deliveryLng?: number | null;
   items: OrderNotificationItem[];
   notes?: string | null;
+  paymentNote?: string | null;
   totalUsd: number;
   scheduledFor?: string | null;
   deliverySpeed?: DeliverySpeed;
@@ -54,6 +55,7 @@ export type OrderRow = {
   delivery_lng: number | null;
   items: OrderNotificationItem[];
   notes: string | null;
+  payment_note: string | null;
   total_usd: number;
   delivery_fee_usd: number;
   delivery_speed: DeliverySpeed;
@@ -155,6 +157,7 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
       delivery_lng: input.deliveryLng ?? null,
       items: input.items,
       notes: input.notes?.trim() || null,
+      payment_note: input.paymentNote?.trim() || null,
       total_usd: expectedTotal,
       delivery_fee_usd: deliveryFeeUsd,
       delivery_speed: deliverySpeed,
@@ -205,6 +208,7 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
     notes: input.notes,
     totalUsd: input.totalUsd,
     deliverySpeed,
+    paymentNote: input.paymentNote?.trim() || null,
   };
 
   // Fire-and-forget email notification
@@ -240,7 +244,7 @@ export async function getRestaurantOrders(restaurantId: string): Promise<OrderRo
   const { data } = await supabase
     .from("orders")
     .select(
-      "id, customer_name, customer_phone, delivery_address, delivery_lat, delivery_lng, items, notes, total_usd, delivery_fee_usd, delivery_speed, status, whatsapp_sent, created_at, updated_at",
+      "id, customer_name, customer_phone, delivery_address, delivery_lat, delivery_lng, items, notes, payment_note, total_usd, delivery_fee_usd, delivery_speed, status, whatsapp_sent, created_at, updated_at",
     )
     .eq("restaurant_id", restaurantId)
     .order("created_at", { ascending: false })
@@ -265,7 +269,7 @@ export async function getCustomerOrder(orderId: string): Promise<CustomerOrderRo
   const { data } = await supabase
     .from("orders")
     .select(
-      "id, restaurant_id, customer_name, customer_phone, delivery_address, delivery_lat, delivery_lng, items, notes, total_usd, status, whatsapp_sent, created_at, updated_at, restaurants(name, slug)",
+      "id, restaurant_id, customer_name, customer_phone, delivery_address, delivery_lat, delivery_lng, items, notes, payment_note, total_usd, delivery_fee_usd, delivery_speed, status, whatsapp_sent, created_at, updated_at, restaurants(name, slug)",
     )
     .eq("id", orderId)
     .eq("customer_id", user.id)
@@ -309,7 +313,7 @@ export async function getCustomerOrders(): Promise<CustomerOrderRow[]> {
   const { data } = await supabase
     .from("orders")
     .select(
-      "id, customer_name, customer_phone, delivery_address, delivery_lat, delivery_lng, items, notes, total_usd, status, whatsapp_sent, created_at, updated_at, restaurants(name, slug)",
+      "id, restaurant_id, customer_name, customer_phone, delivery_address, delivery_lat, delivery_lng, items, notes, payment_note, total_usd, delivery_fee_usd, delivery_speed, status, whatsapp_sent, created_at, updated_at, restaurants(name, slug)",
     )
     .eq("customer_id", user.id)
     .order("created_at", { ascending: false })

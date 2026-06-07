@@ -439,6 +439,13 @@ export function RestaurantOrdersPanel({ initialOrders, restaurantId }: Props) {
               </div>
             </div>
 
+            {selected.payment_note ? (
+              <div className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Cash payment</p>
+                <p className="mt-1 text-sm font-semibold text-emerald-900">{selected.payment_note}</p>
+              </div>
+            ) : null}
+
             {/* Notes */}
             {selected.notes ? (
               <div className="mb-5 rounded-xl border border-amber-100 bg-amber-50 p-3">

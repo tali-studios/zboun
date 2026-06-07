@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import {
+  Banknote,
   BellOff,
   Camera,
   ChevronRight,
@@ -16,6 +17,12 @@ import {
   Zap,
 } from "lucide-react";
 import type { DeliverySpeed } from "@/app-actions/orders";
+import {
+  computeChangeDue,
+  formatChangeDue,
+  formatOrderDue,
+  type PaymentCurrency,
+} from "@/lib/payment-note";
 import { useDeliveryLocation } from "@/components/delivery-location-provider";
 import { CheckoutAddressSheet } from "@/components/checkout-address-sheet";
 import {
@@ -60,7 +67,18 @@ type Props = {
   deliverySpeed?: DeliverySpeed;
   onDeliverySpeedChange?: (value: DeliverySpeed) => void;
   formatPrice?: (amountUsd: number) => string;
+  orderTotalUsd?: number;
+  orderTotalLbp?: number;
+  paymentCurrency?: PaymentCurrency;
+  onPaymentCurrencyChange?: (value: PaymentCurrency) => void;
+  payingExact?: boolean;
+  onPayingExactChange?: (value: boolean) => void;
+  payingWith?: number | null;
+  onPayingWithChange?: (value: number | null) => void;
 };
+
+const CASH_QUICK_USD = [5, 10, 20, 50, 100] as const;
+const CASH_QUICK_LBP = [100_000, 200_000, 500_000, 1_000_000] as const;
 
 const CHECKOUT_CHANGE =
   "shrink-0 rounded-lg border border-violet-500 px-4 py-1.5 text-xs font-semibold text-violet-600 transition hover:bg-violet-50";
@@ -179,7 +197,21 @@ export function CheckoutDeliverySections({
   deliverySpeed = "standard",
   onDeliverySpeedChange,
   formatPrice,
+  orderTotalUsd = 0,
+  orderTotalLbp = 0,
+  paymentCurrency = "usd",
+  onPaymentCurrencyChange,
+  payingExact = false,
+  onPayingExactChange,
+  payingWith = null,
+  onPayingWithChange,
 }: Props) {
+  const orderTotals = { usd: orderTotalUsd, lbp: orderTotalLbp };
+  const changeDue = computeChangeDue(
+    { exactAmount: payingExact, currency: paymentCurrency, payingWith },
+    orderTotals,
+  );
+  const quickAmounts = paymentCurrency === "usd" ? CASH_QUICK_USD : CASH_QUICK_LBP;
   const { location, setLocation, radiusKm } = useDeliveryLocation();
   const [addressBook, setAddressBook] = useState<SavedAddressOption[]>(savedAddresses);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
@@ -582,14 +614,185 @@ export function CheckoutDeliverySections({
           ) : null}
         </CheckoutCard>
 
+        {onPayingExactChange && onPayingWithChange && onPaymentCurrencyChange ? (
+          <CheckoutCard title="Paying with cash?">
+            <p className="text-sm leading-relaxed text-slate-600">
+              Optional — tell the driver how much you will hand them so they can bring the right change.
+            </p>
+
+            <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Amount due</p>
+              <p className="mt-1 text-lg font-bold text-slate-900">
+                {formatOrderDue(paymentCurrency, orderTotals)}
+              </p>
+              <p className="mt-0.5 text-xs text-slate-500">
+                {paymentCurrency === "usd"
+                  ? `≈ L.L ${Math.round(orderTotalLbp).toLocaleString()} in Lebanese pounds`
+                  : `≈ $${orderTotalUsd.toFixed(2)} in US dollars`}
+              </p>
+            </div>
+
+            <div className="mt-3">
+              <p className="text-xs font-semibold text-slate-600">Currency you are paying in</p>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {(
+                  [
+                    { id: "usd" as const, label: "US Dollars", hint: "$" },
+                    { id: "lbp" as const, label: "Lebanese Lira", hint: "L.L" },
+                  ] as const
+                ).map((option) => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => {
+                      onPaymentCurrencyChange(option.id);
+                      onPayingWithChange(null);
+                    }}
+                    className={`rounded-xl border px-3 py-2.5 text-left transition ${
+                      paymentCurrency === option.id
+                        ? "border-violet-400 bg-violet-50 ring-1 ring-violet-200"
+                        : "border-slate-200 bg-white hover:border-slate-300"
+                    }`}
+                  >
+                    <p className="text-sm font-semibold text-slate-900">{option.label}</p>
+                    <p className="text-xs text-slate-500">{option.hint}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-3 space-y-2">
+              <button
+                type="button"
+                onClick={() => {
+                  onPayingExactChange(true);
+                  onPayingWithChange(null);
+                }}
+                className={`flex w-full items-center gap-2.5 rounded-xl border px-3.5 py-3 text-left text-sm transition ${
+                  payingExact
+                    ? "border-emerald-400 bg-emerald-50 ring-1 ring-emerald-200"
+                    : "border-slate-200 bg-white hover:border-slate-300"
+                }`}
+              >
+                <Banknote className="h-4 w-4 shrink-0 text-emerald-600" strokeWidth={2} aria-hidden />
+                <span>
+                  <span className="block font-semibold text-slate-900">I have exact change</span>
+                  <span className="block text-xs text-slate-500">No change needed from the driver</span>
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onPayingExactChange(false)}
+                className={`flex w-full items-center gap-2.5 rounded-xl border px-3.5 py-3 text-left text-sm transition ${
+                  !payingExact
+                    ? "border-violet-400 bg-violet-50 ring-1 ring-violet-200"
+                    : "border-slate-200 bg-white hover:border-slate-300"
+                }`}
+              >
+                <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 border-violet-500 text-[10px] font-bold text-violet-600">
+                  ¢
+                </span>
+                <span>
+                  <span className="block font-semibold text-slate-900">I need change back</span>
+                  <span className="block text-xs text-slate-500">Tell us what bill you are handing over</span>
+                </span>
+              </button>
+            </div>
+
+            {!payingExact ? (
+              <div className="mt-3 space-y-2.5">
+                <label className="block space-y-1.5">
+                  <span className="text-sm font-semibold text-slate-800">
+                    I will hand the driver
+                  </span>
+                  <div className="flex min-h-[2.75rem] items-center overflow-hidden rounded-[0.85rem] border-[1.5px] border-[#e2e5f5] bg-white focus-within:border-[var(--brand)] focus-within:shadow-[0_0_0_4px_rgba(120,84,255,0.14)]">
+                    <span className="shrink-0 pl-3.5 text-sm font-semibold text-slate-400">
+                      {paymentCurrency === "usd" ? "$" : "L.L"}
+                    </span>
+                    <input
+                      type="number"
+                      min={0}
+                      step={paymentCurrency === "usd" ? 0.01 : 1000}
+                      value={payingWith ?? ""}
+                      onChange={(e) => {
+                        const raw = e.target.value.trim();
+                        if (!raw) {
+                          onPayingWithChange(null);
+                          return;
+                        }
+                        const next = Number(raw);
+                        if (!Number.isFinite(next) || next <= 0) {
+                          onPayingWithChange(null);
+                          return;
+                        }
+                        onPayingWithChange(
+                          paymentCurrency === "usd" ? Math.round(next * 100) / 100 : Math.round(next),
+                        );
+                      }}
+                      placeholder={paymentCurrency === "usd" ? "e.g. 20" : "e.g. 200000"}
+                      className="min-w-0 flex-1 border-0 bg-transparent py-3 pl-1.5 pr-3.5 text-sm text-slate-900 outline-none placeholder:text-[#a0a8c4]"
+                      inputMode="decimal"
+                    />
+                  </div>
+                </label>
+
+                <div>
+                  <p className="mb-1.5 text-xs text-slate-500">Quick amounts</p>
+                  <div className="flex flex-wrap gap-2">
+                    {quickAmounts.map((amount) => (
+                      <button
+                        key={amount}
+                        type="button"
+                        onClick={() => onPayingWithChange(amount)}
+                        className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                          payingWith === amount
+                            ? "border-violet-400 bg-violet-50 text-violet-700"
+                            : "border-slate-200 bg-white text-slate-600 hover:border-violet-300"
+                        }`}
+                      >
+                        {paymentCurrency === "usd"
+                          ? `$${amount}`
+                          : amount >= 1_000_000
+                            ? `${amount / 1_000_000}M`
+                            : `${amount / 1000}k`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {changeDue != null ? (
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-3">
+                    <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">
+                      Change to bring back
+                    </p>
+                    <p className="mt-1 text-base font-bold text-emerald-900">
+                      {formatChangeDue(paymentCurrency, changeDue)}
+                    </p>
+                  </div>
+                ) : payingWith != null ? (
+                  <p className="text-xs font-medium text-slate-500">
+                    {paymentCurrency === "usd"
+                      ? payingWith >= orderTotalUsd
+                        ? "No change needed — you have exact or more than the total."
+                        : "Enter an amount at or above the order total to see change due."
+                      : payingWith >= orderTotalLbp
+                        ? "No change needed — you have exact or more than the total."
+                        : "Enter an amount at or above the order total to see change due."}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+          </CheckoutCard>
+        ) : null}
+
         {/* Delivery instructions */}
         <CheckoutCard title="Delivery Instructions">
-          <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5">
             {INSTRUCTION_OPTIONS.map((opt) => {
               const Icon = opt.icon;
               const active = isPhraseActive(opt.phrase);
               const disabled = "disabled" in opt && opt.disabled;
-              const phraseChip = opt.id === "call" || opt.id === "bell";
               return (
                 <button
                   key={opt.id}
@@ -602,26 +805,16 @@ export function CheckoutDeliverySections({
                     }
                     if (opt.phrase) toggleInstructionPhrase(opt.phrase);
                   }}
-                  className={`flex w-[88px] shrink-0 flex-col rounded-xl border px-2 py-2.5 transition ${
-                    phraseChip ? "justify-between text-left" : "items-center gap-1.5 text-center"
-                  } ${
+                  className={`flex min-h-[4.5rem] w-full flex-col items-center justify-center gap-1.5 rounded-xl border px-2 py-2.5 text-center transition ${
                     disabled
-                      ? "cursor-not-allowed border-slate-100 bg-slate-50 opacity-50 text-slate-400"
+                      ? "cursor-not-allowed border-slate-100 bg-slate-50 text-slate-400"
                       : active
                         ? "border-[var(--brand)] bg-white text-[var(--brand)]"
-                        : phraseChip
-                          ? "border-slate-200 bg-white text-slate-600 hover:border-violet-300"
-                          : "border-slate-200 bg-white text-slate-700 hover:border-violet-300"
+                        : "border-slate-200 bg-white text-slate-700 hover:border-violet-300"
                   }`}
                 >
-                  <Icon
-                    className={`shrink-0 ${phraseChip ? "h-4 w-4" : "h-5 w-5"}`}
-                    strokeWidth={1.75}
-                    aria-hidden
-                  />
-                  <span className="text-[10px] font-medium leading-tight">
-                    {opt.label}
-                  </span>
+                  <Icon className="h-5 w-5 shrink-0" strokeWidth={1.75} aria-hidden />
+                  <span className="text-[10px] font-medium leading-tight">{opt.label}</span>
                 </button>
               );
             })}

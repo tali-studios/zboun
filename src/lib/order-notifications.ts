@@ -25,6 +25,7 @@ export type OrderNotificationParams = {
   notes?: string | null;
   totalUsd: number;
   deliverySpeed?: "standard" | "fast";
+  paymentNote?: string | null;
 };
 
 function formatQty(unit: "each" | "kg", qty: number): string {
@@ -65,6 +66,7 @@ export function buildOrderPlainText(p: OrderNotificationParams): string {
     }),
     ``,
     `💰 Total: $${p.totalUsd.toFixed(2)}`,
+    ...(p.paymentNote ? [`💵 Payment: ${p.paymentNote}`] : []),
     ...(p.notes ? [`📝 Notes: ${p.notes}`] : []),
     ``,
     `⏰ Placed at: ${new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`,
@@ -123,6 +125,7 @@ function buildOrderEmailHtml(p: OrderNotificationParams): string {
         <td style="padding:12px;font-weight:700;font-size:16px;text-align:right;color:#4c1d95">$${p.totalUsd.toFixed(2)}</td>
       </tr></tfoot>
     </table>
+    ${p.paymentNote ? `<p style="margin:16px 0 0"><strong>💵 Payment:</strong> ${p.paymentNote}</p>` : ""}
     ${p.notes ? `<p style="margin:16px 0 0"><strong>📝 Notes:</strong> ${p.notes}</p>` : ""}
   </td></tr>
   <tr><td style="padding:0 28px 24px;color:#71717a;font-size:13px">

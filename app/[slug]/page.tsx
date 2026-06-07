@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getCustomerOrder } from "@/app-actions/orders";
 import { getRestaurantBySlug, getRestaurantMenu } from "@/lib/data";
+import { orderToReorderPayload } from "@/lib/reorder-cart";
 import { MenuClient } from "@/components/menu-client";
 import { parseOpeningHours } from "@/lib/opening-hours";
 import { RestaurantMenuHero } from "@/components/restaurant-menu-hero";
@@ -13,6 +15,7 @@ import { normalizeBrowseSections } from "@/lib/browse-sections";
 
 type Props = {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ reorder?: string }>;
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -55,8 +58,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function RestaurantMenuPage({ params }: Props) {
+export default async function RestaurantMenuPage({ params, searchParams }: Props) {
   const { slug } = await params;
+  const { reorder: reorderOrderId } = await searchParams;
   const restaurant = await getRestaurantBySlug(slug);
 
   if (!restaurant || !restaurant.is_active) {
@@ -72,6 +76,20 @@ export default async function RestaurantMenuPage({ params }: Props) {
   const { isLoggedIn, defaultCustomerName, savedAddresses } = await getCustomerOrderContext();
   const openingHours = parseOpeningHours(restaurant.opening_hours);
   const orderingEnabled = !restaurant.is_temporarily_closed;
+
+  let reorderFrom = null;
+  if (reorderOrderId && isLoggedIn) {
+    const priorOrder = await getCustomerOrder(reorderOrderId);
+    if (
+      priorOrder &&
+      priorOrder.restaurant_slug === slug &&
+      priorOrder.status !== "cancelled" &&
+      Array.isArray(priorOrder.items) &&
+      priorOrder.items.length > 0
+    ) {
+      reorderFrom = orderToReorderPayload(priorOrder);
+    }
+  }
 
   return (
     <DeliveryLocationProvider>
@@ -147,6 +165,7 @@ export default async function RestaurantMenuPage({ params }: Props) {
             fastDeliveryEnabled={restaurant.fast_delivery_enabled}
             fastDeliveryFeeUsd={Number(restaurant.fast_delivery_fee_usd ?? 0)}
             orderingEnabled={orderingEnabled}
+            reorderFrom={reorderFrom}
           />
         </main>
       </div>

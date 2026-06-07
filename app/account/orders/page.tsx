@@ -73,11 +73,14 @@ export default async function CustomerOrdersPage() {
                   const extra = items.length - 2;
 
                   return (
-                    <Link
+                    <div
                       key={order.id}
-                      href={`/account/orders/${order.id}`}
-                      className="block overflow-hidden rounded-2xl bg-white shadow-sm transition active:scale-[0.99]"
+                      className="overflow-hidden rounded-2xl bg-white shadow-sm"
                     >
+                      <Link
+                        href={`/account/orders/${order.id}`}
+                        className="block transition active:scale-[0.99]"
+                      >
                       {/* Restaurant header row */}
                       <div className="flex items-center justify-between gap-3 px-4 py-3.5">
                         <div className="flex items-center gap-3 min-w-0">
@@ -113,7 +116,21 @@ export default async function CustomerOrdersPage() {
                           </span>
                         </div>
                       </div>
-                    </Link>
+                      </Link>
+                      {order.status !== "cancelled" ? (
+                        <div className="border-t border-slate-100 px-4 py-3">
+                          <Link
+                            href={`/${order.restaurant_slug}?reorder=${order.id}`}
+                            className="flex w-full items-center justify-center gap-2 rounded-xl bg-violet-600 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-700"
+                          >
+                            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                              <polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 .49-3.5" />
+                            </svg>
+                            Reorder
+                          </Link>
+                        </div>
+                      ) : null}
+                    </div>
                   );
                 })}
               </div>

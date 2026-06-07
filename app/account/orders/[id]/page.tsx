@@ -112,7 +112,7 @@ export default async function OrderDetailPage({ params }: Params) {
             {/* Action buttons */}
             <div className="space-y-2 border-t border-slate-100 px-4 pb-4 pt-3">
               <Link
-                href={`/${order.restaurant_slug}`}
+                href={`/${order.restaurant_slug}?reorder=${order.id}`}
                 className="flex w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700"
               >
                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -169,6 +169,13 @@ export default async function OrderDetailPage({ params }: Params) {
               <p className="text-base font-bold text-violet-700">${order.total_usd.toFixed(2)}</p>
             </div>
           </div>
+
+          {order.payment_note ? (
+            <div className="overflow-hidden rounded-2xl bg-white px-4 py-3.5 shadow-sm">
+              <p className="mb-1 text-xs font-bold uppercase tracking-widest text-slate-400">Cash payment</p>
+              <p className="text-sm text-slate-700">{order.payment_note}</p>
+            </div>
+          ) : null}
 
           {/* ── Notes ── */}
           {order.notes ? (
