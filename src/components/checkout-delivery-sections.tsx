@@ -13,7 +13,9 @@ import {
   Pencil,
   Phone,
   UserRound,
+  Zap,
 } from "lucide-react";
+import type { DeliverySpeed } from "@/app-actions/orders";
 import { useDeliveryLocation } from "@/components/delivery-location-provider";
 import { CheckoutAddressSheet } from "@/components/checkout-address-sheet";
 import {
@@ -51,6 +53,13 @@ type Props = {
   etaLabel?: string | null;
   deliveryTime: DeliveryTimeChoice;
   onDeliveryTimeChange: (value: DeliveryTimeChoice) => void;
+  fastDeliveryEnabled?: boolean;
+  freeDelivery?: boolean;
+  standardDeliveryFeeUsd?: number;
+  fastDeliveryFeeUsd?: number;
+  deliverySpeed?: DeliverySpeed;
+  onDeliverySpeedChange?: (value: DeliverySpeed) => void;
+  formatPrice?: (amountUsd: number) => string;
 };
 
 const CHECKOUT_CHANGE =
@@ -163,6 +172,13 @@ export function CheckoutDeliverySections({
   etaLabel,
   deliveryTime,
   onDeliveryTimeChange,
+  fastDeliveryEnabled = false,
+  freeDelivery = false,
+  standardDeliveryFeeUsd = 0,
+  fastDeliveryFeeUsd = 0,
+  deliverySpeed = "standard",
+  onDeliverySpeedChange,
+  formatPrice,
 }: Props) {
   const { location, setLocation, radiusKm } = useDeliveryLocation();
   const [addressBook, setAddressBook] = useState<SavedAddressOption[]>(savedAddresses);
@@ -420,6 +436,77 @@ export function CheckoutDeliverySections({
       />
 
       <div className="space-y-3">
+        {fastDeliveryEnabled && onDeliverySpeedChange ? (
+          <section className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/[0.04]">
+            <p className="text-sm font-bold text-slate-900">Delivery option</p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {(
+                [
+                  {
+                    id: "standard" as const,
+                    title: "Standard delivery",
+                    description: "Regular delivery at the usual pace.",
+                    feeUsd: freeDelivery ? 0 : Math.max(0, standardDeliveryFeeUsd),
+                  },
+                  {
+                    id: "fast" as const,
+                    title: "Fast delivery",
+                    description: "A dedicated driver delivers your order as soon as it is ready.",
+                    feeUsd: Math.max(0, fastDeliveryFeeUsd),
+                  },
+                ] as const
+              ).map((option) => {
+                const selected = deliverySpeed === option.id;
+                const feeLabel =
+                  option.feeUsd === 0
+                    ? "Free"
+                    : formatPrice
+                      ? formatPrice(option.feeUsd)
+                      : `$${option.feeUsd.toFixed(2)}`;
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => onDeliverySpeedChange(option.id)}
+                    className={`rounded-xl border px-3.5 py-3 text-left transition ${
+                      selected
+                        ? option.id === "fast"
+                          ? "border-amber-400 bg-amber-50 ring-1 ring-amber-200"
+                          : "border-violet-400 bg-violet-50 ring-1 ring-violet-200"
+                        : "border-slate-200 bg-white hover:border-slate-300"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-sm font-semibold text-slate-900">
+                        {option.id === "fast" ? (
+                          <span className="inline-flex items-center gap-1">
+                            <Zap className="h-3.5 w-3.5 text-amber-500" strokeWidth={2} aria-hidden />
+                            {option.title}
+                          </span>
+                        ) : (
+                          option.title
+                        )}
+                      </p>
+                      <span
+                        className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                          selected
+                            ? option.id === "fast"
+                              ? "bg-amber-200 text-amber-900"
+                              : "bg-violet-200 text-violet-900"
+                            : "bg-slate-100 text-slate-600"
+                        }`}
+                      >
+                        {feeLabel}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs leading-relaxed text-slate-500">{option.description}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        ) : null}
+
         {/* Delivery time */}
         <section className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/[0.04]">
           <div className="flex items-start justify-between gap-3">

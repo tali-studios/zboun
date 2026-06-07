@@ -24,6 +24,7 @@ export type OrderNotificationParams = {
   items: OrderNotificationItem[];
   notes?: string | null;
   totalUsd: number;
+  deliverySpeed?: "standard" | "fast";
 };
 
 function formatQty(unit: "each" | "kg", qty: number): string {
@@ -46,6 +47,7 @@ export function buildOrderPlainText(p: OrderNotificationParams): string {
     ``,
     `👤 Customer: ${p.customerName}`,
     ...(p.customerPhone ? [`📞 Phone: ${p.customerPhone}`] : []),
+    ...(p.deliverySpeed === "fast" ? [`⚡ Delivery: Fast (dedicated driver)`] : []),
     ...(p.deliveryAddress ? [`📍 Address: ${p.deliveryAddress}`] : []),
     ...(p.deliveryLat != null && p.deliveryLng != null
       ? [`🗺 Map: ${mapsLink(p.deliveryLat, p.deliveryLng)}`]

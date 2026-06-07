@@ -392,6 +392,17 @@ export async function updateRestaurantSettingsAction(formData: FormData) {
   if (!Number.isFinite(deliveryFeeUsd) || deliveryFeeUsd <= 0) {
     redirect("/dashboard/business?toast=invalid_delivery_fee");
   }
+  const fastDeliveryEnabled =
+    formData.get("fast_delivery_enabled") === "true" || formData.get("fast_delivery_enabled") === "on";
+  const fastDeliveryFeeRaw = String(formData.get("fast_delivery_fee_usd") ?? "").trim();
+  let fastDeliveryFeeUsd = Number(fastDeliveryFeeRaw);
+  if (fastDeliveryEnabled) {
+    if (!Number.isFinite(fastDeliveryFeeUsd) || fastDeliveryFeeUsd <= 0) {
+      redirect("/dashboard/business?toast=invalid_fast_delivery_fee");
+    }
+  } else {
+    fastDeliveryFeeUsd = Number.isFinite(fastDeliveryFeeUsd) && fastDeliveryFeeUsd > 0 ? fastDeliveryFeeUsd : 0;
+  }
 
   const supabase = await createServerSupabaseClient();
   await supabase
@@ -410,6 +421,8 @@ export async function updateRestaurantSettingsAction(formData: FormData) {
       longitude,
       free_delivery: freeDelivery,
       delivery_fee_usd: Math.round(deliveryFeeUsd * 100) / 100,
+      fast_delivery_enabled: fastDeliveryEnabled,
+      fast_delivery_fee_usd: Math.round(fastDeliveryFeeUsd * 100) / 100,
     })
     .eq("id", user.restaurant_id);
   revalidatePath("/dashboard/business");

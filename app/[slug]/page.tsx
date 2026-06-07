@@ -144,6 +144,8 @@ export default async function RestaurantMenuPage({ params }: Props) {
             etaLabel={restaurant.eta_label}
             freeDelivery={restaurant.free_delivery}
             deliveryFeeUsd={Number(restaurant.delivery_fee_usd ?? 0)}
+            fastDeliveryEnabled={restaurant.fast_delivery_enabled}
+            fastDeliveryFeeUsd={Number(restaurant.fast_delivery_fee_usd ?? 0)}
             orderingEnabled={orderingEnabled}
           />
         </main>

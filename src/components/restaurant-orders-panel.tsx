@@ -295,6 +295,11 @@ export function RestaurantOrdersPanel({ initialOrders, restaurantId }: Props) {
                       </p>
                       <p className="mt-0.5 truncate text-xs text-slate-500">
                         #{shortId(order.id)} · {formatDate(order.created_at)} {formatTime(order.created_at)}
+                        {order.delivery_speed === "fast" ? (
+                          <span className="ml-1.5 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">
+                            FAST
+                          </span>
+                        ) : null}
                       </p>
                     </div>
                     <div className="shrink-0 text-right">
@@ -357,6 +362,18 @@ export function RestaurantOrdersPanel({ initialOrders, restaurantId }: Props) {
             </div>
 
             {/* Delivery */}
+            {selected.delivery_speed === "fast" ? (
+              <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                <p className="text-xs font-bold uppercase tracking-wide text-amber-700">Fast delivery</p>
+                <p className="mt-1 text-sm text-amber-900">
+                  Customer requested priority delivery with a dedicated driver.
+                  {selected.delivery_fee_usd > 0
+                    ? ` Delivery fee: $${selected.delivery_fee_usd.toFixed(2)}.`
+                    : ""}
+                </p>
+              </div>
+            ) : null}
+
             {selected.delivery_address || selected.delivery_lat ? (
               <div className="mb-5 rounded-xl bg-slate-50 p-4">
                 <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Delivery Address</p>

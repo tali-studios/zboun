@@ -12,7 +12,7 @@ import type { DeliveryTimeChoice } from "@/components/delivery-time-sheet";
 import type { SavedAddressOption } from "@/components/order-delivery-fields";
 import { formatDeliveryTimeLabel, isRestaurantOpenNow, parseOpeningHours } from "@/lib/opening-hours";
 import { BRAND_HEX, BRAND_HEX_DEEP } from "@/lib/brand";
-import { placeOrderAction } from "@/app-actions/orders";
+import { placeOrderAction, type DeliverySpeed } from "@/app-actions/orders";
 import { useDeliveryLocation } from "@/components/delivery-location-provider";
 
 const BRAND = BRAND_HEX;
@@ -35,6 +35,8 @@ type Props = {
   etaLabel?: string | null;
   freeDelivery?: boolean;
   deliveryFeeUsd?: number;
+  fastDeliveryEnabled?: boolean;
+  fastDeliveryFeeUsd?: number;
   orderingEnabled?: boolean;
 };
 
@@ -89,6 +91,8 @@ export function MenuClient({
   etaLabel = null,
   freeDelivery = false,
   deliveryFeeUsd = 0,
+  fastDeliveryEnabled = false,
+  fastDeliveryFeeUsd = 0,
   orderingEnabled = true,
 }: Props) {
   const parsedOpeningHours = useMemo(() => parseOpeningHours(openingHoursRaw), [openingHoursRaw]);
@@ -110,6 +114,7 @@ export function MenuClient({
   const [checkoutStep, setCheckoutStep] = useState<"review" | "confirm">("review");
   const [checkoutBackToCart, setCheckoutBackToCart] = useState(false);
   const [deliveryTime, setDeliveryTime] = useState<DeliveryTimeChoice>({ mode: "now" });
+  const [deliverySpeed, setDeliverySpeed] = useState<DeliverySpeed>("standard");
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [placedOrder, setPlacedOrder] = useState<{ orderId: string; whatsappUrl: string | null } | null>(null);
   const [orderError, setOrderError] = useState<string | null>(null);
@@ -142,10 +147,17 @@ export function MenuClient({
     () => items.reduce((sum, item) => sum + item.qty * item.unitPrice, 0),
     [items],
   );
-  const deliveryCharge = useMemo(
-    () => (freeDelivery ? 0 : Math.max(0, deliveryFeeUsd)),
-    [freeDelivery, deliveryFeeUsd],
-  );
+  const deliveryCharge = useMemo(() => {
+    if (deliverySpeed === "fast" && fastDeliveryEnabled) {
+      return Math.max(0, fastDeliveryFeeUsd);
+    }
+    if (freeDelivery) return 0;
+    return Math.max(0, deliveryFeeUsd);
+  }, [deliverySpeed, fastDeliveryEnabled, fastDeliveryFeeUsd, freeDelivery, deliveryFeeUsd]);
+  const deliveryLabel = useMemo(() => {
+    if (deliverySpeed === "fast" && fastDeliveryEnabled) return "Fast delivery";
+    return "Standard delivery";
+  }, [deliverySpeed, fastDeliveryEnabled]);
   const orderTotal = useMemo(() => total + deliveryCharge, [total, deliveryCharge]);
   const itemCount = useMemo(
     () =>
@@ -418,6 +430,7 @@ export function MenuClient({
         notes: buildOrderNotes(),
         totalUsd: orderTotal,
         scheduledFor: deliveryTime.mode === "scheduled" ? deliveryTime.at : null,
+        deliverySpeed: fastDeliveryEnabled ? deliverySpeed : "standard",
       });
       if (!result.ok) {
         setOrderError(result.error);
@@ -739,6 +752,13 @@ export function MenuClient({
                   etaLabel={etaLabel}
                   deliveryTime={deliveryTime}
                   onDeliveryTimeChange={setDeliveryTime}
+                  fastDeliveryEnabled={fastDeliveryEnabled}
+                  freeDelivery={freeDelivery}
+                  standardDeliveryFeeUsd={deliveryFeeUsd}
+                  fastDeliveryFeeUsd={fastDeliveryFeeUsd}
+                  deliverySpeed={deliverySpeed}
+                  onDeliverySpeedChange={setDeliverySpeed}
+                  formatPrice={formatLbp}
                 />
 
                 <section className="mt-3 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/[0.04]">
@@ -763,7 +783,7 @@ export function MenuClient({
                     <p className="text-sm font-bold text-slate-900">{formatLbp(total)}</p>
                   </div>
                   <div className="mt-2 flex items-center justify-between">
-                    <p className="text-sm text-slate-600">Delivery</p>
+                    <p className="text-sm text-slate-600">{deliveryLabel}</p>
                     <p className="text-sm font-semibold text-slate-800">
                       {deliveryCharge === 0 ? "Free" : formatLbp(deliveryCharge)}
                     </p>

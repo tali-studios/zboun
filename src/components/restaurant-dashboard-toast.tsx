@@ -87,6 +87,9 @@ export function RestaurantDashboardToast({ toast, sectionName, itemName }: Props
   } else if (toast === "invalid_delivery_fee") {
     heading = "Invalid delivery fee";
     message = "Enter a delivery fee greater than $0.00 (for example $2.50).";
+  } else if (toast === "invalid_fast_delivery_fee") {
+    heading = "Invalid fast delivery fee";
+    message = "When fast delivery is enabled, enter a fee greater than $0.00 (for example $5.00).";
   } else {
     return null;
   }
@@ -119,7 +122,8 @@ export function RestaurantDashboardToast({ toast, sectionName, itemName }: Props
                 toast === "section_name_required" ||
                 toast === "item_create_invalid" ||
                 toast === "item_create_failed" ||
-                toast === "invalid_delivery_fee"
+                toast === "invalid_delivery_fee" ||
+                toast === "invalid_fast_delivery_fee"
                   ? "linear-gradient(135deg,#f59e0b,#d97706)"
                   : "linear-gradient(135deg,#7854ff,#9f3bfe)",
             }}
@@ -128,7 +132,8 @@ export function RestaurantDashboardToast({ toast, sectionName, itemName }: Props
             {toast === "section_name_required" ||
             toast === "item_create_invalid" ||
             toast === "item_create_failed" ||
-            toast === "invalid_delivery_fee" ? (
+            toast === "invalid_delivery_fee" ||
+            toast === "invalid_fast_delivery_fee" ? (
               "!"
             ) : (
               "✓"

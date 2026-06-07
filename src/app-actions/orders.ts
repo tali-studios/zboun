@@ -15,6 +15,8 @@ import {
   type OrderNotificationItem,
 } from "@/lib/order-notifications";
 
+export type DeliverySpeed = "standard" | "fast";
+
 export type PlaceOrderInput = {
   restaurantId: string;
   restaurantSlug: string;
@@ -27,6 +29,7 @@ export type PlaceOrderInput = {
   notes?: string | null;
   totalUsd: number;
   scheduledFor?: string | null;
+  deliverySpeed?: DeliverySpeed;
 };
 
 export type PlaceOrderResult =
@@ -52,6 +55,8 @@ export type OrderRow = {
   items: OrderNotificationItem[];
   notes: string | null;
   total_usd: number;
+  delivery_fee_usd: number;
+  delivery_speed: DeliverySpeed;
   status: string;
   whatsapp_sent: boolean;
   created_at: string;
@@ -88,7 +93,9 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
 
   const { data: restaurantRow, error: restaurantError } = await insertClient
     .from("restaurants")
-    .select("is_active, is_temporarily_closed, opening_hours, free_delivery, delivery_fee_usd")
+    .select(
+      "is_active, is_temporarily_closed, opening_hours, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd",
+    )
     .eq("id", input.restaurantId)
     .maybeSingle();
 
@@ -121,9 +128,16 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
     (sum, item) => sum + Number(item.qty) * Number(item.unitPrice),
     0,
   );
-  const deliveryFeeUsd = restaurantRow.free_delivery
-    ? 0
-    : Math.max(0, Number(restaurantRow.delivery_fee_usd) || 0);
+  const deliverySpeed: DeliverySpeed = input.deliverySpeed === "fast" ? "fast" : "standard";
+  let deliveryFeeUsd = 0;
+  if (deliverySpeed === "fast") {
+    if (!restaurantRow.fast_delivery_enabled) {
+      return { ok: false, error: "Fast delivery is not available for this restaurant." };
+    }
+    deliveryFeeUsd = Math.max(0, Number(restaurantRow.fast_delivery_fee_usd) || 0);
+  } else if (!restaurantRow.free_delivery) {
+    deliveryFeeUsd = Math.max(0, Number(restaurantRow.delivery_fee_usd) || 0);
+  }
   const expectedTotal = Math.round((itemsSubtotal + deliveryFeeUsd) * 100) / 100;
   if (Math.abs(expectedTotal - input.totalUsd) > 0.02) {
     return { ok: false, error: "Order total does not match. Please refresh and try again." };
@@ -143,6 +157,7 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
       notes: input.notes?.trim() || null,
       total_usd: expectedTotal,
       delivery_fee_usd: deliveryFeeUsd,
+      delivery_speed: deliverySpeed,
       scheduled_for: scheduledFor,
       status: "pending",
       whatsapp_sent: false,
@@ -189,6 +204,7 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
     items: input.items,
     notes: input.notes,
     totalUsd: input.totalUsd,
+    deliverySpeed,
   };
 
   // Fire-and-forget email notification
@@ -224,7 +240,7 @@ export async function getRestaurantOrders(restaurantId: string): Promise<OrderRo
   const { data } = await supabase
     .from("orders")
     .select(
-      "id, customer_name, customer_phone, delivery_address, delivery_lat, delivery_lng, items, notes, total_usd, status, whatsapp_sent, created_at, updated_at",
+      "id, customer_name, customer_phone, delivery_address, delivery_lat, delivery_lng, items, notes, total_usd, delivery_fee_usd, delivery_speed, status, whatsapp_sent, created_at, updated_at",
     )
     .eq("restaurant_id", restaurantId)
     .order("created_at", { ascending: false })

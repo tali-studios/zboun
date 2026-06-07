@@ -122,7 +122,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
     supabase
       .from("restaurants")
       .select(
-        "name, slug, phone, logo_url, banner_url, description, lbp_rate, browse_sections, location, eta_label, business_type, latitude, longitude, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd",
+        "name, slug, phone, logo_url, banner_url, description, lbp_rate, browse_sections, location, eta_label, business_type, latitude, longitude, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd",
       )
       .eq("id", appUser.restaurant_id)
       .single(),
@@ -571,6 +571,8 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
           <DeliveryFeeSettings
             freeDeliveryDefault={restaurant?.free_delivery ?? false}
             deliveryFeeDefault={Number(restaurant?.delivery_fee_usd ?? 0)}
+            fastDeliveryEnabledDefault={restaurant?.fast_delivery_enabled ?? false}
+            fastDeliveryFeeDefault={Number(restaurant?.fast_delivery_fee_usd ?? 0)}
           />
 
           <div className="panel p-5">

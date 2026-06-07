@@ -23,6 +23,8 @@ export type RestaurantForMenuPage = {
   is_temporarily_closed: boolean;
   free_delivery: boolean;
   delivery_fee_usd: number;
+  fast_delivery_enabled: boolean;
+  fast_delivery_fee_usd: number;
   user_avg_rating: number | null;
   user_rating_count: number;
 };
@@ -81,12 +83,14 @@ type RestaurantRowCore = {
   is_temporarily_closed?: boolean;
   free_delivery?: boolean;
   delivery_fee_usd?: number;
+  fast_delivery_enabled?: boolean;
+  fast_delivery_fee_usd?: number;
 };
 
 export async function getRestaurantBySlug(slug: string): Promise<RestaurantForMenuPage | null> {
   const supabase = await createServerSupabaseClient();
   const fullSelect =
-    "id, name, slug, phone, logo_url, banner_url, description, lbp_rate, is_active, browse_sections, location, eta_label, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd";
+    "id, name, slug, phone, logo_url, banner_url, description, lbp_rate, is_active, browse_sections, location, eta_label, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd";
   const { data, error } = await supabase.from("restaurants").select(fullSelect).eq("slug", slug).single();
 
   let row: RestaurantRowCore | null = null;
@@ -135,6 +139,8 @@ export async function getRestaurantBySlug(slug: string): Promise<RestaurantForMe
     is_temporarily_closed: row.is_temporarily_closed ?? false,
     free_delivery: row.free_delivery ?? false,
     delivery_fee_usd: Number(row.delivery_fee_usd ?? 0),
+    fast_delivery_enabled: row.fast_delivery_enabled ?? false,
+    fast_delivery_fee_usd: Number(row.fast_delivery_fee_usd ?? 0),
     user_avg_rating: agg?.avgRating ?? null,
     user_rating_count: agg?.ratingCount ?? 0,
   };
@@ -180,6 +186,8 @@ type HomeRestaurantCard = {
   is_temporarily_closed: boolean;
   free_delivery: boolean;
   delivery_fee_usd: number;
+  fast_delivery_enabled: boolean;
+  fast_delivery_fee_usd: number;
   latitude: number | null;
   longitude: number | null;
   /** All physical branches — used for multi-location distance filtering */
@@ -205,6 +213,8 @@ function mapLegacyHomeRow(r: {
     is_temporarily_closed: false,
     free_delivery: false,
     delivery_fee_usd: 0,
+    fast_delivery_enabled: false,
+    fast_delivery_fee_usd: 0,
     latitude: null,
     longitude: null,
     branches: [],
@@ -228,6 +238,8 @@ async function mapHomeRestaurantRows(
       is_temporarily_closed: (r as { is_temporarily_closed?: boolean }).is_temporarily_closed ?? false,
       free_delivery: (r as { free_delivery?: boolean }).free_delivery ?? false,
       delivery_fee_usd: Number((r as { delivery_fee_usd?: number }).delivery_fee_usd ?? 0),
+      fast_delivery_enabled: (r as { fast_delivery_enabled?: boolean }).fast_delivery_enabled ?? false,
+      fast_delivery_fee_usd: Number((r as { fast_delivery_fee_usd?: number }).fast_delivery_fee_usd ?? 0),
       branches: (r.restaurant_locations ?? []) as RestaurantLocationBranch[],
     };
   });
@@ -240,7 +252,7 @@ export const getHomeRestaurants = unstable_cache(
       auth: { persistSession: false, autoRefreshToken: false },
     });
     const fullSelect =
-      "id, name, slug, logo_url, banner_url, description, browse_sections, location, eta_label, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, latitude, longitude, restaurant_locations(id, name, latitude, longitude, address, is_main)";
+      "id, name, slug, logo_url, banner_url, description, browse_sections, location, eta_label, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd, latitude, longitude, restaurant_locations(id, name, latitude, longitude, address, is_main)";
 
     const full = await supabase
       .from("restaurants")
@@ -275,6 +287,8 @@ export const getHomeRestaurants = unstable_cache(
           restaurant_locations: [],
           free_delivery: false,
           delivery_fee_usd: 0,
+          fast_delivery_enabled: false,
+          fast_delivery_fee_usd: 0,
         })),
         supabase,
       );
@@ -293,7 +307,7 @@ export const getHomeRestaurants = unstable_cache(
     }
     return legacy.data.map(mapLegacyHomeRow);
   },
-  ["home-restaurants", "visitor-ratings-v2", "branches-v1", "hours-v2", "delivery-fee-v1"],
+  ["home-restaurants", "visitor-ratings-v2", "branches-v1", "hours-v2", "delivery-fee-v1", "fast-delivery-v1"],
   { revalidate: 60, tags: ["home-restaurants"] },
 );
 

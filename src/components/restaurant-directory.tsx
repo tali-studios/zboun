@@ -98,6 +98,7 @@ type RestaurantCard = {
   eta_label: string | null;
   free_delivery?: boolean;
   delivery_fee_usd?: number;
+  fast_delivery_enabled?: boolean;
   opening_hours?: unknown;
   is_temporarily_closed?: boolean;
   latitude: number | null;
@@ -605,6 +606,14 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
                             <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-[#E23744]">
                               <Bike className="h-3.5 w-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
                               Free delivery
+                            </span>
+                          ) : null}
+                          {restaurant.fast_delivery_enabled ? (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600">
+                              <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-sm">
+                                <Zap className="h-2.5 w-2.5 fill-current" strokeWidth={2.5} aria-hidden />
+                              </span>
+                              Fast delivery
                             </span>
                           ) : null}
                           {restaurant.eta_label?.trim() ? (
