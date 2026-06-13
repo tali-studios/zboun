@@ -92,6 +92,25 @@ export function RestaurantDashboardToast({ toast, sectionName, itemName, brandNa
     heading = "Could not save item";
     message =
       "Something went wrong while saving to the database. Confirm the section still exists and try again. If it keeps happening, contact support.";
+  } else if (toast === "item_updated") {
+    heading = "Changes saved";
+    message = itemName ? (
+      <>
+        Updates to <span className="font-semibold text-slate-900">“{itemName}”</span> were saved.
+      </>
+    ) : (
+      "Your menu item was updated."
+    );
+  } else if (toast === "item_update_invalid") {
+    heading = "Check the form";
+    message = "Enter an item name, choose a section, and set a valid price before saving.";
+  } else if (toast === "item_update_failed") {
+    heading = "Could not save changes";
+    message = "Something went wrong while updating this item. Please try again.";
+  } else if (toast === "item_update_brand_migration") {
+    heading = "Brand columns missing";
+    message =
+      "Run the Supabase migrations add-menu-item-brand-name.sql and add-menu-brands.sql, then try saving again.";
   } else if (toast === "location_saved") {
     heading = "Branch saved";
     message = "The location was saved and is now visible to customers nearby.";

@@ -286,14 +286,20 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
     categories?: { name?: string } | null;
   }>;
 
-  const normalizedItems = items.map((item) => ({
-    ...item,
-    brand_id: item.brand_id ?? null,
-    brand_name: item.menu_brands?.name ?? item.brand_name ?? null,
-    menu_brands: item.menu_brands ?? null,
-    option_label: item.option_label ?? null,
-    option_values: Array.isArray(item.option_values) ? item.option_values : [],
-  }));
+  const normalizedItems = items.map((item) => {
+    const menuBrand = Array.isArray(item.menu_brands)
+      ? (item.menu_brands[0] ?? null)
+      : (item.menu_brands ?? null);
+
+    return {
+      ...item,
+      menu_brands: menuBrand,
+      brand_id: item.brand_id ?? menuBrand?.id ?? null,
+      brand_name: menuBrand?.name ?? item.brand_name ?? null,
+      option_label: item.option_label ?? null,
+      option_values: Array.isArray(item.option_values) ? item.option_values : [],
+    };
+  });
 
   const inventoryEnabled = Boolean(inventoryAddon?.is_enabled);
   const inventoryLowStock = inventoryEnabled

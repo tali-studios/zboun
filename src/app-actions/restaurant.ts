@@ -202,6 +202,9 @@ async function resolveMenuBrandForItem(
     .maybeSingle();
 
   if (!brand?.id) {
+    if (brandId) {
+      return { brandId, brandName: null };
+    }
     return { brandId: null, brandName: null };
   }
 
@@ -425,7 +428,9 @@ export async function createMenuItemAction(formData: FormData) {
 export async function updateMenuItemAction(formData: FormData) {
   const user = await requireRestaurantAdmin();
   const id = String(formData.get("id") ?? "");
-  if (!id) return;
+  if (!id) {
+    redirect("/dashboard/business?toast=item_update_invalid");
+  }
 
   const name = String(formData.get("name") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
@@ -438,8 +443,6 @@ export async function updateMenuItemAction(formData: FormData) {
   const categoryId = String(formData.get("category_id") ?? "");
   const currentImageUrl = String(formData.get("current_image_url") ?? "").trim();
   const imageFile = formData.get("image_file");
-  const uploadedImageUrl =
-    imageFile instanceof File ? await uploadMenuItemImage(imageFile, user.restaurant_id) : null;
   const gramsValue = String(formData.get("grams") ?? "").trim();
   const contents = String(formData.get("contents") ?? "").trim();
   const removableIngredients = parseIngredientJson(formData.get("removable_ingredients")).map(
@@ -455,9 +458,29 @@ export async function updateMenuItemAction(formData: FormData) {
     price: item.price ?? 0,
   }));
 
+  if (!name || !categoryId) {
+    redirect("/dashboard/business?toast=item_update_invalid");
+  }
+
   if (soldByWeight) {
-    if (pricePerKg === null || !Number.isFinite(pricePerKg) || pricePerKg < 0) return;
-    if (!Number.isFinite(weightStepKg) || weightStepKg < 0.01) return;
+    if (pricePerKg === null || !Number.isFinite(pricePerKg) || pricePerKg < 0) {
+      redirect("/dashboard/business?toast=item_update_invalid");
+    }
+    if (!Number.isFinite(weightStepKg) || weightStepKg < 0.01) {
+      redirect("/dashboard/business?toast=item_update_invalid");
+    }
+  } else if (!Number.isFinite(price) || price < 0) {
+    redirect("/dashboard/business?toast=item_update_invalid");
+  }
+
+  let uploadedImageUrl: string | null = null;
+  if (imageFile instanceof File && imageFile.size > 0) {
+    try {
+      uploadedImageUrl = await uploadMenuItemImage(imageFile, user.restaurant_id);
+    } catch (error) {
+      console.error("[updateMenuItemAction] image upload", error);
+      redirect("/dashboard/business?toast=item_update_failed");
+    }
   }
 
   const supabase = await createServerSupabaseClient();
@@ -467,7 +490,7 @@ export async function updateMenuItemAction(formData: FormData) {
     String(formData.get("brand_id") ?? ""),
   );
 
-  await supabase
+  const { error } = await supabase
     .from("menu_items")
     .update({
       name,
@@ -475,7 +498,7 @@ export async function updateMenuItemAction(formData: FormData) {
       brand_name: brandName,
       description: description || null,
       price,
-      category_id: categoryId || null,
+      category_id: categoryId,
       image_url: uploadedImageUrl ?? (currentImageUrl || null),
       grams: gramsValue ? Number(gramsValue) : null,
       contents: contents || null,
@@ -489,7 +512,17 @@ export async function updateMenuItemAction(formData: FormData) {
     })
     .eq("id", id)
     .eq("restaurant_id", user.restaurant_id);
+
+  if (error) {
+    console.error("[updateMenuItemAction]", error.message, error.code, error.details);
+    if (/brand_id|brand_name|menu_brands/i.test(error.message ?? "")) {
+      redirect("/dashboard/business?toast=item_update_brand_migration");
+    }
+    redirect("/dashboard/business?toast=item_update_failed");
+  }
+
   revalidatePath("/dashboard/business");
+  redirect(`/dashboard/business?toast=item_updated&item_name=${encodeURIComponent(name)}`);
 }
 
 export async function toggleMenuItemAvailabilityAction(formData: FormData) {
