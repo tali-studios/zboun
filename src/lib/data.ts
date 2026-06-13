@@ -52,6 +52,9 @@ export type CategoryWithItems = {
   menu_items: {
     id: string;
     name: string;
+    brand_name: string | null;
+    brand_id?: string | null;
+    menu_brands?: { id: string; name: string; logo_url: string | null } | null;
     description: string | null;
     contents: string | null;
     grams: number | null;
@@ -151,7 +154,7 @@ export async function getRestaurantMenu(restaurantId: string) {
   const { data } = await supabase
     .from("categories")
     .select(
-      "id, name, position, menu_items(id, name, description, contents, grams, price, sold_by_weight, price_per_kg, weight_step_kg, removable_ingredients, add_ingredients, image_url, is_available)",
+      "id, name, position, menu_items(id, name, brand_id, brand_name, menu_brands(id, name, logo_url), description, contents, grams, price, sold_by_weight, price_per_kg, weight_step_kg, removable_ingredients, add_ingredients, image_url, is_available)",
     )
     .eq("restaurant_id", restaurantId)
     .order("position", { ascending: true })

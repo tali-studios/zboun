@@ -155,6 +155,59 @@ async function uploadRestaurantBanner(file: File, restaurantId: string) {
   return data.publicUrl;
 }
 
+async function uploadBrandLogo(file: File, restaurantId: string) {
+  if (!file || file.size === 0) {
+    return null;
+  }
+  if (!file.type.startsWith("image/")) {
+    throw new Error("Only image files are allowed.");
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    throw new Error("Image size must be under 5MB.");
+  }
+
+  const extension = file.name.includes(".") ? file.name.split(".").pop() : "jpg";
+  const filePath = `${restaurantId}/brand-${Date.now()}-${crypto.randomUUID()}.${extension}`;
+  const bucket = process.env.SUPABASE_MENU_BUCKET ?? "menu-items";
+  await ensureBucketExists(bucket);
+  const adminClient = getStorageAdminClient();
+
+  const { error: uploadError } = await adminClient.storage.from(bucket).upload(filePath, file, {
+    contentType: file.type,
+    upsert: false,
+  });
+  if (uploadError) {
+    throw uploadError;
+  }
+
+  const { data } = adminClient.storage.from(bucket).getPublicUrl(filePath);
+  return data.publicUrl;
+}
+
+async function resolveMenuBrandForItem(
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+  restaurantId: string,
+  brandIdRaw: string,
+): Promise<{ brandId: string | null; brandName: string | null }> {
+  const brandId = brandIdRaw.trim();
+  if (!brandId) {
+    return { brandId: null, brandName: null };
+  }
+
+  const { data: brand } = await supabase
+    .from("menu_brands")
+    .select("id, name")
+    .eq("id", brandId)
+    .eq("restaurant_id", restaurantId)
+    .maybeSingle();
+
+  if (!brand?.id) {
+    return { brandId: null, brandName: null };
+  }
+
+  return { brandId: brand.id as string, brandName: brand.name as string };
+}
+
 export async function createCategoryAction(formData: FormData) {
   const user = await requireRestaurantAdmin();
   const name = String(formData.get("name") ?? "").trim();
@@ -193,6 +246,90 @@ export async function deleteCategoryAction(formData: FormData) {
 
   const supabase = await createServerSupabaseClient();
   await supabase.from("categories").delete().eq("id", id).eq("restaurant_id", user.restaurant_id);
+  revalidatePath("/dashboard/business");
+}
+
+export async function createBrandAction(formData: FormData) {
+  const user = await requireRestaurantAdmin();
+  const name = String(formData.get("name") ?? "").trim();
+  if (!name) {
+    redirect("/dashboard/business?toast=brand_name_required");
+  }
+
+  const logoFile = formData.get("logo_file");
+  let logoUrl: string | null = null;
+  try {
+    logoUrl =
+      logoFile instanceof File && logoFile.size > 0
+        ? await uploadBrandLogo(logoFile, user.restaurant_id)
+        : null;
+  } catch {
+    redirect("/dashboard/business?toast=brand_logo_invalid");
+  }
+
+  const supabase = await createServerSupabaseClient();
+  const { error } = await supabase.from("menu_brands").insert({
+    name,
+    logo_url: logoUrl,
+    restaurant_id: user.restaurant_id,
+    position: 0,
+  });
+
+  if (error) {
+    if (error.code === "23505") {
+      redirect("/dashboard/business?toast=brand_name_duplicate");
+    }
+    redirect("/dashboard/business?toast=brand_create_failed");
+  }
+
+  revalidatePath("/dashboard/business");
+  redirect(`/dashboard/business?toast=brand_created&brand_name=${encodeURIComponent(name)}`);
+}
+
+export async function updateBrandAction(formData: FormData) {
+  const user = await requireRestaurantAdmin();
+  const id = String(formData.get("id") ?? "").trim();
+  const name = String(formData.get("name") ?? "").trim();
+  if (!id || !name) return;
+
+  const currentLogoUrl = String(formData.get("current_logo_url") ?? "").trim();
+  const logoFile = formData.get("logo_file");
+  let uploadedLogoUrl: string | null = null;
+  if (logoFile instanceof File && logoFile.size > 0) {
+    try {
+      uploadedLogoUrl = await uploadBrandLogo(logoFile, user.restaurant_id);
+    } catch {
+      redirect("/dashboard/business?toast=brand_logo_invalid");
+    }
+  }
+
+  const supabase = await createServerSupabaseClient();
+  const { error } = await supabase
+    .from("menu_brands")
+    .update({
+      name,
+      logo_url: uploadedLogoUrl ?? (currentLogoUrl || null),
+    })
+    .eq("id", id)
+    .eq("restaurant_id", user.restaurant_id);
+
+  if (error) {
+    if (error.code === "23505") {
+      redirect("/dashboard/business?toast=brand_name_duplicate");
+    }
+    return;
+  }
+
+  revalidatePath("/dashboard/business");
+}
+
+export async function deleteBrandAction(formData: FormData) {
+  const user = await requireRestaurantAdmin();
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) return;
+
+  const supabase = await createServerSupabaseClient();
+  await supabase.from("menu_brands").delete().eq("id", id).eq("restaurant_id", user.restaurant_id);
   revalidatePath("/dashboard/business");
 }
 
@@ -249,11 +386,18 @@ export async function createMenuItemAction(formData: FormData) {
   }));
 
   const description = String(formData.get("description") ?? "").trim() || null;
+  const { brandId, brandName } = await resolveMenuBrandForItem(
+    supabase,
+    user.restaurant_id,
+    String(formData.get("brand_id") ?? ""),
+  );
 
   const { error } = await supabase.from("menu_items").insert({
     restaurant_id: user.restaurant_id,
     category_id: categoryId,
     name,
+    brand_id: brandId,
+    brand_name: brandName,
     description,
     price,
     image_url: imageUrl,
@@ -317,10 +461,18 @@ export async function updateMenuItemAction(formData: FormData) {
   }
 
   const supabase = await createServerSupabaseClient();
+  const { brandId, brandName } = await resolveMenuBrandForItem(
+    supabase,
+    user.restaurant_id,
+    String(formData.get("brand_id") ?? ""),
+  );
+
   await supabase
     .from("menu_items")
     .update({
       name,
+      brand_id: brandId,
+      brand_name: brandName,
       description: description || null,
       price,
       category_id: categoryId || null,

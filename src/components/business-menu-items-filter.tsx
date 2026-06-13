@@ -79,10 +79,10 @@ export function BusinessMenuItemsFilter({
             latest.current = { ...latest.current, q: v };
             scheduleSearchPush(v);
           }}
-          placeholder="Search by item, section, ingredient, option"
+          placeholder="Search by item, section, brand, ingredient, option"
           className="ui-input"
         />
-        <p className="mt-1 text-xs text-slate-500">Search item names, descriptions, ingredients, and options.</p>
+        <p className="mt-1 text-xs text-slate-500">Search item names, brands, descriptions, ingredients, and options.</p>
       </div>
       <label className="space-y-1 md:w-[min(100%,11rem)] md:shrink-0 lg:w-52">
         <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Section</span>

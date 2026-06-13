@@ -7,9 +7,10 @@ type Props = {
   toast: string | undefined | null;
   sectionName?: string | undefined | null;
   itemName?: string | undefined | null;
+  brandName?: string | undefined | null;
 };
 
-export function RestaurantDashboardToast({ toast, sectionName, itemName }: Props) {
+export function RestaurantDashboardToast({ toast, sectionName, itemName, brandName }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const [open, setOpen] = useState(Boolean(toast));
@@ -19,6 +20,7 @@ export function RestaurantDashboardToast({ toast, sectionName, itemName }: Props
     params.delete("toast");
     params.delete("section_name");
     params.delete("item_name");
+    params.delete("brand_name");
     const qs = params.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname);
   }, [pathname, router]);
@@ -53,6 +55,27 @@ export function RestaurantDashboardToast({ toast, sectionName, itemName }: Props
   } else if (toast === "section_name_required") {
     heading = "Name required";
     message = "Enter a section name before adding.";
+  } else if (toast === "brand_created") {
+    heading = "Brand added";
+    message = brandName ? (
+      <>
+        Brand <span className="font-semibold text-slate-900">“{brandName}”</span> is ready to use on menu items.
+      </>
+    ) : (
+      "Your new brand is ready to use on menu items."
+    );
+  } else if (toast === "brand_name_required") {
+    heading = "Brand name required";
+    message = "Enter a brand name before adding.";
+  } else if (toast === "brand_name_duplicate") {
+    heading = "Brand already exists";
+    message = "You already have a brand with that name.";
+  } else if (toast === "brand_logo_invalid") {
+    heading = "Invalid logo";
+    message = "Upload a PNG, JPG, or WebP image under 5MB.";
+  } else if (toast === "brand_create_failed") {
+    heading = "Could not add brand";
+    message = "Something went wrong while saving the brand. Try again.";
   } else if (toast === "item_created") {
     heading = "Item added";
     message = itemName ? (

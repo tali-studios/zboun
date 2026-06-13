@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { signOutAction } from "@/app-actions/auth";
 import {
+  createBrandAction,
   createCategoryAction,
   deleteCategoryAction,
   deleteMenuItemAction,
@@ -28,6 +29,7 @@ import { RestaurantLocationsPanel } from "@/components/restaurant-locations-pane
 import type { RestaurantLocationRow } from "@/app-actions/restaurant";
 import { MenuItemPricingFields } from "@/components/menu-item-pricing-fields";
 import { AddMenuItemForm } from "@/components/add-menu-item-form";
+import { BrandManageRow } from "@/components/brand-manage-row";
 import { DeliveryFeeSettings } from "@/components/delivery-fee-settings";
 
 export const dynamic = "force-dynamic";
@@ -67,6 +69,7 @@ type Props = {
     toast?: string;
     section_name?: string;
     item_name?: string;
+    brand_name?: string;
   }>;
 };
 
@@ -75,7 +78,8 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
   if (!appUser || appUser.role !== "restaurant_admin" || !appUser.restaurant_id) {
     redirect("/dashboard/login");
   }
-  const { q, category, stock, toast, section_name: sectionNameRaw, item_name: itemNameRaw } = await searchParams;
+  const { q, category, stock, toast, section_name: sectionNameRaw, item_name: itemNameRaw, brand_name: brandNameRaw } =
+    await searchParams;
   let sectionName: string | undefined = undefined;
   if (typeof sectionNameRaw === "string" && sectionNameRaw.length > 0) {
     try {
@@ -90,6 +94,14 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
       itemName = decodeURIComponent(itemNameRaw);
     } catch {
       itemName = itemNameRaw;
+    }
+  }
+  let brandName: string | undefined = undefined;
+  if (typeof brandNameRaw === "string" && brandNameRaw.length > 0) {
+    try {
+      brandName = decodeURIComponent(brandNameRaw);
+    } catch {
+      brandName = brandNameRaw;
     }
   }
 
@@ -229,9 +241,9 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
   ]);
 
   const itemsSelectWithOptions =
-    "id, name, description, price, image_url, grams, contents, sold_by_weight, price_per_kg, weight_step_kg, removable_ingredients, add_ingredients, option_label, option_values, is_available, category_id, categories(name)";
+    "id, name, brand_id, brand_name, description, price, image_url, grams, contents, sold_by_weight, price_per_kg, weight_step_kg, removable_ingredients, add_ingredients, option_label, option_values, is_available, category_id, menu_brands(id, name, logo_url), categories(name)";
   const itemsSelectLegacy =
-    "id, name, description, price, image_url, grams, contents, sold_by_weight, price_per_kg, weight_step_kg, removable_ingredients, add_ingredients, is_available, category_id, categories(name)";
+    "id, name, brand_name, description, price, image_url, grams, contents, sold_by_weight, price_per_kg, weight_step_kg, removable_ingredients, add_ingredients, is_available, category_id, categories(name)";
 
   const { data: itemsWithOptions, error: itemsWithOptionsError } = await supabase
     .from("menu_items")
@@ -241,7 +253,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
 
   const { data: legacyItems } =
     itemsWithOptionsError &&
-    /option_label|option_values/i.test(itemsWithOptionsError.message ?? "")
+    /option_label|option_values|brand_name|brand_id|menu_brands/i.test(itemsWithOptionsError.message ?? "")
       ? await supabase
           .from("menu_items")
           .select(itemsSelectLegacy)
@@ -254,6 +266,9 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
     []) as Array<{
     id: string;
     name: string;
+    brand_name?: string | null;
+    brand_id?: string | null;
+    menu_brands?: { id: string; name: string; logo_url: string | null } | null;
     description: string | null;
     price: number;
     image_url: string | null;
@@ -273,6 +288,9 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
 
   const normalizedItems = items.map((item) => ({
     ...item,
+    brand_id: item.brand_id ?? null,
+    brand_name: item.menu_brands?.name ?? item.brand_name ?? null,
+    menu_brands: item.menu_brands ?? null,
     option_label: item.option_label ?? null,
     option_values: Array.isArray(item.option_values) ? item.option_values : [],
   }));
@@ -323,6 +341,17 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
     .order("position", { ascending: true });
   const restaurantLocations = (restaurantLocationsRaw ?? []) as RestaurantLocationRow[];
 
+  const { data: menuBrandsRaw } = await supabase
+    .from("menu_brands")
+    .select("id, name, logo_url")
+    .eq("restaurant_id", appUser.restaurant_id)
+    .order("name");
+  const menuBrands = (menuBrandsRaw ?? []) as Array<{
+    id: string;
+    name: string;
+    logo_url: string | null;
+  }>;
+
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const menuUrl = `${appUrl.replace(/\/+$/, "")}/${restaurant?.slug ?? ""}`;
   const businessType = parseBusinessType(restaurant?.business_type ?? "restaurant");
@@ -342,6 +371,8 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
     const optionText = `${item.option_label ?? ""} ${JSON.stringify(item.option_values ?? [])}`.toLowerCase();
     return (
       item.name.toLowerCase().includes(normalizedQuery) ||
+      (item.brand_name ?? "").toLowerCase().includes(normalizedQuery) ||
+      (item.menu_brands?.name ?? "").toLowerCase().includes(normalizedQuery) ||
       (item.description ?? "").toLowerCase().includes(normalizedQuery) ||
       (item.contents ?? "").toLowerCase().includes(normalizedQuery) ||
       categoryName.toLowerCase().includes(normalizedQuery) ||
@@ -354,7 +385,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
   if (!isMenuBusiness) {
     return (
       <>
-        <RestaurantDashboardToast toast={toast} sectionName={sectionName} itemName={itemName} />
+        <RestaurantDashboardToast toast={toast} sectionName={sectionName} itemName={itemName} brandName={brandName} />
         <BusinessCategoryDashboard
           businessType={businessType}
           businessTypeLabel={businessTypeLabel}
@@ -387,7 +418,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
 
   return (
     <main className="min-h-screen bg-[#f8f8ff] p-3 sm:p-4 md:p-8">
-      <RestaurantDashboardToast toast={toast} sectionName={sectionName} itemName={itemName} />
+      <RestaurantDashboardToast toast={toast} sectionName={sectionName} itemName={itemName} brandName={brandName} />
       <div className="mx-auto max-w-7xl space-y-5">
         {/* Dashboard header */}
         <header className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-violet-700 via-violet-600 to-fuchsia-600 p-5 text-white shadow-lg shadow-violet-600/30 md:p-6">
@@ -721,12 +752,69 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
           </div>
         </section>
 
+        <section className="panel p-5">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="panel-title">Manage brands</h2>
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+              {menuBrands.length} brands
+            </span>
+          </div>
+          <p className="mt-1 text-sm text-slate-600">
+            Brands appear in a dropdown when adding menu items. Customers will see the brand name and logo on each item.
+          </p>
+
+          <form action={createBrandAction} className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 sm:p-5">
+            <h3 className="text-sm font-bold text-slate-900">Add brand</h3>
+            <div className="mt-3 grid gap-4 lg:grid-cols-2">
+              <div className="space-y-3">
+                <label className="block space-y-1">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Brand name</span>
+                  <input name="name" required placeholder="Brand name" className="ui-input" />
+                </label>
+                <p className="text-xs text-slate-500">
+                  Examples: Häagen-Dazs, Nestlé, Cadbury. Use brands to group items (e.g. ice cream by brand).
+                </p>
+                <button type="submit" className="btn btn-success w-full rounded-xl sm:w-auto sm:min-w-[10rem]">
+                  Add brand
+                </button>
+              </div>
+              <ImageUploadField name="logo_file" label="Brand logo" optional />
+            </div>
+          </form>
+
+          {menuBrands.length === 0 ? (
+            <p className="mt-4 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-500">
+              No brands yet. Add your first brand above, then pick it when creating grocery or packaged items.
+            </p>
+          ) : (
+            <div className="-mx-4 mt-4 overflow-x-auto sm:mx-0 sm:rounded-2xl sm:border sm:border-slate-200 sm:bg-white sm:shadow-sm">
+              <table className="min-w-[640px] text-sm md:min-w-full">
+                <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <tr>
+                    <th className="w-[9.5rem] px-4 py-3">Logo</th>
+                    <th className="px-4 py-3">Brand name</th>
+                    <th className="w-[1%] whitespace-nowrap px-4 py-3">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {menuBrands.map((brand) => (
+                    <BrandManageRow key={brand.id} brand={brand} />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+
         <section className="rounded-2xl border border-violet-100 bg-gradient-to-br from-[#faf9ff] to-white p-5 shadow-sm">
           <div className="mb-5">
             <h2 className="text-base font-bold text-slate-900">Add menu item</h2>
             <p className="mt-0.5 text-xs text-slate-500">Fill in the details below and click "Add item to menu"</p>
           </div>
-          <AddMenuItemForm categories={(categories ?? []).map((c) => ({ id: c.id, name: c.name }))} />
+          <AddMenuItemForm
+            categories={(categories ?? []).map((c) => ({ id: c.id, name: c.name }))}
+            brands={menuBrands}
+          />
         </section>
 
         <section className="panel p-4 md:p-5">
@@ -758,7 +846,12 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
               <tbody className="divide-y divide-slate-100">
                 {filteredItems.map((item) => (
                   <tr key={item.id}>
-                    <td className="px-4 py-3 font-medium text-slate-900">{item.name}</td>
+                    <td className="px-4 py-3 font-medium text-slate-900">
+                      {item.name}
+                      {item.brand_name ? (
+                        <span className="mt-0.5 block text-xs font-normal text-slate-500">{item.brand_name}</span>
+                      ) : null}
+                    </td>
                     <td className="px-4 py-3 text-slate-600">
                       {categoryNameById.get(item.category_id ?? "") ?? "Uncategorized"}
                     </td>
@@ -813,6 +906,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                               </div>
                               <div className="mt-4 space-y-2 text-sm text-slate-700">
                                 <p><span className="font-semibold">Price:</span> ${item.price.toFixed(2)}</p>
+                                {item.brand_name ? <p><span className="font-semibold">Brand:</span> {item.brand_name}</p> : null}
                                 {item.description ? <p><span className="font-semibold">Description:</span> {item.description}</p> : null}
                                 {item.contents ? <p><span className="font-semibold">Contains / ingredients:</span> {item.contents}</p> : null}
                                 {item.option_label && Array.isArray(item.option_values) && item.option_values.length > 0 ? (
@@ -883,6 +977,24 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                                   <FormFieldLabel required>Item name</FormFieldLabel>
                                   <input name="name" required defaultValue={item.name} placeholder="Item name" className="ui-input" />
                                   <p className="text-xs text-slate-500">Displayed to customers in the menu.</p>
+                                </label>
+                                <label className="space-y-1">
+                                  <FormFieldLabel optional>Brand</FormFieldLabel>
+                                  <select
+                                    name="brand_id"
+                                    defaultValue={item.brand_id ?? ""}
+                                    className="ui-select"
+                                  >
+                                    <option value="">No brand</option>
+                                    {menuBrands.map((brand) => (
+                                      <option key={brand.id} value={brand.id}>
+                                        {brand.name}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <p className="text-xs text-slate-500">
+                                    Pick from your saved brands (manage them above).
+                                  </p>
                                 </label>
                                 <label className="space-y-1 md:col-span-2">
                                   <FormFieldLabel optional>Description</FormFieldLabel>

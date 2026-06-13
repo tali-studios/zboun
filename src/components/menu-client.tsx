@@ -81,6 +81,16 @@ function isSoldByWeight(item: CategoryWithItems["menu_items"][number]) {
   return Boolean((item as { sold_by_weight?: boolean }).sold_by_weight);
 }
 
+function getMenuItemBrand(item: CategoryWithItems["menu_items"][number]) {
+  if (item.menu_brands?.name) {
+    return item.menu_brands;
+  }
+  if (item.brand_name) {
+    return { id: item.brand_id ?? "", name: item.brand_name, logo_url: null };
+  }
+  return null;
+}
+
 function formatQty(unit: "each" | "kg", qty: number): string {
   if (unit === "kg") {
     if (qty < 1) return `${Math.round(qty * 1000)} g`;
@@ -152,8 +162,10 @@ export function MenuClient({
       .map((category) => ({
         ...category,
         menu_items: category.menu_items.filter((item) => {
+          const brand = getMenuItemBrand(item);
           return (
             item.name.toLowerCase().includes(normalized) ||
+            (brand?.name ?? "").toLowerCase().includes(normalized) ||
             (item.description ?? "").toLowerCase().includes(normalized) ||
             (item.contents ?? "").toLowerCase().includes(normalized)
           );
@@ -1123,6 +1135,7 @@ export function MenuClient({
                 {category.menu_items.map((item) => {
                   const budgetPriceUsd = getItemBudgetPriceUsd(item);
                   const soldByWeight = isSoldByWeightItem(item);
+                  const brand = getMenuItemBrand(item);
                   return (
                   <article
                     key={item.id}
@@ -1155,6 +1168,23 @@ export function MenuClient({
                       className={`flex min-h-[88px] min-w-0 flex-1 flex-col ${canShop ? "pr-12" : ""}`}
                     >
                       <h3 className="text-[15px] font-bold leading-snug text-slate-900 sm:text-base">
+                        {brand ? (
+                          <span className="mb-1 flex items-center gap-1.5">
+                            {brand.logo_url ? (
+                              <Image
+                                src={brand.logo_url}
+                                alt=""
+                                width={18}
+                                height={18}
+                                className="h-[18px] w-[18px] rounded object-contain"
+                                unoptimized
+                              />
+                            ) : null}
+                            <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                              {brand.name}
+                            </span>
+                          </span>
+                        ) : null}
                         {item.name}
                         {isBudgetActive ? (
                           <span className="ml-2 inline-flex align-middle rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">

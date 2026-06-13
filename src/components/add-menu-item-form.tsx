@@ -6,6 +6,7 @@ import { IngredientListField } from "@/components/ingredient-list-field";
 import { ImageUploadField } from "@/components/image-upload-field";
 
 type Category = { id: string; name: string };
+type Brand = { id: string; name: string; logo_url: string | null };
 
 const SECTION_ICONS: Record<string, string> = {
   "1": "🍽️",
@@ -109,7 +110,13 @@ function SectionCard({
   );
 }
 
-export function AddMenuItemForm({ categories }: { categories: Category[] }) {
+export function AddMenuItemForm({
+  categories,
+  brands,
+}: {
+  categories: Category[];
+  brands: Brand[];
+}) {
   const [soldByWeight, setSoldByWeight] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
@@ -152,6 +159,22 @@ export function AddMenuItemForm({ categories }: { categories: Category[] }) {
                 className="ui-input w-full"
                 autoComplete="off"
               />
+            </div>
+            <div>
+              <FieldLabel htmlFor="add-brand_id" optional>Brand</FieldLabel>
+              <select id="add-brand_id" name="brand_id" className="ui-select w-full">
+                <option value="">No brand</option>
+                {brands.map((brand) => (
+                  <option key={brand.id} value={brand.id}>
+                    {brand.name}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-slate-400">
+                {brands.length > 0
+                  ? "Choose a brand you added under Manage brands."
+                  : "Add brands below first — useful for grocery and ice cream aisles."}
+              </p>
             </div>
             <div>
               <FieldLabel htmlFor="add-description" optional>Description</FieldLabel>

@@ -9,6 +9,12 @@ type Props = {
   initialImageUrl?: string | null;
   /** When true, show “(optional)” next to the label (menu item image). Logo/banner omit this. */
   optional?: boolean;
+  /** Tighter layout for inline brand rows in admin tables. */
+  compact?: boolean;
+  /** Associate file input with a form elsewhere (e.g. table row). */
+  formId?: string;
+  /** Accessible name when label is hidden. */
+  uploadAriaLabel?: string;
 };
 
 export function ImageUploadField({
@@ -16,6 +22,9 @@ export function ImageUploadField({
   label = "Item image",
   initialImageUrl = null,
   optional = false,
+  compact = false,
+  formId,
+  uploadAriaLabel,
 }: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -48,42 +57,69 @@ export function ImageUploadField({
   }
 
   return (
-    <div className="space-y-2">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-        {label}
-        {optional ? <span className="ml-1 font-normal normal-case text-slate-500">(optional)</span> : null}
-      </p>
+    <div className={compact ? "space-y-1.5" : "space-y-2"}>
+      {label ? (
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          {label}
+          {optional ? <span className="ml-1 font-normal normal-case text-slate-500">(optional)</span> : null}
+        </p>
+      ) : null}
 
       <label
+        aria-label={uploadAriaLabel || label || "Upload image"}
         onDragOver={(event) => {
           event.preventDefault();
           setIsDragging(true);
         }}
         onDragLeave={() => setIsDragging(false)}
         onDrop={onDrop}
-        className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed p-3 transition ${
-          isDragging ? "border-violet-500 bg-violet-50" : "border-slate-300 bg-white"
+        className={`flex cursor-pointer transition ${
+          compact
+            ? `flex-col items-center gap-2 rounded-xl border border-dashed p-2.5 text-center ${
+                isDragging ? "border-violet-500 bg-violet-50" : "border-slate-200 bg-slate-50/80"
+              }`
+            : `items-center gap-3 rounded-xl border-2 border-dashed p-3 ${
+                isDragging ? "border-violet-500 bg-violet-50" : "border-slate-300 bg-white"
+              }`
         }`}
       >
         {previewUrl ? (
           <Image
             src={previewUrl}
             alt="Preview"
-            width={64}
-            height={64}
-            className="h-16 w-16 rounded-lg object-cover"
+            width={compact ? 56 : 64}
+            height={compact ? 56 : 64}
+            className={
+              compact
+                ? "h-14 w-full max-w-[7rem] rounded-lg object-contain"
+                : "h-16 w-16 rounded-lg object-cover"
+            }
             unoptimized
           />
         ) : (
-          <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-slate-100 text-xs text-slate-500">
-            No image
+          <div
+            className={
+              compact
+                ? "flex h-14 w-full max-w-[7rem] items-center justify-center rounded-lg bg-white text-[10px] text-slate-400 ring-1 ring-slate-200"
+                : "flex h-16 w-16 items-center justify-center rounded-lg bg-slate-100 text-xs text-slate-500"
+            }
+          >
+            {compact ? "No logo" : "No image"}
           </div>
         )}
 
-        <div className="min-w-0">
-          <p className="text-sm font-semibold text-slate-800">Drag & drop or click to upload</p>
-          <p className="text-xs text-slate-500">PNG/JPG/WebP, max 5MB</p>
-          {file ? <p className="mt-1 truncate text-xs text-violet-700">{file.name}</p> : null}
+        <div className={compact ? "min-w-0 px-1" : "min-w-0"}>
+          <p className={compact ? "text-[11px] font-semibold text-slate-700" : "text-sm font-semibold text-slate-800"}>
+            {compact ? "Click to change logo" : "Drag & drop or click to upload"}
+          </p>
+          {!compact ? (
+            <p className="text-xs text-slate-500">PNG/JPG/WebP, max 5MB</p>
+          ) : (
+            <p className="text-[10px] text-slate-400">PNG/JPG · 5MB max</p>
+          )}
+          {file ? (
+            <p className={`mt-0.5 truncate text-violet-700 ${compact ? "text-[10px]" : "text-xs"}`}>{file.name}</p>
+          ) : null}
         </div>
 
         <input
@@ -91,6 +127,7 @@ export function ImageUploadField({
           type="file"
           accept="image/*"
           className="hidden"
+          form={formId}
           onChange={(event) => validateAndSet(event.target.files?.[0] ?? null)}
         />
       </label>
