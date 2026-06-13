@@ -58,6 +58,10 @@ export type CategoryWithItems = {
     description: string | null;
     contents: string | null;
     grams: number | null;
+    display_quantity?: number | null;
+    display_unit?: string | null;
+    calories?: number | null;
+    protein_g?: number | null;
     price: number;
     sold_by_weight?: boolean;
     price_per_kg?: number | null;
@@ -164,7 +168,7 @@ export async function getRestaurantMenu(restaurantId: string) {
   const { data } = await supabase
     .from("categories")
     .select(
-      "id, name, position, menu_items(id, name, brand_id, brand_name, menu_brands(id, name, logo_url), description, contents, grams, price, sold_by_weight, price_per_kg, weight_step_kg, removable_ingredients, add_ingredients, image_url, is_available)",
+      "id, name, position, menu_items(id, name, brand_id, brand_name, menu_brands(id, name, logo_url), description, contents, grams, display_quantity, display_unit, calories, protein_g, price, sold_by_weight, price_per_kg, weight_step_kg, removable_ingredients, add_ingredients, image_url, is_available)",
     )
     .eq("restaurant_id", restaurantId)
     .order("position", { ascending: true })
@@ -185,6 +189,10 @@ export async function getRestaurantMenu(restaurantId: string) {
       description: (item.description as string | null) ?? null,
       contents: (item.contents as string | null) ?? null,
       grams: (item.grams as number | null) ?? null,
+      display_quantity: (item.display_quantity as number | null) ?? null,
+      display_unit: (item.display_unit as string | null) ?? null,
+      calories: item.calories != null ? Number(item.calories) : null,
+      protein_g: item.protein_g != null ? Number(item.protein_g) : null,
       price: Number(item.price),
       sold_by_weight: item.sold_by_weight as boolean | undefined,
       price_per_kg: (item.price_per_kg as number | null) ?? null,

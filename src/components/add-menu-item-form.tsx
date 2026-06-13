@@ -4,6 +4,8 @@ import { useState, useRef } from "react";
 import { createMenuItemAction } from "@/app-actions/restaurant";
 import { IngredientListField } from "@/components/ingredient-list-field";
 import { ImageUploadField } from "@/components/image-upload-field";
+import { DisplayQuantityFields } from "@/components/display-quantity-fields";
+import { MenuNutritionFields } from "@/components/menu-nutrition-fields";
 
 type Category = { id: string; name: string };
 type Brand = { id: string; name: string; logo_url: string | null };
@@ -261,7 +263,8 @@ export function AddMenuItemForm({
         {soldByWeight ? (
           <div className="grid gap-3 sm:grid-cols-2">
             <input type="hidden" name="price" value="0" />
-            <input type="hidden" name="grams" value="" />
+            <input type="hidden" name="display_quantity" value="" />
+            <input type="hidden" name="display_unit" value="g" />
             <div>
               <FieldLabel htmlFor="add-price_per_kg" required>Price per KG ($/kg)</FieldLabel>
               <MoneyInput
@@ -292,22 +295,15 @@ export function AddMenuItemForm({
           <div className="grid gap-3 sm:grid-cols-2">
             <input type="hidden" name="price_per_kg" value="" />
             <input type="hidden" name="weight_step_kg" value="0.1" />
+            <input type="hidden" name="display_quantity" value="" />
+            <input type="hidden" name="display_unit" value="g" />
             <div>
               <FieldLabel htmlFor="add-price" required>Price ($)</FieldLabel>
               <MoneyInput id="add-price" name="price" placeholder="4.50" required />
               <p className="mt-1 text-xs text-slate-400">Base price before optional add-ons</p>
             </div>
-            <div>
-              <FieldLabel htmlFor="add-grams" optional>Display weight (grams)</FieldLabel>
-              <input
-                id="add-grams"
-                name="grams"
-                placeholder="e.g. 300"
-                type="number"
-                min={0}
-                className="ui-input w-full"
-              />
-              <p className="mt-1 text-xs text-slate-400">Shown as a label, e.g. "300g"</p>
+            <div className="min-w-0">
+              <DisplayQuantityFields idPrefix="add-item-qty" />
             </div>
           </div>
         )}
@@ -333,6 +329,7 @@ export function AddMenuItemForm({
           />
           <p className="mt-1 text-xs text-slate-400">Separate items with commas</p>
         </div>
+        <MenuNutritionFields idPrefix="add-item-nutrition" />
       </SectionCard>
 
       {/* ── Row 4: Customization (collapsible) ── */}

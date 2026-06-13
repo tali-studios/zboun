@@ -28,6 +28,8 @@ import { RestaurantMapPin } from "@/components/restaurant-map-pin";
 import { RestaurantLocationsPanel } from "@/components/restaurant-locations-panel";
 import type { RestaurantLocationRow } from "@/app-actions/restaurant";
 import { MenuItemPricingFields } from "@/components/menu-item-pricing-fields";
+import { MenuNutritionFields } from "@/components/menu-nutrition-fields";
+import { formatMenuNutrition } from "@/lib/menu-nutrition";
 import { AddMenuItemForm } from "@/components/add-menu-item-form";
 import { BrandManageRow } from "@/components/brand-manage-row";
 import { DeliveryFeeSettings } from "@/components/delivery-fee-settings";
@@ -241,7 +243,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
   ]);
 
   const itemsSelectWithOptions =
-    "id, name, brand_id, brand_name, description, price, image_url, grams, contents, sold_by_weight, price_per_kg, weight_step_kg, removable_ingredients, add_ingredients, option_label, option_values, is_available, category_id, menu_brands(id, name, logo_url), categories(name)";
+    "id, name, brand_id, brand_name, description, price, image_url, grams, display_quantity, display_unit, calories, protein_g, contents, sold_by_weight, price_per_kg, weight_step_kg, removable_ingredients, add_ingredients, option_label, option_values, is_available, category_id, menu_brands(id, name, logo_url), categories(name)";
   const itemsSelectLegacy =
     "id, name, brand_name, description, price, image_url, grams, contents, sold_by_weight, price_per_kg, weight_step_kg, removable_ingredients, add_ingredients, is_available, category_id, categories(name)";
 
@@ -253,7 +255,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
 
   const { data: legacyItems } =
     itemsWithOptionsError &&
-    /option_label|option_values|brand_name|brand_id|menu_brands/i.test(itemsWithOptionsError.message ?? "")
+    /option_label|option_values|brand_name|brand_id|menu_brands|display_quantity|display_unit|calories|protein_g/i.test(itemsWithOptionsError.message ?? "")
       ? await supabase
           .from("menu_items")
           .select(itemsSelectLegacy)
@@ -273,6 +275,10 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
     price: number;
     image_url: string | null;
     grams: number | null;
+    display_quantity?: number | null;
+    display_unit?: string | null;
+    calories?: number | null;
+    protein_g?: number | null;
     contents: string | null;
     sold_by_weight?: boolean;
     price_per_kg?: number | null;
@@ -915,6 +921,9 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                                 {item.brand_name ? <p><span className="font-semibold">Brand:</span> {item.brand_name}</p> : null}
                                 {item.description ? <p><span className="font-semibold">Description:</span> {item.description}</p> : null}
                                 {item.contents ? <p><span className="font-semibold">Contains / ingredients:</span> {item.contents}</p> : null}
+                                {formatMenuNutrition(item.calories, item.protein_g) ? (
+                                  <p><span className="font-semibold">Nutrition:</span> {formatMenuNutrition(item.calories, item.protein_g)}</p>
+                                ) : null}
                                 {item.option_label && Array.isArray(item.option_values) && item.option_values.length > 0 ? (
                                   <p>
                                     <span className="font-semibold">{item.option_label} options:</span>{" "}
@@ -1008,8 +1017,11 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                                   <p className="text-xs text-slate-500">Explain what the item is.</p>
                                 </label>
                                 <MenuItemPricingFields
+                                  idPrefix={`edit-${item.id}-qty`}
                                   defaultPrice={item.price}
                                   defaultGrams={item.grams}
+                                  defaultDisplayQuantity={item.display_quantity}
+                                  defaultDisplayUnit={item.display_unit}
                                   defaultSoldByWeight={Boolean((item as { sold_by_weight?: boolean }).sold_by_weight)}
                                   defaultPricePerKg={(item as { price_per_kg?: number | null }).price_per_kg}
                                   defaultWeightStepKg={(item as { weight_step_kg?: number | null }).weight_step_kg}
@@ -1019,6 +1031,13 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                                   <input name="contents" defaultValue={item.contents ?? ""} placeholder="Contains / ingredients (allergens, key contents)" className="ui-input" />
                                   <p className="text-xs text-slate-500">Useful for allergens and key components.</p>
                                 </label>
+                                <div className="md:col-span-2">
+                                  <MenuNutritionFields
+                                    idPrefix={`edit-${item.id}-nutrition`}
+                                    defaultCalories={item.calories}
+                                    defaultProteinG={item.protein_g}
+                                  />
+                                </div>
                                 <label className="space-y-1 md:col-span-2">
                                   <FormFieldLabel optional>Option type</FormFieldLabel>
                                   <input name="option_label" defaultValue={item.option_label ?? ""} placeholder="Option type (Size, Quantity, Type...)" className="ui-input" />

@@ -1,14 +1,19 @@
 "use client";
 
 import { useState } from "react";
+import { DisplayQuantityFields } from "@/components/display-quantity-fields";
+import { resolveDisplayQuantityFields, type DisplayUnit } from "@/lib/display-quantity";
 
 type Props = {
   /** For the edit form — pass existing values */
   defaultPrice?: number | string;
   defaultGrams?: number | string | null;
+  defaultDisplayQuantity?: number | string | null;
+  defaultDisplayUnit?: DisplayUnit | string | null;
   defaultSoldByWeight?: boolean;
   defaultPricePerKg?: number | string | null;
   defaultWeightStepKg?: number | string | null;
+  idPrefix?: string;
 };
 
 /**
@@ -19,11 +24,22 @@ type Props = {
 export function MenuItemPricingFields({
   defaultPrice = "",
   defaultGrams = "",
+  defaultDisplayQuantity,
+  defaultDisplayUnit,
   defaultSoldByWeight = false,
   defaultPricePerKg = "",
   defaultWeightStepKg = 0.1,
+  idPrefix = "edit-item-qty",
 }: Props) {
   const [soldByWeight, setSoldByWeight] = useState(defaultSoldByWeight);
+  const resolvedDisplay = resolveDisplayQuantityFields({
+    grams: defaultGrams !== "" && defaultGrams != null ? Number(defaultGrams) : null,
+    display_quantity:
+      defaultDisplayQuantity != null && defaultDisplayQuantity !== ""
+        ? Number(defaultDisplayQuantity)
+        : null,
+    display_unit: defaultDisplayUnit,
+  });
 
   return (
     <>
@@ -46,26 +62,20 @@ export function MenuItemPricingFields({
             />
             <p className="text-xs text-slate-500">US dollars ($). Base price before optional add-ons.</p>
           </label>
-          <label className="space-y-1">
-            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Weight (grams) <span className="ml-1 font-normal normal-case text-slate-500">(optional)</span>
-            </span>
-            <input
-              name="grams"
-              placeholder="Optional"
-              type="number"
-              min={0}
-              defaultValue={defaultGrams !== null && defaultGrams !== "" ? String(defaultGrams) : undefined}
-              className="ui-input"
-            />
-            <p className="text-xs text-slate-500">Display weight label (e.g. 500g) — not used for pricing.</p>
-          </label>
+            <div className="min-w-0">
+              <DisplayQuantityFields
+                idPrefix={idPrefix}
+                defaultQuantity={resolvedDisplay.quantity}
+                defaultUnit={resolvedDisplay.unit}
+              />
+            </div>
         </>
       ) : (
         <>
           {/* hidden price=0 so the server action doesn't get an empty value */}
           <input type="hidden" name="price" value="0" />
-          <input type="hidden" name="grams" value="" />
+          <input type="hidden" name="display_quantity" value="" />
+          <input type="hidden" name="display_unit" value="g" />
         </>
       )}
 

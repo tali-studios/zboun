@@ -7,6 +7,8 @@ import { createClient } from "@supabase/supabase-js";
 import { getCurrentUserRole } from "@/lib/data";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { parseBrowseSectionFromForm } from "@/lib/browse-sections";
+import { parseDisplayQuantityFromForm } from "@/lib/display-quantity";
+import { parseOptionalCalories, parseOptionalProteinGrams } from "@/lib/menu-nutrition";
 import { env } from "@/lib/env";
 
 async function requireRestaurantAdmin() {
@@ -348,8 +350,12 @@ export async function createMenuItemAction(formData: FormData) {
   const pricePerKg = pricePerKgRaw ? Number(pricePerKgRaw) : null;
   const weightStepKg = weightStepRaw ? Number(weightStepRaw) : 0.1;
   const price = soldByWeight ? 0 : Number(formData.get("price"));
-  const gramsValue = String(formData.get("grams") ?? "").trim();
-  const gramsParsed = gramsValue ? Number(gramsValue) : null;
+  const displayQty = soldByWeight
+    ? { display_quantity: null, display_unit: "g" as const, grams: null }
+    : parseDisplayQuantityFromForm(
+        formData.get("display_quantity"),
+        formData.get("display_unit"),
+      );
 
   if (!categoryId || !name) {
     redirect("/dashboard/business?toast=item_create_invalid");
@@ -365,7 +371,7 @@ export async function createMenuItemAction(formData: FormData) {
       redirect("/dashboard/business?toast=item_create_invalid");
     }
   }
-  if (gramsParsed !== null && (!Number.isFinite(gramsParsed) || gramsParsed < 0)) {
+  if (displayQty.display_quantity != null && displayQty.display_quantity < 0) {
     redirect("/dashboard/business?toast=item_create_invalid");
   }
 
@@ -389,6 +395,8 @@ export async function createMenuItemAction(formData: FormData) {
   }));
 
   const description = String(formData.get("description") ?? "").trim() || null;
+  const calories = parseOptionalCalories(formData.get("calories"));
+  const proteinG = parseOptionalProteinGrams(formData.get("protein_g"));
   const { brandId, brandName } = await resolveMenuBrandForItem(
     supabase,
     user.restaurant_id,
@@ -404,7 +412,11 @@ export async function createMenuItemAction(formData: FormData) {
     description,
     price,
     image_url: imageUrl,
-    grams: gramsParsed,
+    grams: displayQty.grams,
+    display_quantity: displayQty.display_quantity,
+    display_unit: displayQty.display_unit,
+    calories,
+    protein_g: proteinG,
     contents: String(formData.get("contents") ?? "").trim() || null,
     removable_ingredients: removableIngredients,
     add_ingredients: addIngredients,
@@ -443,7 +455,12 @@ export async function updateMenuItemAction(formData: FormData) {
   const categoryId = String(formData.get("category_id") ?? "");
   const currentImageUrl = String(formData.get("current_image_url") ?? "").trim();
   const imageFile = formData.get("image_file");
-  const gramsValue = String(formData.get("grams") ?? "").trim();
+  const displayQty = soldByWeight
+    ? { display_quantity: null, display_unit: "g" as const, grams: null }
+    : parseDisplayQuantityFromForm(
+        formData.get("display_quantity"),
+        formData.get("display_unit"),
+      );
   const contents = String(formData.get("contents") ?? "").trim();
   const removableIngredients = parseIngredientJson(formData.get("removable_ingredients")).map(
     (item) => ({ name: item.name }),
@@ -489,6 +506,8 @@ export async function updateMenuItemAction(formData: FormData) {
     user.restaurant_id,
     String(formData.get("brand_id") ?? ""),
   );
+  const calories = parseOptionalCalories(formData.get("calories"));
+  const proteinG = parseOptionalProteinGrams(formData.get("protein_g"));
 
   const { error } = await supabase
     .from("menu_items")
@@ -500,7 +519,11 @@ export async function updateMenuItemAction(formData: FormData) {
       price,
       category_id: categoryId,
       image_url: uploadedImageUrl ?? (currentImageUrl || null),
-      grams: gramsValue ? Number(gramsValue) : null,
+      grams: displayQty.grams,
+      display_quantity: displayQty.display_quantity,
+      display_unit: displayQty.display_unit,
+      calories,
+      protein_g: proteinG,
       contents: contents || null,
       removable_ingredients: removableIngredients,
       add_ingredients: addIngredients,

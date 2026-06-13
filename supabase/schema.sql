@@ -120,6 +120,10 @@ alter table public.menu_items add column if not exists option_label text;
 alter table public.menu_items add column if not exists option_values jsonb not null default '[]'::jsonb;
 alter table public.menu_items add column if not exists brand_name text;
 alter table public.menu_items add column if not exists brand_id uuid references public.menu_brands(id) on delete set null;
+alter table public.menu_items add column if not exists display_quantity numeric(10, 3);
+alter table public.menu_items add column if not exists display_unit text not null default 'g';
+alter table public.menu_items add column if not exists calories int check (calories is null or calories >= 0);
+alter table public.menu_items add column if not exists protein_g numeric(8, 2) check (protein_g is null or protein_g >= 0);
 
 create index if not exists idx_menu_items_brand_id
   on public.menu_items (brand_id);

@@ -145,6 +145,22 @@ input[type="time"].ui-input {
   box-sizing: border-box;
 }
 
+input[type="number"].ui-input {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.ui-input-quantity {
+  width: 100%;
+}
+
+.ui-select-unit {
+  width: 100%;
+  padding-left: 0.65rem;
+  padding-right: 1.75rem;
+}
+
 /* Search fields with a leading icon (must override .ui-input shorthand padding) */
 .ui-input.ui-input-search {
   padding-left: 2.75rem;
