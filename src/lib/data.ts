@@ -3,6 +3,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { env } from "@/lib/env";
 import { unstable_cache } from "next/cache";
 import { enforceSubscriptionExpiryForRestaurant } from "@/lib/subscription-lifecycle";
+import { isNutritionColumnMigrationError } from "@/lib/menu-nutrition";
 
 type RatingAgg = { avgRating: number; ratingCount: number };
 
@@ -163,46 +164,73 @@ export async function getRestaurantBySlug(slug: string): Promise<RestaurantForMe
   };
 }
 
+function mapRestaurantMenuCategories(data: unknown[] | null | undefined) {
+  return (data ?? []).map((category) => {
+    const row = category as Record<string, unknown>;
+    return {
+      id: row.id as string,
+      name: row.name as string,
+      position: row.position as number,
+      menu_items: ((row.menu_items ?? []) as Array<Record<string, unknown>>).map((item) => ({
+        id: item.id as string,
+        name: item.name as string,
+        brand_name: (item.brand_name as string | null) ?? null,
+        brand_id: (item.brand_id as string | null) ?? null,
+        menu_brands: normalizeMenuBrand(
+          item.menu_brands as MenuBrandEmbed | MenuBrandEmbed[] | null | undefined,
+        ),
+        description: (item.description as string | null) ?? null,
+        contents: (item.contents as string | null) ?? null,
+        grams: (item.grams as number | null) ?? null,
+        display_quantity: (item.display_quantity as number | null) ?? null,
+        display_unit: (item.display_unit as string | null) ?? null,
+        calories: item.calories != null ? Number(item.calories) : null,
+        protein_g: item.protein_g != null ? Number(item.protein_g) : null,
+        price: Number(item.price),
+        sold_by_weight: item.sold_by_weight as boolean | undefined,
+        price_per_kg: (item.price_per_kg as number | null) ?? null,
+        weight_step_kg: (item.weight_step_kg as number | null) ?? null,
+        removable_ingredients: (item.removable_ingredients as Array<{ name: string }>) ?? [],
+        add_ingredients: (item.add_ingredients as Array<{ name: string; price: number }>) ?? [],
+        image_url: (item.image_url as string | null) ?? null,
+        is_available: Boolean(item.is_available),
+      })),
+    };
+  });
+}
+
 export async function getRestaurantMenu(restaurantId: string) {
   const supabase = await createServerSupabaseClient();
-  const { data } = await supabase
+  const menuItemsSelectCore =
+    "id, name, brand_id, brand_name, menu_brands(id, name, logo_url), description, contents, grams, display_quantity, display_unit, price, sold_by_weight, price_per_kg, weight_step_kg, removable_ingredients, add_ingredients, image_url, is_available";
+  const menuItemsSelectWithNutrition = `${menuItemsSelectCore}, calories, protein_g`;
+  const categorySelect = (menuItemsSelect: string) =>
+    `id, name, position, menu_items(${menuItemsSelect})`;
+
+  let { data, error } = await supabase
     .from("categories")
-    .select(
-      "id, name, position, menu_items(id, name, brand_id, brand_name, menu_brands(id, name, logo_url), description, contents, grams, display_quantity, display_unit, calories, protein_g, price, sold_by_weight, price_per_kg, weight_step_kg, removable_ingredients, add_ingredients, image_url, is_available)",
-    )
+    .select(categorySelect(menuItemsSelectWithNutrition))
     .eq("restaurant_id", restaurantId)
     .order("position", { ascending: true })
     .order("name", { referencedTable: "menu_items", ascending: true });
 
-  return (data ?? []).map((category) => ({
-    id: category.id as string,
-    name: category.name as string,
-    position: category.position as number,
-    menu_items: ((category.menu_items ?? []) as Array<Record<string, unknown>>).map((item) => ({
-      id: item.id as string,
-      name: item.name as string,
-      brand_name: (item.brand_name as string | null) ?? null,
-      brand_id: (item.brand_id as string | null) ?? null,
-      menu_brands: normalizeMenuBrand(
-        item.menu_brands as MenuBrandEmbed | MenuBrandEmbed[] | null | undefined,
-      ),
-      description: (item.description as string | null) ?? null,
-      contents: (item.contents as string | null) ?? null,
-      grams: (item.grams as number | null) ?? null,
-      display_quantity: (item.display_quantity as number | null) ?? null,
-      display_unit: (item.display_unit as string | null) ?? null,
-      calories: item.calories != null ? Number(item.calories) : null,
-      protein_g: item.protein_g != null ? Number(item.protein_g) : null,
-      price: Number(item.price),
-      sold_by_weight: item.sold_by_weight as boolean | undefined,
-      price_per_kg: (item.price_per_kg as number | null) ?? null,
-      weight_step_kg: (item.weight_step_kg as number | null) ?? null,
-      removable_ingredients: (item.removable_ingredients as Array<{ name: string }>) ?? [],
-      add_ingredients: (item.add_ingredients as Array<{ name: string; price: number }>) ?? [],
-      image_url: (item.image_url as string | null) ?? null,
-      is_available: Boolean(item.is_available),
-    })),
-  }));
+  if (error && isNutritionColumnMigrationError(error.message, error.code)) {
+    const retry = await supabase
+      .from("categories")
+      .select(categorySelect(menuItemsSelectCore))
+      .eq("restaurant_id", restaurantId)
+      .order("position", { ascending: true })
+      .order("name", { referencedTable: "menu_items", ascending: true });
+    data = retry.data;
+    error = retry.error;
+  }
+
+  if (error) {
+    console.error("[getRestaurantMenu]", error.message, error.code, error.details);
+    return [];
+  }
+
+  return mapRestaurantMenuCategories(data);
 }
 
 export type RestaurantLocationBranch = {

@@ -19,17 +19,30 @@ export function formatMenuNutrition(
   proteinG: number | null | undefined,
 ): string | null {
   const parts: string[] = [];
-  if (calories != null && Number.isFinite(Number(calories))) {
-    parts.push(`${Math.round(Number(calories))} kcal`);
-  }
-  if (proteinG != null && Number.isFinite(Number(proteinG))) {
-    const protein =
-      Number(proteinG) % 1 === 0
-        ? String(Math.round(Number(proteinG)))
-        : Number(proteinG).toFixed(1).replace(/\.0$/, "");
-    parts.push(`${protein}g protein`);
-  }
+  const caloriesLabel = formatCaloriesValue(calories);
+  const proteinLabel = formatProteinValue(proteinG);
+  if (caloriesLabel != null) parts.push(`${caloriesLabel} kcal`);
+  if (proteinLabel != null) parts.push(`${proteinLabel}g protein`);
   return parts.length > 0 ? parts.join(" · ") : null;
+}
+
+export function hasMenuNutrition(
+  calories: number | null | undefined,
+  proteinG: number | null | undefined,
+): boolean {
+  return formatCaloriesValue(calories) != null || formatProteinValue(proteinG) != null;
+}
+
+export function formatCaloriesValue(calories: number | null | undefined): number | null {
+  if (calories == null || !Number.isFinite(Number(calories))) return null;
+  return Math.round(Number(calories));
+}
+
+export function formatProteinValue(proteinG: number | null | undefined): string | null {
+  if (proteinG == null || !Number.isFinite(Number(proteinG))) return null;
+  return Number(proteinG) % 1 === 0
+    ? String(Math.round(Number(proteinG)))
+    : Number(proteinG).toFixed(1).replace(/\.0$/, "");
 }
 
 export function isNutritionColumnMigrationError(

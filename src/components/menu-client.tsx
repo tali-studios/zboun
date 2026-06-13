@@ -8,7 +8,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { CategoryWithItems } from "@/lib/data";
 import { formatDisplayQuantity, resolveDisplayQuantityFields } from "@/lib/display-quantity";
-import { formatMenuNutrition } from "@/lib/menu-nutrition";
+import { MenuNutritionBadges } from "@/components/menu-nutrition-badges";
 import { CheckoutDeliverySections } from "@/components/checkout-delivery-sections";
 import { CheckoutOrderConfirm } from "@/components/checkout-order-confirm";
 import type { DeliveryTimeChoice } from "@/components/delivery-time-sheet";
@@ -1140,7 +1140,6 @@ export function MenuClient({
                   const brand = getMenuItemBrand(item);
                   const displaySize = resolveDisplayQuantityFields(item);
                   const sizeLabel = formatDisplayQuantity(displaySize.quantity, displaySize.unit);
-                  const nutritionLabel = formatMenuNutrition(item.calories, item.protein_g);
                   return (
                   <article
                     key={item.id}
@@ -1212,9 +1211,11 @@ export function MenuClient({
                       {sizeLabel ? (
                         <p className="mt-0.5 text-[11px] text-slate-400">{sizeLabel}</p>
                       ) : null}
-                      {nutritionLabel ? (
-                        <p className="mt-0.5 text-[11px] text-slate-400">{nutritionLabel}</p>
-                      ) : null}
+                      <MenuNutritionBadges
+                        calories={item.calories}
+                        proteinG={item.protein_g}
+                        className="mt-1"
+                      />
                       <div className="mt-auto flex flex-wrap items-end gap-x-2 pt-2">
                         <span className="text-base font-bold" style={{ color: BRAND }}>
                           {soldByWeight ? `From ${formatUsd(budgetPriceUsd)}` : formatUsd(budgetPriceUsd)}
@@ -1350,6 +1351,12 @@ export function MenuClient({
                     {isSoldByWeight(customizing.item) ? "" : formatLbp(customizing.item.price)}
                   </span>
                 </div>
+                <MenuNutritionBadges
+                  calories={customizing.item.calories}
+                  proteinG={customizing.item.protein_g}
+                  size="md"
+                  className="mt-2"
+                />
               </div>
               <button
                 type="button"
