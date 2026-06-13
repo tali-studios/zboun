@@ -31,3 +31,14 @@ export function formatMenuNutrition(
   }
   return parts.length > 0 ? parts.join(" · ") : null;
 }
+
+export function isNutritionColumnMigrationError(
+  message: string | null | undefined,
+  code?: string | null,
+): boolean {
+  const msg = message ?? "";
+  return (
+    /calories|protein_g/i.test(msg) &&
+    (code === "PGRST204" || /column|schema cache/i.test(msg))
+  );
+}

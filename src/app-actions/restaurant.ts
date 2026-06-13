@@ -8,7 +8,7 @@ import { getCurrentUserRole } from "@/lib/data";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { parseBrowseSectionFromForm } from "@/lib/browse-sections";
 import { parseDisplayQuantityFromForm } from "@/lib/display-quantity";
-import { parseOptionalCalories, parseOptionalProteinGrams } from "@/lib/menu-nutrition";
+import { parseOptionalCalories, parseOptionalProteinGrams, isNutritionColumnMigrationError } from "@/lib/menu-nutrition";
 import { env } from "@/lib/env";
 
 async function requireRestaurantAdmin() {
@@ -428,6 +428,35 @@ export async function createMenuItemAction(formData: FormData) {
     weight_step_kg: soldByWeight ? weightStepKg : 0.1,
   });
 
+  if (error && isNutritionColumnMigrationError(error.message, error.code)) {
+    const { error: retryError } = await supabase.from("menu_items").insert({
+      restaurant_id: user.restaurant_id,
+      category_id: categoryId,
+      name,
+      brand_id: brandId,
+      brand_name: brandName,
+      description,
+      price,
+      image_url: imageUrl,
+      grams: displayQty.grams,
+      display_quantity: displayQty.display_quantity,
+      display_unit: displayQty.display_unit,
+      contents: String(formData.get("contents") ?? "").trim() || null,
+      removable_ingredients: removableIngredients,
+      add_ingredients: addIngredients,
+      option_label: optionLabel || null,
+      option_values: optionValues,
+      is_available: true,
+      sold_by_weight: soldByWeight,
+      price_per_kg: soldByWeight ? pricePerKg : null,
+      weight_step_kg: soldByWeight ? weightStepKg : 0.1,
+    });
+    if (!retryError) {
+      revalidatePath("/dashboard/business");
+      redirect("/dashboard/business?toast=item_create_nutrition_migration");
+    }
+  }
+
   if (error) {
     console.error("[createMenuItemAction]", error.message, error.code, error.details);
     redirect("/dashboard/business?toast=item_create_failed");
@@ -509,32 +538,48 @@ export async function updateMenuItemAction(formData: FormData) {
   const calories = parseOptionalCalories(formData.get("calories"));
   const proteinG = parseOptionalProteinGrams(formData.get("protein_g"));
 
-  const { error } = await supabase
+  const updatePayload = {
+    name,
+    brand_id: brandId,
+    brand_name: brandName,
+    description: description || null,
+    price,
+    category_id: categoryId,
+    image_url: uploadedImageUrl ?? (currentImageUrl || null),
+    grams: displayQty.grams,
+    display_quantity: displayQty.display_quantity,
+    display_unit: displayQty.display_unit,
+    calories,
+    protein_g: proteinG,
+    contents: contents || null,
+    removable_ingredients: removableIngredients,
+    add_ingredients: addIngredients,
+    option_label: optionLabel || null,
+    option_values: optionValues,
+    sold_by_weight: soldByWeight,
+    price_per_kg: soldByWeight ? pricePerKg : null,
+    weight_step_kg: soldByWeight ? weightStepKg : 0.1,
+  };
+
+  let { error } = await supabase
     .from("menu_items")
-    .update({
-      name,
-      brand_id: brandId,
-      brand_name: brandName,
-      description: description || null,
-      price,
-      category_id: categoryId,
-      image_url: uploadedImageUrl ?? (currentImageUrl || null),
-      grams: displayQty.grams,
-      display_quantity: displayQty.display_quantity,
-      display_unit: displayQty.display_unit,
-      calories,
-      protein_g: proteinG,
-      contents: contents || null,
-      removable_ingredients: removableIngredients,
-      add_ingredients: addIngredients,
-      option_label: optionLabel || null,
-      option_values: optionValues,
-      sold_by_weight: soldByWeight,
-      price_per_kg: soldByWeight ? pricePerKg : null,
-      weight_step_kg: soldByWeight ? weightStepKg : 0.1,
-    })
+    .update(updatePayload)
     .eq("id", id)
     .eq("restaurant_id", user.restaurant_id);
+
+  if (error && isNutritionColumnMigrationError(error.message, error.code)) {
+    const { calories: _c, protein_g: _p, ...payloadWithoutNutrition } = updatePayload;
+    const retry = await supabase
+      .from("menu_items")
+      .update(payloadWithoutNutrition)
+      .eq("id", id)
+      .eq("restaurant_id", user.restaurant_id);
+    if (!retry.error) {
+      revalidatePath("/dashboard/business");
+      redirect("/dashboard/business?toast=item_update_nutrition_migration");
+    }
+    error = retry.error;
+  }
 
   if (error) {
     console.error("[updateMenuItemAction]", error.message, error.code, error.details);

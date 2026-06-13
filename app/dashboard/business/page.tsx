@@ -29,7 +29,8 @@ import { RestaurantLocationsPanel } from "@/components/restaurant-locations-pane
 import type { RestaurantLocationRow } from "@/app-actions/restaurant";
 import { MenuItemPricingFields } from "@/components/menu-item-pricing-fields";
 import { MenuNutritionFields } from "@/components/menu-nutrition-fields";
-import { formatMenuNutrition } from "@/lib/menu-nutrition";
+import { formatMenuNutrition, isNutritionColumnMigrationError } from "@/lib/menu-nutrition";
+import { resolveMenuItemBrandId } from "@/lib/menu-brands";
 import { AddMenuItemForm } from "@/components/add-menu-item-form";
 import { BrandManageRow } from "@/components/brand-manage-row";
 import { DeliveryFeeSettings } from "@/components/delivery-fee-settings";
@@ -242,20 +243,39 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
       .eq("restaurant_id", appUser.restaurant_id).limit(500),
   ]);
 
-  const itemsSelectWithOptions =
-    "id, name, brand_id, brand_name, description, price, image_url, grams, display_quantity, display_unit, calories, protein_g, contents, sold_by_weight, price_per_kg, weight_step_kg, removable_ingredients, add_ingredients, option_label, option_values, is_available, category_id, menu_brands(id, name, logo_url), categories(name)";
+  const itemsSelectCore =
+    "id, name, brand_id, brand_name, description, price, image_url, grams, display_quantity, display_unit, contents, sold_by_weight, price_per_kg, weight_step_kg, removable_ingredients, add_ingredients, option_label, option_values, is_available, category_id, menu_brands(id, name, logo_url), categories(name)";
+  const itemsSelectWithNutrition = `${itemsSelectCore}, calories, protein_g`;
   const itemsSelectLegacy =
-    "id, name, brand_name, description, price, image_url, grams, contents, sold_by_weight, price_per_kg, weight_step_kg, removable_ingredients, add_ingredients, is_available, category_id, categories(name)";
+    "id, name, brand_id, brand_name, description, price, image_url, grams, contents, sold_by_weight, price_per_kg, weight_step_kg, removable_ingredients, add_ingredients, is_available, category_id, categories(name)";
 
   const { data: itemsWithOptions, error: itemsWithOptionsError } = await supabase
     .from("menu_items")
-    .select(itemsSelectWithOptions)
+    .select(itemsSelectWithNutrition)
     .eq("restaurant_id", appUser.restaurant_id)
     .order("name");
 
+  let itemsRows: unknown[] | null = itemsWithOptions;
+  let itemsQueryError = itemsWithOptionsError;
+
+  if (
+    itemsQueryError &&
+    isNutritionColumnMigrationError(itemsQueryError.message, itemsQueryError.code)
+  ) {
+    const retry = await supabase
+      .from("menu_items")
+      .select(itemsSelectCore)
+      .eq("restaurant_id", appUser.restaurant_id)
+      .order("name");
+    itemsRows = retry.data;
+    itemsQueryError = retry.error;
+  }
+
   const { data: legacyItems } =
-    itemsWithOptionsError &&
-    /option_label|option_values|brand_name|brand_id|menu_brands|display_quantity|display_unit|calories|protein_g/i.test(itemsWithOptionsError.message ?? "")
+    itemsQueryError &&
+    /option_label|option_values|brand_name|brand_id|menu_brands|display_quantity|display_unit/i.test(
+      itemsQueryError.message ?? "",
+    )
       ? await supabase
           .from("menu_items")
           .select(itemsSelectLegacy)
@@ -263,7 +283,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
           .order("name")
       : { data: null };
 
-  const items = (itemsWithOptions ??
+  const items = (itemsRows ??
     legacyItems ??
     []) as Array<{
     id: string;
@@ -292,15 +312,34 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
     categories?: { name?: string } | null;
   }>;
 
+  const { data: menuBrandsRaw } = await supabase
+    .from("menu_brands")
+    .select("id, name, logo_url")
+    .eq("restaurant_id", appUser.restaurant_id)
+    .order("name");
+  const menuBrands = (menuBrandsRaw ?? []) as Array<{
+    id: string;
+    name: string;
+    logo_url: string | null;
+  }>;
+
   const normalizedItems = items.map((item) => {
     const menuBrand = Array.isArray(item.menu_brands)
       ? (item.menu_brands[0] ?? null)
       : (item.menu_brands ?? null);
+    const resolvedBrandId = resolveMenuItemBrandId(
+      {
+        brand_id: item.brand_id,
+        brand_name: item.brand_name,
+        menu_brands: menuBrand,
+      },
+      menuBrands,
+    );
 
     return {
       ...item,
       menu_brands: menuBrand,
-      brand_id: item.brand_id ?? menuBrand?.id ?? null,
+      brand_id: resolvedBrandId || null,
       brand_name: menuBrand?.name ?? item.brand_name ?? null,
       option_label: item.option_label ?? null,
       option_values: Array.isArray(item.option_values) ? item.option_values : [],
@@ -352,17 +391,6 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
     .eq("restaurant_id", appUser.restaurant_id)
     .order("position", { ascending: true });
   const restaurantLocations = (restaurantLocationsRaw ?? []) as RestaurantLocationRow[];
-
-  const { data: menuBrandsRaw } = await supabase
-    .from("menu_brands")
-    .select("id, name, logo_url")
-    .eq("restaurant_id", appUser.restaurant_id)
-    .order("name");
-  const menuBrands = (menuBrandsRaw ?? []) as Array<{
-    id: string;
-    name: string;
-    logo_url: string | null;
-  }>;
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const menuUrl = `${appUrl.replace(/\/+$/, "")}/${restaurant?.slug ?? ""}`;
@@ -997,7 +1025,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                                   <FormFieldLabel optional>Brand</FormFieldLabel>
                                   <select
                                     name="brand_id"
-                                    defaultValue={item.brand_id ?? ""}
+                                    defaultValue={resolveMenuItemBrandId(item, menuBrands)}
                                     className="ui-select"
                                   >
                                     <option value="">No brand</option>

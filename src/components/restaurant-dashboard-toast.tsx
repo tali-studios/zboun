@@ -111,6 +111,14 @@ export function RestaurantDashboardToast({ toast, sectionName, itemName, brandNa
     heading = "Brand columns missing";
     message =
       "Run the Supabase migrations add-menu-item-brand-name.sql and add-menu-brands.sql, then try saving again.";
+  } else if (toast === "item_update_nutrition_migration") {
+    heading = "Item saved — nutrition columns missing";
+    message =
+      "Other changes were saved. Run add-menu-item-nutrition.sql in Supabase, then save again to store calories and protein.";
+  } else if (toast === "item_create_nutrition_migration") {
+    heading = "Item added — nutrition columns missing";
+    message =
+      "The item was created without calories/protein. Run add-menu-item-nutrition.sql in Supabase, then edit the item to add them.";
   } else if (toast === "location_saved") {
     heading = "Branch saved";
     message = "The location was saved and is now visible to customers nearby.";
