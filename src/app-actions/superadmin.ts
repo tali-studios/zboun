@@ -324,16 +324,42 @@ export async function updateSubscriptionStatusAction(formData: FormData) {
     redirect("/dashboard/super-admin?error=invalid_subscription_update");
   }
 
-  const endedAt = status === "cancelled" ? new Date().toISOString() : null;
   const supabase = await createServerSupabaseClient();
+  const { data: subscription, error: loadError } = await supabase
+    .from("restaurant_subscriptions")
+    .select("restaurant_id")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (loadError || !subscription?.restaurant_id) {
+    redirect("/dashboard/super-admin?error=invalid_subscription_update");
+  }
+
+  const nowIso = new Date().toISOString();
+  const endedAt =
+    status === "cancelled" || status === "paused" ? nowIso : null;
+
   const { error } = await supabase
     .from("restaurant_subscriptions")
-    .update({ status, ended_at: endedAt, updated_at: new Date().toISOString() })
+    .update({ status, ended_at: endedAt, updated_at: nowIso })
     .eq("id", id);
   if (error) {
     redirect(`/dashboard/super-admin?error=${encodeURIComponent(error.message)}`);
   }
+
+  if (status === "paused" || status === "cancelled") {
+    const adminClient = getAdminClient();
+    if (adminClient) {
+      await adminClient
+        .from("restaurants")
+        .update({ is_active: false })
+        .eq("id", subscription.restaurant_id);
+    }
+  }
+
   revalidatePath("/dashboard/super-admin");
+  revalidatePath("/dashboard/billing");
+  revalidatePath("/");
 }
 
 export async function setNextDueDateAction(formData: FormData) {

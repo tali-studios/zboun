@@ -172,6 +172,33 @@ export async function enforceSubscriptionExpiryForRestaurant(
   return result.deactivated;
 }
 
+/**
+ * Whether a restaurant admin should be blocked from the business dashboard.
+ * Uses service role so RLS (active-only restaurant reads) cannot hide deactivated rows.
+ * Returns null when service role is unavailable (caller may use a weaker fallback).
+ */
+export async function isRestaurantDashboardBlocked(
+  restaurantId: string,
+): Promise<boolean | null> {
+  const supabase = getServiceSupabaseClient();
+  if (!supabase) return null;
+
+  await enforceSubscriptionExpiryForRestaurant(restaurantId);
+
+  const { data: restaurant } = await supabase
+    .from("restaurants")
+    .select("is_active")
+    .eq("id", restaurantId)
+    .maybeSingle();
+
+  if (!restaurant?.is_active) return true;
+
+  const sub = await getLatestSubscription(supabase, restaurantId);
+  if (sub?.status === "paused" || sub?.status === "cancelled") return true;
+
+  return false;
+}
+
 /** Super admin manual deactivation — sync subscription + email. */
 export async function deactivateRestaurantManually(restaurantId: string) {
   const supabase = getServiceSupabaseClient();

@@ -7,6 +7,7 @@ import { createClient } from "@supabase/supabase-js";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getCurrentUserRole } from "@/lib/data";
 import { env } from "@/lib/env";
+import { isRestaurantDashboardBlocked } from "@/lib/subscription-lifecycle";
 
 function getAdminClient() {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -68,6 +69,11 @@ export async function signInAction(formData: FormData) {
   if (normalizedRole === "restaurantadmin") {
     if (!profile.restaurant_id) {
       redirect("/dashboard/login?error=missing_restaurant_link");
+    }
+    const blocked = await isRestaurantDashboardBlocked(profile.restaurant_id);
+    if (blocked !== false) {
+      await supabase.auth.signOut();
+      redirect("/dashboard/login?error=account_deactivated");
     }
     redirect("/dashboard/business");
   }
