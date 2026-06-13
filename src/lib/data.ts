@@ -69,6 +69,16 @@ export type CategoryWithItems = {
   }[];
 };
 
+type MenuBrandEmbed = { id: string; name: string; logo_url: string | null };
+
+function normalizeMenuBrand(
+  value: MenuBrandEmbed | MenuBrandEmbed[] | null | undefined,
+): MenuBrandEmbed | null {
+  if (!value) return null;
+  if (Array.isArray(value)) return value[0] ?? null;
+  return value;
+}
+
 type RestaurantRowCore = {
   id: string;
   name: string;
@@ -160,7 +170,31 @@ export async function getRestaurantMenu(restaurantId: string) {
     .order("position", { ascending: true })
     .order("name", { referencedTable: "menu_items", ascending: true });
 
-  return (data ?? []) as CategoryWithItems[];
+  return (data ?? []).map((category) => ({
+    id: category.id as string,
+    name: category.name as string,
+    position: category.position as number,
+    menu_items: ((category.menu_items ?? []) as Array<Record<string, unknown>>).map((item) => ({
+      id: item.id as string,
+      name: item.name as string,
+      brand_name: (item.brand_name as string | null) ?? null,
+      brand_id: (item.brand_id as string | null) ?? null,
+      menu_brands: normalizeMenuBrand(
+        item.menu_brands as MenuBrandEmbed | MenuBrandEmbed[] | null | undefined,
+      ),
+      description: (item.description as string | null) ?? null,
+      contents: (item.contents as string | null) ?? null,
+      grams: (item.grams as number | null) ?? null,
+      price: Number(item.price),
+      sold_by_weight: item.sold_by_weight as boolean | undefined,
+      price_per_kg: (item.price_per_kg as number | null) ?? null,
+      weight_step_kg: (item.weight_step_kg as number | null) ?? null,
+      removable_ingredients: (item.removable_ingredients as Array<{ name: string }>) ?? [],
+      add_ingredients: (item.add_ingredients as Array<{ name: string; price: number }>) ?? [],
+      image_url: (item.image_url as string | null) ?? null,
+      is_available: Boolean(item.is_available),
+    })),
+  }));
 }
 
 export type RestaurantLocationBranch = {
