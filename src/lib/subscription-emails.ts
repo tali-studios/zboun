@@ -38,18 +38,22 @@ export async function sendRestaurantOnboardingEmail(params: {
   initialPassword: string;
   subscriptionEndsAt: Date;
   monthlyPrice: number;
+  lifetimeFree?: boolean;
 }) {
   if (!isSmtpConfigured()) return;
 
   const endLabel = formatDateLong(params.subscriptionEndsAt);
   const price = params.monthlyPrice.toFixed(2);
+  const subscriptionLine = params.lifetimeFree
+    ? "Account type: Lifetime complimentary — no monthly billing."
+    : `Subscription: Your first billing period is active until ${endLabel} (USD ${price}/month).`;
 
   const text = [
     `Hello,`,
     ``,
     `Your ${params.businessTypeLabel} "${params.businessName}" is ready on Zboun.`,
     ``,
-    `Subscription: Your first billing period is active until ${endLabel} (USD ${price}/month).`,
+    subscriptionLine,
     ``,
     ...(params.publicUrl ? [`Public URL: ${params.publicUrl}`] : []),
     `Dashboard: ${params.dashboardUrl}`,
@@ -67,9 +71,12 @@ export async function sendRestaurantOnboardingEmail(params: {
       <p>Hello,</p>
       <p>Your <strong>${params.businessTypeLabel}</strong> <strong>${params.businessName}</strong> is live on Zboun.</p>
       <p style="margin:20px 0;padding:16px;background:#f4f4f5;border-radius:8px;">
-        <strong>Subscription</strong><br>
-        Active until <strong>${endLabel}</strong><br>
-        Plan: USD ${price} / month
+        <strong>${params.lifetimeFree ? "Account type" : "Subscription"}</strong><br>
+        ${
+          params.lifetimeFree
+            ? "<strong>Lifetime complimentary</strong><br>No monthly billing or renewal required."
+            : `Active until <strong>${endLabel}</strong><br>Plan: USD ${price} / month`
+        }
       </p>
       ${params.publicUrl ? `<p><strong>Public menu:</strong> <a href="${params.publicUrl}">${params.publicUrl}</a></p>` : ""}
       <p><strong>Dashboard:</strong> <a href="${params.dashboardUrl}">${params.dashboardUrl}</a></p>

@@ -9,6 +9,7 @@ import {
   renewSubscriptionAction,
   setNextDueDateAction,
   toggleRestaurantActiveAction,
+  toggleRestaurantBillingExemptAction,
   toggleRestaurantHomeVisibilityAction,
   updateRestaurantBrowseSectionsAction,
   updateSubscriptionStatusAction,
@@ -41,6 +42,7 @@ type RestaurantRow = {
   phone: string;
   business_type: string | null;
   is_active: boolean;
+  billing_exempt: boolean;
   show_on_home: boolean;
   browse_sections: string[] | null;
   created_at: string;
@@ -238,6 +240,16 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
     });
   }
 
+  function toggleBillingExempt(restaurant: RestaurantRow) {
+    startTransition(async () => {
+      const formData = new FormData();
+      formData.set("id", restaurant.id);
+      formData.set("billing_exempt", String(!restaurant.billing_exempt));
+      await toggleRestaurantBillingExemptAction(formData);
+      router.refresh();
+    });
+  }
+
   function toggleHomeVisibility(restaurantId: string, showOnHome: boolean) {
     startTransition(async () => {
       const formData = new FormData();
@@ -391,17 +403,22 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
               <span
                 className={`rounded-full px-2 py-1 font-semibold ${subscriptionStatusBadgeClass(
                   restaurant.subscription_status,
-                  isSubscriptionPastDue(restaurant.next_due_at, restaurant.subscription_status),
+                  !restaurant.billing_exempt &&
+                    isSubscriptionPastDue(restaurant.next_due_at, restaurant.subscription_status),
                 )}`}
               >
-                {formatSubscriptionStatus(restaurant.subscription_status)}
+                {restaurant.billing_exempt
+                  ? "Lifetime free"
+                  : formatSubscriptionStatus(restaurant.subscription_status)}
               </span>
               <span className="rounded-full bg-slate-100 px-2 py-1">
-                Due: {formatNextDueLine(restaurant.next_due_at)}
+                Due: {formatNextDueLine(restaurant.next_due_at, restaurant.billing_exempt)}
               </span>
-              <span className="rounded-full bg-amber-50 px-2 py-1 text-amber-700">
-                Outstanding: ${restaurant.outstanding_balance.toFixed(2)}
-              </span>
+              {!restaurant.billing_exempt ? (
+                <span className="rounded-full bg-amber-50 px-2 py-1 text-amber-700">
+                  Outstanding: ${restaurant.outstanding_balance.toFixed(2)}
+                </span>
+              ) : null}
               {hasHomeCategory(restaurant) ? (
                 <>
                   <span
@@ -422,6 +439,14 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
               )}
             </div>
             <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+              <ActionIconButton
+                label={restaurant.billing_exempt ? "Remove lifetime free" : "Grant lifetime free"}
+                shortLabel={restaurant.billing_exempt ? "Paid plan" : "Lifetime free"}
+                icon={restaurant.billing_exempt ? "💳" : "♾"}
+                className={restaurant.billing_exempt ? "bg-slate-700 hover:bg-slate-600" : "bg-emerald-600 hover:bg-emerald-500"}
+                disabled={isPending}
+                onClick={() => toggleBillingExempt(restaurant)}
+              />
               <ActionIconButton
                 label="Renew subscription"
                 shortLabel="Renew"
@@ -558,17 +583,20 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                   <span
                     className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${subscriptionStatusBadgeClass(
                       restaurant.subscription_status,
-                      isSubscriptionPastDue(restaurant.next_due_at, restaurant.subscription_status),
+                      !restaurant.billing_exempt &&
+                        isSubscriptionPastDue(restaurant.next_due_at, restaurant.subscription_status),
                     )}`}
                   >
-                    {formatSubscriptionStatus(restaurant.subscription_status)}
+                    {restaurant.billing_exempt
+                      ? "Lifetime free"
+                      : formatSubscriptionStatus(restaurant.subscription_status)}
                   </span>
                 </td>
                 <td className={`border-r border-white/50 px-3 py-3 whitespace-nowrap text-slate-700 ${TABLE_DATA_COLUMNS[3].cell}`}>
-                  {formatNextDueLine(restaurant.next_due_at)}
+                  {formatNextDueLine(restaurant.next_due_at, restaurant.billing_exempt)}
                 </td>
                 <td className={`border-r border-white/50 px-3 py-3 whitespace-nowrap font-semibold text-amber-900 ${TABLE_DATA_COLUMNS[4].cell}`}>
-                  ${restaurant.outstanding_balance.toFixed(2)}
+                  {restaurant.billing_exempt ? "—" : `$${restaurant.outstanding_balance.toFixed(2)}`}
                 </td>
                 <td className={`border-r border-white/50 px-3 py-3 whitespace-nowrap ${TABLE_DATA_COLUMNS[5].cell}`}>
                   <span
@@ -606,6 +634,14 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                 </td>
                 <td className="bg-white px-2 py-2 align-middle whitespace-nowrap">
                   <div className="inline-flex flex-nowrap items-center justify-end gap-1">
+                    <ActionIconButton
+                      tableRow
+                      label={restaurant.billing_exempt ? "Remove lifetime free" : "Grant lifetime free"}
+                      icon={restaurant.billing_exempt ? "💳" : "♾"}
+                      className={restaurant.billing_exempt ? "bg-slate-700" : "bg-emerald-600"}
+                      disabled={isPending}
+                      onClick={() => toggleBillingExempt(restaurant)}
+                    />
                     <ActionIconButton
                       tableRow
                       label="Renew subscription"
@@ -751,7 +787,11 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
               </p>
               <p>
                 <span className="font-semibold">Next due:</span>{" "}
-                {formatNextDueLine(infoRestaurant.next_due_at)}
+                {formatNextDueLine(infoRestaurant.next_due_at, infoRestaurant.billing_exempt)}
+              </p>
+              <p>
+                <span className="font-semibold">Billing:</span>{" "}
+                {infoRestaurant.billing_exempt ? "Lifetime free" : "Monthly subscription"}
               </p>
               <p><span className="font-semibold">Outstanding:</span> ${infoRestaurant.outstanding_balance.toFixed(2)}</p>
               <p><span className="font-semibold">Created:</span> {new Date(infoRestaurant.created_at).toLocaleDateString()}</p>

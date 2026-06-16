@@ -51,7 +51,7 @@ type SubscriptionRow = {
   next_due_at: string;
   billing_cycle_price: number | string;
   status: string;
-  restaurants: { name?: string; is_active?: boolean } | null;
+  restaurants: { name?: string; is_active?: boolean; billing_exempt?: boolean } | null;
 };
 
 async function wasReminderSent(
@@ -96,7 +96,7 @@ async function fetchSubscriptionsDueInDays(
   const { data, error } = await supabase
     .from("restaurant_subscriptions")
     .select(
-      "id, restaurant_id, next_due_at, billing_cycle_price, status, restaurants(name, is_active)",
+      "id, restaurant_id, next_due_at, billing_cycle_price, status, restaurants(name, is_active, billing_exempt)",
     )
     .in("status", ["active", "trial"])
     .not("next_due_at", "is", null)
@@ -126,6 +126,11 @@ async function runDayBeforeReminders(
     const dueAt = new Date(row.next_due_at);
     const dueDate = toUtcDateString(dueAt);
     const restaurantName = row.restaurants?.name ?? "Restaurant";
+
+    if (row.restaurants?.billing_exempt) {
+      result.skipped += 1;
+      continue;
+    }
 
     if (await wasReminderSent(supabase, subscriptionId, reminderKind, dueDate)) {
       result.skipped += 1;
@@ -189,7 +194,7 @@ export async function runExpiredSubscriptionDeactivations(
   const { data: subscriptions, error } = await supabase
     .from("restaurant_subscriptions")
     .select(
-      "id, restaurant_id, next_due_at, billing_cycle_price, status, restaurants(name, is_active)",
+      "id, restaurant_id, next_due_at, billing_cycle_price, status, restaurants(name, is_active, billing_exempt)",
     )
     .in("status", ["active", "trial", "overdue"])
     .not("next_due_at", "is", null)
@@ -212,6 +217,11 @@ export async function runExpiredSubscriptionDeactivations(
     const dueDate = toUtcDateString(dueAt);
     const restaurantName = row.restaurants?.name ?? "Restaurant";
     const wasActive = row.restaurants?.is_active !== false;
+
+    if (row.restaurants?.billing_exempt) {
+      result.skipped += 1;
+      continue;
+    }
 
     const latest = await getLatestSubscription(supabase, restaurantId);
     if (!latest || latest.id !== subscriptionId || isSubscriptionAccessValid(latest)) {

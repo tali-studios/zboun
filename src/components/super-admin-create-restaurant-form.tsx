@@ -180,6 +180,21 @@ export function SuperAdminCreateRestaurantForm() {
         ) : null}
       </div>
 
+      <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 md:col-span-2 xl:col-span-4">
+        <input
+          type="checkbox"
+          name="lifetime_free"
+          value="true"
+          className="mt-0.5 h-4 w-4 accent-emerald-600"
+        />
+        <span className="space-y-1">
+          <span className="block text-sm font-semibold text-emerald-900">Lifetime free account</span>
+          <span className="block text-xs text-emerald-800">
+            No monthly billing, no expiry lockouts, and no payment reminder emails.
+          </span>
+        </span>
+      </label>
+
       <button className="btn btn-success rounded-xl">Create business</button>
     </form>
   );

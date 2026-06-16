@@ -20,7 +20,7 @@ export default async function RestaurantBillingPage() {
   const supabase = await createServerSupabaseClient();
 
   const [{ data: restaurant }, { data: subscription }, { data: invoices }] = await Promise.all([
-    supabase.from("restaurants").select("name, is_active").eq("id", restaurantId).single(),
+    supabase.from("restaurants").select("name, is_active, billing_exempt").eq("id", restaurantId).single(),
     supabase
       .from("restaurant_subscriptions")
       .select("status, next_due_at, billing_cycle_price, start_at, ended_at, created_at")
@@ -44,6 +44,7 @@ export default async function RestaurantBillingPage() {
         <BusinessBillingPanel
           restaurantName={restaurant?.name ?? "Your business"}
           isActive={restaurant?.is_active ?? false}
+          billingExempt={restaurant?.billing_exempt ?? false}
           subscription={subscription ?? null}
           invoices={invoices ?? []}
           opsEmail={getOpsEmail()}

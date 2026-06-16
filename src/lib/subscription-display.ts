@@ -43,7 +43,11 @@ export function formatDaysUntilDue(nextDueAt: string | null | undefined) {
 }
 
 /** Single-line due date for table cells (avoids stacked layout). */
-export function formatNextDueLine(nextDueAt: string | null | undefined) {
+export function formatNextDueLine(
+  nextDueAt: string | null | undefined,
+  billingExempt?: boolean,
+) {
+  if (billingExempt) return "Lifetime free";
   if (!nextDueAt) return "—";
   const date = formatNextDueDate(nextDueAt);
   const days = formatDaysUntilDue(nextDueAt);

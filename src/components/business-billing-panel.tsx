@@ -30,6 +30,7 @@ type InvoiceRow = {
 type Props = {
   restaurantName: string;
   isActive: boolean;
+  billingExempt: boolean;
   subscription: SubscriptionInfo | null;
   invoices: InvoiceRow[];
   opsEmail: string;
@@ -38,12 +39,14 @@ type Props = {
 export function BusinessBillingPanel({
   restaurantName,
   isActive,
+  billingExempt,
   subscription,
   invoices,
   opsEmail,
 }: Props) {
   const pastDue = subscription
-    ? isSubscriptionPastDue(subscription.next_due_at, subscription.status)
+    ? !billingExempt &&
+      isSubscriptionPastDue(subscription.next_due_at, subscription.status)
     : false;
 
   return (
@@ -52,7 +55,9 @@ export function BusinessBillingPanel({
         <p className="text-[11px] font-bold uppercase tracking-widest text-violet-200">Billing</p>
         <h1 className="mt-1 text-2xl font-bold">{restaurantName}</h1>
         <p className="mt-2 text-sm text-violet-100">
-          Subscription and invoices for your Zboun account. Contact us to renew or update your plan.
+          {billingExempt
+            ? "Your Zboun account is on a complimentary lifetime plan."
+            : "Subscription and invoices for your Zboun account. Contact us to renew or update your plan."}
         </p>
         <div className="mt-4">
           <Link href="/dashboard/business" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">
@@ -94,11 +99,11 @@ export function BusinessBillingPanel({
                 pastDue,
               )}`}
             >
-              {formatSubscriptionStatus(subscription.status)}
+              {billingExempt ? "Lifetime free" : formatSubscriptionStatus(subscription.status)}
             </span>
           ) : null}
         </div>
-        {!isActive ? (
+        {!isActive && !billingExempt ? (
           <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
             Your account is deactivated. Use the contact options above (email or WhatsApp) to renew
             and restore access.
@@ -109,34 +114,41 @@ export function BusinessBillingPanel({
       {subscription ? (
         <section className="panel rounded-2xl p-5">
           <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">Current subscription</h2>
-          <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
-            <div>
-              <dt className="text-slate-500">Monthly fee</dt>
-              <dd className="font-semibold text-slate-900">
-                USD {Number(subscription.billing_cycle_price).toFixed(2)}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-slate-500">Period started</dt>
-              <dd className="font-semibold text-slate-900">
-                {formatDateLong(new Date(subscription.start_at))}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-slate-500">Next due / period ends</dt>
-              <dd className="font-semibold text-slate-900">
-                {formatNextDueLine(subscription.next_due_at)}
-              </dd>
-            </div>
-            {subscription.ended_at ? (
+          {billingExempt ? (
+            <p className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+              This account is complimentary for life. There is no monthly fee and your dashboard will
+              not be locked for non-payment.
+            </p>
+          ) : (
+            <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
               <div>
-                <dt className="text-slate-500">Ended</dt>
+                <dt className="text-slate-500">Monthly fee</dt>
                 <dd className="font-semibold text-slate-900">
-                  {formatDateLong(new Date(subscription.ended_at))}
+                  USD {Number(subscription.billing_cycle_price).toFixed(2)}
                 </dd>
               </div>
-            ) : null}
-          </dl>
+              <div>
+                <dt className="text-slate-500">Period started</dt>
+                <dd className="font-semibold text-slate-900">
+                  {formatDateLong(new Date(subscription.start_at))}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-slate-500">Next due / period ends</dt>
+                <dd className="font-semibold text-slate-900">
+                  {formatNextDueLine(subscription.next_due_at)}
+                </dd>
+              </div>
+              {subscription.ended_at ? (
+                <div>
+                  <dt className="text-slate-500">Ended</dt>
+                  <dd className="font-semibold text-slate-900">
+                    {formatDateLong(new Date(subscription.ended_at))}
+                  </dd>
+                </div>
+              ) : null}
+            </dl>
+          )}
           {pastDue && isActive ? (
             <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
               Your subscription period has ended. Please contact Zboun to renew before your account is
@@ -151,6 +163,7 @@ export function BusinessBillingPanel({
         </section>
       )}
 
+      {!billingExempt ? (
       <section className="panel overflow-x-auto rounded-2xl p-5">
         <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">Invoices</h2>
         {invoices.length === 0 ? (
@@ -193,6 +206,7 @@ export function BusinessBillingPanel({
           WhatsApp using the section above.
         </p>
       </section>
+      ) : null}
     </div>
   );
 }

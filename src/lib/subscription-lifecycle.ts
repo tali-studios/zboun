@@ -4,6 +4,7 @@ import { env } from "@/lib/env";
 import {
   getLatestSubscription,
   getRestaurantAdminEmail,
+  isRestaurantBillingExempt,
   isSubscriptionAccessValid,
   type SubscriptionReminderKind,
 } from "@/lib/subscription-billing";
@@ -102,6 +103,10 @@ export async function deactivateRestaurantForSubscription(
   },
 ): Promise<DeactivateResult> {
   if (params.reason === "expired") {
+    if (await isRestaurantBillingExempt(supabase, params.restaurantId)) {
+      return { deactivated: false, emailSent: false };
+    }
+
     const latest = await getLatestSubscription(supabase, params.restaurantId);
     if (!latest || latest.id !== params.subscriptionId) {
       return { deactivated: false, emailSent: false };
@@ -174,11 +179,12 @@ export async function enforceSubscriptionExpiryForRestaurant(
 
   const { data: restaurant } = await supabase
     .from("restaurants")
-    .select("id, name, is_active")
+    .select("id, name, is_active, billing_exempt")
     .eq("id", restaurantId)
     .maybeSingle();
 
   if (!restaurant) return false;
+  if (restaurant.billing_exempt) return false;
 
   const sub = await getLatestSubscription(supabase, restaurantId);
   if (!sub?.next_due_at) return false;
@@ -231,15 +237,19 @@ export async function isRestaurantDashboardBlocked(
 
   await enforceSubscriptionExpiryForRestaurant(restaurantId);
 
+  const { data: restaurant } = await supabase
+    .from("restaurants")
+    .select("is_active, billing_exempt")
+    .eq("id", restaurantId)
+    .maybeSingle();
+
+  if (restaurant?.billing_exempt) {
+    return !restaurant.is_active;
+  }
+
   const sub = await getLatestSubscription(supabase, restaurantId);
   if (sub?.status === "paused" || sub?.status === "cancelled") return true;
   if (isSubscriptionAccessValid(sub)) return false;
-
-  const { data: restaurant } = await supabase
-    .from("restaurants")
-    .select("is_active")
-    .eq("id", restaurantId)
-    .maybeSingle();
 
   return !restaurant?.is_active;
 }

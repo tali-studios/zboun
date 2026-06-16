@@ -56,6 +56,8 @@ export async function createSubscriptionPeriodInvoice(
 export const SUBSCRIPTION_PERIOD_MONTHS = 1;
 export const REMINDER_DAYS_BEFORE_DUE = 10;
 export const REMINDER_DAYS_FINAL = 3;
+/** Far-future due date for lifetime complimentary accounts. */
+export const LIFETIME_FREE_NEXT_DUE_AT = "2099-12-31T23:59:59.999Z";
 
 export type SubscriptionReminderKind =
   | "ten_day_expiry"
@@ -156,6 +158,99 @@ export async function createInitialSubscription(
   };
 }
 
+export async function isRestaurantBillingExempt(
+  supabase: SupabaseClient,
+  restaurantId: string,
+): Promise<boolean> {
+  const { data } = await supabase
+    .from("restaurants")
+    .select("billing_exempt")
+    .eq("id", restaurantId)
+    .maybeSingle();
+
+  return Boolean(data?.billing_exempt);
+}
+
+/** Subscription with no invoices, no expiry enforcement, and no payment reminders. */
+export async function createComplimentarySubscription(
+  supabase: SupabaseClient,
+  restaurantId: string,
+) {
+  const { planId } = await getOrCreateMonthlyPlanId(supabase);
+  const startAt = new Date();
+  const nextDueAt = new Date(LIFETIME_FREE_NEXT_DUE_AT);
+
+  const { data, error } = await supabase
+    .from("restaurant_subscriptions")
+    .insert({
+      restaurant_id: restaurantId,
+      plan_id: planId,
+      status: "active",
+      start_at: startAt.toISOString(),
+      next_due_at: nextDueAt.toISOString(),
+      billing_cycle_price: 0,
+      notes: "Lifetime complimentary account — no billing.",
+    })
+    .select("id, next_due_at, billing_cycle_price")
+    .single();
+
+  if (error || !data) {
+    throw new Error(error?.message ?? "Could not create complimentary subscription.");
+  }
+
+  return {
+    subscriptionId: data.id as string,
+    nextDueAt,
+    billingPrice: 0,
+    periodStart: startAt,
+    periodEnd: nextDueAt,
+  };
+}
+
+/** Mark a restaurant as lifetime free and align its subscription row. */
+export async function applyComplimentaryBilling(
+  supabase: SupabaseClient,
+  restaurantId: string,
+) {
+  const nowIso = new Date().toISOString();
+  const sub = await getLatestSubscription(supabase, restaurantId);
+
+  const { error: restaurantError } = await supabase
+    .from("restaurants")
+    .update({ billing_exempt: true, is_active: true })
+    .eq("id", restaurantId);
+
+  if (restaurantError) {
+    throw new Error(restaurantError.message);
+  }
+
+  if (sub?.id) {
+    const { error } = await supabase
+      .from("restaurant_subscriptions")
+      .update({
+        status: "active",
+        ended_at: null,
+        next_due_at: LIFETIME_FREE_NEXT_DUE_AT,
+        billing_cycle_price: 0,
+        notes: "Lifetime complimentary account — no billing.",
+        updated_at: nowIso,
+      })
+      .eq("id", sub.id);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return {
+      subscriptionId: sub.id as string,
+      nextDueAt: new Date(LIFETIME_FREE_NEXT_DUE_AT),
+      billingPrice: 0,
+    };
+  }
+
+  return createComplimentarySubscription(supabase, restaurantId);
+}
+
 export type SubscriptionAccessRow = {
   id: string;
   status: string;
@@ -190,6 +285,27 @@ export async function renewRestaurantSubscription(
   supabase: SupabaseClient,
   restaurantId: string,
 ) {
+  if (await isRestaurantBillingExempt(supabase, restaurantId)) {
+    const existing = await getLatestSubscription(supabase, restaurantId);
+    const now = new Date();
+    if (existing?.id) {
+      await supabase
+        .from("restaurants")
+        .update({ is_active: true })
+        .eq("id", restaurantId);
+      return {
+        subscriptionId: existing.id as string,
+        nextDueAt: new Date(existing.next_due_at ?? LIFETIME_FREE_NEXT_DUE_AT),
+        billingPrice: 0,
+        periodStart: existing.start_at ? new Date(existing.start_at) : now,
+        periodEnd: new Date(existing.next_due_at ?? LIFETIME_FREE_NEXT_DUE_AT),
+        renewed: true as const,
+      };
+    }
+    const created = await createComplimentarySubscription(supabase, restaurantId);
+    return { ...created, renewed: true as const };
+  }
+
   const existing = await getLatestSubscription(supabase, restaurantId);
   const now = new Date();
 
@@ -241,7 +357,7 @@ export async function renewRestaurantSubscription(
 /** Create subscription rows for restaurants that pre-date billing (idempotent). */
 export async function backfillMissingSubscriptions(
   supabase: SupabaseClient,
-  restaurants: { id: string; created_at: string; is_active: boolean }[],
+  restaurants: { id: string; created_at: string; is_active: boolean; billing_exempt?: boolean }[],
 ) {
   if (restaurants.length === 0) return 0;
 
@@ -263,6 +379,19 @@ export async function backfillMissingSubscriptions(
 
   const now = new Date();
   const rows = missing.map((restaurant) => {
+    if (restaurant.billing_exempt) {
+      return {
+        restaurant_id: restaurant.id,
+        plan_id: planId,
+        status: "active",
+        start_at: new Date(restaurant.created_at).toISOString(),
+        next_due_at: LIFETIME_FREE_NEXT_DUE_AT,
+        billing_cycle_price: 0,
+        ended_at: null,
+        notes: "Lifetime complimentary account — no billing.",
+      };
+    }
+
     const startAt = new Date(restaurant.created_at);
     const nextDueAt = addMonths(startAt, SUBSCRIPTION_PERIOD_MONTHS);
     const expired = nextDueAt.getTime() < now.getTime();

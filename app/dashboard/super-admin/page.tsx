@@ -37,7 +37,7 @@ export default async function SuperAdminPage({ searchParams }: Props) {
       : supabase;
   const { data: restaurants } = await dataClient
     .from("restaurants")
-    .select("id, name, slug, phone, business_type, is_active, show_on_home, browse_sections, created_at")
+    .select("id, name, slug, phone, business_type, is_active, billing_exempt, show_on_home, browse_sections, created_at")
     .order("created_at", { ascending: false });
 
   if (restaurants?.length) {
@@ -222,8 +222,16 @@ export default async function SuperAdminPage({ searchParams }: Props) {
   monthStart.setHours(0, 0, 0, 0);
   const now = new Date();
 
+  const billingExemptRestaurantIds = new Set(
+    (restaurants ?? []).filter((restaurant) => restaurant.billing_exempt).map((restaurant) => restaurant.id),
+  );
+
   const expectedMonthlyRevenue = (subscriptions ?? [])
-    .filter((sub) => sub.status === "active" || sub.status === "trial" || sub.status === "overdue")
+    .filter(
+      (sub) =>
+        (sub.status === "active" || sub.status === "trial" || sub.status === "overdue") &&
+        !billingExemptRestaurantIds.has(sub.restaurant_id),
+    )
     .reduce((sum, sub) => sum + Number(sub.billing_cycle_price ?? 0), 0);
 
   const collectedThisMonth = (payments ?? [])
