@@ -34,6 +34,7 @@ import { resolveMenuItemBrandId } from "@/lib/menu-brands";
 import { AddMenuItemForm } from "@/components/add-menu-item-form";
 import { BrandManageRow } from "@/components/brand-manage-row";
 import { DeliveryFeeSettings } from "@/components/delivery-fee-settings";
+import { MenuThemePicker } from "@/components/menu-theme-picker";
 
 export const dynamic = "force-dynamic";
 
@@ -137,7 +138,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
     supabase
       .from("restaurants")
       .select(
-        "name, slug, phone, logo_url, banner_url, description, lbp_rate, browse_sections, location, eta_label, business_type, latitude, longitude, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd",
+        "name, slug, phone, logo_url, banner_url, description, lbp_rate, browse_sections, location, eta_label, business_type, latitude, longitude, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd, menu_theme_color",
       )
       .eq("id", appUser.restaurant_id)
       .single(),
@@ -621,6 +622,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                   ))}
                 </div>
               </div>
+              <MenuThemePicker defaultColor={restaurant?.menu_theme_color ?? null} />
               <div className="md:col-span-3">
                 <ImageUploadField
                   name="logo_file"

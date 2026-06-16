@@ -28,6 +28,7 @@ export type RestaurantForMenuPage = {
   fast_delivery_fee_usd: number;
   user_avg_rating: number | null;
   user_rating_count: number;
+  menu_theme_color: string | null;
 };
 
 async function loadRatingStatsMap(supabase: SupabaseClient, ids: string[]): Promise<Map<string, RatingAgg>> {
@@ -103,12 +104,13 @@ type RestaurantRowCore = {
   delivery_fee_usd?: number;
   fast_delivery_enabled?: boolean;
   fast_delivery_fee_usd?: number;
+  menu_theme_color?: string | null;
 };
 
 export async function getRestaurantBySlug(slug: string): Promise<RestaurantForMenuPage | null> {
   const supabase = await createServerSupabaseClient();
   const fullSelect =
-    "id, name, slug, phone, logo_url, banner_url, description, lbp_rate, is_active, browse_sections, location, eta_label, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd";
+    "id, name, slug, phone, logo_url, banner_url, description, lbp_rate, is_active, browse_sections, location, eta_label, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd, menu_theme_color";
   const { data, error } = await supabase.from("restaurants").select(fullSelect).eq("slug", slug).single();
 
   let row: RestaurantRowCore | null = null;
@@ -159,6 +161,7 @@ export async function getRestaurantBySlug(slug: string): Promise<RestaurantForMe
     delivery_fee_usd: Number(row.delivery_fee_usd ?? 0),
     fast_delivery_enabled: row.fast_delivery_enabled ?? false,
     fast_delivery_fee_usd: Number(row.fast_delivery_fee_usd ?? 0),
+    menu_theme_color: row.menu_theme_color ?? null,
     user_avg_rating: agg?.avgRating ?? null,
     user_rating_count: agg?.ratingCount ?? 0,
   };

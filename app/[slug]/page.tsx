@@ -138,12 +138,12 @@ export default async function RestaurantMenuPage({ params, searchParams }: Props
         {/* Desktop: banner constrained to exact same container+padding as the header above */}
         <div className="hidden md:block">
           <div className="container px-4 pt-3">
-            <RestaurantMenuHero restaurant={restaurant} heroEyebrow={heroEyebrow} tagline={tagline} desktop />
+            <RestaurantMenuHero restaurant={restaurant} heroEyebrow={heroEyebrow} tagline={tagline} menuThemeColor={restaurant.menu_theme_color} desktop />
           </div>
         </div>
         {/* Mobile: full-bleed */}
         <div className="md:hidden">
-          <RestaurantMenuHero restaurant={restaurant} heroEyebrow={heroEyebrow} tagline={tagline} />
+          <RestaurantMenuHero restaurant={restaurant} heroEyebrow={heroEyebrow} tagline={tagline} menuThemeColor={restaurant.menu_theme_color} />
         </div>
 
         <main className="container px-3 pb-10 pt-3 sm:px-6 sm:pb-12 sm:pt-6 lg:pb-8">
@@ -166,6 +166,7 @@ export default async function RestaurantMenuPage({ params, searchParams }: Props
             fastDeliveryFeeUsd={Number(restaurant.fast_delivery_fee_usd ?? 0)}
             orderingEnabled={orderingEnabled}
             reorderFrom={reorderFrom}
+            menuThemeColor={restaurant.menu_theme_color}
           />
         </main>
       </div>

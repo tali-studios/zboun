@@ -34,6 +34,8 @@ alter table public.restaurants
   add column if not exists eta_label text;
 alter table public.restaurants
   add column if not exists billing_exempt boolean not null default false;
+alter table public.restaurants
+  add column if not exists menu_theme_color text;
 
 -- Visitor ratings (one value per anonymous rater id per restaurant; rater_id from browser localStorage)
 create table if not exists public.restaurant_ratings (

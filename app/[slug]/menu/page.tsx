@@ -68,6 +68,7 @@ export default async function RestaurantInStoreMenuPage({ params }: Props) {
         restaurant={restaurant}
         heroEyebrow={heroEyebrow}
         tagline={tagline}
+        menuThemeColor={restaurant.menu_theme_color}
         modeBadge="In-restaurant menu · view only"
       />
 
@@ -80,6 +81,7 @@ export default async function RestaurantInStoreMenuPage({ params }: Props) {
           restaurantSlug={restaurant.slug}
           lbpRate={Number(restaurant.lbp_rate ?? 89500)}
           categories={categories}
+          menuThemeColor={restaurant.menu_theme_color}
         />
       </main>
     </div>

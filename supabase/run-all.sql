@@ -45,6 +45,8 @@ alter table public.restaurants
   add column if not exists eta_label text;
 alter table public.restaurants
   add column if not exists billing_exempt boolean not null default false;
+alter table public.restaurants
+  add column if not exists menu_theme_color text;
 
 create table if not exists public.restaurant_ratings (
   id uuid primary key default gen_random_uuid(),

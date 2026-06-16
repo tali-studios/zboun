@@ -1,9 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
-import { BRAND_HEX, BRAND_HEX_ACCENT, BRAND_HEX_DEEP } from "@/lib/brand";
-
-const BRAND = BRAND_HEX;
-const HERO_CATEGORY_COLOR = "#c4b5fd";
+import type { MenuTheme } from "@/lib/menu-theme";
+import { resolveMenuTheme } from "@/lib/menu-theme";
 
 type RestaurantHeroData = {
   name: string;
@@ -21,13 +19,15 @@ type Props = {
   restaurant: RestaurantHeroData;
   heroEyebrow: string;
   tagline: string;
+  menuThemeColor?: string | null;
   /** Shown under tagline on in-store menu pages */
   modeBadge?: string;
   /** When true the parent already handles container/padding; apply rounded corners */
   desktop?: boolean;
 };
 
-export function RestaurantMenuHero({ restaurant, heroEyebrow, tagline, modeBadge, desktop }: Props) {
+export function RestaurantMenuHero({ restaurant, heroEyebrow, tagline, menuThemeColor, modeBadge, desktop }: Props) {
+  const theme: MenuTheme = resolveMenuTheme(menuThemeColor);
   const avgRating =
     restaurant.user_avg_rating != null && Number.isFinite(Number(restaurant.user_avg_rating))
       ? Math.round(Number(restaurant.user_avg_rating) * 10) / 10
@@ -57,7 +57,7 @@ export function RestaurantMenuHero({ restaurant, heroEyebrow, tagline, modeBadge
       <div
           className={`relative h-[46vw] w-full overflow-hidden sm:h-64 md:h-72 lg:h-80 ${desktop ? "rounded-2xl" : ""}`}
           style={{
-            background: `linear-gradient(135deg, ${BRAND} 0%, ${BRAND_HEX_ACCENT} 48%, ${BRAND_HEX_DEEP} 100%)`,
+            background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.accent} 48%, ${theme.deep} 100%)`,
           }}
         >
           {restaurant.banner_url ? (
@@ -76,7 +76,10 @@ export function RestaurantMenuHero({ restaurant, heroEyebrow, tagline, modeBadge
             </>
           ) : (
             <div
-              className="absolute inset-0 bg-gradient-to-br from-[#7854ff] via-[#9f3bfe] to-[#5b21b6]"
+              className="absolute inset-0"
+              style={{
+                background: `linear-gradient(to bottom right, ${theme.primary}, ${theme.accent}, ${theme.deep})`,
+              }}
               aria-hidden
             />
           )}
@@ -98,7 +101,7 @@ export function RestaurantMenuHero({ restaurant, heroEyebrow, tagline, modeBadge
               <div className="min-w-0 flex-1 pb-0.5 text-left text-white drop-shadow-sm">
                 <p
                   className="text-[10px] font-bold uppercase tracking-[0.18em] sm:text-[11px]"
-                  style={{ color: HERO_CATEGORY_COLOR }}
+                  style={{ color: theme.accent }}
                 >
                   {heroEyebrow}
                 </p>

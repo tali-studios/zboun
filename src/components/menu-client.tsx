@@ -14,7 +14,7 @@ import { CheckoutOrderConfirm } from "@/components/checkout-order-confirm";
 import type { DeliveryTimeChoice } from "@/components/delivery-time-sheet";
 import type { SavedAddressOption } from "@/components/order-delivery-fields";
 import { formatDeliveryTimeLabel, isRestaurantOpenNow, parseOpeningHours } from "@/lib/opening-hours";
-import { BRAND_HEX, BRAND_HEX_DEEP } from "@/lib/brand";
+import { resolveMenuTheme, menuThemeStyle } from "@/lib/menu-theme";
 import { placeOrderAction, type DeliverySpeed } from "@/app-actions/orders";
 import { useDeliveryLocation } from "@/components/delivery-location-provider";
 import {
@@ -30,7 +30,6 @@ import {
   isSoldByWeightItem,
 } from "@/lib/budget-mode";
 
-const BRAND = BRAND_HEX;
 const WHATSAPP_GREEN = "#25D366";
 
 type Props = {
@@ -54,6 +53,7 @@ type Props = {
   fastDeliveryFeeUsd?: number;
   orderingEnabled?: boolean;
   reorderFrom?: MenuReorderPayload | null;
+  menuThemeColor?: string | null;
 };
 
 type CartLine = {
@@ -121,7 +121,10 @@ export function MenuClient({
   fastDeliveryFeeUsd = 0,
   orderingEnabled = true,
   reorderFrom = null,
+  menuThemeColor = null,
 }: Props) {
+  const theme = useMemo(() => resolveMenuTheme(menuThemeColor), [menuThemeColor]);
+  const themeVars = useMemo(() => menuThemeStyle(theme), [theme]);
   const parsedOpeningHours = useMemo(() => parseOpeningHours(openingHoursRaw), [openingHoursRaw]);
   const isOpenNow = useMemo(
     () => isRestaurantOpenNow(parsedOpeningHours, { isTemporarilyClosed }),
@@ -567,12 +570,12 @@ export function MenuClient({
                   <div className="flex h-full w-full items-center justify-center text-2xl text-slate-200" aria-hidden>···</div>
                 )}
               </div>
-              <div className="flex h-6 w-6 items-center justify-center rounded-full text-white absolute bottom-[3.4rem] right-2 shadow-sm text-lg font-light leading-none" style={{ backgroundColor: BRAND }}>
+              <div className="flex h-6 w-6 items-center justify-center rounded-full text-white absolute bottom-[3.4rem] right-2 shadow-sm text-lg font-light leading-none" style={{ backgroundColor: theme.primary }}>
                 +
               </div>
               <div className="px-2 pb-2.5 pt-1.5 text-left">
                 <p className="line-clamp-2 text-[11px] font-semibold leading-snug text-slate-800">{m.name}</p>
-                <p className="mt-0.5 text-[11px] font-bold" style={{ color: BRAND }}>{formatLbp(m.price)}</p>
+                <p className="mt-0.5 text-[11px] font-bold" style={{ color: theme.primary }}>{formatLbp(m.price)}</p>
               </div>
             </button>
           ))}
@@ -721,7 +724,7 @@ export function MenuClient({
                 if (onClose) onClose();
               }}
               className="flex flex-col items-center justify-center rounded-full py-2.5 text-white shadow-md transition hover:brightness-105"
-              style={{ background: "linear-gradient(135deg, #7854ff 0%, #a855f7 100%)" }}
+              style={{ background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.accent} 100%)` }}
             >
               <span className="text-[11px] font-semibold leading-none opacity-80">Checkout</span>
               <span className="mt-0.5 text-sm font-bold leading-none">{formatLbp(orderTotal)}</span>
@@ -914,7 +917,7 @@ export function MenuClient({
                     onClick={proceedToOrderConfirm}
                     disabled={!canProceed}
                     className="min-w-[9.5rem] shrink-0 rounded-2xl px-6 py-3.5 text-sm font-bold text-white shadow-md transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40"
-                    style={{ background: `linear-gradient(135deg, ${BRAND_HEX} 0%, ${BRAND_HEX_DEEP} 100%)` }}
+                    style={{ background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.deep} 100%)` }}
                   >
                     Continue
                   </button>
@@ -984,6 +987,7 @@ export function MenuClient({
 
   /* ─── Render ────────────────────────────────────────────────────────── */
   return (
+    <div style={themeVars}>
     <>
       <div ref={orderTopRef} />
       {placedOrder ? (
@@ -1012,12 +1016,20 @@ export function MenuClient({
         </div>
       ) : null}
       {!viewOnly && reorderBanner ? (
-        <div className="mb-4 flex items-start justify-between gap-3 rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm text-violet-900">
+        <div
+          className="mb-4 flex items-start justify-between gap-3 rounded-2xl border px-4 py-3 text-sm"
+          style={{
+            borderColor: theme.softBorder,
+            backgroundColor: theme.softBg,
+            color: theme.softText,
+          }}
+        >
           <p>{reorderBanner}</p>
           <button
             type="button"
             onClick={() => setReorderBanner(null)}
-            className="shrink-0 text-xs font-semibold text-violet-600 hover:underline"
+            className="shrink-0 text-xs font-semibold hover:underline"
+            style={{ color: theme.primary }}
           >
             Dismiss
           </button>
@@ -1079,7 +1091,7 @@ export function MenuClient({
               className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition ${
                 menuCategoryFilter === "all" ? "text-white shadow-md" : "bg-slate-100 text-slate-600"
               }`}
-              style={menuCategoryFilter === "all" ? { backgroundColor: BRAND } : undefined}
+              style={menuCategoryFilter === "all" ? { backgroundColor: theme.primary } : undefined}
             >
               All
             </button>
@@ -1093,7 +1105,7 @@ export function MenuClient({
                   className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition ${
                     active ? "text-white shadow-md" : "bg-slate-100 text-slate-600"
                   }`}
-                  style={active ? { backgroundColor: BRAND } : undefined}
+                  style={active ? { backgroundColor: theme.primary } : undefined}
                 >
                   {category.name}
                 </button>
@@ -1116,7 +1128,8 @@ export function MenuClient({
                 <button
                   type="button"
                   onClick={() => setBudgetAmount(null)}
-                  className="mt-4 rounded-full bg-violet-600 px-5 py-2 text-sm font-semibold text-white hover:bg-violet-700"
+                  className="mt-4 rounded-full px-5 py-2 text-sm font-semibold text-white hover:brightness-110"
+                  style={{ backgroundColor: theme.primary }}
                 >
                   Clear budget
                 </button>
@@ -1217,7 +1230,7 @@ export function MenuClient({
                         className="mt-1"
                       />
                       <div className="mt-auto flex flex-wrap items-end gap-x-2 pt-2">
-                        <span className="text-base font-bold" style={{ color: BRAND }}>
+                        <span className="text-base font-bold" style={{ color: theme.primary }}>
                           {soldByWeight ? `From ${formatUsd(budgetPriceUsd)}` : formatUsd(budgetPriceUsd)}
                         </span>
                         <span className="text-xs text-slate-400">{formatLbp(budgetPriceUsd)}</span>
@@ -1231,8 +1244,8 @@ export function MenuClient({
                       <button
                         disabled={!item.is_available}
                         onClick={() => openCustomization(item)}
-                        className="absolute bottom-3 right-3 flex h-10 w-10 items-center justify-center rounded-full text-xl font-light leading-none text-white shadow-md shadow-violet-500/35 transition hover:brightness-110 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
-                        style={{ backgroundColor: item.is_available ? BRAND : undefined }}
+                        className="absolute bottom-3 right-3 flex h-10 w-10 items-center justify-center rounded-full text-xl font-light leading-none text-white shadow-md transition hover:brightness-110 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
+                        style={{ backgroundColor: item.is_available ? theme.primary : undefined }}
                         aria-label={item.is_available ? `Add ${item.name}` : `${item.name} unavailable`}
                       >
                         +
@@ -1269,7 +1282,7 @@ export function MenuClient({
             >
               <div
                 className="flex items-center gap-3 rounded-2xl border border-white/15 px-3.5 py-2.5 shadow-[0_6px_28px_rgba(76,29,149,0.38),inset_0_1px_0_rgba(255,255,255,0.12)] transition-[filter] duration-150 active:brightness-95"
-                style={{ backgroundImage: `linear-gradient(135deg, ${BRAND_HEX} 0%, ${BRAND_HEX_DEEP} 100%)` }}
+                style={{ backgroundImage: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.deep} 100%)` }}
               >
                 {/* Icon + count badge */}
                 <div className="relative shrink-0" aria-hidden>
@@ -1338,7 +1351,7 @@ export function MenuClient({
                   <p className="mt-0.5 text-sm text-slate-500">{customizing.item.description}</p>
                 ) : null}
                 <div className="mt-1.5 flex items-baseline gap-2">
-                  <span className="text-base font-bold" style={{ color: BRAND }}>
+                  <span className="text-base font-bold" style={{ color: theme.primary }}>
                     {isSoldByWeight(customizing.item)
                       ? `${formatUsd(
                           Number(
@@ -1376,7 +1389,7 @@ export function MenuClient({
                   {(customizing.item.removable_ingredients ?? []).map((ingredient) => (
                     <label
                       key={`remove-${ingredient.name}`}
-                      className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3 text-sm text-slate-700 transition hover:border-[#7854ff]/35"
+                      className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3 text-sm text-slate-700 transition hover:shadow-sm"
                     >
                       <input
                         type="checkbox"
@@ -1394,7 +1407,8 @@ export function MenuClient({
                               : prev,
                           );
                         }}
-                        className="h-4 w-4 accent-[#7854ff]"
+                        className="h-4 w-4"
+                        style={{ accentColor: theme.primary }}
                       />
                       <span>{ingredient.name}</span>
                     </label>
@@ -1564,5 +1578,6 @@ export function MenuClient({
       </>
       ) : null}
     </>
+    </div>
   );
 }

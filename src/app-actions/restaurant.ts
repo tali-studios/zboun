@@ -7,6 +7,7 @@ import { createClient } from "@supabase/supabase-js";
 import { getCurrentUserRole } from "@/lib/data";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { parseBrowseSectionFromForm } from "@/lib/browse-sections";
+import { parseMenuThemeColor } from "@/lib/menu-theme";
 import { parseDisplayQuantityFromForm } from "@/lib/display-quantity";
 import { parseOptionalCalories, parseOptionalProteinGrams, isNutritionColumnMigrationError } from "@/lib/menu-nutrition";
 import { env } from "@/lib/env";
@@ -658,6 +659,13 @@ export async function updateRestaurantSettingsAction(formData: FormData) {
   }
 
   const supabase = await createServerSupabaseClient();
+  const menuThemeColor = parseMenuThemeColor(formData.get("menu_theme_color"));
+  const { data: restaurantRow } = await supabase
+    .from("restaurants")
+    .select("slug")
+    .eq("id", user.restaurant_id)
+    .maybeSingle();
+
   await supabase
     .from("restaurants")
     .update({
@@ -676,10 +684,15 @@ export async function updateRestaurantSettingsAction(formData: FormData) {
       delivery_fee_usd: Math.round(deliveryFeeUsd * 100) / 100,
       fast_delivery_enabled: fastDeliveryEnabled,
       fast_delivery_fee_usd: Math.round(fastDeliveryFeeUsd * 100) / 100,
+      menu_theme_color: menuThemeColor,
     })
     .eq("id", user.restaurant_id);
   revalidatePath("/dashboard/business");
   revalidatePath("/");
+  if (restaurantRow?.slug) {
+    revalidatePath(`/${restaurantRow.slug}`);
+    revalidatePath(`/${restaurantRow.slug}/menu`);
+  }
   redirect("/dashboard/business?toast=settings_saved");
 }
 
