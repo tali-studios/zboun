@@ -3,16 +3,18 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
-import { BRAND_HEX, BRAND_HEX_DEEP } from "@/lib/brand";
+import type { MenuTheme } from "@/lib/menu-theme";
+import { menuPrimaryButtonStyle, menuThemeStyle } from "@/lib/menu-theme";
 
 type Props = {
   open: boolean;
   onClose: () => void;
   value: string;
   onSave: (value: string) => void;
+  theme: MenuTheme;
 };
 
-export function CheckoutDeliveryInstructionsSheet({ open, onClose, value, onSave }: Props) {
+export function CheckoutDeliveryInstructionsSheet({ open, onClose, value, onSave, theme }: Props) {
   const [draft, setDraft] = useState(value);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -58,7 +60,7 @@ export function CheckoutDeliveryInstructionsSheet({ open, onClose, value, onSave
   }
 
   const sheet = (
-    <>
+    <div style={menuThemeStyle(theme)}>
       <div
         className="fixed inset-0 z-[70] bg-slate-900/50 backdrop-blur-sm"
         onClick={onClose}
@@ -107,13 +109,13 @@ export function CheckoutDeliveryInstructionsSheet({ open, onClose, value, onSave
             type="button"
             onClick={handleSave}
             className="flex-1 rounded-full py-3.5 text-sm font-bold text-white shadow-md transition hover:brightness-105"
-            style={{ background: `linear-gradient(135deg, ${BRAND_HEX} 0%, ${BRAND_HEX_DEEP} 100%)` }}
+            style={menuPrimaryButtonStyle(theme)}
           >
             Save
           </button>
         </div>
       </div>
-    </>
+    </div>
   );
 
   if (typeof document === "undefined") return null;

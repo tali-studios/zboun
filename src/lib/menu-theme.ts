@@ -94,3 +94,33 @@ export function menuThemeStyle(theme: MenuTheme): CSSProperties {
     ["--menu-soft-text" as string]: theme.softText,
   };
 }
+
+export function menuPrimaryGradient(theme: MenuTheme): string {
+  return `linear-gradient(135deg, ${theme.primary} 0%, ${theme.deep} 100%)`;
+}
+
+export function menuPrimaryButtonStyle(theme: MenuTheme): CSSProperties {
+  return {
+    background: menuPrimaryGradient(theme),
+    color: "#fff",
+  };
+}
+
+/** Tailwind class fragments — set `menuThemeStyle(theme)` on the same node or an ancestor. */
+export const menuThemeSelectedClass =
+  "border-[var(--menu-primary)] bg-[var(--menu-soft-bg)] ring-1 ring-[var(--menu-soft-border)]";
+
+export const menuThemeOutlineBtnClass =
+  "shrink-0 rounded-lg border border-[var(--menu-primary)] px-4 py-1.5 text-xs font-semibold text-[var(--menu-primary)] transition hover:bg-[var(--menu-soft-bg)]";
+
+export const menuThemeQuickSelectedClass =
+  "border-[var(--menu-primary)] bg-[var(--menu-soft-bg)] text-[var(--menu-soft-text)]";
+
+export const menuThemeQuickIdleClass =
+  "border-slate-200 bg-white text-slate-600 hover:border-[color-mix(in_srgb,var(--menu-primary)_40%,transparent)]";
+
+export const menuThemeModeSelectedClass =
+  "border-[var(--menu-primary)] bg-[color-mix(in_srgb,var(--menu-soft-bg)_60%,white)] shadow-sm";
+
+export const menuThemeAccentCheckboxClass =
+  "h-4 w-4 rounded border-slate-300 accent-[var(--menu-primary)]";

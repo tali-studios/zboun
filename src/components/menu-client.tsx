@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter, usePathname } from "next/navigation";
 import { ArrowLeft, Minus, Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -13,7 +14,7 @@ import { CheckoutOrderConfirm } from "@/components/checkout-order-confirm";
 import type { DeliveryTimeChoice } from "@/components/delivery-time-sheet";
 import type { SavedAddressOption } from "@/components/order-delivery-fields";
 import { formatDeliveryTimeLabel, isRestaurantOpenNow, parseOpeningHours } from "@/lib/opening-hours";
-import { resolveMenuTheme, menuThemeStyle } from "@/lib/menu-theme";
+import { resolveMenuTheme, menuThemeStyle, menuPrimaryButtonStyle } from "@/lib/menu-theme";
 import { placeOrderAction, type DeliverySpeed } from "@/app-actions/orders";
 import { useDeliveryLocation } from "@/components/delivery-location-provider";
 import {
@@ -120,6 +121,8 @@ export function MenuClient({
   reorderFrom = null,
   menuThemeColor = null,
 }: Props) {
+  const router = useRouter();
+  const pathname = usePathname();
   const theme = useMemo(() => resolveMenuTheme(menuThemeColor), [menuThemeColor]);
   const themeVars = useMemo(() => menuThemeStyle(theme), [theme]);
   const parsedOpeningHours = useMemo(() => parseOpeningHours(openingHoursRaw), [openingHoursRaw]);
@@ -134,6 +137,16 @@ export function MenuClient({
   const [query, setQuery] = useState("");
   const [menuCategoryFilter, setMenuCategoryFilter] = useState<string>("all");
   const [customerName, setCustomerName] = useState(defaultCustomerName);
+  const effectiveCustomerName = useMemo(() => {
+    if (isLoggedIn) return defaultCustomerName.trim();
+    return customerName.trim();
+  }, [isLoggedIn, defaultCustomerName, customerName]);
+
+  useEffect(() => {
+    if (isLoggedIn && defaultCustomerName.trim()) {
+      setCustomerName(defaultCustomerName.trim());
+    }
+  }, [isLoggedIn, defaultCustomerName]);
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
   const [showMobileCart, setShowMobileCart] = useState(false);
@@ -420,7 +433,7 @@ export function MenuClient({
   }
 
   function createWhatsAppMessage() {
-    const cleanName = customerName.trim();
+    const cleanName = effectiveCustomerName;
     const cleanAddress = address.trim();
     const orderNotes = buildOrderNotes();
     const lines = [
@@ -467,8 +480,8 @@ export function MenuClient({
       setOrderError("The restaurant is closed right now. Please schedule your delivery for later.");
       return;
     }
-    if (!customerName.trim() || !address.trim()) {
-      setOrderError("Please fill in your name and delivery address before ordering.");
+    if (!effectiveCustomerName || !address.trim()) {
+      setOrderError("Please add a delivery address before ordering.");
       return;
     }
     if (items.length === 0) {
@@ -481,7 +494,7 @@ export function MenuClient({
       const result = await placeOrderAction({
         restaurantId,
         restaurantSlug,
-        customerName: customerName.trim(),
+        customerName: effectiveCustomerName,
         customerPhone: null,
         deliveryAddress: address.trim(),
         deliveryLat: location?.lat ?? null,
@@ -518,7 +531,7 @@ export function MenuClient({
     }
   }
 
-  /* ─── Suggested items: items from the menu not already in cart ─── */
+  /* ─── Suggested items (disabled — horizontal scroll was unreliable on desktop cart) ───
   function renderSuggestedItems() {
     const cartItemIds = new Set(items.map((l) => l.itemId));
     const allItems = categories.flatMap((c) => c.menu_items);
@@ -564,6 +577,7 @@ export function MenuClient({
       </div>
     );
   }
+  */
 
   /* ─── Cart panel (shared between desktop sidebar and mobile sheet) ─── */
   function renderCartPanel({ onClose }: { onClose?: () => void }) {
@@ -683,8 +697,8 @@ export function MenuClient({
           </div>
         ) : null}
 
-        {/* Suggested items */}
-        {items.length > 0 ? renderSuggestedItems() : null}
+        {/* Suggested items — disabled (see renderSuggestedItems above) */}
+        {/* {items.length > 0 ? renderSuggestedItems() : null} */}
 
         {/* Two-button footer */}
         {items.length > 0 ? (
@@ -698,16 +712,13 @@ export function MenuClient({
             </button>
             <button
               type="button"
-              onClick={() => {
-                setCheckoutBackToCart(Boolean(onClose));
-                setCheckoutStep("review");
-                setShowCheckout(true);
-                if (onClose) onClose();
-              }}
+              onClick={() => beginCheckout({ closeCart: onClose })}
               className="flex flex-col items-center justify-center rounded-full py-2.5 text-white shadow-md transition hover:brightness-105"
               style={{ background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.accent} 100%)` }}
             >
-              <span className="text-[11px] font-semibold leading-none opacity-80">Checkout</span>
+              <span className="text-[11px] font-semibold leading-none opacity-80">
+                {isLoggedIn ? "Checkout" : "Sign in to checkout"}
+              </span>
               <span className="mt-0.5 text-sm font-bold leading-none">{formatLbp(orderTotal)}</span>
             </button>
           </div>
@@ -725,6 +736,25 @@ export function MenuClient({
     }
   }
 
+  function beginCheckout(options?: { closeCart?: () => void }) {
+    if (!isLoggedIn) {
+      const next = pathname || `/${restaurantSlug}`;
+      router.push(`/login?next=${encodeURIComponent(next)}`);
+      return;
+    }
+    setCheckoutBackToCart(Boolean(options?.closeCart));
+    setCheckoutStep("review");
+    setShowCheckout(true);
+    options?.closeCart?.();
+  }
+
+  useEffect(() => {
+    if (!showCheckout || isLoggedIn) return;
+    setShowCheckout(false);
+    const next = pathname || `/${restaurantSlug}`;
+    router.push(`/login?next=${encodeURIComponent(next)}`);
+  }, [showCheckout, isLoggedIn, pathname, restaurantSlug, router]);
+
   function proceedToOrderConfirm() {
     if (orderingBlocked) {
       setOrderError("This restaurant is closed and not accepting online orders right now.");
@@ -734,8 +764,8 @@ export function MenuClient({
       setOrderError("The restaurant is closed right now. Please schedule your delivery for later.");
       return;
     }
-    if (!customerName.trim() || !address.trim()) {
-      setOrderError("Please fill in your name and delivery address before ordering.");
+    if (!effectiveCustomerName || !address.trim()) {
+      setOrderError("Please add a delivery address before ordering.");
       return;
     }
     if (items.length === 0) {
@@ -750,7 +780,7 @@ export function MenuClient({
   function renderCheckoutSheet() {
     const canProceed =
       items.length > 0 &&
-      customerName.trim().length > 0 &&
+      effectiveCustomerName.length > 0 &&
       address.trim().length > 0 &&
       !orderingBlocked &&
       (deliveryTime.mode === "scheduled" || isOpenNow);
@@ -758,7 +788,7 @@ export function MenuClient({
     const isConfirmStep = checkoutStep === "confirm";
 
     return (
-      <div className="fixed inset-0 z-[60]">
+      <div className="fixed inset-0 z-[60]" style={themeVars}>
         <div
           className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
           onClick={() => {
@@ -800,6 +830,7 @@ export function MenuClient({
                 onCancel={() => setCheckoutStep("review")}
                 onPlaceOrder={handleOrderClick}
                 isPlacingOrder={isPlacingOrder}
+                theme={theme}
               />
               {orderError ? (
                 <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-xs font-medium text-red-600">{orderError}</p>
@@ -809,8 +840,6 @@ export function MenuClient({
             <>
               <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-4">
                 <CheckoutDeliverySections
-                  customerName={customerName}
-                  onCustomerNameChange={setCustomerName}
                   address={address}
                   onAddressChange={setAddress}
                   notes={notes}
@@ -836,6 +865,7 @@ export function MenuClient({
                   onPayingExactChange={setPayingExact}
                   payingWith={payingWith}
                   onPayingWithChange={setPayingWith}
+                  theme={theme}
                 />
 
                 <section className="mt-3 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/[0.04]">
@@ -1381,7 +1411,7 @@ export function MenuClient({
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
-                          className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:border-[#7854ff]/45"
+                          className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:border-[color-mix(in_srgb,var(--menu-primary)_45%,transparent)]"
                           onClick={() =>
                             setCustomizing((prev) => {
                               if (!prev) return prev;
@@ -1397,7 +1427,7 @@ export function MenuClient({
                         </span>
                         <button
                           type="button"
-                          className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:border-[#7854ff]/45"
+                          className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:border-[color-mix(in_srgb,var(--menu-primary)_45%,transparent)]"
                           onClick={() =>
                             setCustomizing((prev) => {
                               if (!prev) return prev;
@@ -1500,7 +1530,8 @@ export function MenuClient({
               <button
                 type="button"
                 onClick={addCustomizedItem}
-                className="btn btn-primary flex-1 rounded-xl py-3"
+                className="flex-1 rounded-xl py-3 text-sm font-bold text-white shadow-md transition hover:brightness-105"
+                style={menuPrimaryButtonStyle(theme)}
               >
                 Add to cart — {formatUsd(
                   (() => {

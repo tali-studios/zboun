@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { AUTH_COOKIE_OPTIONS } from "@/lib/supabase/session";
+import { mergeAuthCookieOptions } from "@/lib/supabase/session";
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -26,17 +26,20 @@ export async function proxy(request: NextRequest) {
           value: string;
           options?: Record<string, unknown>;
         }>,
+        headers?: Record<string, string>,
       ) {
         cookiesToSet.forEach(({ name, value }) => {
           request.cookies.set(name, value);
         });
         response = NextResponse.next({ request });
         cookiesToSet.forEach(({ name, value, options }) => {
-          response.cookies.set(name, value, {
-            ...options,
-            ...AUTH_COOKIE_OPTIONS,
-          });
+          response.cookies.set(name, value, mergeAuthCookieOptions(options));
         });
+        if (headers) {
+          for (const [key, value] of Object.entries(headers)) {
+            response.headers.set(key, value);
+          }
+        }
       },
     },
   });

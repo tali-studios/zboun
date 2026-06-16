@@ -13,7 +13,7 @@ export async function getCustomerOrderContext(): Promise<{
   const savedAddresses = (await getCustomerAddresses()) as SavedAddressOption[];
   return {
     isLoggedIn: true,
-    defaultCustomerName: session.name,
+    defaultCustomerName: session.name?.trim() || session.email?.split("@")[0] || "",
     savedAddresses,
   };
 }

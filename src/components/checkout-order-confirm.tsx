@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { BRAND_HEX, BRAND_HEX_DEEP } from "@/lib/brand";
+import type { MenuTheme } from "@/lib/menu-theme";
+import { menuPrimaryButtonStyle, menuPrimaryGradient } from "@/lib/menu-theme";
 
 const DEFAULT_SECONDS = 15;
 
@@ -15,6 +16,7 @@ type Props = {
   onPlaceOrder: () => void | Promise<void>;
   isPlacingOrder: boolean;
   durationSeconds?: number;
+  theme: MenuTheme;
 };
 
 export function CheckoutOrderConfirm({
@@ -27,6 +29,7 @@ export function CheckoutOrderConfirm({
   onPlaceOrder,
   isPlacingOrder,
   durationSeconds = DEFAULT_SECONDS,
+  theme,
 }: Props) {
   const [secondsLeft, setSecondsLeft] = useState(durationSeconds);
   const placedRef = useRef(false);
@@ -83,7 +86,7 @@ export function CheckoutOrderConfirm({
     <div className="flex min-h-0 flex-1 flex-col">
       <div
         className="relative overflow-hidden rounded-2xl px-5 py-6 text-white shadow-lg"
-        style={{ background: `linear-gradient(135deg, ${BRAND_HEX} 0%, ${BRAND_HEX_DEEP} 100%)` }}
+        style={{ background: menuPrimaryGradient(theme) }}
       >
         <div
           aria-hidden
@@ -124,8 +127,8 @@ export function CheckoutOrderConfirm({
             />
             <defs>
               <linearGradient id="confirm-ring-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor={BRAND_HEX} />
-                <stop offset="100%" stopColor={BRAND_HEX_DEEP} />
+                <stop offset="0%" stopColor={theme.primary} />
+                <stop offset="100%" stopColor={theme.deep} />
               </linearGradient>
             </defs>
           </svg>
@@ -133,7 +136,8 @@ export function CheckoutOrderConfirm({
             {isPlacingOrder ? (
               <>
                 <div
-                  className="mx-auto h-8 w-8 animate-spin rounded-full border-[3px] border-violet-200 border-t-violet-600"
+                  className="mx-auto h-8 w-8 animate-spin rounded-full border-[3px] border-slate-200"
+                  style={{ borderTopColor: theme.primary }}
                   aria-hidden
                 />
                 <p className="mt-2 text-xs font-semibold text-slate-500">Placing…</p>
@@ -161,9 +165,16 @@ export function CheckoutOrderConfirm({
             <p className="mt-0.5 text-xl font-bold tabular-nums text-slate-900">{formatLbp(orderTotal)}</p>
             <p className="text-xs text-slate-500">{formatUsd(orderTotal)}</p>
           </div>
-          <div className="rounded-xl bg-violet-50 px-3 py-2 text-right">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-violet-500">Items</p>
-            <p className="text-lg font-bold text-violet-700">{itemCount}</p>
+          <div
+            className="rounded-xl px-3 py-2 text-right"
+            style={{ backgroundColor: theme.softBg }}
+          >
+            <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: theme.primary }}>
+              Items
+            </p>
+            <p className="text-lg font-bold" style={{ color: theme.softText }}>
+              {itemCount}
+            </p>
           </div>
         </div>
       </div>
@@ -174,7 +185,7 @@ export function CheckoutOrderConfirm({
           onClick={placeOrderNow}
           disabled={isPlacingOrder}
           className="w-full rounded-2xl py-3.5 text-sm font-bold text-white shadow-md transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
-          style={{ background: `linear-gradient(135deg, ${BRAND_HEX} 0%, ${BRAND_HEX_DEEP} 100%)` }}
+          style={menuPrimaryButtonStyle(theme)}
         >
           {isPlacingOrder ? "Placing order…" : "Confirm order"}
         </button>

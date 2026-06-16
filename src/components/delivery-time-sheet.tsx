@@ -3,7 +3,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { CalendarClock, Clock, X } from "lucide-react";
-import { BRAND_HEX, BRAND_HEX_DEEP } from "@/lib/brand";
+import type { MenuTheme } from "@/lib/menu-theme";
+import {
+  menuPrimaryButtonStyle,
+  menuThemeModeSelectedClass,
+  menuThemeStyle,
+} from "@/lib/menu-theme";
 import {
   formatDeliveryTimeLabel,
   getScheduleDays,
@@ -22,6 +27,7 @@ type Props = {
   onChange: (value: DeliveryTimeChoice) => void;
   openingHours: DayHours[];
   etaLabel?: string | null;
+  theme: MenuTheme;
 };
 
 const ITEM_H = 44;
@@ -92,6 +98,7 @@ export function DeliveryTimeSheet({
   onChange,
   openingHours,
   etaLabel,
+  theme,
 }: Props) {
   const scheduleDays = useMemo(
     () => getScheduleDays(openingHours, { maxDays: 5 }),
@@ -179,7 +186,7 @@ export function DeliveryTimeSheet({
   const pickerHeight = ITEM_H * VISIBLE;
 
   const sheet = (
-    <div className="fixed inset-0 z-[70] flex items-end justify-center sm:items-center">
+    <div className="fixed inset-0 z-[70] flex items-end justify-center sm:items-center" style={menuThemeStyle(theme)}>
       <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={onClose} />
       <div
         className="relative z-10 flex max-h-[min(90dvh,640px)] w-full max-w-md flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:rounded-3xl"
@@ -205,12 +212,12 @@ export function DeliveryTimeSheet({
             onClick={() => setDraftMode("now")}
             className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3.5 text-left transition ${
               draftMode === "now"
-                ? "border-violet-500 bg-violet-50/60 shadow-sm"
+                ? menuThemeModeSelectedClass
                 : "border-transparent bg-white hover:bg-slate-50"
             }`}
           >
             {draftMode === "now" ? (
-              <span className="h-10 w-1 shrink-0 rounded-full bg-violet-500" aria-hidden />
+              <span className="h-10 w-1 shrink-0 rounded-full bg-[var(--menu-primary)]" aria-hidden />
             ) : (
               <span className="w-1 shrink-0" aria-hidden />
             )}
@@ -227,12 +234,12 @@ export function DeliveryTimeSheet({
             disabled={!hasAnySlots}
             className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3.5 text-left transition disabled:cursor-not-allowed disabled:opacity-50 ${
               draftMode === "scheduled"
-                ? "border-violet-500 bg-violet-50/60 shadow-sm"
+                ? menuThemeModeSelectedClass
                 : "border-transparent bg-white hover:bg-slate-50"
             }`}
           >
             {draftMode === "scheduled" ? (
-              <span className="h-10 w-1 shrink-0 rounded-full bg-violet-500" aria-hidden />
+              <span className="h-10 w-1 shrink-0 rounded-full bg-[var(--menu-primary)]" aria-hidden />
             ) : (
               <span className="w-1 shrink-0" aria-hidden />
             )}
@@ -285,7 +292,7 @@ export function DeliveryTimeSheet({
             onClick={handleConfirm}
             disabled={draftMode === "scheduled" && !draftSlot}
             className="w-full rounded-2xl py-3.5 text-sm font-bold text-white shadow-md transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40"
-            style={{ background: `linear-gradient(135deg, ${BRAND_HEX} 0%, ${BRAND_HEX_DEEP} 100%)` }}
+            style={menuPrimaryButtonStyle(theme)}
           >
             Set delivery time
           </button>

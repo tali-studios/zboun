@@ -42,14 +42,23 @@ import {
   type DeliveryTimeChoice,
 } from "@/components/delivery-time-sheet";
 import { CheckoutDeliveryInstructionsSheet } from "@/components/checkout-delivery-instructions-sheet";
+import type { MenuTheme } from "@/lib/menu-theme";
 import {
   formatDeliveryTimeLabel,
   type DayHours,
 } from "@/lib/opening-hours";
+import {
+  menuThemeAccentCheckboxClass,
+  menuThemeModeSelectedClass,
+  menuThemeOutlineBtnClass,
+  menuThemeQuickIdleClass,
+  menuThemeQuickSelectedClass,
+  menuThemeSelectedClass,
+  menuThemeStyle,
+  menuPrimaryButtonStyle,
+} from "@/lib/menu-theme";
 
 type Props = {
-  customerName: string;
-  onCustomerNameChange: (value: string) => void;
   address: string;
   onAddressChange: (value: string) => void;
   notes: string;
@@ -75,13 +84,11 @@ type Props = {
   onPayingExactChange?: (value: boolean) => void;
   payingWith?: number | null;
   onPayingWithChange?: (value: number | null) => void;
+  theme: MenuTheme;
 };
 
 const CASH_QUICK_USD = [5, 10, 20, 50, 100] as const;
 const CASH_QUICK_LBP = [100_000, 200_000, 500_000, 1_000_000] as const;
-
-const CHECKOUT_CHANGE =
-  "shrink-0 rounded-lg border border-violet-500 px-4 py-1.5 text-xs font-semibold text-violet-600 transition hover:bg-violet-50";
 
 const ADDRESS_ACTIONS: Array<{
   label: string;
@@ -167,7 +174,7 @@ function CheckoutCard({
       <div className="flex items-start justify-between gap-3">
         <p className="text-sm font-bold text-slate-900">{title}</p>
         {onChange ? (
-          <button type="button" onClick={onChange} className={CHECKOUT_CHANGE}>
+          <button type="button" onClick={onChange} className={menuThemeOutlineBtnClass}>
             Change
           </button>
         ) : null}
@@ -178,8 +185,6 @@ function CheckoutCard({
 }
 
 export function CheckoutDeliverySections({
-  customerName,
-  onCustomerNameChange,
   address,
   onAddressChange,
   notes,
@@ -205,6 +210,7 @@ export function CheckoutDeliverySections({
   onPayingExactChange,
   payingWith = null,
   onPayingWithChange,
+  theme,
 }: Props) {
   const orderTotals = { usd: orderTotalUsd, lbp: orderTotalLbp };
   const changeDue = computeChangeDue(
@@ -441,6 +447,7 @@ export function CheckoutDeliverySections({
           setExtraDetails("");
           onAddressChange("");
         }}
+        theme={theme}
       />
       <CheckoutAddressSheet
         open={showAddressSheet}
@@ -451,6 +458,7 @@ export function CheckoutDeliverySections({
         onSelectAddress={applySavedAddress}
         onSelectMapLocation={pickMapLocation}
         onEditAddress={handleEditSavedAddress}
+        theme={theme}
       />
       <DeliveryTimeSheet
         open={showDeliveryTimeSheet}
@@ -459,12 +467,14 @@ export function CheckoutDeliverySections({
         onChange={onDeliveryTimeChange}
         openingHours={openingHours}
         etaLabel={etaLabel}
+        theme={theme}
       />
       <CheckoutDeliveryInstructionsSheet
         open={showInstructionsSheet}
         onClose={() => setShowInstructionsSheet(false)}
         value={notes}
         onSave={handleSaveInstructions}
+        theme={theme}
       />
 
       <div className="space-y-3">
@@ -504,7 +514,7 @@ export function CheckoutDeliverySections({
                       selected
                         ? option.id === "fast"
                           ? "border-amber-400 bg-amber-50 ring-1 ring-amber-200"
-                          : "border-violet-400 bg-violet-50 ring-1 ring-violet-200"
+                          : menuThemeSelectedClass
                         : "border-slate-200 bg-white hover:border-slate-300"
                     }`}
                   >
@@ -524,7 +534,7 @@ export function CheckoutDeliverySections({
                           selected
                             ? option.id === "fast"
                               ? "bg-amber-200 text-amber-900"
-                              : "bg-violet-200 text-violet-900"
+                              : "bg-[color-mix(in_srgb,var(--menu-primary)_25%,white)] text-[var(--menu-soft-text)]"
                             : "bg-slate-100 text-slate-600"
                         }`}
                       >
@@ -551,7 +561,7 @@ export function CheckoutDeliverySections({
             <button
               type="button"
               onClick={() => setShowDeliveryTimeSheet(true)}
-              className={CHECKOUT_CHANGE}
+              className={menuThemeOutlineBtnClass}
             >
               Change
             </button>
@@ -591,27 +601,18 @@ export function CheckoutDeliverySections({
                   <button
                     type="button"
                     key={action.label}
-                    className="inline-flex w-full items-center gap-2 rounded-full border border-violet-300/70 bg-[color-mix(in_srgb,var(--brand)_20%,white)] px-3 py-2 text-left text-xs font-semibold text-violet-900 transition hover:border-violet-400 hover:bg-[color-mix(in_srgb,var(--brand)_28%,white)]"
+                    className="inline-flex w-full items-center gap-2 rounded-full border border-[color-mix(in_srgb,var(--menu-primary)_45%,transparent)] bg-[color-mix(in_srgb,var(--menu-primary)_12%,white)] px-3 py-2 text-left text-xs font-semibold text-[var(--menu-soft-text)] transition hover:border-[var(--menu-primary)] hover:bg-[color-mix(in_srgb,var(--menu-primary)_20%,white)]"
                     onClick={() => openAddressDetails(action.action)}
                   >
-                    <ActionIcon className="h-3.5 w-3.5 shrink-0 text-violet-700" strokeWidth={2} aria-hidden />
+                    <ActionIcon className="h-3.5 w-3.5 shrink-0 text-[var(--menu-primary)]" strokeWidth={2} aria-hidden />
                     <span className="min-w-0 flex-1 truncate">{action.label}</span>
-                    <ChevronRight className="h-3.5 w-3.5 shrink-0 text-violet-600" aria-hidden />
+                    <ChevronRight className="h-3.5 w-3.5 shrink-0 text-[var(--menu-primary)]" strokeWidth={2} aria-hidden />
                   </button>
                 );
               })()}
             </div>
           </div>
 
-          {!customerName.trim() ? (
-            <input
-              value={customerName}
-              onChange={(e) => onCustomerNameChange(e.target.value)}
-              placeholder="Your name (required for delivery)"
-              className="ui-input mt-3 text-sm"
-              autoComplete="name"
-            />
-          ) : null}
         </CheckoutCard>
 
         {onPayingExactChange && onPayingWithChange && onPaymentCurrencyChange ? (
@@ -650,7 +651,7 @@ export function CheckoutDeliverySections({
                     }}
                     className={`rounded-xl border px-3 py-2.5 text-left transition ${
                       paymentCurrency === option.id
-                        ? "border-violet-400 bg-violet-50 ring-1 ring-violet-200"
+                        ? menuThemeSelectedClass
                         : "border-slate-200 bg-white hover:border-slate-300"
                     }`}
                   >
@@ -686,11 +687,14 @@ export function CheckoutDeliverySections({
                 onClick={() => onPayingExactChange(false)}
                 className={`flex w-full items-center gap-2.5 rounded-xl border px-3.5 py-3 text-left text-sm transition ${
                   !payingExact
-                    ? "border-violet-400 bg-violet-50 ring-1 ring-violet-200"
+                    ? menuThemeSelectedClass
                     : "border-slate-200 bg-white hover:border-slate-300"
                 }`}
               >
-                <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 border-violet-500 text-[10px] font-bold text-violet-600">
+                <span
+                  className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 text-[10px] font-bold"
+                  style={{ borderColor: theme.primary, color: theme.primary }}
+                >
                   ¢
                 </span>
                 <span>
@@ -706,7 +710,7 @@ export function CheckoutDeliverySections({
                   <span className="text-sm font-semibold text-slate-800">
                     I will hand the driver
                   </span>
-                  <div className="flex min-h-[2.75rem] items-center overflow-hidden rounded-[0.85rem] border-[1.5px] border-[#e2e5f5] bg-white focus-within:border-[var(--brand)] focus-within:shadow-[0_0_0_4px_rgba(120,84,255,0.14)]">
+                  <div className="flex min-h-[2.75rem] items-center overflow-hidden rounded-[0.85rem] border-[1.5px] border-[#e2e5f5] bg-white focus-within:border-[var(--menu-primary)] focus-within:shadow-[0_0_0_4px_color-mix(in_srgb,var(--menu-primary)_14%,transparent)]">
                     <span className="shrink-0 pl-3.5 text-sm font-semibold text-slate-400">
                       {paymentCurrency === "usd" ? "$" : "L.L"}
                     </span>
@@ -747,8 +751,8 @@ export function CheckoutDeliverySections({
                         onClick={() => onPayingWithChange(amount)}
                         className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
                           payingWith === amount
-                            ? "border-violet-400 bg-violet-50 text-violet-700"
-                            : "border-slate-200 bg-white text-slate-600 hover:border-violet-300"
+                            ? menuThemeQuickSelectedClass
+                            : menuThemeQuickIdleClass
                         }`}
                       >
                         {paymentCurrency === "usd"
@@ -809,8 +813,8 @@ export function CheckoutDeliverySections({
                     disabled
                       ? "cursor-not-allowed border-slate-100 bg-slate-50 text-slate-400"
                       : active
-                        ? "border-[var(--brand)] bg-white text-[var(--brand)]"
-                        : "border-slate-200 bg-white text-slate-700 hover:border-violet-300"
+                        ? "border-[var(--menu-primary)] bg-white text-[var(--menu-primary)]"
+                        : "border-slate-200 bg-white text-slate-700 hover:border-[color-mix(in_srgb,var(--menu-primary)_40%,transparent)]"
                   }`}
                 >
                   <Icon className="h-5 w-5 shrink-0" strokeWidth={1.75} aria-hidden />
@@ -826,7 +830,7 @@ export function CheckoutDeliverySections({
                 type="checkbox"
                 checked={saveInstructionsDefault}
                 onChange={(e) => setSaveInstructionsDefault(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-300 accent-violet-600"
+                className={menuThemeAccentCheckboxClass}
               />
               Save as my default for this address
             </label>

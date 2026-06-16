@@ -19,7 +19,8 @@ import {
 import { useDeliveryLocation } from "@/components/delivery-location-provider";
 import { formatSavedAddressLine } from "@/lib/format-address";
 import type { SavedAddressOption } from "@/components/order-delivery-fields";
-import { BRAND_HEX, BRAND_HEX_DEEP } from "@/lib/brand";
+import type { MenuTheme } from "@/lib/menu-theme";
+import { menuPrimaryButtonStyle, menuThemeStyle } from "@/lib/menu-theme";
 
 const GoogleMapPicker = dynamic(
   () => import("@/components/google-map-picker").then((m) => m.GoogleMapPicker),
@@ -27,7 +28,7 @@ const GoogleMapPicker = dynamic(
     ssr: false,
     loading: () => (
       <div className="flex h-full items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-violet-500" />
+        <Loader2 className="h-6 w-6 animate-spin text-[var(--menu-primary)]" />
       </div>
     ),
   },
@@ -42,6 +43,7 @@ type Props = {
   onSelectAddress: (addr: SavedAddressOption) => void;
   onSelectMapLocation: (result: { lat: number; lng: number; address: string }) => void;
   onEditAddress: (addr: SavedAddressOption) => void;
+  theme: MenuTheme;
 };
 
 const LABEL_ICONS: Record<string, typeof Home> = {
@@ -71,6 +73,7 @@ export function CheckoutAddressSheet({
   onSelectAddress,
   onSelectMapLocation,
   onEditAddress,
+  theme,
 }: Props) {
   const { location } = useDeliveryLocation();
   const [search, setSearch] = useState("");
@@ -101,7 +104,7 @@ export function CheckoutAddressSheet({
   }
 
   const sheet = (
-    <div className="fixed inset-0 z-[70] flex items-end justify-center sm:items-center sm:p-4">
+    <div className="fixed inset-0 z-[70] flex items-end justify-center sm:items-center sm:p-4" style={menuThemeStyle(theme)}>
       <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={onClose} />
       <div
         className={`relative z-10 flex w-full flex-col overflow-hidden bg-white shadow-2xl ${
@@ -197,7 +200,7 @@ export function CheckoutAddressSheet({
                           key={addr.id}
                           className={`overflow-hidden rounded-2xl border bg-white shadow-sm transition ${
                             selected
-                              ? "border-violet-500 ring-1 ring-violet-500/30"
+                              ? "border-[var(--menu-primary)] ring-1 ring-[color-mix(in_srgb,var(--menu-primary)_30%,transparent)]"
                               : "border-slate-100"
                           }`}
                         >
@@ -212,12 +215,17 @@ export function CheckoutAddressSheet({
                             >
                               <span
                                 className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
-                                  selected ? "bg-violet-50 text-violet-600" : "bg-slate-100 text-slate-500"
+                                  selected
+                                    ? "bg-[var(--menu-soft-bg)] text-[var(--menu-primary)]"
+                                    : "bg-slate-100 text-slate-500"
                                 }`}
                               >
                                 <Icon className="h-4 w-4" strokeWidth={2} aria-hidden />
                                 {selected ? (
-                                  <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-violet-500" />
+                                  <span
+                                    className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white"
+                                    style={{ backgroundColor: theme.primary }}
+                                  />
                                 ) : null}
                               </span>
                               <div className="min-w-0 flex-1 overflow-hidden">
@@ -254,7 +262,7 @@ export function CheckoutAddressSheet({
                       href="/login"
                       onClick={onClose}
                       className="rounded-full px-4 py-2 text-xs font-bold text-white shadow-sm"
-                      style={{ background: `linear-gradient(135deg, ${BRAND_HEX} 0%, ${BRAND_HEX_DEEP} 100%)` }}
+                      style={menuPrimaryButtonStyle(theme)}
                     >
                       Sign in
                     </Link>

@@ -25,7 +25,8 @@ import {
 import { formatSavedAddressLine } from "@/lib/format-address";
 import { env } from "@/lib/env";
 import type { SavedAddressOption } from "@/components/order-delivery-fields";
-import { BRAND_HEX, BRAND_HEX_DEEP } from "@/lib/brand";
+import type { MenuTheme } from "@/lib/menu-theme";
+import { menuPrimaryButtonStyle, menuThemeStyle } from "@/lib/menu-theme";
 import { resolveAddressNicknameForSave } from "@/lib/customer-address";
 import { DEFAULT_COUNTRY_DIAL } from "@/lib/country-calling-codes";
 import { PhoneCountrySelect } from "@/components/phone-country-select";
@@ -36,7 +37,7 @@ const GoogleMapPicker = dynamic(
     ssr: false,
     loading: () => (
       <div className="flex h-full items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-violet-500" />
+        <Loader2 className="h-6 w-6 animate-spin text-[var(--menu-primary)]" />
       </div>
     ),
   },
@@ -67,6 +68,7 @@ type Props = {
   };
   onSaved: (address: SavedAddressOption) => void;
   onDeleted?: () => void;
+  theme: MenuTheme;
 };
 
 const LABEL_OPTIONS = [
@@ -126,6 +128,7 @@ export function CheckoutAddressDetailsSheet({
   initial,
   onSaved,
   onDeleted,
+  theme,
 }: Props) {
   const [step, setStep] = useState<"form" | "map">("form");
   const [label, setLabel] = useState("other");
@@ -358,7 +361,7 @@ export function CheckoutAddressDetailsSheet({
   if (!open) return null;
 
   const sheet = (
-    <div className="fixed inset-0 z-[80] flex items-end justify-center sm:items-center sm:p-4">
+    <div className="fixed inset-0 z-[80] flex items-end justify-center sm:items-center sm:p-4" style={menuThemeStyle(theme)}>
       <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={onClose} />
       <div
         className={`relative z-10 flex w-full flex-col overflow-hidden bg-[#f5f5f7] shadow-2xl ${
@@ -438,7 +441,7 @@ export function CheckoutAddressDetailsSheet({
                   type="button"
                   onClick={() => setStep("map")}
                   className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full px-4 py-1.5 text-xs font-semibold text-white shadow-md transition hover:brightness-105"
-                  style={{ background: `linear-gradient(135deg, ${BRAND_HEX} 0%, ${BRAND_HEX_DEEP} 100%)` }}
+                  style={menuPrimaryButtonStyle(theme)}
                 >
                   Adjust pin
                 </button>
@@ -531,8 +534,11 @@ export function CheckoutAddressDetailsSheet({
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-1.5">
                         <p className="text-sm font-bold text-slate-900">Help the shopper find you!</p>
-                        <BadgeCheck className="h-4 w-4 text-violet-500" aria-hidden />
-                        <span className="rounded-md bg-violet-600 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                        <BadgeCheck className="h-4 w-4" style={{ color: theme.primary }} aria-hidden />
+                        <span
+                          className="rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white"
+                          style={{ backgroundColor: theme.primary }}
+                        >
                           New
                         </span>
                       </div>
@@ -614,7 +620,7 @@ export function CheckoutAddressDetailsSheet({
                 onClick={() => void handleSave()}
                 disabled={isSaving}
                 className="w-full rounded-2xl py-3.5 text-sm font-bold text-white shadow-md transition hover:brightness-105 disabled:opacity-50"
-                style={{ backgroundColor: BRAND_HEX }}
+                style={menuPrimaryButtonStyle(theme)}
               >
                 {isSaving ? "Saving…" : isEditing ? "Update address" : "Save address"}
               </button>
