@@ -1,0 +1,2 @@
+export const MENU_ITEMS_ADMIN_PAGE_SIZE = 10;
+export const SECTIONS_ADMIN_PAGE_SIZE = 10;

@@ -3,12 +3,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { signOutAction } from "@/app-actions/auth";
 import {
-  createBrandAction,
   createCategoryAction,
-  deleteCategoryAction,
   deleteMenuItemAction,
   toggleMenuItemAvailabilityAction,
-  updateCategoryAction,
   updateMenuItemAction,
   updateRestaurantSettingsAction,
 } from "@/app-actions/restaurant";
@@ -32,11 +29,28 @@ import { MenuNutritionFields } from "@/components/menu-nutrition-fields";
 import { formatMenuNutrition, isNutritionColumnMigrationError } from "@/lib/menu-nutrition";
 import { resolveMenuItemBrandId } from "@/lib/menu-brands";
 import { AddMenuItemForm } from "@/components/add-menu-item-form";
-import { BrandManageRow } from "@/components/brand-manage-row";
+import { BrandManagePanel } from "@/components/brand-manage-panel";
+import { SectionManagePanel } from "@/components/section-manage-panel";
 import { DeliveryFeeSettings } from "@/components/delivery-fee-settings";
 import { MenuThemePicker } from "@/components/menu-theme-picker";
+import { MENU_ITEMS_ADMIN_PAGE_SIZE } from "@/lib/dashboard-admin";
 
 export const dynamic = "force-dynamic";
+
+function buildMenuItemsListHref(opts: {
+  q?: string;
+  category?: string;
+  stock?: string;
+  page?: number;
+}) {
+  const params = new URLSearchParams();
+  if (opts.q?.trim()) params.set("q", opts.q.trim());
+  if (opts.category?.trim()) params.set("category", opts.category.trim());
+  if (opts.stock?.trim()) params.set("stock", opts.stock.trim());
+  if (opts.page && opts.page > 1) params.set("page", String(opts.page));
+  const qs = params.toString();
+  return qs ? `/dashboard/business?${qs}` : "/dashboard/business";
+}
 
 function FormFieldLabel({
   children,
@@ -69,6 +83,7 @@ type Props = {
     q?: string;
     category?: string;
     stock?: string;
+    page?: string;
     jump?: string;
     toast?: string;
     section_name?: string;
@@ -82,7 +97,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
   if (!appUser || appUser.role !== "restaurant_admin" || !appUser.restaurant_id) {
     redirect("/dashboard/login");
   }
-  const { q, category, stock, toast, section_name: sectionNameRaw, item_name: itemNameRaw, brand_name: brandNameRaw } =
+  const { q, category, stock, page: pageRaw, toast, section_name: sectionNameRaw, item_name: itemNameRaw, brand_name: brandNameRaw } =
     await searchParams;
   let sectionName: string | undefined = undefined;
   if (typeof sectionNameRaw === "string" && sectionNameRaw.length > 0) {
@@ -398,7 +413,6 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
   const businessType = parseBusinessType(restaurant?.business_type ?? "restaurant");
   const businessTypeLabel = getBusinessTypeLabel(businessType);
   const isMenuBusiness = supportsHomeBrowseCategory(businessType);
-  const sectionCount = categories?.length ?? 0;
   const categoryNameById = new Map((categories ?? []).map((category) => [category.id, category.name]));
   const normalizedQuery = (q ?? "").trim().toLowerCase();
   const selectedCategory = (category ?? "").trim();
@@ -420,6 +434,14 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
       optionText.includes(normalizedQuery)
     );
   });
+  const itemsPage = Math.max(1, Number.parseInt(String(pageRaw ?? "1"), 10) || 1);
+  const itemsTotalPages = Math.max(1, Math.ceil(filteredItems.length / MENU_ITEMS_ADMIN_PAGE_SIZE));
+  const itemsSafePage = Math.min(itemsPage, itemsTotalPages);
+  const itemsPageStart = (itemsSafePage - 1) * MENU_ITEMS_ADMIN_PAGE_SIZE;
+  const pagedItems = filteredItems.slice(itemsPageStart, itemsPageStart + MENU_ITEMS_ADMIN_PAGE_SIZE);
+  const itemsRangeStart = filteredItems.length === 0 ? 0 : itemsPageStart + 1;
+  const itemsRangeEnd = Math.min(itemsPageStart + MENU_ITEMS_ADMIN_PAGE_SIZE, filteredItems.length);
+  const listHrefBase = { q: q ?? "", category: selectedCategory, stock: selectedStock };
   const selectedBrowseSection =
     normalizeBrowseSections(restaurant?.browse_sections ?? [])[0] ?? "Lunch";
 
@@ -733,120 +755,15 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
           />
         ) : null}
 
-        <section className="panel p-5">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="panel-title">Manage sections</h2>
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-              {sectionCount} sections
-            </span>
-          </div>
-          <div className="-mx-4 mt-4 overflow-x-auto sm:mx-0 sm:rounded-2xl sm:border sm:border-slate-200 sm:bg-white sm:shadow-sm">
-            <table className="min-w-[560px] text-sm md:min-w-full">
-              <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                <tr>
-                  <th className="px-4 py-3">Section name</th>
-                  <th className="px-4 py-3">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {categories?.map((category) => (
-                  <tr key={category.id}>
-                    <td className="px-4 py-3">
-                      <input type="hidden" name="id" value={category.id} form={`update-category-${category.id}`} />
-                      <input
-                        name="name"
-                        defaultValue={category.name}
-                        placeholder="Section name shown to customers"
-                        className="ui-input max-w-md"
-                        aria-label={`Section name for ${category.name}`}
-                        form={`update-category-${category.id}`}
-                      />
-                    </td>
-                    <td className="w-[1%] whitespace-nowrap px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <form id={`update-category-${category.id}`} action={updateCategoryAction}>
-                          <button
-                            type="submit"
-                            title="Save section"
-                            aria-label={`Save ${category.name}`}
-                            className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-violet-600 text-sm text-white shadow-sm transition hover:bg-violet-700"
-                          >
-                            💾
-                          </button>
-                        </form>
-                        <form action={deleteCategoryAction}>
-                          <input type="hidden" name="id" value={category.id} />
-                          <button
-                            type="submit"
-                            title="Delete section"
-                            aria-label={`Delete ${category.name}`}
-                            className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-red-600 text-sm text-white shadow-sm transition hover:bg-red-700"
-                          >
-                            🗑
-                          </button>
-                        </form>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
+        <SectionManagePanel
+          categories={(categories ?? []).map((c) => ({
+            id: c.id,
+            name: c.name,
+            position: c.position ?? 0,
+          }))}
+        />
 
-        <section className="panel p-5">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="panel-title">Manage brands</h2>
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-              {menuBrands.length} brands
-            </span>
-          </div>
-          <p className="mt-1 text-sm text-slate-600">
-            Brands appear in a dropdown when adding menu items. Customers will see the brand name and logo on each item.
-          </p>
-
-          <form action={createBrandAction} className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 sm:p-5">
-            <h3 className="text-sm font-bold text-slate-900">Add brand</h3>
-            <div className="mt-3 grid gap-4 lg:grid-cols-2">
-              <div className="space-y-3">
-                <label className="block space-y-1">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Brand name</span>
-                  <input name="name" required placeholder="Brand name" className="ui-input" />
-                </label>
-                <p className="text-xs text-slate-500">
-                  Examples: Häagen-Dazs, Nestlé, Cadbury. Use brands to group items (e.g. ice cream by brand).
-                </p>
-                <button type="submit" className="btn btn-success w-full rounded-xl sm:w-auto sm:min-w-[10rem]">
-                  Add brand
-                </button>
-              </div>
-              <ImageUploadField name="logo_file" label="Brand logo" optional />
-            </div>
-          </form>
-
-          {menuBrands.length === 0 ? (
-            <p className="mt-4 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-500">
-              No brands yet. Add your first brand above, then pick it when creating grocery or packaged items.
-            </p>
-          ) : (
-            <div className="-mx-4 mt-4 overflow-x-auto sm:mx-0 sm:rounded-2xl sm:border sm:border-slate-200 sm:bg-white sm:shadow-sm">
-              <table className="min-w-[640px] text-sm md:min-w-full">
-                <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  <tr>
-                    <th className="w-[9.5rem] px-4 py-3">Logo</th>
-                    <th className="px-4 py-3">Brand name</th>
-                    <th className="w-[1%] whitespace-nowrap px-4 py-3">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {menuBrands.map((brand) => (
-                    <BrandManageRow key={brand.id} brand={brand} />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
+        <BrandManagePanel brands={menuBrands} />
 
         <section className="rounded-2xl border border-violet-100 bg-gradient-to-br from-[#faf9ff] to-white p-5 shadow-sm">
           <div className="mb-5">
@@ -871,7 +788,15 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
           />
           {normalizedQuery ? (
             <p className="mt-2 text-sm text-slate-600">
-              Showing {filteredItems.length} result(s) for "<span className="font-semibold">{q}</span>".
+              {filteredItems.length} result(s) for &ldquo;<span className="font-semibold">{q}</span>&rdquo;
+              {filteredItems.length > MENU_ITEMS_ADMIN_PAGE_SIZE
+                ? ` — showing ${itemsRangeStart}–${itemsRangeEnd}`
+                : null}
+              .
+            </p>
+          ) : filteredItems.length > MENU_ITEMS_ADMIN_PAGE_SIZE ? (
+            <p className="mt-2 text-sm text-slate-600">
+              Showing {itemsRangeStart}–{itemsRangeEnd} of {filteredItems.length} items.
             </p>
           ) : null}
           <div className="-mx-4 mt-4 overflow-x-auto sm:mx-0 sm:rounded-2xl sm:border sm:border-slate-200 sm:bg-white sm:shadow-sm">
@@ -886,7 +811,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredItems.map((item) => (
+                {pagedItems.map((item) => (
                   <tr key={item.id}>
                     <td className="px-4 py-3 font-medium text-slate-900">
                       {item.name}
@@ -1224,6 +1149,37 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
               <p className="p-4 text-sm text-slate-500">No items found for current filters.</p>
             ) : null}
           </div>
+          {filteredItems.length > MENU_ITEMS_ADMIN_PAGE_SIZE ? (
+            <div className="mt-3 flex items-center justify-between gap-3">
+              {itemsSafePage > 1 ? (
+                <Link
+                  href={buildMenuItemsListHref({ ...listHrefBase, page: itemsSafePage - 1 })}
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                >
+                  Previous
+                </Link>
+              ) : (
+                <span className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-300">
+                  Previous
+                </span>
+              )}
+              <span className="text-xs font-medium text-slate-500">
+                Page {itemsSafePage} of {itemsTotalPages}
+              </span>
+              {itemsSafePage < itemsTotalPages ? (
+                <Link
+                  href={buildMenuItemsListHref({ ...listHrefBase, page: itemsSafePage + 1 })}
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                >
+                  Next
+                </Link>
+              ) : (
+                <span className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-300">
+                  Next
+                </span>
+              )}
+            </div>
+          ) : null}
         </section>
 
       </div>

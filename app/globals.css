@@ -151,6 +151,14 @@ input[type="number"].ui-input {
   box-sizing: border-box;
 }
 
+select.ui-input,
+select.ui-select {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
 .ui-input-quantity {
   width: 100%;
 }
