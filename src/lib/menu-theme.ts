@@ -49,14 +49,12 @@ function mix(
 
 export const MENU_THEME_PRESETS = [
   { id: "zboun", label: "Zboun purple", color: "#7854ff" },
-  { id: "violet", label: "Violet", color: "#7c3aed" },
   { id: "rose", label: "Rose", color: "#e11d48" },
   { id: "orange", label: "Orange", color: "#ea580c" },
   { id: "amber", label: "Amber", color: "#d97706" },
   { id: "green", label: "Green", color: "#16a34a" },
   { id: "teal", label: "Teal", color: "#0d9488" },
   { id: "blue", label: "Blue", color: "#2563eb" },
-  { id: "slate", label: "Slate", color: "#475569" },
 ] as const;
 
 export function parseMenuThemeColor(raw: FormDataEntryValue | null): string | null {

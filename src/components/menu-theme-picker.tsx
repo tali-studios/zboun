@@ -67,14 +67,6 @@ export function MenuThemePicker({ defaultColor }: Props) {
       </label>
 
       <input type="hidden" name="menu_theme_color" value={color} />
-
-      <div
-        className="mt-3 flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold text-white"
-        style={{ background: `linear-gradient(135deg, ${color} 0%, ${color}cc 100%)` }}
-      >
-        <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs uppercase tracking-wide">Preview</span>
-        Menu buttons &amp; accents
-      </div>
     </div>
   );
 }
