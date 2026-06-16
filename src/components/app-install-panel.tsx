@@ -103,8 +103,15 @@ export function AppInstallPanel({ installUrl, siteName = "Zboun" }: Props) {
   return (
     <div className="mx-auto w-full max-w-lg space-y-6">
       <div className="text-center">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-md ring-1 ring-violet-100">
-          <Image src="/icon-192.png?v=7" alt="" width={48} height={48} className="rounded-xl" />
+        <div className="mx-auto mb-4 flex h-16 w-full max-w-[200px] items-center justify-center rounded-2xl bg-white px-4 shadow-md ring-1 ring-violet-100">
+          <Image
+            src="/Logo.svg"
+            alt="Zboun"
+            width={160}
+            height={44}
+            unoptimized
+            className="h-9 w-auto object-contain"
+          />
         </div>
         <h1 className="text-2xl font-bold text-slate-900">Add {siteName} to your phone</h1>
         <p className="mt-2 text-sm text-slate-600">
