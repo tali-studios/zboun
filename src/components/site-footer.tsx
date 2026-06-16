@@ -65,6 +65,11 @@ export async function SiteFooter() {
                     Contact
                   </Link>
                 </li>
+                <li>
+                  <Link href="/install" className={linkClass}>
+                    Add to home screen
+                  </Link>
+                </li>
               </ul>
             </nav>
             <nav aria-label="For restaurants">

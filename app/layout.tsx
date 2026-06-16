@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import NextTopLoader from "nextjs-toploader";
 import { SiteJsonLd } from "@/components/site-json-ld";
+import { PwaRegister } from "@/components/pwa-register";
 import { env } from "@/lib/env";
 import { getMetadataBase, getSiteUrl } from "@/lib/site";
 import "./globals.css";
@@ -78,6 +79,11 @@ export const metadata: Metadata = {
     apple: [{ url: "/apple-touch-icon.png?v=7", sizes: "180x180", type: "image/png" }],
   },
   manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "Zboun",
+    statusBarStyle: "default",
+  },
   ...(env.googleSiteVerification
     ? { verification: { google: env.googleSiteVerification } }
     : {}),
@@ -101,6 +107,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png?v=7" />
       </head>
       <body className="flex min-h-full flex-col">
+        <PwaRegister />
         <NextTopLoader color="#7c3aed" showSpinner={false} />
         <SiteJsonLd />
         {children}
