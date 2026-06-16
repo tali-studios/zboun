@@ -6,7 +6,7 @@ import { createClient } from "@supabase/supabase-js";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { getCurrentUserRole } from "@/lib/data";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { createInitialSubscription, renewRestaurantSubscription, getRestaurantAdminEmail } from "@/lib/subscription-billing";
+import { createInitialSubscription, renewRestaurantSubscription, getRestaurantAdminEmail, getLatestSubscription } from "@/lib/subscription-billing";
 import { deactivateRestaurantManually } from "@/lib/subscription-lifecycle";
 import {
   sendRestaurantOnboardingEmail,
@@ -235,8 +235,29 @@ export async function toggleRestaurantActiveAction(formData: FormData) {
       redirect(`/dashboard/super-admin?error=${encodeURIComponent(message)}`);
     }
   } else {
-    const supabase = await createServerSupabaseClient();
-    await supabase.from("restaurants").update({ is_active: true }).eq("id", id);
+    const adminClient = getAdminClient();
+    if (!adminClient) {
+      redirect("/dashboard/super-admin?error=missing_service_role");
+    }
+
+    const sub = await getLatestSubscription(adminClient, id);
+    const now = Date.now();
+    const isPastDue = !sub?.next_due_at || new Date(sub.next_due_at).getTime() < now;
+
+    if (!sub || isPastDue || sub.status === "overdue") {
+      await renewRestaurantSubscription(adminClient, id);
+    } else if (sub.status === "paused" || sub.status === "cancelled") {
+      await adminClient
+        .from("restaurant_subscriptions")
+        .update({
+          status: "active",
+          ended_at: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", sub.id);
+    }
+
+    await adminClient.from("restaurants").update({ is_active: true }).eq("id", id);
   }
 
   revalidatePath("/dashboard/super-admin");
@@ -369,15 +390,57 @@ export async function setNextDueDateAction(formData: FormData) {
   if (!id || !nextDueAt) {
     redirect("/dashboard/super-admin?error=invalid_due_date");
   }
-  const supabase = await createServerSupabaseClient();
-  const { error } = await supabase
+
+  const adminClient = getAdminClient();
+  if (!adminClient) {
+    redirect("/dashboard/super-admin?error=missing_service_role");
+  }
+
+  const { data: subscription, error: loadError } = await adminClient
     .from("restaurant_subscriptions")
-    .update({ next_due_at: nextDueAt, updated_at: new Date().toISOString() })
+    .select("restaurant_id")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (loadError || !subscription?.restaurant_id) {
+    redirect("/dashboard/super-admin?error=invalid_subscription_update");
+  }
+
+  const nowIso = new Date().toISOString();
+  const isFutureDue = new Date(nextDueAt).getTime() >= Date.now();
+
+  const subscriptionUpdate: {
+    next_due_at: string;
+    updated_at: string;
+    status?: string;
+    ended_at?: string | null;
+  } = {
+    next_due_at: nextDueAt,
+    updated_at: nowIso,
+  };
+  if (isFutureDue) {
+    subscriptionUpdate.status = "active";
+    subscriptionUpdate.ended_at = null;
+  }
+
+  const { error } = await adminClient
+    .from("restaurant_subscriptions")
+    .update(subscriptionUpdate)
     .eq("id", id);
   if (error) {
     redirect(`/dashboard/super-admin?error=${encodeURIComponent(error.message)}`);
   }
+
+  if (isFutureDue) {
+    await adminClient
+      .from("restaurants")
+      .update({ is_active: true })
+      .eq("id", subscription.restaurant_id);
+  }
+
   revalidatePath("/dashboard/super-admin");
+  revalidatePath("/dashboard/billing");
+  revalidatePath("/");
 }
 
 export async function createInvoiceAction(formData: FormData) {

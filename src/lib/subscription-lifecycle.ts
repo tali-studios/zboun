@@ -4,6 +4,7 @@ import { env } from "@/lib/env";
 import {
   getLatestSubscription,
   getRestaurantAdminEmail,
+  isSubscriptionAccessValid,
   type SubscriptionReminderKind,
 } from "@/lib/subscription-billing";
 import { sendSubscriptionDeactivatedEmail } from "@/lib/subscription-emails";
@@ -59,6 +60,33 @@ export type DeactivateResult = {
   error?: string;
 };
 
+/** Restore business access when subscription is valid but is_active drifted false after renewal. */
+async function syncRestaurantActiveIfSubscriptionValid(
+  supabase: SupabaseClient,
+  restaurantId: string,
+  restaurantIsActive: boolean,
+  sub: Awaited<ReturnType<typeof getLatestSubscription>>,
+): Promise<void> {
+  if (restaurantIsActive || !isSubscriptionAccessValid(sub)) return;
+
+  const nowIso = new Date().toISOString();
+  if (sub?.id && sub.status === "overdue") {
+    await supabase
+      .from("restaurant_subscriptions")
+      .update({ status: "active", ended_at: null, updated_at: nowIso })
+      .eq("id", sub.id);
+  }
+
+  const { error } = await supabase
+    .from("restaurants")
+    .update({ is_active: true })
+    .eq("id", restaurantId);
+
+  if (!error) {
+    revalidateRestaurantPublicCaches();
+  }
+}
+
 /** Deactivate restaurant + sync subscription (expired or manual). */
 export async function deactivateRestaurantForSubscription(
   supabase: SupabaseClient,
@@ -73,6 +101,16 @@ export async function deactivateRestaurantForSubscription(
     subscriptionStatus: "overdue" | "paused";
   },
 ): Promise<DeactivateResult> {
+  if (params.reason === "expired") {
+    const latest = await getLatestSubscription(supabase, params.restaurantId);
+    if (!latest || latest.id !== params.subscriptionId) {
+      return { deactivated: false, emailSent: false };
+    }
+    if (isSubscriptionAccessValid(latest)) {
+      return { deactivated: false, emailSent: false };
+    }
+  }
+
   const nowIso = new Date().toISOString();
   const dueDate = toUtcDateString(params.dueAt);
 
@@ -146,7 +184,15 @@ export async function enforceSubscriptionExpiryForRestaurant(
   if (!sub?.next_due_at) return false;
 
   const dueAt = new Date(sub.next_due_at);
-  if (dueAt.getTime() >= Date.now()) return false;
+  if (dueAt.getTime() >= Date.now()) {
+    await syncRestaurantActiveIfSubscriptionValid(
+      supabase,
+      restaurantId,
+      restaurant.is_active,
+      sub,
+    );
+    return false;
+  }
   if (!["active", "trial", "overdue"].includes(sub.status)) return false;
   if (!restaurant.is_active && sub.status === "overdue") return false;
 
@@ -185,18 +231,17 @@ export async function isRestaurantDashboardBlocked(
 
   await enforceSubscriptionExpiryForRestaurant(restaurantId);
 
+  const sub = await getLatestSubscription(supabase, restaurantId);
+  if (sub?.status === "paused" || sub?.status === "cancelled") return true;
+  if (isSubscriptionAccessValid(sub)) return false;
+
   const { data: restaurant } = await supabase
     .from("restaurants")
     .select("is_active")
     .eq("id", restaurantId)
     .maybeSingle();
 
-  if (!restaurant?.is_active) return true;
-
-  const sub = await getLatestSubscription(supabase, restaurantId);
-  if (sub?.status === "paused" || sub?.status === "cancelled") return true;
-
-  return false;
+  return !restaurant?.is_active;
 }
 
 /** Super admin manual deactivation — sync subscription + email. */

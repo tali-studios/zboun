@@ -3,7 +3,9 @@ import {
   REMINDER_DAYS_BEFORE_DUE,
   REMINDER_DAYS_FINAL,
   startOfUtcDay,
+  getLatestSubscription,
   getRestaurantAdminEmail,
+  isSubscriptionAccessValid,
   type SubscriptionReminderKind,
 } from "@/lib/subscription-billing";
 import { sendSubscriptionExpiryReminderEmail } from "@/lib/subscription-emails";
@@ -210,6 +212,12 @@ export async function runExpiredSubscriptionDeactivations(
     const dueDate = toUtcDateString(dueAt);
     const restaurantName = row.restaurants?.name ?? "Restaurant";
     const wasActive = row.restaurants?.is_active !== false;
+
+    const latest = await getLatestSubscription(supabase, restaurantId);
+    if (!latest || latest.id !== subscriptionId || isSubscriptionAccessValid(latest)) {
+      result.skipped += 1;
+      continue;
+    }
 
     const alreadyHandled = await wasReminderSent(
       supabase,

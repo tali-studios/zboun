@@ -156,6 +156,12 @@ export async function createInitialSubscription(
   };
 }
 
+export type SubscriptionAccessRow = {
+  id: string;
+  status: string;
+  next_due_at: string | null;
+};
+
 export async function getLatestSubscription(
   supabase: SupabaseClient,
   restaurantId: string,
@@ -169,6 +175,15 @@ export async function getLatestSubscription(
     .maybeSingle();
 
   return data;
+}
+
+/** True when the latest subscription period has not ended and access is allowed. */
+export function isSubscriptionAccessValid(
+  sub: Pick<SubscriptionAccessRow, "status" | "next_due_at"> | null | undefined,
+): boolean {
+  if (!sub?.next_due_at) return false;
+  if (sub.status === "paused" || sub.status === "cancelled") return false;
+  return new Date(sub.next_due_at).getTime() >= Date.now();
 }
 
 export async function renewRestaurantSubscription(
