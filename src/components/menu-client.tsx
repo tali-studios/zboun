@@ -3,7 +3,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, Minus, Plus, Trash2 } from "lucide-react";
-import { MenuBudgetBar } from "@/components/menu-budget-bar";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { CategoryWithItems } from "@/lib/data";
@@ -24,8 +23,6 @@ import {
 } from "@/lib/payment-note";
 import { buildCartFromReorder, type MenuReorderPayload } from "@/lib/reorder-cart";
 import {
-  budgetAmountToUsd,
-  filterCategoriesByBudget,
   getItemBudgetPriceUsd,
   isSoldByWeightItem,
 } from "@/lib/budget-mode";
@@ -136,9 +133,6 @@ export function MenuClient({
   const [customizing, setCustomizing] = useState<CustomizationState | null>(null);
   const [query, setQuery] = useState("");
   const [menuCategoryFilter, setMenuCategoryFilter] = useState<string>("all");
-  const [budgetBarOpen, setBudgetBarOpen] = useState(false);
-  const [budgetCurrency, setBudgetCurrency] = useState<PaymentCurrency>("usd");
-  const [budgetAmount, setBudgetAmount] = useState<number | null>(null);
   const [customerName, setCustomerName] = useState(defaultCustomerName);
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
@@ -183,19 +177,6 @@ export function MenuClient({
     if (menuCategoryFilter === "all") return filteredCategories;
     return filteredCategories.filter((c) => c.id === menuCategoryFilter);
   }, [filteredCategories, menuCategoryFilter]);
-  const budgetUsd = useMemo(
-    () => budgetAmountToUsd(budgetAmount, budgetCurrency, lbpRate),
-    [budgetAmount, budgetCurrency, lbpRate],
-  );
-  const isBudgetActive = budgetUsd != null;
-  const menuCategories = useMemo(
-    () => (isBudgetActive ? filterCategoriesByBudget(displayCategories, budgetUsd) : displayCategories),
-    [displayCategories, isBudgetActive, budgetUsd],
-  );
-  const budgetMatchCount = useMemo(
-    () => menuCategories.reduce((sum, category) => sum + category.menu_items.length, 0),
-    [menuCategories],
-  );
   const total = useMemo(
     () => items.reduce((sum, item) => sum + item.qty * item.unitPrice, 0),
     [items],
@@ -1068,21 +1049,6 @@ export function MenuClient({
             />
           </div>
 
-          {!viewOnly ? (
-            <MenuBudgetBar
-              open={budgetBarOpen}
-              onOpenChange={setBudgetBarOpen}
-              currency={budgetCurrency}
-              onCurrencyChange={setBudgetCurrency}
-              amount={budgetAmount}
-              onAmountChange={setBudgetAmount}
-              formatUsd={formatUsd}
-              matchingCount={budgetMatchCount}
-              freeDelivery={freeDelivery}
-              deliveryFeeUsd={deliveryFeeUsd}
-            />
-          ) : null}
-
           {/* Category pills — phone: one row + swipe; sm+: wrap so every section is visible on laptop without hunting for horizontal scroll */}
           <div className="flex min-w-0 w-full max-w-full flex-nowrap gap-2 overflow-x-auto overflow-y-hidden touch-pan-x pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:overflow-x-visible sm:overflow-y-visible sm:touch-auto">
             <button
@@ -1114,31 +1080,15 @@ export function MenuClient({
           </div>
 
           {/* No results */}
-          {menuCategories.length === 0 ? (
+          {displayCategories.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-slate-200 bg-white py-12 text-center shadow-sm">
-              <p className="font-semibold text-slate-700">
-                {isBudgetActive ? "Nothing fits your budget" : "No items found"}
-              </p>
-              <p className="mt-1 text-sm text-slate-400">
-                {isBudgetActive
-                  ? "Try a higher amount or clear your budget to see the full menu."
-                  : "Try a different search or category."}
-              </p>
-              {isBudgetActive ? (
-                <button
-                  type="button"
-                  onClick={() => setBudgetAmount(null)}
-                  className="mt-4 rounded-full px-5 py-2 text-sm font-semibold text-white hover:brightness-110"
-                  style={{ backgroundColor: theme.primary }}
-                >
-                  Clear budget
-                </button>
-              ) : null}
+              <p className="font-semibold text-slate-700">No items found</p>
+              <p className="mt-1 text-sm text-slate-400">Try a different search or category.</p>
             </div>
           ) : null}
 
           {/* Categories */}
-          {menuCategories.map((category) => (
+          {displayCategories.map((category) => (
             <div key={category.id} className="space-y-3">
               {menuCategoryFilter === "all" ? (
                 <h2 className="text-lg font-bold tracking-tight text-slate-900">{category.name}</h2>
@@ -1156,11 +1106,9 @@ export function MenuClient({
                   return (
                   <article
                     key={item.id}
-                    className={`relative flex gap-3 rounded-2xl p-3 shadow-md ring-1 transition ${
-                      isBudgetActive
-                        ? "bg-emerald-50/60 ring-emerald-300"
-                        : "bg-white ring-black/[0.06]"
-                    } ${item.is_available ? "" : "opacity-60"}`}
+                    className={`relative flex gap-3 rounded-2xl bg-white p-3 shadow-md ring-1 ring-black/[0.06] transition ${
+                      item.is_available ? "" : "opacity-60"
+                    }`}
                   >
                     {/* Image */}
                     <div className="h-[88px] w-[88px] shrink-0 overflow-hidden rounded-2xl bg-slate-100">
@@ -1203,11 +1151,6 @@ export function MenuClient({
                           </span>
                         ) : null}
                         {item.name}
-                        {isBudgetActive ? (
-                          <span className="ml-2 inline-flex align-middle rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
-                            Fits budget
-                          </span>
-                        ) : null}
                         {!item.is_available ? (
                           <span className="ml-2 align-middle text-[10px] font-bold uppercase tracking-wide text-slate-400">
                             — Out
