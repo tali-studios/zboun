@@ -237,6 +237,32 @@ export function CheckoutDeliverySections({
   }, [savedAddresses]);
 
   useEffect(() => {
+    if (savedAddresses.length === 0) return;
+    if (address.trim() || baseAddress.trim()) return;
+
+    const defaultAddr = savedAddresses.find((addr) => addr.is_default) ?? savedAddresses[0];
+    if (!defaultAddr) return;
+
+    const line =
+      [defaultAddr.street, defaultAddr.building, defaultAddr.apartment].filter(Boolean).join(", ") ||
+      defaultAddr.formatted_address?.trim() ||
+      formatSavedAddressLine(defaultAddr);
+
+    setBaseAddress(defaultAddr.formatted_address?.trim() || line);
+    setExtraDetails("");
+    onAddressChange(line);
+    setSelectedAddressId(defaultAddr.id);
+    setLocation({
+      lat: defaultAddr.latitude,
+      lng: defaultAddr.longitude,
+      address: line,
+      label: defaultAddr.nickname ?? capitalise(defaultAddr.label),
+      radiusKm,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- apply default address once on checkout open
+  }, [savedAddresses]);
+
+  useEffect(() => {
     const id = window.setInterval(() => {
       setAddressActionIndex((i) => (i + 1) % ADDRESS_ACTIONS.length);
     }, 3000);

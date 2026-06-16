@@ -21,7 +21,6 @@ import { RestaurantHoursPanel } from "@/components/restaurant-hours-panel";
 import { RestaurantDashboardToast } from "@/components/restaurant-dashboard-toast";
 import { parseOpeningHours } from "@/lib/opening-hours";
 import { BusinessMenuItemsFilter } from "@/components/business-menu-items-filter";
-import { RestaurantMapPin } from "@/components/restaurant-map-pin";
 import { RestaurantLocationsPanel } from "@/components/restaurant-locations-panel";
 import type { RestaurantLocationRow } from "@/app-actions/restaurant";
 import { MenuItemPricingFields } from "@/components/menu-item-pricing-fields";
@@ -34,6 +33,11 @@ import { SectionManagePanel } from "@/components/section-manage-panel";
 import { DeliveryFeeSettings } from "@/components/delivery-fee-settings";
 import { MenuThemePicker } from "@/components/menu-theme-picker";
 import { MENU_ITEMS_ADMIN_PAGE_SIZE } from "@/lib/dashboard-admin";
+import {
+  loadRestaurantForAdminDashboard,
+  resolveRestaurantLocationLabel,
+  syncRestaurantProfileFromMainBranch,
+} from "@/lib/restaurant-profile";
 
 export const dynamic = "force-dynamic";
 
@@ -126,7 +130,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
 
   const supabase = await createServerSupabaseClient();
   const [
-    { data: restaurant },
+    restaurantRaw,
     { data: categories },
     { data: inventoryAddon },
     { data: inventoryItems },
@@ -150,13 +154,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
     { data: clubAddon },
     { data: clubMembers },
   ] = await Promise.all([
-    supabase
-      .from("restaurants")
-      .select(
-        "name, slug, phone, logo_url, banner_url, description, lbp_rate, browse_sections, location, eta_label, business_type, latitude, longitude, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd, menu_theme_color",
-      )
-      .eq("id", appUser.restaurant_id)
-      .single(),
+    loadRestaurantForAdminDashboard(supabase, appUser.restaurant_id),
     supabase
       .from("categories")
       .select("id, name, position")
@@ -408,6 +406,18 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
     .order("position", { ascending: true });
   const restaurantLocations = (restaurantLocationsRaw ?? []) as RestaurantLocationRow[];
 
+  let restaurant = restaurantRaw;
+  if (restaurant) {
+    const synced = await syncRestaurantProfileFromMainBranch(
+      supabase,
+      appUser.restaurant_id,
+      restaurant,
+      restaurantLocations,
+    );
+    restaurant = { ...restaurant, ...synced };
+  }
+  const storeLocationLabel = resolveRestaurantLocationLabel(restaurant?.location, restaurantLocations);
+
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const menuUrl = `${appUrl.replace(/\/+$/, "")}/${restaurant?.slug ?? ""}`;
   const businessType = parseBusinessType(restaurant?.business_type ?? "restaurant");
@@ -578,7 +588,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                 <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Location / area</span>
                 <input
                   name="location"
-                  defaultValue={restaurant?.location ?? ""}
+                  defaultValue={storeLocationLabel}
                   placeholder="e.g. Mar Mikhael"
                   className="ui-input"
                 />
@@ -729,7 +739,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                 <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Location</span>
                 <input
                   name="location"
-                  defaultValue={restaurant?.location ?? ""}
+                  defaultValue={storeLocationLabel}
                   placeholder="Location"
                   className="ui-input"
                 />

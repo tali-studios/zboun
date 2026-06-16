@@ -138,7 +138,9 @@ export function MenuClient({
   const [menuCategoryFilter, setMenuCategoryFilter] = useState<string>("all");
   const [customerName, setCustomerName] = useState(defaultCustomerName);
   const effectiveCustomerName = useMemo(() => {
-    if (isLoggedIn) return defaultCustomerName.trim();
+    if (isLoggedIn) {
+      return defaultCustomerName.trim() || customerName.trim();
+    }
     return customerName.trim();
   }, [isLoggedIn, defaultCustomerName, customerName]);
 
@@ -480,12 +482,9 @@ export function MenuClient({
       setOrderError("The restaurant is closed right now. Please schedule your delivery for later.");
       return;
     }
-    if (!effectiveCustomerName || !address.trim()) {
-      setOrderError("Please add a delivery address before ordering.");
-      return;
-    }
-    if (items.length === 0) {
-      setOrderError("Your cart is empty.");
+    const blockReason = checkoutBlockReason();
+    if (blockReason) {
+      setOrderError(blockReason);
       return;
     }
     setOrderError(null);
@@ -755,21 +754,25 @@ export function MenuClient({
     router.push(`/login?next=${encodeURIComponent(next)}`);
   }, [showCheckout, isLoggedIn, pathname, restaurantSlug, router]);
 
-  function proceedToOrderConfirm() {
-    if (orderingBlocked) {
-      setOrderError("This restaurant is closed and not accepting online orders right now.");
-      return;
-    }
+  function checkoutBlockReason(): string | null {
+    if (items.length === 0) return "Your cart is empty.";
+    if (orderingBlocked) return "This restaurant is closed and not accepting online orders right now.";
     if (deliveryTime.mode === "now" && !isOpenNow) {
-      setOrderError("The restaurant is closed right now. Please schedule your delivery for later.");
-      return;
+      return "The restaurant is closed right now. Please schedule your delivery for later.";
     }
-    if (!effectiveCustomerName || !address.trim()) {
-      setOrderError("Please add a delivery address before ordering.");
-      return;
+    if (!address.trim()) return "Please add a delivery address before continuing.";
+    if (!effectiveCustomerName) {
+      return isLoggedIn
+        ? "We could not read your account name. Update it under Account, then try again."
+        : "Please sign in to checkout.";
     }
-    if (items.length === 0) {
-      setOrderError("Your cart is empty.");
+    return null;
+  }
+
+  function proceedToOrderConfirm() {
+    const blockReason = checkoutBlockReason();
+    if (blockReason) {
+      setOrderError(blockReason);
       return;
     }
     setOrderError(null);
@@ -778,12 +781,7 @@ export function MenuClient({
 
   /* ─── Checkout sheet ─── */
   function renderCheckoutSheet() {
-    const canProceed =
-      items.length > 0 &&
-      effectiveCustomerName.length > 0 &&
-      address.trim().length > 0 &&
-      !orderingBlocked &&
-      (deliveryTime.mode === "scheduled" || isOpenNow);
+    const canProceed = checkoutBlockReason() === null;
 
     const isConfirmStep = checkoutStep === "confirm";
 
@@ -926,8 +924,10 @@ export function MenuClient({
                   <button
                     type="button"
                     onClick={proceedToOrderConfirm}
-                    disabled={!canProceed}
-                    className="min-w-[9.5rem] shrink-0 rounded-2xl px-6 py-3.5 text-sm font-bold text-white shadow-md transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40"
+                    aria-disabled={!canProceed}
+                    className={`min-w-[9.5rem] shrink-0 rounded-2xl px-6 py-3.5 text-sm font-bold text-white shadow-md transition hover:brightness-105 ${
+                      canProceed ? "hover:brightness-105" : "opacity-50"
+                    }`}
                     style={{ background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.deep} 100%)` }}
                   >
                     Continue

@@ -325,10 +325,21 @@ export async function customerSignOutAction() {
   redirect("/login");
 }
 
+function readAuthDisplayName(user: { user_metadata?: Record<string, unknown> }): string {
+  const meta = user.user_metadata ?? {};
+  const name = typeof meta.name === "string" ? meta.name.trim() : "";
+  if (name) return name;
+  const fullName = typeof meta.full_name === "string" ? meta.full_name.trim() : "";
+  return fullName;
+}
+
 export async function getCustomerSession() {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
+
+  const authEmail = user.email?.trim() || "";
+  const authName = readAuthDisplayName(user);
 
   const { data: profile } = await supabase
     .from("customer_profiles")
@@ -336,7 +347,19 @@ export async function getCustomerSession() {
     .eq("id", user.id)
     .maybeSingle();
 
-  return profile ?? null;
+  if (profile) {
+    return {
+      id: profile.id,
+      name: profile.name?.trim() || authName,
+      email: profile.email?.trim() || authEmail,
+    };
+  }
+
+  return {
+    id: user.id,
+    name: authName,
+    email: authEmail,
+  };
 }
 
 export async function getCustomerAddresses() {

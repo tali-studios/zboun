@@ -8,6 +8,7 @@ import { getCurrentUserRole } from "@/lib/data";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { parseBrowseSectionFromForm } from "@/lib/browse-sections";
 import { parseMenuThemeColor } from "@/lib/menu-theme";
+import { deriveLocationLabelFromBranch } from "@/lib/restaurant-profile";
 import { parseDisplayQuantityFromForm } from "@/lib/display-quantity";
 import { parseOptionalCalories, parseOptionalProteinGrams, isNutritionColumnMigrationError } from "@/lib/menu-nutrition";
 import { env } from "@/lib/env";
@@ -815,6 +816,29 @@ export async function saveRestaurantLocationAction(formData: FormData) {
         .eq("restaurant_id", user.restaurant_id);
     }
     await supabase.from("restaurant_locations").insert(payload);
+  }
+
+  const { data: savedBranches } = await supabase
+    .from("restaurant_locations")
+    .select("id, name, latitude, longitude, address, is_main, position")
+    .eq("restaurant_id", user.restaurant_id)
+    .order("position", { ascending: true });
+
+  const branches = savedBranches ?? [];
+  const savedBranch = id
+    ? branches.find((branch) => branch.id === id)
+    : branches.find((branch) => branch.is_main) ?? branches[branches.length - 1];
+
+  if (savedBranch && (savedBranch.is_main || branches.length === 1)) {
+    const locationLabel = deriveLocationLabelFromBranch(savedBranch);
+    await supabase
+      .from("restaurants")
+      .update({
+        latitude: lat,
+        longitude: lng,
+        ...(locationLabel ? { location: locationLabel } : {}),
+      })
+      .eq("id", user.restaurant_id);
   }
 
   revalidatePath("/dashboard/business");
