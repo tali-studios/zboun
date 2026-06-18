@@ -419,6 +419,11 @@ export default async function SuperAdminPage({ searchParams }: Props) {
             User password updated successfully.
           </p>
         )}
+        {success === "restaurant_password_updated" && (
+          <p className="rounded-xl border border-violet-200 bg-violet-50 p-3 text-sm font-medium text-violet-700">
+            Restaurant admin password updated successfully.
+          </p>
+        )}
         {error === "password_too_short" && (
           <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700">
             Password must be at least 8 characters.
@@ -434,7 +439,17 @@ export default async function SuperAdminPage({ searchParams }: Props) {
             Please enter a new password.
           </p>
         )}
-        {error && error !== "password_too_short" && error !== "password_mismatch" && error !== "missing_password" && (
+        {error === "no_restaurant_admin" && (
+          <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700">
+            No restaurant admin account is linked to this business.
+          </p>
+        )}
+        {error &&
+          error !== "password_too_short" &&
+          error !== "password_mismatch" &&
+          error !== "missing_password" &&
+          error !== "no_restaurant_admin" &&
+          error !== "missing_restaurant_id" && (
           <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700">
             {decodeURIComponent(error)}
           </p>

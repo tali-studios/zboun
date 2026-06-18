@@ -178,6 +178,20 @@ select.ui-select {
   padding-left: 2.25rem;
 }
 
+/* Custom password toggle — hide browser-native reveal (Edge/IE) to avoid double icons */
+.password-input-field::-ms-reveal,
+.password-input-field::-ms-clear {
+  display: none;
+}
+
+.password-input-field::-webkit-credentials-auto-fill-button,
+.password-input-field::-webkit-strong-password-auto-fill-button {
+  visibility: hidden;
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+}
+
 /* ─── Buttons ───────────────────────────────────────────────────────────────── */
 .btn {
   display: inline-flex;

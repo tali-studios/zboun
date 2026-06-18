@@ -700,6 +700,41 @@ export async function deletePlatformUserAction(formData: FormData) {
   redirect("/dashboard/super-admin?success=user_deleted");
 }
 
+export async function setRestaurantAdminPasswordAction(formData: FormData) {
+  await requireSuperAdmin();
+  const restaurantId = String(formData.get("restaurant_id") ?? "").trim();
+  const password = String(formData.get("password") ?? "");
+  const confirmPassword = String(formData.get("confirm_password") ?? "");
+
+  if (!restaurantId) redirect("/dashboard/super-admin?error=missing_restaurant_id");
+  if (!password) redirect("/dashboard/super-admin?error=missing_password");
+  if (password.length < 8) redirect("/dashboard/super-admin?error=password_too_short");
+  if (password !== confirmPassword) redirect("/dashboard/super-admin?error=password_mismatch");
+
+  const adminClient = getAdminClient();
+  const { data: adminUser } = await adminClient
+    .from("users")
+    .select("id")
+    .eq("restaurant_id", restaurantId)
+    .eq("role", "restaurant_admin")
+    .maybeSingle();
+
+  if (!adminUser?.id) {
+    redirect("/dashboard/super-admin?error=no_restaurant_admin");
+  }
+
+  const { error } = await adminClient.auth.admin.updateUserById(adminUser.id, {
+    password,
+    email_confirm: true,
+  });
+  if (error) {
+    redirect(`/dashboard/super-admin?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/dashboard/super-admin");
+  redirect("/dashboard/super-admin?success=restaurant_password_updated");
+}
+
 export async function setPlatformUserPasswordAction(formData: FormData) {
   await requireSuperAdmin();
   const id = String(formData.get("id") ?? "").trim();
@@ -712,7 +747,10 @@ export async function setPlatformUserPasswordAction(formData: FormData) {
   if (password !== confirmPassword) redirect("/dashboard/super-admin?error=password_mismatch");
 
   const adminClient = getAdminClient();
-  const { error } = await adminClient.auth.admin.updateUserById(id, { password });
+  const { error } = await adminClient.auth.admin.updateUserById(id, {
+    password,
+    email_confirm: true,
+  });
   if (error) {
     redirect(`/dashboard/super-admin?error=${encodeURIComponent(error.message)}`);
   }

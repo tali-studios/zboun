@@ -2,7 +2,7 @@ import { customerSignInAction } from "@/app-actions/customer-auth";
 import { getSafeRedirectPath } from "@/lib/auth-redirect";
 import Image from "next/image";
 import Link from "next/link";
-import { BackButton } from "@/components/back-button";
+import { PasswordInput } from "@/components/password-input";
 
 type Props = {
   searchParams: Promise<{ error?: string; next?: string; success?: string }>;
@@ -102,14 +102,12 @@ export default async function CustomerLoginPage({ searchParams }: Props) {
               <label htmlFor="password" className="mb-1.5 block text-xs font-semibold text-slate-600">
                 Password
               </label>
-              <input
+              <PasswordInput
                 id="password"
-                type="password"
                 name="password"
                 required
                 placeholder="••••••••"
                 autoComplete="current-password"
-                className="ui-input"
               />
             </div>
             <button

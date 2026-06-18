@@ -8,6 +8,7 @@ import {
   enableAddonAction,
   renewSubscriptionAction,
   setNextDueDateAction,
+  setRestaurantAdminPasswordAction,
   toggleRestaurantActiveAction,
   toggleRestaurantBillingExemptAction,
   toggleRestaurantHomeVisibilityAction,
@@ -34,6 +35,7 @@ import {
   isSubscriptionPastDue,
   subscriptionStatusBadgeClass,
 } from "@/lib/subscription-display";
+import { SuperAdminSetPasswordModal } from "@/components/super-admin-set-password-modal";
 
 type RestaurantRow = {
   id: string;
@@ -169,6 +171,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
     restaurantName: "",
     addons: {},
   });
+  const [passwordRestaurant, setPasswordRestaurant] = useState<RestaurantRow | null>(null);
 
   const filtered = useMemo(() => {
     const search = q.trim().toLowerCase();
@@ -345,6 +348,26 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
     });
   }
 
+  function resetRestaurantPassword(
+    restaurant: RestaurantRow,
+    password: string,
+    confirmPassword: string,
+  ) {
+    startTransition(async () => {
+      const formData = new FormData();
+      formData.set("restaurant_id", restaurant.id);
+      formData.set("password", password);
+      formData.set("confirm_password", confirmPassword);
+      await setRestaurantAdminPasswordAction(formData);
+      setPasswordRestaurant(null);
+      router.refresh();
+    });
+  }
+
+  function canResetPassword(restaurant: RestaurantRow) {
+    return Boolean(restaurant.admin_email && restaurant.admin_email !== "No admin linked");
+  }
+
   return (
     <section className="panel p-5">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -499,6 +522,16 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                 disabled={isPending}
                 onClick={() => setInfoRestaurant(restaurant)}
               />
+              {canResetPassword(restaurant) ? (
+                <ActionIconButton
+                  label="Reset admin password"
+                  shortLabel="Password"
+                  icon="🔑"
+                  className="bg-violet-600 hover:bg-violet-500"
+                  disabled={isPending}
+                  onClick={() => setPasswordRestaurant(restaurant)}
+                />
+              ) : null}
               <ActionIconButton
                 label="Manage add-ons"
                 shortLabel="Add-ons"
@@ -694,6 +727,16 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                       disabled={isPending}
                       onClick={() => setInfoRestaurant(restaurant)}
                     />
+                    {canResetPassword(restaurant) ? (
+                      <ActionIconButton
+                        tableRow
+                        label="Reset admin password"
+                        icon="🔑"
+                        className="bg-violet-600"
+                        disabled={isPending}
+                        onClick={() => setPasswordRestaurant(restaurant)}
+                      />
+                    ) : null}
                     <ActionIconButton
                       tableRow
                       label="Manage add-ons"
@@ -802,7 +845,19 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                   : "N/A"}
               </p>
             </div>
-            <div className="mt-4 flex justify-end">
+            <div className="mt-4 flex flex-wrap justify-end gap-2">
+              {canResetPassword(infoRestaurant) ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInfoRestaurant(null);
+                    setPasswordRestaurant(infoRestaurant);
+                  }}
+                  className="btn btn-primary rounded-xl"
+                >
+                  Reset admin password
+                </button>
+              ) : null}
               <button
                 type="button"
                 onClick={() => setInfoRestaurant(null)}
@@ -921,6 +976,18 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
           </div>
         </div>
       )}
+
+      {passwordRestaurant ? (
+        <SuperAdminSetPasswordModal
+          title="Reset restaurant admin password"
+          subtitle={`${passwordRestaurant.name} · ${passwordRestaurant.admin_email}`}
+          onSubmit={(password, confirmPassword) =>
+            resetRestaurantPassword(passwordRestaurant, password, confirmPassword)
+          }
+          onCancel={() => setPasswordRestaurant(null)}
+          loading={isPending}
+        />
+      ) : null}
     </section>
   );
 }
