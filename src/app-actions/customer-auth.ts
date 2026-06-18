@@ -338,6 +338,15 @@ export async function getCustomerSession() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
+  const { data: appUser } = await supabase
+    .from("users")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (appUser?.role === "restaurant_admin" || appUser?.role === "superadmin") {
+    return null;
+  }
+
   const authEmail = user.email?.trim() || "";
   const authName = readAuthDisplayName(user);
 

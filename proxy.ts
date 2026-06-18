@@ -1,5 +1,9 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import {
+  dashboardHrefForRole,
+  isCustomerAppPath,
+} from "@/lib/auth-routing";
 import { mergeAuthCookieOptions } from "@/lib/supabase/session";
 
 export async function proxy(request: NextRequest) {
@@ -47,6 +51,24 @@ export async function proxy(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  let dashboardRole: string | null = null;
+  if (user) {
+    const { data: appUser } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+    dashboardRole = appUser?.role ?? null;
+  }
+
+  const dashboardHref = dashboardHrefForRole(dashboardRole);
+  if (dashboardHref && isCustomerAppPath(pathname)) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = dashboardHref;
+    redirectUrl.search = "";
+    return NextResponse.redirect(redirectUrl);
+  }
 
   // Home page: customers must be signed in
   if (pathname === "/" && !user) {
