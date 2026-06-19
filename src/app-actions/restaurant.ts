@@ -8,6 +8,11 @@ import { getCurrentUserRole } from "@/lib/data";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { parseBrowseSectionFromForm } from "@/lib/browse-sections";
 import { parseMenuThemeColor } from "@/lib/menu-theme";
+import {
+  MAX_RESTAURANT_DELIVERY_RADIUS_KM,
+  MIN_RESTAURANT_DELIVERY_RADIUS_KM,
+  normalizeRestaurantDeliveryRadiusKm,
+} from "@/lib/delivery-radius";
 import { deriveLocationLabelFromBranch } from "@/lib/restaurant-profile";
 import { parseDisplayQuantityFromForm } from "@/lib/display-quantity";
 import { parseOptionalCalories, parseOptionalProteinGrams, isNutritionColumnMigrationError } from "@/lib/menu-nutrition";
@@ -658,6 +663,17 @@ export async function updateRestaurantSettingsAction(formData: FormData) {
   } else {
     fastDeliveryFeeUsd = Number.isFinite(fastDeliveryFeeUsd) && fastDeliveryFeeUsd > 0 ? fastDeliveryFeeUsd : 0;
   }
+  const deliveryRadiusRaw = String(formData.get("delivery_radius_km") ?? "").trim();
+  const deliveryRadiusParsed = Number(deliveryRadiusRaw);
+  if (
+    !deliveryRadiusRaw ||
+    !Number.isFinite(deliveryRadiusParsed) ||
+    deliveryRadiusParsed < MIN_RESTAURANT_DELIVERY_RADIUS_KM ||
+    deliveryRadiusParsed > MAX_RESTAURANT_DELIVERY_RADIUS_KM
+  ) {
+    redirect("/dashboard/business?toast=invalid_delivery_radius");
+  }
+  const deliveryRadiusKm = normalizeRestaurantDeliveryRadiusKm(deliveryRadiusParsed);
 
   const supabase = await createServerSupabaseClient();
   const menuThemeColor = parseMenuThemeColor(formData.get("menu_theme_color"));
@@ -685,6 +701,7 @@ export async function updateRestaurantSettingsAction(formData: FormData) {
       delivery_fee_usd: Math.round(deliveryFeeUsd * 100) / 100,
       fast_delivery_enabled: fastDeliveryEnabled,
       fast_delivery_fee_usd: Math.round(fastDeliveryFeeUsd * 100) / 100,
+      delivery_radius_km: deliveryRadiusKm,
       menu_theme_color: menuThemeColor,
     })
     .eq("id", user.restaurant_id);

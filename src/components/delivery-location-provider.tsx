@@ -10,6 +10,7 @@ import {
 } from "react";
 import {
   type DeliveryLocation,
+  type SavedAddressForMatching,
   DEFAULT_RADIUS_KM,
   formatGeolocationError,
   loadDeliveryLocation,
@@ -32,7 +33,13 @@ type DeliveryLocationCtx = {
 
 const Ctx = createContext<DeliveryLocationCtx | null>(null);
 
-export function DeliveryLocationProvider({ children }: { children: ReactNode }) {
+export function DeliveryLocationProvider({
+  children,
+  savedAddresses = [],
+}: {
+  children: ReactNode;
+  savedAddresses?: SavedAddressForMatching[];
+}) {
   const [location, setLocationState] = useState<DeliveryLocation | null>(null);
   const [radiusKm, setRadiusKmState] = useState(DEFAULT_RADIUS_KM);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -50,7 +57,7 @@ export function DeliveryLocationProvider({ children }: { children: ReactNode }) 
     setIsResolvingLocation(true);
     setLocateError(null);
     try {
-      const resolved = await resolveCurrentDeliveryLocation(radius);
+      const resolved = await resolveCurrentDeliveryLocation(radius, savedAddresses);
       setLocation(resolved);
     } catch (err) {
       setLocateError(formatGeolocationError(err));
@@ -62,7 +69,7 @@ export function DeliveryLocationProvider({ children }: { children: ReactNode }) 
     } finally {
       setIsResolvingLocation(false);
     }
-  }, [radiusKm, setLocation]);
+  }, [radiusKm, savedAddresses, setLocation]);
 
   useEffect(() => {
     const saved = loadDeliveryLocation();
@@ -72,7 +79,7 @@ export function DeliveryLocationProvider({ children }: { children: ReactNode }) 
     let cancelled = false;
     setIsResolvingLocation(true);
     setLocateError(null);
-    void resolveCurrentDeliveryLocation(radius)
+    void resolveCurrentDeliveryLocation(radius, savedAddresses)
       .then((resolved) => {
         if (!cancelled) setLocation(resolved);
       })

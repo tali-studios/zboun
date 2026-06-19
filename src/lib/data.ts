@@ -7,6 +7,15 @@ import { isNutritionColumnMigrationError } from "@/lib/menu-nutrition";
 
 type RatingAgg = { avgRating: number; ratingCount: number };
 
+export type RestaurantLocationBranch = {
+  id: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  address: string | null;
+  is_main: boolean;
+};
+
 export type RestaurantForMenuPage = {
   id: string;
   name: string;
@@ -26,6 +35,10 @@ export type RestaurantForMenuPage = {
   delivery_fee_usd: number;
   fast_delivery_enabled: boolean;
   fast_delivery_fee_usd: number;
+  delivery_radius_km: number | null;
+  latitude: number | null;
+  longitude: number | null;
+  branches: RestaurantLocationBranch[];
   user_avg_rating: number | null;
   user_rating_count: number;
   menu_theme_color: string | null;
@@ -104,13 +117,16 @@ type RestaurantRowCore = {
   delivery_fee_usd?: number;
   fast_delivery_enabled?: boolean;
   fast_delivery_fee_usd?: number;
+  delivery_radius_km?: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
   menu_theme_color?: string | null;
 };
 
 export async function getRestaurantBySlug(slug: string): Promise<RestaurantForMenuPage | null> {
   const supabase = await createServerSupabaseClient();
   const fullSelect =
-    "id, name, slug, phone, logo_url, banner_url, description, lbp_rate, is_active, browse_sections, location, eta_label, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd, menu_theme_color";
+    "id, name, slug, phone, logo_url, banner_url, description, lbp_rate, is_active, browse_sections, location, eta_label, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd, delivery_radius_km, latitude, longitude, menu_theme_color";
   const { data, error } = await supabase.from("restaurants").select(fullSelect).eq("slug", slug).single();
 
   let row: RestaurantRowCore | null = null;
@@ -142,6 +158,13 @@ export async function getRestaurantBySlug(slug: string): Promise<RestaurantForMe
 
   const stats = await loadRatingStatsMap(supabase, [row.id]);
   const agg = stats.get(row.id);
+
+  const { data: branchRows } = await supabase
+    .from("restaurant_locations")
+    .select("id, name, latitude, longitude, address, is_main")
+    .eq("restaurant_id", row.id)
+    .order("position", { ascending: true });
+
   return {
     id: row.id,
     name: row.name,
@@ -161,6 +184,11 @@ export async function getRestaurantBySlug(slug: string): Promise<RestaurantForMe
     delivery_fee_usd: Number(row.delivery_fee_usd ?? 0),
     fast_delivery_enabled: row.fast_delivery_enabled ?? false,
     fast_delivery_fee_usd: Number(row.fast_delivery_fee_usd ?? 0),
+    delivery_radius_km:
+      row.delivery_radius_km != null ? Number(row.delivery_radius_km) : null,
+    latitude: row.latitude ?? null,
+    longitude: row.longitude ?? null,
+    branches: (branchRows ?? []) as RestaurantLocationBranch[],
     menu_theme_color: row.menu_theme_color ?? null,
     user_avg_rating: agg?.avgRating ?? null,
     user_rating_count: agg?.ratingCount ?? 0,
@@ -236,15 +264,6 @@ export async function getRestaurantMenu(restaurantId: string) {
   return mapRestaurantMenuCategories(data);
 }
 
-export type RestaurantLocationBranch = {
-  id: string;
-  name: string;
-  latitude: number;
-  longitude: number;
-  address: string | null;
-  is_main: boolean;
-};
-
 type HomeRestaurantCard = {
   id: string;
   name: string;
@@ -264,6 +283,7 @@ type HomeRestaurantCard = {
   delivery_fee_usd: number;
   fast_delivery_enabled: boolean;
   fast_delivery_fee_usd: number;
+  delivery_radius_km: number | null;
   latitude: number | null;
   longitude: number | null;
   /** All physical branches — used for multi-location distance filtering */
@@ -291,6 +311,7 @@ function mapLegacyHomeRow(r: {
     delivery_fee_usd: 0,
     fast_delivery_enabled: false,
     fast_delivery_fee_usd: 0,
+    delivery_radius_km: null,
     latitude: null,
     longitude: null,
     branches: [],
@@ -316,6 +337,10 @@ async function mapHomeRestaurantRows(
       delivery_fee_usd: Number((r as { delivery_fee_usd?: number }).delivery_fee_usd ?? 0),
       fast_delivery_enabled: (r as { fast_delivery_enabled?: boolean }).fast_delivery_enabled ?? false,
       fast_delivery_fee_usd: Number((r as { fast_delivery_fee_usd?: number }).fast_delivery_fee_usd ?? 0),
+      delivery_radius_km:
+        (r as { delivery_radius_km?: number | null }).delivery_radius_km != null
+          ? Number((r as { delivery_radius_km?: number | null }).delivery_radius_km)
+          : null,
       branches: (r.restaurant_locations ?? []) as RestaurantLocationBranch[],
     };
   });
@@ -328,7 +353,7 @@ export const getHomeRestaurants = unstable_cache(
       auth: { persistSession: false, autoRefreshToken: false },
     });
     const fullSelect =
-      "id, name, slug, logo_url, banner_url, description, browse_sections, location, eta_label, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd, latitude, longitude, restaurant_locations(id, name, latitude, longitude, address, is_main)";
+      "id, name, slug, logo_url, banner_url, description, browse_sections, location, eta_label, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd, delivery_radius_km, latitude, longitude, restaurant_locations(id, name, latitude, longitude, address, is_main)";
 
     const full = await supabase
       .from("restaurants")
@@ -365,6 +390,7 @@ export const getHomeRestaurants = unstable_cache(
           delivery_fee_usd: 0,
           fast_delivery_enabled: false,
           fast_delivery_fee_usd: 0,
+          delivery_radius_km: null,
         })),
         supabase,
       );

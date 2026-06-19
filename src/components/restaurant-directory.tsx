@@ -32,6 +32,7 @@ import {
 } from "@/lib/browse-sections";
 import { useDeliveryLocation } from "@/components/delivery-location-provider";
 import { distanceKm } from "@/lib/geo";
+import { effectiveSearchRadiusKm } from "@/lib/delivery-radius";
 import { DeliveryLocationSheet } from "@/components/delivery-location-sheet";
 import {
   hasConfiguredOpeningHours,
@@ -99,6 +100,7 @@ type RestaurantCard = {
   free_delivery?: boolean;
   delivery_fee_usd?: number;
   fast_delivery_enabled?: boolean;
+  delivery_radius_km?: number | null;
   opening_hours?: unknown;
   is_temporarily_closed?: boolean;
   latitude: number | null;
@@ -161,8 +163,11 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
         return { ...r, distKm };
       })
       .filter(({ distKm, ...r }) => {
-        // Only exclude if we KNOW the restaurant is outside radius (has coords but too far)
-        if (location && distKm !== null && distKm > radiusKm) return false;
+        // Only exclude if we KNOW the restaurant is outside the effective delivery range.
+        if (location && distKm !== null) {
+          const maxKm = effectiveSearchRadiusKm(radiusKm, r.delivery_radius_km);
+          if (distKm > maxKm) return false;
+        }
 
         const matchesQuery =
           !normalized ||

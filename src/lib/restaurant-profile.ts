@@ -12,10 +12,10 @@ export type RestaurantBranchLike = {
 const GENERIC_BRANCH_NAMES = new Set(["main branch", "branch", "main"]);
 
 const RESTAURANT_ADMIN_SELECT_FULL =
-  "name, slug, phone, logo_url, banner_url, description, lbp_rate, browse_sections, location, eta_label, business_type, latitude, longitude, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd, menu_theme_color";
+  "name, slug, phone, logo_url, banner_url, description, lbp_rate, browse_sections, location, eta_label, business_type, latitude, longitude, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd, delivery_radius_km, menu_theme_color";
 
 const RESTAURANT_ADMIN_SELECT_CORE =
-  "name, slug, phone, logo_url, banner_url, description, lbp_rate, browse_sections, location, eta_label, business_type, latitude, longitude, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd";
+  "name, slug, phone, logo_url, banner_url, description, lbp_rate, browse_sections, location, eta_label, business_type, latitude, longitude, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd, delivery_radius_km";
 
 export type RestaurantAdminProfile = {
   name: string;
@@ -37,6 +37,7 @@ export type RestaurantAdminProfile = {
   delivery_fee_usd: number;
   fast_delivery_enabled: boolean;
   fast_delivery_fee_usd: number;
+  delivery_radius_km: number | null;
   menu_theme_color: string | null;
 };
 

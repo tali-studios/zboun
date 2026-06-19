@@ -678,6 +678,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
             deliveryFeeDefault={Number(restaurant?.delivery_fee_usd ?? 0)}
             fastDeliveryEnabledDefault={restaurant?.fast_delivery_enabled ?? false}
             fastDeliveryFeeDefault={Number(restaurant?.fast_delivery_fee_usd ?? 0)}
+            deliveryRadiusDefault={restaurant?.delivery_radius_km ?? null}
           />
 
           <div className="panel p-5">

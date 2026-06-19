@@ -92,7 +92,7 @@ export default async function RestaurantMenuPage({ params, searchParams }: Props
   }
 
   return (
-    <DeliveryLocationProvider>
+    <DeliveryLocationProvider savedAddresses={savedAddresses}>
       <div className="min-h-screen overflow-x-hidden bg-[#F9FAFB]">
         {/* Sticky header — all screen sizes */}
         <header className="sticky top-0 z-40 border-b border-slate-200/60 bg-white/95 backdrop-blur-md shadow-sm">
@@ -164,6 +164,10 @@ export default async function RestaurantMenuPage({ params, searchParams }: Props
             deliveryFeeUsd={Number(restaurant.delivery_fee_usd ?? 0)}
             fastDeliveryEnabled={restaurant.fast_delivery_enabled}
             fastDeliveryFeeUsd={Number(restaurant.fast_delivery_fee_usd ?? 0)}
+            deliveryRadiusKm={restaurant.delivery_radius_km}
+            restaurantLatitude={restaurant.latitude}
+            restaurantLongitude={restaurant.longitude}
+            restaurantBranches={restaurant.branches}
             orderingEnabled={orderingEnabled}
             reorderFrom={reorderFrom}
             menuThemeColor={restaurant.menu_theme_color}

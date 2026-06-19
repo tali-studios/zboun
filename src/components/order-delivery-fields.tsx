@@ -5,7 +5,7 @@ import Link from "next/link";
 import { MapPin, ChevronDown, Home, Briefcase, Star, Navigation } from "lucide-react";
 import { useDeliveryLocation } from "@/components/delivery-location-provider";
 import { DeliveryLocationSheet } from "@/components/delivery-location-sheet";
-import { loadDeliveryLocation } from "@/lib/delivery-location";
+import { loadDeliveryLocation, deliveryLocationFromSavedAddress, findNearbySavedAddress } from "@/lib/delivery-location";
 import { formatSavedAddressLine } from "@/lib/format-address";
 import {
   isPlaceholderLocationText,
@@ -54,15 +54,19 @@ function findMatchingSavedAddress(
   lat: number,
   lng: number,
   addressLine: string,
+  savedAddressId?: string,
 ): SavedAddressOption | null {
+  if (savedAddressId) {
+    return addresses.find((addr) => addr.id === savedAddressId) ?? null;
+  }
+  const nearby = findNearbySavedAddress({ lat, lng }, addresses);
+  if (nearby) return nearby as SavedAddressOption;
+
   const normalized = addressLine.trim().toLowerCase();
   for (const addr of addresses) {
     const line = formatSavedAddressLine(addr).trim().toLowerCase();
     const formatted = addr.formatted_address?.trim().toLowerCase() ?? "";
-    const sameCoords =
-      Math.abs(addr.latitude - lat) < 0.0002 && Math.abs(addr.longitude - lng) < 0.0002;
     if (
-      sameCoords ||
       (line.length > 0 && line === normalized) ||
       (formatted.length > 0 && formatted === normalized)
     ) {
@@ -141,6 +145,7 @@ export function OrderDeliveryFields({
       location.lat,
       location.lng,
       location.address,
+      location.savedAddressId,
     );
     setSelectedAddressId(match?.id ?? null);
   }, [location, onAddressChange, savedAddresses]);
@@ -151,13 +156,7 @@ export function OrderDeliveryFields({
     setExtraDetails("");
     onAddressChange(line);
     setSelectedAddressId(addr.id);
-    setLocation({
-      lat: addr.latitude,
-      lng: addr.longitude,
-      address: line,
-      label: addr.nickname ?? capitalise(addr.label),
-      radiusKm: location?.radiusKm ?? 10,
-    });
+    setLocation(deliveryLocationFromSavedAddress(addr, location?.radiusKm ?? 10, { addressLine: line }));
   }
 
   return (

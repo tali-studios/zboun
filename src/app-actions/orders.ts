@@ -14,6 +14,10 @@ import {
   buildRestaurantWhatsAppNotifyUrl,
   type OrderNotificationItem,
 } from "@/lib/order-notifications";
+import {
+  isWithinRestaurantDeliveryRange,
+  normalizeRestaurantDeliveryRadiusKm,
+} from "@/lib/delivery-radius";
 
 export type DeliverySpeed = "standard" | "fast";
 
@@ -96,7 +100,7 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
   const { data: restaurantRow, error: restaurantError } = await insertClient
     .from("restaurants")
     .select(
-      "is_active, is_temporarily_closed, opening_hours, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd",
+      "is_active, is_temporarily_closed, opening_hours, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd, delivery_radius_km, latitude, longitude, restaurant_locations(latitude, longitude)",
     )
     .eq("id", input.restaurantId)
     .maybeSingle();
@@ -124,6 +128,28 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
 
   if (!input.customerName.trim() || !input.items.length) {
     return { ok: false, error: "Invalid order details." };
+  }
+
+  if (input.deliveryLat != null && input.deliveryLng != null) {
+    const branches = Array.isArray(restaurantRow.restaurant_locations)
+      ? restaurantRow.restaurant_locations
+      : [];
+    const withinRange = isWithinRestaurantDeliveryRange(
+      { lat: input.deliveryLat, lng: input.deliveryLng },
+      {
+        latitude: restaurantRow.latitude,
+        longitude: restaurantRow.longitude,
+        branches,
+        delivery_radius_km: restaurantRow.delivery_radius_km,
+      },
+    );
+    if (withinRange === false) {
+      const maxKm = normalizeRestaurantDeliveryRadiusKm(restaurantRow.delivery_radius_km);
+      return {
+        ok: false,
+        error: `This restaurant only delivers within ${maxKm} km of the store. Choose a closer address.`,
+      };
+    }
   }
 
   const itemsSubtotal = input.items.reduce(

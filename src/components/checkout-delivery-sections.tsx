@@ -29,7 +29,7 @@ import {
   CheckoutAddressDetailsSheet,
   type AddressDetailsAction,
 } from "@/components/checkout-address-details-sheet";
-import { loadDeliveryLocation } from "@/lib/delivery-location";
+import { deliveryLocationFromSavedAddress, findNearbySavedAddress, loadDeliveryLocation } from "@/lib/delivery-location";
 import { formatSavedAddressLine } from "@/lib/format-address";
 import { env } from "@/lib/env";
 import {
@@ -109,15 +109,19 @@ function findMatchingSavedAddress(
   lat: number,
   lng: number,
   addressLine: string,
+  savedAddressId?: string,
 ): SavedAddressOption | null {
+  if (savedAddressId) {
+    return addresses.find((addr) => addr.id === savedAddressId) ?? null;
+  }
+  const nearby = findNearbySavedAddress({ lat, lng }, addresses);
+  if (nearby) return nearby as SavedAddressOption;
+
   const normalized = addressLine.trim().toLowerCase();
   for (const addr of addresses) {
     const line = formatSavedAddressLine(addr).trim().toLowerCase();
     const formatted = addr.formatted_address?.trim().toLowerCase() ?? "";
-    const sameCoords =
-      Math.abs(addr.latitude - lat) < 0.0002 && Math.abs(addr.longitude - lng) < 0.0002;
     if (
-      sameCoords ||
       (line.length > 0 && line === normalized) ||
       (formatted.length > 0 && formatted === normalized)
     ) {
@@ -218,7 +222,7 @@ export function CheckoutDeliverySections({
     orderTotals,
   );
   const quickAmounts = paymentCurrency === "usd" ? CASH_QUICK_USD : CASH_QUICK_LBP;
-  const { location, setLocation, radiusKm } = useDeliveryLocation();
+  const { location, setLocation, radiusKm, isResolvingLocation } = useDeliveryLocation();
   const [addressBook, setAddressBook] = useState<SavedAddressOption[]>(savedAddresses);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const [baseAddress, setBaseAddress] = useState("");
@@ -238,7 +242,9 @@ export function CheckoutDeliverySections({
 
   useEffect(() => {
     if (savedAddresses.length === 0) return;
+    if (isResolvingLocation) return;
     if (address.trim() || baseAddress.trim()) return;
+    if (location || loadDeliveryLocation()) return;
 
     const defaultAddr = savedAddresses.find((addr) => addr.is_default) ?? savedAddresses[0];
     if (!defaultAddr) return;
@@ -252,15 +258,9 @@ export function CheckoutDeliverySections({
     setExtraDetails("");
     onAddressChange(line);
     setSelectedAddressId(defaultAddr.id);
-    setLocation({
-      lat: defaultAddr.latitude,
-      lng: defaultAddr.longitude,
-      address: line,
-      label: defaultAddr.nickname ?? capitalise(defaultAddr.label),
-      radiusKm,
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- apply default address once on checkout open
-  }, [savedAddresses]);
+    setLocation(deliveryLocationFromSavedAddress(defaultAddr, radiusKm, { addressLine: line }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- apply default address once when no GPS/saved context
+  }, [savedAddresses, isResolvingLocation, location, address, baseAddress]);
 
   useEffect(() => {
     const id = window.setInterval(() => {
@@ -295,7 +295,13 @@ export function CheckoutDeliverySections({
       setBaseAddress(saved.address);
       setExtraDetails("");
       onAddressChange(saved.address);
-      const match = findMatchingSavedAddress(addressBook, saved.lat, saved.lng, saved.address);
+      const match = findMatchingSavedAddress(
+        addressBook,
+        saved.lat,
+        saved.lng,
+        saved.address,
+        saved.savedAddressId,
+      );
       if (match) setSelectedAddressId(match.id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mount once
@@ -311,6 +317,7 @@ export function CheckoutDeliverySections({
       location.lat,
       location.lng,
       location.address,
+      location.savedAddressId,
     );
     setSelectedAddressId((current) => current ?? match?.id ?? null);
   }, [location, onAddressChange, addressBook]);
@@ -387,13 +394,7 @@ export function CheckoutDeliverySections({
     setExtraDetails("");
     onAddressChange(line);
     setSelectedAddressId(addr.id === "local-draft" ? null : addr.id);
-    setLocation({
-      lat: addr.latitude,
-      lng: addr.longitude,
-      address: line,
-      label: addr.nickname ?? capitalise(addr.label),
-      radiusKm,
-    });
+    setLocation(deliveryLocationFromSavedAddress(addr, radiusKm, { addressLine: line }));
   }
 
   function openAddressDetails(action: AddressDetailsAction, addr?: SavedAddressOption) {

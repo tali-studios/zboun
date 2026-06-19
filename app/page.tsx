@@ -90,7 +90,7 @@ export default async function HomePage() {
           </div>
         </header>
 
-        <DeliveryLocationProvider>
+        <DeliveryLocationProvider savedAddresses={customerCtx.savedAddresses}>
           <section id="restaurants" className="pb-2 pt-2 sm:pt-4">
             <RestaurantDirectory
               restaurants={restaurants}

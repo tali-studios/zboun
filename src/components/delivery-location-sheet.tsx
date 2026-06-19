@@ -13,7 +13,12 @@ import {
   Loader2,
 } from "lucide-react";
 import { useDeliveryLocation } from "@/components/delivery-location-provider";
-import { MAX_RADIUS_KM, MIN_RADIUS_KM } from "@/lib/delivery-location";
+import {
+  deliveryLocationFromSavedAddress,
+  displaySavedAddressLabel,
+  MAX_RADIUS_KM,
+  MIN_RADIUS_KM,
+} from "@/lib/delivery-location";
 
 type SavedAddress = {
   id: string;
@@ -68,13 +73,7 @@ export function DeliveryLocationSheet({ savedAddresses = [], isLoggedIn = false 
   if (!isSheetOpen) return null;
 
   function handleSavedAddress(addr: SavedAddress) {
-    setLocation({
-      lat: addr.latitude,
-      lng: addr.longitude,
-      address: addr.formatted_address ?? addr.nickname ?? addr.label,
-      label: addr.nickname ?? capitalise(addr.label),
-      radiusKm,
-    });
+    setLocation(deliveryLocationFromSavedAddress(addr, radiusKm));
     closeSheet();
   }
 
@@ -185,7 +184,7 @@ export function DeliveryLocationSheet({ savedAddresses = [], isLoggedIn = false 
                       </span>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold text-slate-800">
-                          {addr.nickname ?? capitalise(addr.label)}
+                          {displaySavedAddressLabel(addr)}
                         </p>
                         {addr.formatted_address ? (
                           <p className="truncate text-xs text-slate-400">{addr.formatted_address}</p>
@@ -250,8 +249,4 @@ export function DeliveryLocationSheet({ savedAddresses = [], isLoggedIn = false 
       </div>
     </>
   );
-}
-
-function capitalise(s: string) {
-  return s.charAt(0).toUpperCase() + s.slice(1);
 }

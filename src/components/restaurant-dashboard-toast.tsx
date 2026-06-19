@@ -140,6 +140,9 @@ export function RestaurantDashboardToast({ toast, sectionName, itemName, brandNa
   } else if (toast === "invalid_fast_delivery_fee") {
     heading = "Invalid fast delivery fee";
     message = "When fast delivery is enabled, enter a fee greater than $0.00 (for example $5.00).";
+  } else if (toast === "invalid_delivery_radius") {
+    heading = "Invalid delivery range";
+    message = "Enter how far you deliver in kilometres (for example 5). Must be between 1 and 50 km.";
   } else {
     return null;
   }
@@ -173,7 +176,8 @@ export function RestaurantDashboardToast({ toast, sectionName, itemName, brandNa
                 toast === "item_create_invalid" ||
                 toast === "item_create_failed" ||
                 toast === "invalid_delivery_fee" ||
-                toast === "invalid_fast_delivery_fee"
+                toast === "invalid_fast_delivery_fee" ||
+                toast === "invalid_delivery_radius"
                   ? "linear-gradient(135deg,#f59e0b,#d97706)"
                   : "linear-gradient(135deg,#7854ff,#9f3bfe)",
             }}
@@ -183,7 +187,8 @@ export function RestaurantDashboardToast({ toast, sectionName, itemName, brandNa
             toast === "item_create_invalid" ||
             toast === "item_create_failed" ||
             toast === "invalid_delivery_fee" ||
-            toast === "invalid_fast_delivery_fee" ? (
+            toast === "invalid_fast_delivery_fee" ||
+            toast === "invalid_delivery_radius" ? (
               "!"
             ) : (
               "✓"

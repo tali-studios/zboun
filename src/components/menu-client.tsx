@@ -18,6 +18,11 @@ import { resolveMenuTheme, menuThemeStyle, menuPrimaryButtonStyle } from "@/lib/
 import { placeOrderAction, type DeliverySpeed } from "@/app-actions/orders";
 import { useDeliveryLocation } from "@/components/delivery-location-provider";
 import {
+  isWithinRestaurantDeliveryRange,
+  normalizeRestaurantDeliveryRadiusKm,
+} from "@/lib/delivery-radius";
+import type { RestaurantLocationBranch } from "@/lib/data";
+import {
   formatPaymentNote,
   parsePaymentNoteDraft,
   type PaymentCurrency,
@@ -49,6 +54,10 @@ type Props = {
   deliveryFeeUsd?: number;
   fastDeliveryEnabled?: boolean;
   fastDeliveryFeeUsd?: number;
+  deliveryRadiusKm?: number | null;
+  restaurantLatitude?: number | null;
+  restaurantLongitude?: number | null;
+  restaurantBranches?: RestaurantLocationBranch[];
   orderingEnabled?: boolean;
   reorderFrom?: MenuReorderPayload | null;
   menuThemeColor?: string | null;
@@ -117,6 +126,10 @@ export function MenuClient({
   deliveryFeeUsd = 0,
   fastDeliveryEnabled = false,
   fastDeliveryFeeUsd = 0,
+  deliveryRadiusKm = null,
+  restaurantLatitude = null,
+  restaurantLongitude = null,
+  restaurantBranches = [],
   orderingEnabled = true,
   reorderFrom = null,
   menuThemeColor = null,
@@ -765,6 +778,21 @@ export function MenuClient({
       return isLoggedIn
         ? "We could not read your account name. Update it under Account, then try again."
         : "Please sign in to checkout.";
+    }
+    if (location?.lat != null && location.lng != null) {
+      const withinRange = isWithinRestaurantDeliveryRange(
+        { lat: location.lat, lng: location.lng },
+        {
+          latitude: restaurantLatitude,
+          longitude: restaurantLongitude,
+          branches: restaurantBranches,
+          delivery_radius_km: deliveryRadiusKm,
+        },
+      );
+      if (withinRange === false) {
+        const maxKm = normalizeRestaurantDeliveryRadiusKm(deliveryRadiusKm);
+        return `This restaurant only delivers within ${maxKm} km of the store. Choose a closer address or pick another restaurant.`;
+      }
     }
     return null;
   }

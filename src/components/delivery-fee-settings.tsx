@@ -1,13 +1,19 @@
 "use client";
 
-import { Bike, Zap } from "lucide-react";
+import { Bike, MapPin, Zap } from "lucide-react";
 import { useState } from "react";
+import {
+  MAX_RESTAURANT_DELIVERY_RADIUS_KM,
+  MIN_RESTAURANT_DELIVERY_RADIUS_KM,
+} from "@/lib/delivery-radius";
+import { env } from "@/lib/env";
 
 type Props = {
   freeDeliveryDefault?: boolean;
   deliveryFeeDefault?: number;
   fastDeliveryEnabledDefault?: boolean;
   fastDeliveryFeeDefault?: number;
+  deliveryRadiusDefault?: number | null;
 };
 
 export function DeliveryFeeSettings({
@@ -15,6 +21,7 @@ export function DeliveryFeeSettings({
   deliveryFeeDefault = 0,
   fastDeliveryEnabledDefault = false,
   fastDeliveryFeeDefault = 0,
+  deliveryRadiusDefault = null,
 }: Props) {
   const [freeDelivery, setFreeDelivery] = useState(freeDeliveryDefault);
   const [fastDeliveryEnabled, setFastDeliveryEnabled] = useState(fastDeliveryEnabledDefault);
@@ -26,14 +33,43 @@ export function DeliveryFeeSettings({
           <Bike className="h-5 w-5" strokeWidth={2} aria-hidden />
         </span>
         <div>
-          <h2 className="panel-title">Delivery fee</h2>
+          <h2 className="panel-title">Delivery settings</h2>
           <p className="mt-1 text-sm text-slate-500">
-            Control what customers pay for delivery at checkout and what appears on your home page card.
+            Set how far you deliver, what customers pay at checkout, and what appears on your home page card.
           </p>
         </div>
       </div>
 
       <div className="mt-5 space-y-4">
+        <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4">
+          <label className="block space-y-1.5">
+            <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <MapPin className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+              Maximum delivery distance (km)
+            </span>
+            <input
+              name="delivery_radius_km"
+              type="number"
+              step="0.5"
+              min={MIN_RESTAURANT_DELIVERY_RADIUS_KM}
+              max={MAX_RESTAURANT_DELIVERY_RADIUS_KM}
+              required
+              defaultValue={
+                deliveryRadiusDefault != null && deliveryRadiusDefault > 0
+                  ? String(deliveryRadiusDefault)
+                  : String(env.defaultDeliveryRadiusKm)
+              }
+              placeholder="5"
+              className="ui-input max-w-xs"
+            />
+            <p className="text-xs leading-relaxed text-slate-500">
+              Customers farther than this from your store location won&apos;t see you on the home page and can&apos;t
+              place delivery orders. Measured from your branch pin on the map ({MIN_RESTAURANT_DELIVERY_RADIUS_KM}–
+              {MAX_RESTAURANT_DELIVERY_RADIUS_KM} km).
+            </p>
+          </label>
+        </div>
+
         <label
           className={`flex cursor-pointer items-center justify-between gap-4 rounded-xl border px-4 py-3.5 transition ${
             freeDelivery
