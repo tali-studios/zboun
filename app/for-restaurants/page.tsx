@@ -72,6 +72,12 @@ export default function ForRestaurantsPage() {
               ← Back
             </BackButton>
             <Link
+              href="/about"
+              className="hidden rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-500 transition hover:border-violet-300 hover:text-violet-700 md:inline-flex"
+            >
+              About Zboun
+            </Link>
+            <Link
               href="/contact"
               className="inline-flex items-center gap-1.5 rounded-full bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-violet-400/30 transition hover:bg-violet-700"
             >

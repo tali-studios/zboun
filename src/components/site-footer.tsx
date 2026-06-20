@@ -60,6 +60,11 @@ export async function SiteFooter({ padForMobileNav = false }: SiteFooterProps = 
                   </Link>
                 </li>
                 <li>
+                  <Link href="/about" className={linkClass}>
+                    About Zboun
+                  </Link>
+                </li>
+                <li>
                   <Link href="/login" className={linkClass}>
                     Customer login
                   </Link>
