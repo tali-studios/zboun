@@ -1,20 +1,29 @@
 import Image from "next/image";
 import Link from "next/link";
 
-export async function SiteFooter() {
+type SiteFooterProps = {
+  /** Reserve space for the fixed customer mobile bottom nav (home, etc.). */
+  padForMobileNav?: boolean;
+};
+
+export async function SiteFooter({ padForMobileNav = false }: SiteFooterProps = {}) {
   const year = new Date().getFullYear();
 
   const linkClass =
     "inline-flex py-1 text-[15px] font-medium text-slate-600 transition-colors hover:text-violet-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white rounded-sm";
 
   return (
-    <footer className="relative mt-16 border-t border-violet-100 bg-gradient-to-b from-[#faf9ff] to-white md:mt-24">
+    <footer
+      className={`relative mt-2 border-t border-violet-100 bg-gradient-to-b from-[#faf9ff] to-white md:mt-12${
+        padForMobileNav ? " pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-0" : ""
+      }`}
+    >
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-violet-200/70 to-transparent"
       />
 
-      <div className="container py-10 sm:py-12 md:py-16">
+      <div className="container pt-6 pb-10 sm:py-12 md:py-16">
         <div className="flex flex-col gap-10 lg:flex-row lg:items-start lg:justify-between lg:gap-12">
           {/* Brand — logo scales to same width as tagline */}
           <div className="w-full max-w-md shrink-0">
@@ -109,14 +118,8 @@ export async function SiteFooter() {
           </div>
         </div>
 
-        <div className="mt-10 flex flex-col items-center gap-3 border-t border-slate-200/80 pt-8 text-center sm:flex-row sm:justify-between sm:text-left">
+        <div className="mt-10 border-t border-slate-200/80 pt-8 text-center sm:text-left">
           <p className="text-xs text-slate-500">© {year} Zboun. All rights reserved.</p>
-          <div className="flex items-center gap-4">
-            <Link href="/terms" className="text-xs text-slate-400 underline underline-offset-2 transition hover:text-slate-600">
-              Terms of Service
-            </Link>
-            <p className="text-xs text-slate-400">Menus · QR codes · WhatsApp ordering</p>
-          </div>
         </div>
       </div>
     </footer>

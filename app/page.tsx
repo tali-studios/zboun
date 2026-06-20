@@ -101,7 +101,7 @@ export default async function HomePage() {
         </DeliveryLocationProvider>
 
         {/* ── Owners CTA banner ────────────────────────────────────────────── */}
-        <section className="container pb-16 pt-4">
+        <section className="container pb-0 pt-4 md:pb-10">
           <div className="relative overflow-hidden rounded-3xl border border-violet-400/25 bg-gradient-to-br from-violet-800 via-[#2b3257] to-[#202a4a] px-6 py-8 text-white shadow-[0_14px_38px_rgba(58,40,122,0.35)] sm:px-10 md:py-10">
             {/* Decorative orb */}
             <div
@@ -150,7 +150,7 @@ export default async function HomePage() {
 
       </main>
 
-      <SiteFooter />
+      <SiteFooter padForMobileNav />
       <CustomerMobileFooterNav />
       <BackToTopButton />
     </div>
