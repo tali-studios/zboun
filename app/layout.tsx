@@ -71,12 +71,12 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/icon.svg?v=9", type: "image/svg+xml", sizes: "any" },
-      { url: "/icon-192.png?v=9", type: "image/png", sizes: "192x192" },
-      { url: "/icon-512.png?v=9", type: "image/png", sizes: "512x512" },
+      { url: "/icon.svg?v=10", type: "image/svg+xml", sizes: "any" },
+      { url: "/icon-192.png?v=10", type: "image/png", sizes: "192x192" },
+      { url: "/icon-512.png?v=10", type: "image/png", sizes: "512x512" },
     ],
-    shortcut: ["/icon-192.png?v=9", "/icon.svg?v=9"],
-    apple: [{ url: "/apple-touch-icon.png?v=8", sizes: "180x180", type: "image/png" }],
+    shortcut: ["/icon-192.png?v=10", "/icon.svg?v=10"],
+    apple: [{ url: "/apple-touch-icon.png?v=9", sizes: "180x180", type: "image/png" }],
   },
   manifest: "/manifest.webmanifest",
   appleWebApp: {
@@ -100,11 +100,11 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
-        <link rel="icon" href="/icon.svg?v=9" type="image/svg+xml" />
-        <link rel="icon" href="/icon-192.png?v=9" type="image/png" sizes="192x192" />
-        <link rel="shortcut icon" href="/icon-192.png?v=9" type="image/png" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=8" />
-        <link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png?v=8" />
+        <link rel="icon" href="/icon.svg?v=10" type="image/svg+xml" />
+        <link rel="icon" href="/icon-192.png?v=10" type="image/png" sizes="192x192" />
+        <link rel="shortcut icon" href="/icon-192.png?v=10" type="image/png" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=9" />
+        <link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png?v=9" />
       </head>
       <body className="flex min-h-full flex-col">
         <PwaRegister />

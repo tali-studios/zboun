@@ -10,6 +10,9 @@ const ICON_WHITE_BG_SVG = join(process.cwd(), "public", "Icon-whitebg.svg");
 const WHITE = { r: 255, g: 255, b: 255 } as const;
 const TRANSPARENT = { r: 0, g: 0, b: 0, alpha: 0 } as const;
 
+/** Inset on each edge so the logo does not touch home-screen icon bounds. */
+const HOME_SCREEN_LOGO_INSET = 0.14;
+
 type Target = { path: string; size: number; label: string };
 
 const OPAQUE_TARGETS: Target[] = [
@@ -48,16 +51,38 @@ async function makeTransparentPng(size: number): Promise<Buffer> {
     .toBuffer();
 }
 
-async function writeOpaqueIcon(target: Target) {
-  const buf = await sharp(readFileSync(SRC))
+async function makePaddedLogoPng(size: number, inset: number, background: typeof WHITE | typeof TRANSPARENT) {
+  const inner = Math.max(1, Math.round(size * (1 - inset * 2)));
+  const logo = await sharp(readFileSync(SRC))
     .trim({ threshold: 10 })
-    .resize(target.size, target.size, {
-      fit: "contain",
-      background: { ...WHITE, alpha: 1 },
-    })
-    .flatten({ background: WHITE })
+    .resize(inner, inner, { fit: "contain", background: TRANSPARENT })
+    .ensureAlpha()
     .png()
     .toBuffer();
+
+  const logoMeta = await sharp(logo).metadata();
+  const lw = logoMeta.width ?? inner;
+  const lh = logoMeta.height ?? inner;
+  const left = Math.round((size - lw) / 2);
+  const top = Math.round((size - lh) / 2);
+
+  return sharp({
+    create: {
+      width: size,
+      height: size,
+      channels: 4,
+      background: background === WHITE ? { ...WHITE, alpha: 1 } : TRANSPARENT,
+    },
+  })
+    .composite([{ input: logo, left, top }])
+    .png()
+    .toBuffer();
+}
+
+async function writeOpaqueIcon(target: Target) {
+  const buf = await makePaddedLogoPng(target.size, HOME_SCREEN_LOGO_INSET, WHITE).then((png) =>
+    sharp(png).flatten({ background: WHITE }).png().toBuffer(),
+  );
 
   mkdirSync(dirname(target.path), { recursive: true });
   writeFileSync(target.path, buf);
@@ -106,12 +131,9 @@ async function main() {
   const faviconSvgPng = await makeTransparentPng(512);
   await writeEmbeddedSvg(ICON_SVG, "Browser favicon SVG (transparent)", faviconSvgPng);
 
-  const navSvgPng = await sharp(readFileSync(SRC))
-    .trim({ threshold: 10 })
-    .resize(512, 512, { fit: "contain", background: { ...WHITE, alpha: 1 } })
-    .flatten({ background: WHITE })
-    .png()
-    .toBuffer();
+  const navSvgPng = await makePaddedLogoPng(512, HOME_SCREEN_LOGO_INSET, WHITE).then((png) =>
+    sharp(png).flatten({ background: WHITE }).png().toBuffer(),
+  );
   await writeEmbeddedSvg(LOGO_SVG, "Site nav Logo.svg (white bg)", navSvgPng);
   await writeEmbeddedSvg(ICON_WHITE_BG_SVG, "Icon-whitebg.svg (white bg)", navSvgPng);
 }
