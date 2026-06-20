@@ -213,7 +213,7 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
           {/* Logo */}
           <Link href="/" className="shrink-0" aria-label="Zboun home">
             <Image
-              src="/Logo.svg"
+              src="/Logo.svg?v=3"
               alt="Zboun"
               width={80}
               height={23}

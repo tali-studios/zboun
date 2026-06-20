@@ -28,7 +28,7 @@ export default function TermsPage() {
         <div className="container flex h-16 items-center justify-between gap-4 px-4 sm:px-6">
           <div className="flex items-center gap-3">
             <Link href="/" className="shrink-0 outline-none transition-opacity hover:opacity-80" aria-label="Zboun home">
-              <Image src="/Logo.svg" alt="Zboun" width={120} height={34} className="h-8 w-auto" unoptimized priority />
+              <Image src="/Logo.svg?v=3" alt="Zboun" width={120} height={34} className="h-8 w-auto" unoptimized priority />
             </Link>
             <span className="text-slate-300" aria-hidden>/</span>
             <p className="text-sm font-semibold text-slate-600">Terms of Service</p>

@@ -6,61 +6,71 @@ export type ContractLogoAsset = {
   base64: string;
   width: number;
   height: number;
+  /** jsPDF image format */
+  format: "PNG" | "JPEG";
 };
 
-const LOGO_SVG = join(process.cwd(), "public", "Logo.svg");
-const LOGO_PNG = join(process.cwd(), "public", "contract-logo.png");
-const HEADER_PNG = join(process.cwd(), "public", "contract-logo-header.png");
+/** Transparent — contract cover header */
+const HEADER_SRC = join(process.cwd(), "public", "zbounbannernobackground.png");
+/** White background — signature block */
+const SIGNATURE_SRC = join(process.cwd(), "public", "zbounbanner.png");
 
 let headerCache: ContractLogoAsset | null = null;
 let signatureCache: ContractLogoAsset | null = null;
 
-function pngDimensions(buf: Buffer): { width: number; height: number } {
-  if (buf.length < 24) return { width: 480, height: 100 };
-  return { width: buf.readUInt32BE(16), height: buf.readUInt32BE(20) };
+async function bufferToAsset(buf: Buffer): Promise<ContractLogoAsset> {
+  const meta = await sharp(buf).metadata();
+  return {
+    base64: buf.toString("base64"),
+    width: meta.width ?? 480,
+    height: meta.height ?? 100,
+    format: meta.format === "jpeg" ? "JPEG" : "PNG",
+  };
 }
 
-function bufferToAsset(buf: Buffer): ContractLogoAsset {
-  const { width, height } = pngDimensions(buf);
-  return { base64: buf.toString("base64"), width, height };
+async function prepareHeaderBuffer(buf: Buffer): Promise<Buffer> {
+  return sharp(buf).trim({ threshold: 10 }).resize(480, null, { fit: "inside" }).png().toBuffer();
 }
 
-function readPngFile(path: string): ContractLogoAsset | null {
-  if (!existsSync(path)) return null;
-  try {
-    return bufferToAsset(readFileSync(path));
-  } catch {
-    return null;
-  }
+async function prepareSignatureBuffer(buf: Buffer): Promise<Buffer> {
+  return sharp(buf)
+    .trim({ threshold: 10 })
+    .resize(480, null, { fit: "inside" })
+    .flatten({ background: { r: 255, g: 255, b: 255 } })
+    .png()
+    .toBuffer();
 }
 
-/** Cover header — rasterized from Logo.svg (transparent background). */
+/** Contract cover header — public/zbounbannernobackground.png */
 export async function loadHeaderLogoFromSvg(): Promise<ContractLogoAsset | null> {
   if (headerCache) return headerCache;
-
-  const cached = readPngFile(HEADER_PNG);
-  if (cached) {
-    headerCache = cached;
-    return headerCache;
-  }
-
-  if (!existsSync(LOGO_SVG)) return null;
+  if (!existsSync(HEADER_SRC)) return null;
 
   try {
-    const buf = await sharp(LOGO_SVG, { density: 200 })
-      .resize(480, null, { fit: "inside" })
-      .png()
-      .toBuffer();
-    headerCache = bufferToAsset(buf);
+    const buf = await prepareHeaderBuffer(readFileSync(HEADER_SRC));
+    headerCache = await bufferToAsset(buf);
     return headerCache;
   } catch {
     return null;
   }
 }
 
-/** Signature block — public/contract-logo.png (white background). */
-export function getSignatureLogo(): ContractLogoAsset | null {
+/** Signature block — public/zbounbanner.png */
+export async function getSignatureLogo(): Promise<ContractLogoAsset | null> {
   if (signatureCache) return signatureCache;
-  signatureCache = readPngFile(LOGO_PNG);
-  return signatureCache;
+  if (!existsSync(SIGNATURE_SRC)) return null;
+
+  try {
+    const buf = await prepareSignatureBuffer(readFileSync(SIGNATURE_SRC));
+    signatureCache = await bufferToAsset(buf);
+    return signatureCache;
+  } catch {
+    return null;
+  }
+}
+
+/** Clear in-process cache (e.g. after replacing banner files in dev). */
+export function clearContractLogoCache(): void {
+  headerCache = null;
+  signatureCache = null;
 }

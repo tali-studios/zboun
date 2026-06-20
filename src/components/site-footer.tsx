@@ -24,12 +24,12 @@ export async function SiteFooter() {
               aria-label="Zboun home"
             >
               <Image
-                src="/Logo.svg"
+                src="/zbounbanner-auth.png"
                 alt="Zboun"
-                width={640}
-                height={180}
-                className="h-auto w-full object-contain object-left"
-                sizes="(max-width: 448px) 100vw, 448px"
+                width={913}
+                height={318}
+                className="h-auto w-full max-w-[300px] object-contain object-left"
+                sizes="300px"
                 unoptimized
               />
             </Link>

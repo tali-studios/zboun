@@ -12,7 +12,7 @@ export default function ContactPage() {
           <div className="flex items-center gap-3">
             <Link href="/" className="shrink-0 outline-none transition-opacity hover:opacity-80" aria-label="Zboun home">
               <Image
-                src="/Logo.svg"
+                src="/Logo.svg?v=3"
                 alt="Zboun"
                 width={120}
                 height={34}

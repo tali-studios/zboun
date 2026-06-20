@@ -14,7 +14,7 @@ export default function InstallAppPage() {
       <header className="border-b border-slate-200/70 bg-white/95 backdrop-blur-md">
         <div className="container flex h-14 items-center">
           <Link href="/" className="shrink-0" aria-label="Zboun home">
-            <Image src="/Logo.svg" alt="Zboun" width={100} height={28} className="h-7 w-auto" unoptimized />
+            <Image src="/Logo.svg?v=3" alt="Zboun" width={100} height={28} className="h-7 w-auto" unoptimized />
           </Link>
         </div>
       </header>

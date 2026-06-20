@@ -69,7 +69,15 @@ class ContractPdfDocument {
     const scale = Math.min(maxWidth / asset.width, maxHeight / asset.height);
     const w = asset.width * scale;
     const h = asset.height * scale;
-    this.doc.addImage(`data:image/png;base64,${asset.base64}`, "PNG", x, y, w, h);
+    const mime = asset.format === "JPEG" ? "jpeg" : "png";
+    this.doc.addImage(
+      `data:image/${mime};base64,${asset.base64}`,
+      asset.format,
+      x,
+      y,
+      w,
+      h,
+    );
     return { w, h };
   }
 
@@ -139,8 +147,8 @@ class ContractPdfDocument {
     let contentTop = MARGIN;
 
     if (this.headerLogo) {
-      const logo = this.addLogoImage(this.headerLogo, MARGIN, MARGIN, 78, 22);
-      contentTop = MARGIN + logo.h + 8;
+      const logo = this.addLogoImage(this.headerLogo, MARGIN, MARGIN, 80, 24);
+      contentTop = MARGIN + logo.h + 3;
     } else {
       this.doc.setFont("helvetica", "bold");
       this.doc.setFontSize(22);
@@ -418,7 +426,7 @@ class ContractPdfDocument {
 export async function generateContractPdfBuffer(params: ContractPdfParams): Promise<Buffer> {
   const [headerLogo, signatureLogo] = await Promise.all([
     loadHeaderLogoFromSvg(),
-    Promise.resolve(getSignatureLogo()),
+    getSignatureLogo(),
   ]);
   return new ContractPdfDocument({ headerLogo, signatureLogo }).build(params);
 }

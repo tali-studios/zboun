@@ -1,5 +1,5 @@
-import Image from "next/image";
 import Link from "next/link";
+import { AuthPageLogo } from "@/components/auth-page-logo";
 import { resendCustomerSignupOtpAction, verifyCustomerSignupOtpAction } from "@/app-actions/customer-auth";
 import { getSafeRedirectPath } from "@/lib/auth-redirect";
 
@@ -29,17 +29,7 @@ export default async function VerifySignupPage({ searchParams }: Props) {
 
       <div className="relative w-full max-w-sm rounded-[28px] border border-violet-100/80 bg-white p-8 shadow-[0_24px_64px_rgba(120,84,255,0.18)]">
         <div className="mb-8 flex items-center justify-between">
-          <Link href="/" className="outline-none transition-opacity hover:opacity-80">
-            <Image
-              src="/Logo.svg"
-              alt="Zboun"
-              width={120}
-              height={36}
-              className="h-8 w-auto object-contain"
-              priority
-              unoptimized
-            />
-          </Link>
+          <AuthPageLogo href="/" className="h-auto w-[72%] max-w-[200px] object-contain" />
           <Link
             href={`/signup?next=${encodeURIComponent(next)}`}
             className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-500 transition hover:border-violet-300 hover:text-violet-700"

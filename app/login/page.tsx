@@ -1,7 +1,7 @@
 import { customerSignInAction } from "@/app-actions/customer-auth";
 import { getSafeRedirectPath } from "@/lib/auth-redirect";
-import Image from "next/image";
 import Link from "next/link";
+import { AuthPageLogo } from "@/components/auth-page-logo";
 import { PasswordInput } from "@/components/password-input";
 
 type Props = {
@@ -38,17 +38,8 @@ export default async function CustomerLoginPage({ searchParams }: Props) {
       <div className="relative w-full max-w-sm">
         {/* Card */}
         <div className="rounded-[28px] border border-violet-100/80 bg-white p-8 shadow-[0_24px_64px_rgba(120,84,255,0.18)]">
-          {/* Logo + nav */}
-          <div className="mb-8 flex items-center justify-between">
-            <Image
-                src="/Logo.svg"
-                alt="Zboun"
-                width={120}
-                height={36}
-                className="h-8 w-auto object-contain"
-                priority
-                unoptimized
-              />
+          <div className="mb-8 flex w-full justify-center">
+            <AuthPageLogo />
             {/* <BackButton
               fallbackHref="/"
               className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-500 transition hover:border-violet-300 hover:text-violet-700"

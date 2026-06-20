@@ -36,7 +36,7 @@ export default async function HomePage() {
               aria-label="Zboun home"
             >
               <Image
-                src="/Logo.svg"
+                src="/Logo.svg?v=3"
                 alt="Zboun"
                 width={120}
                 height={34}

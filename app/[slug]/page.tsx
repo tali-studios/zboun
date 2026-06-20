@@ -100,7 +100,7 @@ export default async function RestaurantMenuPage({ params, searchParams }: Props
             {/* Logo */}
             <Link href="/" className="shrink-0 outline-none transition-opacity hover:opacity-85" aria-label="Zboun home">
               <Image
-                src="/Logo.svg"
+                src="/Logo.svg?v=3"
                 alt="Zboun"
                 width={100}
                 height={30}

@@ -1,8 +1,8 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
+import { AuthPageLogo } from "@/components/auth-page-logo";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -50,18 +50,8 @@ export default function SetPasswordPage() {
       />
 
       <div className="relative w-full max-w-sm rounded-3xl border border-violet-100 bg-white p-7 shadow-[0_20px_60px_rgba(120,84,255,0.16)] sm:p-8">
-        {/* Logo */}
-        <div className="mb-7 flex items-center justify-between">
-          <Link href="/" className="flex rounded-xl outline-none transition-opacity hover:opacity-80">
-            <Image
-              src="/Logo.svg"
-              alt="Zboun"
-              width={110}
-              height={32}
-              className="h-7 w-auto object-contain"
-              unoptimized
-            />
-          </Link>
+        <div className="mb-7 flex w-full justify-center">
+          <AuthPageLogo href="/" />
         </div>
 
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">Set your password</h1>

@@ -111,15 +111,30 @@ export default async function OrderDetailPage({ params }: Params) {
 
             {/* Action buttons */}
             <div className="space-y-2 border-t border-slate-100 px-4 pb-4 pt-3">
-              <Link
-                href={`/${order.restaurant_slug}?reorder=${order.id}`}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700"
-              >
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                  <polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 .49-3.5" />
-                </svg>
-                Reorder
-              </Link>
+              {order.status !== "cancelled" && order.restaurant_is_active ? (
+                <Link
+                  href={`/${order.restaurant_slug}?reorder=${order.id}`}
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700"
+                >
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 .49-3.5" />
+                  </svg>
+                  Reorder
+                </Link>
+              ) : order.status !== "cancelled" ? (
+                <div className="space-y-1">
+                  <button
+                    type="button"
+                    disabled
+                    className="flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-2xl bg-slate-100 py-3 text-sm font-semibold text-slate-400"
+                  >
+                    Reorder unavailable
+                  </button>
+                  <p className="text-center text-xs text-slate-400">
+                    This restaurant is no longer accepting orders.
+                  </p>
+                </div>
+              ) : null}
             </div>
           </div>
 

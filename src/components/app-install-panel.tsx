@@ -105,7 +105,7 @@ export function AppInstallPanel({ installUrl, siteName = "Zboun" }: Props) {
       <div className="text-center">
         <div className="mx-auto mb-4 flex h-16 w-full max-w-[200px] items-center justify-center rounded-2xl bg-white px-4 shadow-md ring-1 ring-violet-100">
           <Image
-            src="/Logo.svg"
+            src="/Logo.svg?v=3"
             alt="Zboun"
             width={160}
             height={44}
