@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import { env } from "@/lib/env";
@@ -224,35 +225,46 @@ export async function enforceSubscriptionExpiryForRestaurant(
   return result.deactivated;
 }
 
+function isRestaurantDashboardBlockedFromState(
+  restaurant: { is_active: boolean; billing_exempt?: boolean | null } | null | undefined,
+  sub: Awaited<ReturnType<typeof getLatestSubscription>>,
+): boolean {
+  if (restaurant?.billing_exempt) {
+    return !restaurant.is_active;
+  }
+
+  if (sub?.status === "paused" || sub?.status === "cancelled") return true;
+  if (isSubscriptionAccessValid(sub)) return false;
+
+  if (sub?.next_due_at && new Date(sub.next_due_at).getTime() < Date.now()) {
+    return true;
+  }
+
+  return !restaurant?.is_active;
+}
+
 /**
  * Whether a restaurant admin should be blocked from the business dashboard.
  * Uses service role so RLS (active-only restaurant reads) cannot hide deactivated rows.
  * Returns null when service role is unavailable (caller may use a weaker fallback).
  */
-export async function isRestaurantDashboardBlocked(
+export const isRestaurantDashboardBlocked = cache(async function isRestaurantDashboardBlocked(
   restaurantId: string,
 ): Promise<boolean | null> {
   const supabase = getServiceSupabaseClient();
   if (!supabase) return null;
 
-  await enforceSubscriptionExpiryForRestaurant(restaurantId);
+  const [{ data: restaurant }, sub] = await Promise.all([
+    supabase
+      .from("restaurants")
+      .select("is_active, billing_exempt")
+      .eq("id", restaurantId)
+      .maybeSingle(),
+    getLatestSubscription(supabase, restaurantId),
+  ]);
 
-  const { data: restaurant } = await supabase
-    .from("restaurants")
-    .select("is_active, billing_exempt")
-    .eq("id", restaurantId)
-    .maybeSingle();
-
-  if (restaurant?.billing_exempt) {
-    return !restaurant.is_active;
-  }
-
-  const sub = await getLatestSubscription(supabase, restaurantId);
-  if (sub?.status === "paused" || sub?.status === "cancelled") return true;
-  if (isSubscriptionAccessValid(sub)) return false;
-
-  return !restaurant?.is_active;
-}
+  return isRestaurantDashboardBlockedFromState(restaurant, sub);
+});
 
 /** Super admin manual deactivation — sync subscription + email. */
 export async function deactivateRestaurantManually(restaurantId: string) {

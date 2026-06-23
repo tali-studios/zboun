@@ -1,7 +1,6 @@
-import { signInAction } from "@/app-actions/auth";
 import Link from "next/link";
 import { AuthPageLogo } from "@/components/auth-page-logo";
-import { PasswordInput } from "@/components/password-input";
+import { DashboardLoginForm } from "@/components/dashboard-login-form";
 
 type Props = {
   searchParams: Promise<{ error?: string }>;
@@ -74,43 +73,7 @@ export default async function LoginPage({ searchParams }: Props) {
           )}
 
           {/* Form */}
-          <form action={signInAction} className="space-y-3">
-            <div>
-              <label htmlFor="email" className="mb-1.5 block text-xs font-semibold text-slate-600">
-                Email address
-              </label>
-              <input
-                id="email"
-                type="email"
-                name="email"
-                required
-                placeholder="you@restaurant.com"
-                autoCapitalize="none"
-                autoCorrect="off"
-                spellCheck={false}
-                autoComplete="username"
-                className="ui-input"
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="mb-1.5 block text-xs font-semibold text-slate-600">
-                Password
-              </label>
-              <PasswordInput
-                id="password"
-                name="password"
-                required
-                placeholder="••••••••"
-                autoComplete="current-password"
-              />
-            </div>
-            <button
-              type="submit"
-              className="mt-2 flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 py-3.5 text-sm font-bold text-white shadow-md shadow-violet-400/30 transition hover:brightness-110 active:scale-[0.98]"
-            >
-              Sign in to dashboard
-            </button>
-          </form>
+          <DashboardLoginForm />
         </div>
 
         {/* Customer login note */}

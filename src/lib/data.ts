@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { env } from "@/lib/env";
@@ -413,7 +414,7 @@ export const getHomeRestaurants = unstable_cache(
   { revalidate: 60, tags: ["home-restaurants"] },
 );
 
-export async function getCurrentUserRole() {
+export const getCurrentUserRole = cache(async function getCurrentUserRole() {
   const supabase = await createServerSupabaseClient();
   const {
     data: { user },
@@ -442,4 +443,4 @@ export async function getCurrentUserRole() {
     .maybeSingle();
 
   return appUserByAdminClient ?? null;
-}
+});

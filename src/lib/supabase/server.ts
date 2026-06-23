@@ -1,9 +1,10 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { env } from "@/lib/env";
 import { mergeAuthCookieOptions } from "@/lib/supabase/session";
 
-export async function createServerSupabaseClient() {
+export const createServerSupabaseClient = cache(async function createServerSupabaseClient() {
   if (!env.supabaseUrl || !env.supabaseAnonKey) {
     throw new Error("Missing Supabase env vars. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.");
   }
@@ -32,4 +33,4 @@ export async function createServerSupabaseClient() {
       },
     },
   });
-}
+});

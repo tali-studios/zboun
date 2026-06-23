@@ -129,132 +129,103 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
   }
 
   const supabase = await createServerSupabaseClient();
-  const [
-    restaurantRaw,
-    { data: categories },
-    { data: inventoryAddon },
-    { data: inventoryItems },
-    { data: accountingAddon },
-    { data: accountingExpenses },
-    { data: posAddon },
-    { data: posOrders },
-    { data: crmAddon },
-    { data: crmCustomers },
-    { data: loyaltyAddon },
-    { data: loyaltyMembers },
-    { data: eventsAddon },
-    { data: todayReservations },
-    { data: upcomingBookings },
-    { data: pmsAddon },
-    { data: pmsRooms },
-    { data: ecommerceAddon },
-    { data: ecommerceOrders },
-    { data: fleetAddon },
-    { data: fleetDeliveries },
-    { data: clubAddon },
-    { data: clubMembers },
-  ] = await Promise.all([
-    loadRestaurantForAdminDashboard(supabase, appUser.restaurant_id),
+  const restaurantId = appUser.restaurant_id;
+  const today = new Date().toISOString().split("T")[0];
+
+  const [restaurantRaw, { data: categories }, { data: addonRows }] = await Promise.all([
+    loadRestaurantForAdminDashboard(supabase, restaurantId),
     supabase
       .from("categories")
       .select("id, name, position")
-      .eq("restaurant_id", appUser.restaurant_id)
+      .eq("restaurant_id", restaurantId)
       .order("position"),
     supabase
       .from("restaurant_addons")
-      .select("is_enabled")
-      .eq("restaurant_id", appUser.restaurant_id)
-      .eq("addon_key", "inventory")
-      .maybeSingle(),
-    supabase
-      .from("inventory_items")
-      .select("id, current_qty, min_qty")
-      .eq("restaurant_id", appUser.restaurant_id),
-    supabase
-      .from("restaurant_addons")
-      .select("is_enabled")
-      .eq("restaurant_id", appUser.restaurant_id)
-      .eq("addon_key", "accounting")
-      .maybeSingle(),
-    supabase
-      .from("accounting_expenses")
-      .select("id, amount, occurred_at")
-      .eq("restaurant_id", appUser.restaurant_id)
-      .order("occurred_at", { ascending: false })
-      .limit(100),
-    supabase
-      .from("restaurant_addons")
-      .select("is_enabled")
-      .eq("restaurant_id", appUser.restaurant_id)
-      .eq("addon_key", "pos")
-      .maybeSingle(),
-    supabase
-      .from("pos_orders")
-      .select("id, status, created_at")
-      .eq("restaurant_id", appUser.restaurant_id)
-      .order("created_at", { ascending: false })
-      .limit(100),
-    supabase
-      .from("restaurant_addons")
-      .select("is_enabled")
-      .eq("restaurant_id", appUser.restaurant_id)
-      .eq("addon_key", "crm")
-      .maybeSingle(),
-    supabase
-      .from("crm_customers")
-      .select("id, is_vip, total_spend")
-      .eq("restaurant_id", appUser.restaurant_id),
-    supabase
-      .from("restaurant_addons")
-      .select("is_enabled")
-      .eq("restaurant_id", appUser.restaurant_id)
-      .eq("addon_key", "loyalty")
-      .maybeSingle(),
-    supabase
-      .from("loyalty_members")
-      .select("id, tier, is_active")
-      .eq("restaurant_id", appUser.restaurant_id),
-    supabase
-      .from("restaurant_addons")
-      .select("is_enabled")
-      .eq("restaurant_id", appUser.restaurant_id)
-      .eq("addon_key", "events")
-      .maybeSingle(),
-    supabase
-      .from("table_reservations")
-      .select("id, status")
-      .eq("restaurant_id", appUser.restaurant_id)
-      .eq("reservation_date", new Date().toISOString().split("T")[0]),
-    supabase
-      .from("event_bookings")
-      .select("id, status, event_date")
-      .eq("restaurant_id", appUser.restaurant_id)
-      .gte("event_date", new Date().toISOString().split("T")[0])
-      .not("status", "in", '("cancelled","completed")'),
-    supabase
-      .from("restaurant_addons")
-      .select("is_enabled")
-      .eq("restaurant_id", appUser.restaurant_id)
-      .eq("addon_key", "pms")
-      .maybeSingle(),
-    supabase
-      .from("pms_rooms")
-      .select("id, status, is_active")
-      .eq("restaurant_id", appUser.restaurant_id),
-    supabase.from("restaurant_addons").select("is_enabled")
-      .eq("restaurant_id", appUser.restaurant_id).eq("addon_key", "ecommerce").maybeSingle(),
-    supabase.from("ecommerce_orders").select("id, status, payment_status")
-      .eq("restaurant_id", appUser.restaurant_id)
-      .not("status", "in", '("delivered","cancelled")').limit(200),
-    supabase.from("restaurant_addons").select("is_enabled")
-      .eq("restaurant_id", appUser.restaurant_id).eq("addon_key", "fleet").maybeSingle(),
-    supabase.from("fleet_deliveries").select("id, status")
-      .eq("restaurant_id", appUser.restaurant_id)
-      .not("status", "in", '("delivered","failed","cancelled")').limit(100),
-    supabase.from("restaurant_addons").select("is_enabled")
-      .eq("restaurant_id", appUser.restaurant_id).eq("addon_key", "club").maybeSingle(),
-    supabase.from("club_members").select("id, status")
-      .eq("restaurant_id", appUser.restaurant_id).limit(500),
+      .select("addon_key, is_enabled")
+      .eq("restaurant_id", restaurantId),
+  ]);
+
+  const addonOn = (key: string) =>
+    Boolean(addonRows?.find((addon) => addon.addon_key === key)?.is_enabled);
+
+  const [
+    { data: inventoryItems },
+    { data: accountingExpenses },
+    { data: posOrders },
+    { data: crmCustomers },
+    { data: loyaltyMembers },
+    { data: todayReservations },
+    { data: upcomingBookings },
+    { data: pmsRooms },
+    { data: ecommerceOrders },
+    { data: fleetDeliveries },
+    { data: clubMembers },
+  ] = await Promise.all([
+    addonOn("inventory")
+      ? supabase
+          .from("inventory_items")
+          .select("id, current_qty, min_qty")
+          .eq("restaurant_id", restaurantId)
+      : Promise.resolve({ data: [] as { id: string; current_qty: number; min_qty: number }[] }),
+    addonOn("accounting")
+      ? supabase
+          .from("accounting_expenses")
+          .select("id, amount, occurred_at")
+          .eq("restaurant_id", restaurantId)
+          .order("occurred_at", { ascending: false })
+          .limit(100)
+      : Promise.resolve({ data: [] as { id: string; amount: number; occurred_at: string }[] }),
+    addonOn("pos")
+      ? supabase
+          .from("pos_orders")
+          .select("id, status, created_at")
+          .eq("restaurant_id", restaurantId)
+          .order("created_at", { ascending: false })
+          .limit(100)
+      : Promise.resolve({ data: [] as { id: string; status: string; created_at: string }[] }),
+    addonOn("crm")
+      ? supabase.from("crm_customers").select("id, is_vip, total_spend").eq("restaurant_id", restaurantId)
+      : Promise.resolve({ data: [] as { id: string; is_vip: boolean; total_spend: number }[] }),
+    addonOn("loyalty")
+      ? supabase.from("loyalty_members").select("id, tier, is_active").eq("restaurant_id", restaurantId)
+      : Promise.resolve({ data: [] as { id: string; tier: string; is_active: boolean }[] }),
+    addonOn("events")
+      ? supabase
+          .from("table_reservations")
+          .select("id, status")
+          .eq("restaurant_id", restaurantId)
+          .eq("reservation_date", today)
+      : Promise.resolve({ data: [] as { id: string; status: string }[] }),
+    addonOn("events")
+      ? supabase
+          .from("event_bookings")
+          .select("id, status, event_date")
+          .eq("restaurant_id", restaurantId)
+          .gte("event_date", today)
+          .not("status", "in", '("cancelled","completed")')
+      : Promise.resolve({ data: [] as { id: string; status: string; event_date: string }[] }),
+    addonOn("pms")
+      ? supabase.from("pms_rooms").select("id, status, is_active").eq("restaurant_id", restaurantId)
+      : Promise.resolve({ data: [] as { id: string; status: string; is_active: boolean }[] }),
+    addonOn("ecommerce")
+      ? supabase
+          .from("ecommerce_orders")
+          .select("id, status, payment_status")
+          .eq("restaurant_id", restaurantId)
+          .not("status", "in", '("delivered","cancelled")')
+          .limit(200)
+      : Promise.resolve({ data: [] as { id: string; status: string; payment_status: string }[] }),
+    addonOn("fleet")
+      ? supabase
+          .from("fleet_deliveries")
+          .select("id, status")
+          .eq("restaurant_id", restaurantId)
+          .not("status", "in", '("delivered","failed","cancelled")')
+          .limit(100)
+      : Promise.resolve({ data: [] as { id: string; status: string }[] }),
+    addonOn("club")
+      ? supabase.from("club_members").select("id, status").eq("restaurant_id", restaurantId).limit(500)
+      : Promise.resolve({ data: [] as { id: string; status: string }[] }),
   ]);
 
   const itemsSelectCore =
@@ -360,14 +331,14 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
     };
   });
 
-  const inventoryEnabled = Boolean(inventoryAddon?.is_enabled);
+  const inventoryEnabled = addonOn("inventory");
   const inventoryLowStock = inventoryEnabled
     ? (inventoryItems ?? []).filter((i) => Number(i.current_qty) < Number(i.min_qty)).length
     : 0;
   const inventoryOutOfStock = inventoryEnabled
     ? (inventoryItems ?? []).filter((i) => Number(i.current_qty) <= 0).length
     : 0;
-  const accountingEnabled = Boolean(accountingAddon?.is_enabled);
+  const accountingEnabled = addonOn("accounting");
   const currentMonthStart = new Date();
   currentMonthStart.setDate(1);
   currentMonthStart.setHours(0, 0, 0, 0);
@@ -376,27 +347,27 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
         .filter((expense) => new Date(expense.occurred_at) >= currentMonthStart)
         .reduce((sum, expense) => sum + Number(expense.amount), 0)
     : 0;
-  const posEnabled = Boolean(posAddon?.is_enabled);
+  const posEnabled = addonOn("pos");
   const posOpenOrders = posEnabled ? (posOrders ?? []).filter((order) => order.status === "open").length : 0;
-  const crmEnabled = Boolean(crmAddon?.is_enabled);
+  const crmEnabled = addonOn("crm");
   const crmTotalCustomers = crmEnabled ? (crmCustomers ?? []).length : 0;
   const crmVipCount = crmEnabled ? (crmCustomers ?? []).filter((c) => c.is_vip).length : 0;
-  const loyaltyEnabled = Boolean(loyaltyAddon?.is_enabled);
+  const loyaltyEnabled = addonOn("loyalty");
   const loyaltyActiveMembers = loyaltyEnabled ? (loyaltyMembers ?? []).filter((m) => m.is_active).length : 0;
   const loyaltyNonStandard = loyaltyEnabled ? (loyaltyMembers ?? []).filter((m) => m.tier !== "standard" && m.is_active).length : 0;
-  const eventsEnabled = Boolean(eventsAddon?.is_enabled);
-  const pmsEnabled = Boolean(pmsAddon?.is_enabled);
+  const eventsEnabled = addonOn("events");
+  const pmsEnabled = addonOn("pms");
   const pmsActiveRooms = pmsEnabled ? (pmsRooms ?? []).filter((r) => r.is_active) : [];
   const pmsOccupied = pmsActiveRooms.filter((r) => r.status === "occupied").length;
   const pmsOccupancyRate = pmsActiveRooms.length > 0 ? Math.round((pmsOccupied / pmsActiveRooms.length) * 100) : 0;
   const eventsTodayCount = eventsEnabled ? (todayReservations ?? []).filter((r) => r.status !== "cancelled").length : 0;
   const eventsUpcomingCount = eventsEnabled ? (upcomingBookings ?? []).length : 0;
-  const ecommerceEnabled = Boolean(ecommerceAddon?.is_enabled);
+  const ecommerceEnabled = addonOn("ecommerce");
   const ecommercePendingOrders = ecommerceEnabled ? (ecommerceOrders ?? []).filter((o) => o.status === "pending").length : 0;
   const ecommerceActiveOrders = ecommerceEnabled ? (ecommerceOrders ?? []).length : 0;
-  const fleetEnabled = Boolean(fleetAddon?.is_enabled);
+  const fleetEnabled = addonOn("fleet");
   const fleetActiveDeliveries = fleetEnabled ? (fleetDeliveries ?? []).length : 0;
-  const clubEnabled = Boolean(clubAddon?.is_enabled);
+  const clubEnabled = addonOn("club");
   const clubActiveMembers = clubEnabled ? (clubMembers ?? []).filter((m) => m.status === "active").length : 0;
 
   const { data: restaurantLocationsRaw } = await supabase
