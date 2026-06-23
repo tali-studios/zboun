@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { getCustomerAddresses, getCustomerSession } from "@/app-actions/customer-auth";
 import type { SavedAddressOption } from "@/components/order-delivery-fields";
 
@@ -11,7 +12,7 @@ export function resolveCustomerOrderName(
   return emailPrefix || "";
 }
 
-export async function getCustomerOrderContext(): Promise<{
+export const getCustomerOrderContext = cache(async function getCustomerOrderContext(): Promise<{
   isLoggedIn: boolean;
   defaultCustomerName: string;
   savedAddresses: SavedAddressOption[];
@@ -20,10 +21,10 @@ export async function getCustomerOrderContext(): Promise<{
   if (!session) {
     return { isLoggedIn: false, defaultCustomerName: "", savedAddresses: [] };
   }
-  const savedAddresses = (await getCustomerAddresses()) as SavedAddressOption[];
+  const savedAddresses = (await getCustomerAddresses(session.id)) as SavedAddressOption[];
   return {
     isLoggedIn: true,
     defaultCustomerName: resolveCustomerOrderName(session.name, session.email),
     savedAddresses,
   };
-}
+});

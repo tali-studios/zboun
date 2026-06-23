@@ -18,7 +18,7 @@ export default async function EditAddressPage({ params, searchParams }: Props) {
   const session = await getCustomerSession();
   if (!session) redirect("/login");
 
-  const addresses = await getCustomerAddresses();
+  const addresses = await getCustomerAddresses(session.id);
   const address = addresses.find((a) => a.id === id);
   if (!address) redirect("/account");
 

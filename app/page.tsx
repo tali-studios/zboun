@@ -12,16 +12,16 @@ import { CustomerMobileFooterNav } from "@/components/customer-mobile-footer-nav
 import { BackToTopButton } from "@/components/back-to-top-button";
 
 export default async function HomePage() {
-  const appUser = await getCurrentUserRole();
+  const [appUser, restaurants, customerCtx] = await Promise.all([
+    getCurrentUserRole(),
+    getHomeRestaurants(),
+    getCustomerOrderContext(),
+  ]);
+
   const dashboardHref = dashboardHrefForRole(appUser?.role);
   if (dashboardHref) {
     redirect(dashboardHref);
   }
-
-  const [restaurants, customerCtx] = await Promise.all([
-    getHomeRestaurants(),
-    getCustomerOrderContext(),
-  ]);
 
   return (
     <div className="flex min-h-screen flex-col bg-white">

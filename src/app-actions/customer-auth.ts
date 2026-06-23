@@ -1,5 +1,6 @@
 "use server";
 
+import { cache } from "react";
 import crypto from "node:crypto";
 import nodemailer from "nodemailer";
 import { revalidatePath } from "next/cache";
@@ -288,20 +289,12 @@ export async function customerSignInAction(formData: FormData) {
   if (!userId)
     redirect(`/login?error=invalid_credentials&next=${nextQuery}`);
 
-  const { data: profile } = await supabase
-    .from("customer_profiles")
-    .select("id")
-    .eq("id", userId)
-    .maybeSingle();
+  const [{ data: profile }, { data: adminProfile }] = await Promise.all([
+    supabase.from("customer_profiles").select("id").eq("id", userId).maybeSingle(),
+    supabase.from("users").select("role").eq("id", userId).maybeSingle(),
+  ]);
 
   if (profile) redirect(next);
-
-  // Check if they're actually a restaurant admin / super admin
-  const { data: adminProfile } = await supabase
-    .from("users")
-    .select("role")
-    .eq("id", userId)
-    .maybeSingle();
 
   if (adminProfile) redirect("/login?error=use_dashboard_login");
 
@@ -333,28 +326,24 @@ function readAuthDisplayName(user: { user_metadata?: Record<string, unknown> }):
   return fullName;
 }
 
-export async function getCustomerSession() {
+export const getCustomerSession = cache(async function getCustomerSession() {
   const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data: appUser } = await supabase
-    .from("users")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
+  const [{ data: appUser }, { data: profile }] = await Promise.all([
+    supabase.from("users").select("role").eq("id", user.id).maybeSingle(),
+    supabase.from("customer_profiles").select("id, name, email").eq("id", user.id).maybeSingle(),
+  ]);
+
   if (appUser?.role === "restaurant_admin" || appUser?.role === "superadmin") {
     return null;
   }
 
   const authEmail = user.email?.trim() || "";
   const authName = readAuthDisplayName(user);
-
-  const { data: profile } = await supabase
-    .from("customer_profiles")
-    .select("id, name, email")
-    .eq("id", user.id)
-    .maybeSingle();
 
   if (profile) {
     return {
@@ -369,19 +358,25 @@ export async function getCustomerSession() {
     name: authName,
     email: authEmail,
   };
-}
+});
 
-export async function getCustomerAddresses() {
+export async function getCustomerAddresses(customerId?: string) {
   const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return [];
+  let resolvedId = customerId?.trim();
+  if (!resolvedId) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return [];
+    resolvedId = user.id;
+  }
 
   const { data } = await supabase
     .from("customer_addresses")
     .select(
       "id, label, nickname, latitude, longitude, formatted_address, street, building, apartment, phone, country_code, driver_notes, voice_directions_url, address_photo_urls, is_default, created_at",
     )
-    .eq("customer_id", user.id)
+    .eq("customer_id", resolvedId)
     .order("is_default", { ascending: false })
     .order("created_at", { ascending: false });
 

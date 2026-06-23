@@ -54,7 +54,7 @@ export default async function AccountPage({ searchParams }: Props) {
   const session = await getCustomerSession();
   if (!session) redirect("/login");
 
-  const addresses = await getCustomerAddresses();
+  const addresses = await getCustomerAddresses(session.id);
   const { success, error } = await searchParams;
 
   return (
