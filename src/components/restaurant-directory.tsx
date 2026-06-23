@@ -25,8 +25,6 @@ import {
   BROWSE_FILTER_ALL_ACCENT,
   BROWSE_SECTION_ACCENTS,
   BROWSE_SECTION_OPTIONS,
-  BROWSE_CHIP_LABEL_COLOR,
-  browseSectionChipBackground,
   normalizeBrowseSections,
   type BrowseSection,
 } from "@/lib/browse-sections";
@@ -121,11 +119,6 @@ type Props = {
   }>;
   isLoggedIn?: boolean;
 };
-
-function primarySection(sections: string[]): BrowseSection {
-  const normalized = normalizeBrowseSections(sections);
-  return normalized[0] ?? "Lunch";
-}
 
 export function RestaurantDirectory({ restaurants, savedAddresses = [], isLoggedIn = false }: Props) {
   const [query, setQuery] = useState("");
@@ -502,8 +495,6 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
         ) : (
           <div className="grid grid-cols-2 items-stretch gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-4">
             {filtered.map((restaurant, index) => {
-              const section = primarySection(restaurant.browse_sections ?? []);
-              const sectionAccent = BROWSE_SECTION_ACCENTS[section];
               const hasHours = hasConfiguredOpeningHours(restaurant.opening_hours);
               const hours = parseOpeningHours(restaurant.opening_hours, {
                 fallbackToDefault: false,
@@ -541,17 +532,6 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
                           aria-hidden
                         />
                       )}
-
-                      {/* Category chip — top-left */}
-                      <div
-                        className="absolute left-2 top-2 z-10 inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide shadow-sm"
-                        style={{
-                          backgroundColor: browseSectionChipBackground(sectionAccent),
-                          color: BROWSE_CHIP_LABEL_COLOR,
-                        }}
-                      >
-                        {section}
-                      </div>
 
                       {isClosed ? (
                         <span className="absolute bottom-2 left-2 z-10 rounded-md bg-rose-600/95 px-2 py-1 text-[10px] font-bold text-white shadow-sm backdrop-blur-sm">

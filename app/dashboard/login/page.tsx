@@ -76,11 +76,11 @@ export default async function LoginPage({ searchParams }: Props) {
           <DashboardLoginForm />
         </div>
 
-        {/* Customer login note */}
+        {/* User login note */}
         <p className="mt-5 text-center text-xs text-slate-400">
-          Customer?{" "}
+          User?{" "}
           <Link href="/login" className="text-slate-500 underline underline-offset-2 hover:text-slate-700">
-            Sign in to your account
+            User login
           </Link>
         </p>
       </div>

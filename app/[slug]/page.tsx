@@ -11,7 +11,6 @@ import { RestaurantMenuHero } from "@/components/restaurant-menu-hero";
 import { DeliveryLocationProvider } from "@/components/delivery-location-provider";
 import { getCustomerOrderContext } from "@/lib/customer-order-context";
 import { getSiteUrl } from "@/lib/site";
-import { normalizeBrowseSections } from "@/lib/browse-sections";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -68,8 +67,6 @@ export default async function RestaurantMenuPage({ params, searchParams }: Props
   }
 
   const categories = await getRestaurantMenu(restaurant.id);
-  const browseSections = normalizeBrowseSections(restaurant.browse_sections ?? []);
-  const heroEyebrow = (browseSections[0] ?? "Menu").toUpperCase();
 
   const tagline = restaurant.description?.trim() || "Browse the menu and send your order on WhatsApp.";
 
@@ -138,12 +135,12 @@ export default async function RestaurantMenuPage({ params, searchParams }: Props
         {/* Desktop: banner constrained to exact same container+padding as the header above */}
         <div className="hidden md:block">
           <div className="container px-4 pt-3">
-            <RestaurantMenuHero restaurant={restaurant} heroEyebrow={heroEyebrow} tagline={tagline} menuThemeColor={restaurant.menu_theme_color} desktop />
+            <RestaurantMenuHero restaurant={restaurant} tagline={tagline} menuThemeColor={restaurant.menu_theme_color} desktop />
           </div>
         </div>
         {/* Mobile: full-bleed */}
         <div className="md:hidden">
-          <RestaurantMenuHero restaurant={restaurant} heroEyebrow={heroEyebrow} tagline={tagline} menuThemeColor={restaurant.menu_theme_color} />
+          <RestaurantMenuHero restaurant={restaurant} tagline={tagline} menuThemeColor={restaurant.menu_theme_color} />
         </div>
 
         <main className="container px-3 pb-10 pt-3 sm:px-6 sm:pb-12 sm:pt-6 lg:pb-8">

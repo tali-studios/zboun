@@ -12,7 +12,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   invalid_credentials: "Incorrect email or password. Please try again.",
   missing_fields: "Please fill in all fields.",
   account_not_found:
-    "No customer account found for this email. Please sign up first.",
+    "No user account found for this email. Please sign up first.",
   use_dashboard_login:
     "This account is a restaurant admin. Please use the dashboard login instead.",
   email_not_verified:

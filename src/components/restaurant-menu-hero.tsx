@@ -17,7 +17,6 @@ type RestaurantHeroData = {
 
 type Props = {
   restaurant: RestaurantHeroData;
-  heroEyebrow: string;
   tagline: string;
   menuThemeColor?: string | null;
   /** Shown under tagline on in-store menu pages */
@@ -26,7 +25,7 @@ type Props = {
   desktop?: boolean;
 };
 
-export function RestaurantMenuHero({ restaurant, heroEyebrow, tagline, menuThemeColor, modeBadge, desktop }: Props) {
+export function RestaurantMenuHero({ restaurant, tagline, menuThemeColor, modeBadge, desktop }: Props) {
   const theme: MenuTheme = resolveMenuTheme(menuThemeColor);
   const avgRating =
     restaurant.user_avg_rating != null && Number.isFinite(Number(restaurant.user_avg_rating))
@@ -99,13 +98,7 @@ export function RestaurantMenuHero({ restaurant, heroEyebrow, tagline, menuTheme
                 </div>
               ) : null}
               <div className="min-w-0 flex-1 pb-0.5 text-left text-white drop-shadow-sm">
-                <p
-                  className="text-[10px] font-bold uppercase tracking-[0.18em] sm:text-[11px]"
-                  style={{ color: theme.accent }}
-                >
-                  {heroEyebrow}
-                </p>
-                <h1 className="mt-1 text-2xl font-bold leading-tight tracking-tight text-white sm:text-3xl lg:text-4xl">
+                <h1 className="text-2xl font-bold leading-tight tracking-tight text-white sm:text-3xl lg:text-4xl">
                   {restaurant.name}
                 </h1>
                 <p className="mt-1 max-w-2xl text-sm font-normal leading-relaxed text-white/90 sm:text-[15px]">
