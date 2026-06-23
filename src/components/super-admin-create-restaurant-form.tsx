@@ -3,8 +3,8 @@
 import { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { MapPin, Loader2, Map, ChevronDown } from "lucide-react";
+import { BrowseSectionsCheckboxes } from "@/components/browse-sections-checkboxes";
 import { createRestaurantAction } from "@/app-actions/superadmin";
-import { BROWSE_SECTION_OPTIONS } from "@/lib/browse-sections";
 import {
   BUSINESS_TYPE_PRESETS,
   DEFAULT_BUSINESS_TYPE,
@@ -81,28 +81,12 @@ export function SuperAdminCreateRestaurantForm() {
 
       {showBrowse ? (
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 md:col-span-2 xl:col-span-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Home browse category</p>
-          {/* <p className="mt-1 text-xs text-slate-500">Each business appears in exactly one home section.</p> */}
-          <div className="mt-2 flex flex-wrap gap-2">
-            {BROWSE_SECTION_OPTIONS.map((section) => (
-              <label
-                key={section}
-                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700"
-              >
-                <input
-                  type="radio"
-                  name="browse_section"
-                  value={section}
-                  defaultChecked={section === "Lunch"}
-                  className="h-4 w-4 accent-violet-600"
-                />
-                <span>{section}</span>
-              </label>
-            ))}
-          </div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Home browse categories</p>
+          <p className="mt-1 text-xs text-slate-500">Pick one or more sections where this business appears on the home page.</p>
+          <BrowseSectionsCheckboxes selected={["Lunch"]} />
         </div>
       ) : (
-        <input type="hidden" name="browse_section" value="Lunch" />
+        <input type="hidden" name="browse_sections" value="Lunch" />
       )}
 
       {/* Optional first location */}

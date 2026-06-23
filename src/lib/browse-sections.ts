@@ -40,22 +40,29 @@ export function normalizeBrowseSections(input: unknown): BrowseSection[] {
 }
 
 /**
- * One home-page category per restaurant (stored as a 1-element `browse_sections` array in the DB).
- * Reads `browse_section` (radio/select). Falls back to first legacy `browse_sections` checkbox if present.
+ * Reads `browse_sections` (checkboxes). Falls back to legacy `browse_section` (radio/select).
  */
-export function parseBrowseSectionFromForm(formData: FormData): BrowseSection {
-  const single = String(formData.get("browse_section") ?? "").trim();
-  if (single) {
-    const n = normalizeBrowseSections([single]);
-    if (n.length > 0) return n[0]!;
-  }
-  const legacy = normalizeBrowseSections(
+export function parseBrowseSectionsFromForm(formData: FormData): BrowseSection[] {
+  const multi = normalizeBrowseSections(
     formData.getAll("browse_sections").map((value) => String(value ?? "").trim()),
   );
-  if (legacy.length > 0) return legacy[0]!;
-  return "Lunch";
+  if (multi.length > 0) return multi;
+
+  const single = String(formData.get("browse_section") ?? "").trim();
+  if (single) {
+    const normalized = normalizeBrowseSections([single]);
+    if (normalized.length > 0) return normalized;
+  }
+
+  return ["Lunch"];
 }
 
-export function parseBrowseSectionsFromForm(formData: FormData): BrowseSection[] {
-  return [parseBrowseSectionFromForm(formData)];
+/** First selected home browse category (legacy single-value helper). */
+export function parseBrowseSectionFromForm(formData: FormData): BrowseSection {
+  return parseBrowseSectionsFromForm(formData)[0] ?? "Lunch";
+}
+
+export function formatBrowseSectionsLabel(sections: unknown): string {
+  const normalized = normalizeBrowseSections(sections);
+  return normalized.length > 0 ? normalized.join(", ") : "Lunch";
 }

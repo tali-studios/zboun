@@ -28,7 +28,7 @@ const ALL_ADDONS: { key: string; label: string; description: string }[] = [
   { key: "fleet", label: "Fleet Management", description: "Vehicles, drivers, delivery dispatch, and maintenance logs." },
   { key: "club", label: "Club Management", description: "Membership plans, check-ins, and subscription invoicing." },
 ];
-import { BROWSE_SECTION_OPTIONS, normalizeBrowseSections } from "@/lib/browse-sections";
+import { BROWSE_SECTION_OPTIONS, formatBrowseSectionsLabel, normalizeBrowseSections, type BrowseSection } from "@/lib/browse-sections";
 import {
   formatNextDueLine,
   formatSubscriptionStatus,
@@ -135,7 +135,7 @@ type BrowseSectionsEditorState = {
   open: boolean;
   restaurantId: string;
   restaurantName: string;
-  section: string;
+  sections: BrowseSection[];
 };
 
 type AddonsEditorState = {
@@ -163,7 +163,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
     open: false,
     restaurantId: "",
     restaurantName: "",
-    section: "Lunch",
+    sections: ["Lunch"],
   });
   const [addonsEditor, setAddonsEditor] = useState<AddonsEditorState>({
     open: false,
@@ -264,19 +264,33 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
   }
 
   function openBrowseSectionsEditor(restaurant: RestaurantRow) {
+    const sections = normalizeBrowseSections(restaurant.browse_sections ?? []);
     setBrowseSectionsEditor({
       open: true,
       restaurantId: restaurant.id,
       restaurantName: restaurant.name,
-      section: normalizeBrowseSections(restaurant.browse_sections ?? [])[0] ?? "Lunch",
+      sections: sections.length > 0 ? sections : ["Lunch"],
+    });
+  }
+
+  function toggleBrowseSection(section: BrowseSection) {
+    setBrowseSectionsEditor((prev) => {
+      const has = prev.sections.includes(section);
+      const sections = has
+        ? prev.sections.filter((value) => value !== section)
+        : [...prev.sections, section];
+      return { ...prev, sections };
     });
   }
 
   function saveBrowseSections() {
+    if (browseSectionsEditor.sections.length === 0) return;
     startTransition(async () => {
       const formData = new FormData();
       formData.set("id", browseSectionsEditor.restaurantId);
-      formData.set("browse_section", browseSectionsEditor.section);
+      for (const section of browseSectionsEditor.sections) {
+        formData.append("browse_sections", section);
+      }
       await updateRestaurantBrowseSectionsAction(formData);
       setBrowseSectionsEditor((prev) => ({ ...prev, open: false }));
       router.refresh();
@@ -452,7 +466,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                     {restaurant.show_on_home ? "Visible on home" : "Hidden on home"}
                   </span>
                   <span className="rounded-full bg-slate-100 px-2 py-1">
-                    Home category: {normalizeBrowseSections(restaurant.browse_sections ?? [])[0] ?? "Lunch"}
+                    Home categories: {formatBrowseSectionsLabel(restaurant.browse_sections)}
                   </span>
                 </>
               ) : (
@@ -659,7 +673,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                 </td>
                 <td className={`border-r border-white/50 px-3 py-3 whitespace-nowrap text-slate-700 ${TABLE_DATA_COLUMNS[7].cell}`}>
                   {hasHomeCategory(restaurant)
-                    ? normalizeBrowseSections(restaurant.browse_sections ?? [])[0] ?? "Lunch"
+                    ? formatBrowseSectionsLabel(restaurant.browse_sections)
                     : "N/A"}
                 </td>
                 <td className={`px-3 py-3 whitespace-nowrap text-slate-700 ${TABLE_DATA_COLUMNS[8].cell}`}>
@@ -839,9 +853,9 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
               <p><span className="font-semibold">Outstanding:</span> ${infoRestaurant.outstanding_balance.toFixed(2)}</p>
               <p><span className="font-semibold">Created:</span> {new Date(infoRestaurant.created_at).toLocaleDateString()}</p>
               <p className="sm:col-span-2">
-                <span className="font-semibold">Home browse category:</span>{" "}
+                <span className="font-semibold">Home browse categories:</span>{" "}
                 {hasHomeCategory(infoRestaurant)
-                  ? normalizeBrowseSections(infoRestaurant.browse_sections ?? [])[0] ?? "Lunch"
+                  ? formatBrowseSectionsLabel(infoRestaurant.browse_sections)
                   : "N/A"}
               </p>
             </div>
@@ -873,9 +887,10 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
       {browseSectionsEditor.open && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/40 p-4">
           <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-xl ring-1 ring-slate-200">
-            <h3 className="text-lg font-bold text-slate-900">Home browse category</h3>
+            <h3 className="text-lg font-bold text-slate-900">Home browse categories</h3>
             <p className="mt-1 text-sm text-slate-600">
-              Pick one section where <span className="font-semibold">{browseSectionsEditor.restaurantName}</span> appears on the home page.
+              Pick one or more sections where{" "}
+              <span className="font-semibold">{browseSectionsEditor.restaurantName}</span> appears on the home page.
             </p>
             <div className="mt-4 grid gap-2 sm:grid-cols-2">
               {BROWSE_SECTION_OPTIONS.map((section) => (
@@ -884,18 +899,18 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                   className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700"
                 >
                   <input
-                    type="radio"
-                    name="browse_section_super_admin"
-                    checked={browseSectionsEditor.section === section}
-                    onChange={() =>
-                      setBrowseSectionsEditor((prev) => ({ ...prev, section }))
-                    }
+                    type="checkbox"
+                    checked={browseSectionsEditor.sections.includes(section)}
+                    onChange={() => toggleBrowseSection(section)}
                     className="h-4 w-4 accent-violet-600"
                   />
                   <span>{section}</span>
                 </label>
               ))}
             </div>
+            {browseSectionsEditor.sections.length === 0 ? (
+              <p className="mt-2 text-xs font-medium text-amber-700">Select at least one category.</p>
+            ) : null}
             <div className="mt-4 flex justify-end gap-2">
               <button
                 type="button"
@@ -906,11 +921,11 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
               </button>
               <button
                 type="button"
-                disabled={isPending}
+                disabled={isPending || browseSectionsEditor.sections.length === 0}
                 onClick={saveBrowseSections}
                 className="btn btn-primary rounded-xl disabled:opacity-70"
               >
-                Save category
+                Save categories
               </button>
             </div>
           </div>

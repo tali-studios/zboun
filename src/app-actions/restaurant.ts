@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import { getCurrentUserRole } from "@/lib/data";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { parseBrowseSectionFromForm } from "@/lib/browse-sections";
+import { parseBrowseSectionsFromForm } from "@/lib/browse-sections";
 import { parseMenuThemeColor } from "@/lib/menu-theme";
 import {
   MAX_RESTAURANT_DELIVERY_RADIUS_KM,
@@ -690,7 +690,7 @@ export async function updateRestaurantSettingsAction(formData: FormData) {
       description: String(formData.get("description") ?? "").trim() || null,
       phone: String(formData.get("phone")),
       lbp_rate: Math.round(lbpRate * 100) / 100,
-      browse_sections: [parseBrowseSectionFromForm(formData)],
+      browse_sections: parseBrowseSectionsFromForm(formData),
       logo_url: uploadedLogoUrl ?? (currentLogoUrl || null),
       banner_url: uploadedBannerUrl ?? (currentBannerUrl || null),
       location,
