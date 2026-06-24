@@ -5,12 +5,15 @@ import { createClient } from "@supabase/supabase-js";
 import { SuperAdminContractGenerator } from "@/components/super-admin-contract-generator";
 import { SuperAdminCreateRestaurantForm } from "@/components/super-admin-create-restaurant-form";
 import { SuperAdminFinancePanel } from "@/components/super-admin-finance-panel";
+import { SuperAdminOpsPaymentsPanel } from "@/components/super-admin-ops-payments-panel";
 import { SuperAdminRestaurantsPanel } from "@/components/super-admin-restaurants-panel";
 import { SuperAdminUsersPanel } from "@/components/super-admin-users-panel";
 import { getCurrentUserRole } from "@/lib/data";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { env } from "@/lib/env";
 import { backfillMissingSubscriptions } from "@/lib/subscription-billing";
+import type { PlatformOpsReminderKind } from "@/lib/platform-ops-payments-shared";
+import type { PlatformOpsPaymentItem } from "@/components/super-admin-ops-payments-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -95,6 +98,42 @@ export default async function SuperAdminPage({ searchParams }: Props) {
     redirect(`/dashboard/super-admin?error=${encodeURIComponent(authUsersError.message)}`);
   }
   const authUsers = authUsersPage?.users ?? [];
+
+  let opsPayments: PlatformOpsPaymentItem[] = [];
+  const { data: opsPaymentsRaw, error: opsPaymentsError } = await dataClient
+    .from("platform_ops_payments")
+    .select("id, title, category, amount, currency, due_at, paid_at, notes, reminder_enabled")
+    .order("due_at", { ascending: true });
+
+  if (!opsPaymentsError && opsPaymentsRaw) {
+    const { data: opsReminderLog } = await dataClient
+      .from("platform_ops_payment_reminder_log")
+      .select("payment_id, reminder_kind, due_at");
+
+    opsPayments = opsPaymentsRaw.map((row) => {
+      const dueKey = String(row.due_at).slice(0, 10);
+      const reminders_sent = (opsReminderLog ?? [])
+        .filter(
+          (log) =>
+            log.payment_id === row.id &&
+            String(log.due_at).slice(0, 10) === dueKey,
+        )
+        .map((log) => log.reminder_kind as PlatformOpsReminderKind);
+
+      return {
+        id: row.id as string,
+        title: row.title as string,
+        category: row.category as string,
+        amount: row.amount != null ? Number(row.amount) : null,
+        currency: (row.currency as string) ?? "USD",
+        due_at: row.due_at as string,
+        paid_at: (row.paid_at as string | null) ?? null,
+        notes: (row.notes as string | null) ?? null,
+        reminder_enabled: Boolean(row.reminder_enabled),
+        reminders_sent,
+      };
+    });
+  }
 
   const appUsersById = new Map((appUsers ?? []).map((u) => [u.id, u]));
   const customersById = new Map((customerProfiles ?? []).map((u) => [u.id, u]));
@@ -394,6 +433,31 @@ export default async function SuperAdminPage({ searchParams }: Props) {
             Cash payment recorded successfully.
           </p>
         )}
+        {success === "ops_payment_created" && (
+          <p className="rounded-xl border border-violet-200 bg-violet-50 p-3 text-sm font-medium text-violet-700">
+            Platform payment added. Reminders will email your ops inbox at 30 days, 7 days, and 3 days before the due date.
+          </p>
+        )}
+        {success === "ops_payment_updated" && (
+          <p className="rounded-xl border border-violet-200 bg-violet-50 p-3 text-sm font-medium text-violet-700">
+            Platform payment updated.
+          </p>
+        )}
+        {success === "ops_payment_paid" && (
+          <p className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-medium text-emerald-700">
+            Payment marked as paid.
+          </p>
+        )}
+        {success === "ops_payment_reopened" && (
+          <p className="rounded-xl border border-violet-200 bg-violet-50 p-3 text-sm font-medium text-violet-700">
+            Payment reopened for tracking.
+          </p>
+        )}
+        {success === "ops_payment_deleted" && (
+          <p className="rounded-xl border border-violet-200 bg-violet-50 p-3 text-sm font-medium text-violet-700">
+            Platform payment deleted.
+          </p>
+        )}
         {success === "restaurant_deleted" && (
           <p className="rounded-xl border border-violet-200 bg-violet-50 p-3 text-sm font-medium text-violet-700">
             Business deleted successfully.
@@ -474,6 +538,7 @@ export default async function SuperAdminPage({ searchParams }: Props) {
 
         <SuperAdminRestaurantsPanel restaurants={restaurantsWithDetails} />
         <SuperAdminUsersPanel users={platformUsers} currentUserId={appUser.id} />
+        <SuperAdminOpsPaymentsPanel payments={opsPayments} />
         <SuperAdminFinancePanel
           restaurants={restaurantsWithDetails.map((restaurant) => ({
             id: restaurant.id,

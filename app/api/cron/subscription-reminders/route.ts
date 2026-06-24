@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { env } from "@/lib/env";
 import { runAllSubscriptionCronJobs } from "@/lib/subscription-reminders";
+import { runPlatformOpsPaymentReminders } from "@/lib/platform-ops-payments";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,8 +33,11 @@ export async function GET(request: Request) {
 
   try {
     const supabase = getServiceClient();
-    const result = await runAllSubscriptionCronJobs(supabase);
-    return NextResponse.json({ ok: true, ...result });
+    const [subscriptions, opsPayments] = await Promise.all([
+      runAllSubscriptionCronJobs(supabase),
+      runPlatformOpsPaymentReminders(supabase),
+    ]);
+    return NextResponse.json({ ok: true, ...subscriptions, opsPayments });
   } catch (error) {
     const message = error instanceof Error ? error.message : "unknown_error";
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
