@@ -1,4 +1,4 @@
-import { sendMail, isSmtpConfigured } from "@/lib/mail";
+import { sendMail, isSmtpConfigured, getOpsEmail } from "@/lib/mail";
 import { ZBOUN_OPS_EMAIL } from "@/lib/zboun-contact";
 import { getSiteUrl } from "@/lib/site";
 
@@ -86,4 +86,71 @@ export async function sendCustomerWelcomeEmail(params: { to: string; name: strin
     text,
     html: emailShell("Welcome to Zboun", bodyHtml),
   });
+}
+
+export async function sendAdminNewCustomerNotification(params: { name: string; email: string }) {
+  if (!isSmtpConfigured()) return;
+
+  const name = params.name.trim() || "Unknown";
+  const email = params.email.trim().toLowerCase();
+  const safeName = escapeHtml(name);
+  const safeEmail = escapeHtml(email);
+  const signedUpAt = new Date().toLocaleString("en-GB", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Asia/Beirut",
+  });
+
+  const subject = `[Zboun] New customer account: ${name}`;
+  const text = [
+    "A new customer account was created on Zboun.",
+    "",
+    `Name: ${name}`,
+    `Email: ${email}`,
+    `Signed up: ${signedUpAt}`,
+    "",
+    "— Zboun",
+  ].join("\n");
+
+  const html = `<p><strong>New customer account</strong></p>
+<p>Name: ${safeName}<br>
+Email: <a href="mailto:${safeEmail}">${safeEmail}</a><br>
+Signed up: ${escapeHtml(signedUpAt)}</p>`;
+
+  await sendMail({ to: getOpsEmail(), subject, text, html });
+}
+
+export async function sendAdminCustomerDeletedNotification(params: { name: string; email: string }) {
+  if (!isSmtpConfigured()) return;
+
+  const name = params.name.trim() || "Unknown";
+  const email = params.email.trim().toLowerCase();
+  const safeName = escapeHtml(name);
+  const safeEmail = escapeHtml(email);
+  const deletedAt = new Date().toLocaleString("en-GB", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Asia/Beirut",
+  });
+
+  const subject = `[Zboun] Customer deleted account: ${name}`;
+  const text = [
+    "A customer deleted their Zboun account.",
+    "",
+    `Name: ${name}`,
+    `Email: ${email}`,
+    `Deleted: ${deletedAt}`,
+    "",
+    "Their profile and saved addresses were removed. Past orders may remain anonymized.",
+    "",
+    "— Zboun",
+  ].join("\n");
+
+  const html = `<p><strong>Customer deleted account</strong></p>
+<p>Name: ${safeName}<br>
+Email: ${safeEmail}<br>
+Deleted: ${escapeHtml(deletedAt)}</p>
+<p style="color:#71717a;font-size:13px;">Profile and saved addresses were removed. Past orders may remain anonymized.</p>`;
+
+  await sendMail({ to: getOpsEmail(), subject, text, html });
 }

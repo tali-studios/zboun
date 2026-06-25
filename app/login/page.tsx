@@ -62,6 +62,11 @@ export default async function CustomerLoginPage({ searchParams }: Props) {
               Email verified successfully. You can now sign in.
             </div>
           ) : null}
+          {success === "account_deleted" ? (
+            <div className="mb-5 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+              Your account has been deleted.
+            </div>
+          ) : null}
           {error && ERROR_MESSAGES[error] ? (
             <div className="mb-5 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
               {ERROR_MESSAGES[error]}

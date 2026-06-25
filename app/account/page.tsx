@@ -6,6 +6,7 @@ import {
   getCustomerSession,
   getCustomerAddresses,
   customerSignOutAction,
+  deleteCustomerAccountAction,
   deleteCustomerAddressAction,
   setDefaultAddressAction,
 } from "@/app-actions/customer-auth";
@@ -205,13 +206,18 @@ export default async function AccountPage({ searchParams }: Props) {
             <span className="flex-1 text-sm font-medium text-slate-800">Change password</span>
             <ChevronRight className="h-4 w-4 text-slate-300" />
           </Link>
-          <div className="flex items-center gap-4 px-4 py-3.5">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-red-50 text-red-400">
-              <Trash className="h-4 w-4" />
-            </span>
-            <span className="flex-1 text-sm font-medium text-slate-800">Delete account</span>
-            <ChevronRight className="h-4 w-4 text-slate-300" />
-          </div>
+          <form action={deleteCustomerAccountAction}>
+            <ConfirmSubmitButton
+              message="Delete your Zboun account permanently? Your profile, saved addresses, and sign-in access will be removed. This cannot be undone."
+              className="flex w-full items-center gap-4 px-4 py-3.5 text-left transition hover:bg-red-50"
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-red-50 text-red-400">
+                <Trash className="h-4 w-4" />
+              </span>
+              <span className="flex-1 text-sm font-medium text-slate-800">Delete account</span>
+              <ChevronRight className="h-4 w-4 text-slate-300" />
+            </ConfirmSubmitButton>
+          </form>
         </div>
 
         {/* ── Sign out ── */}

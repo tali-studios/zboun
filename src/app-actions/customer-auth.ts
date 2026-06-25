@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import { getSafeRedirectPath } from "@/lib/auth-redirect";
 import { sendMail } from "@/lib/mail";
-import { sendCustomerWelcomeEmail } from "@/lib/customer-emails";
+import { sendCustomerWelcomeEmail, sendAdminNewCustomerNotification, sendAdminCustomerDeletedNotification } from "@/lib/customer-emails";
 import {
   customerAddressDisplayName,
   duplicateAddressNameMessage,
@@ -249,13 +249,18 @@ export async function verifyCustomerSignupOtpAction(formData: FormData) {
     .eq("id", otpRow.id)
     .eq("user_id", userId);
 
+  const customerName = profile.name?.trim() || email.split("@")[0] || "there";
+
   try {
-    await sendCustomerWelcomeEmail({
-      to: email,
-      name: profile.name?.trim() || email.split("@")[0] || "there",
-    });
+    await sendCustomerWelcomeEmail({ to: email, name: customerName });
   } catch {
     // Account is verified; don't block login if welcome email fails.
+  }
+
+  try {
+    await sendAdminNewCustomerNotification({ name: customerName, email });
+  } catch {
+    // Don't block login if admin notification fails.
   }
 
   redirect(`/login?success=email_verified&next=${encodeURIComponent(next)}`);
@@ -311,6 +316,58 @@ export async function customerSignOutAction() {
   const supabase = await createServerSupabaseClient();
   await supabase.auth.signOut();
   redirect("/login");
+}
+
+export async function deleteCustomerAccountAction() {
+  const supabase = await createServerSupabaseClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const adminClient = getAdminClient();
+  if (!adminClient) redirect("/account?error=account_delete_unavailable");
+
+  const { data: appUser } = await adminClient
+    .from("users")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (appUser?.role === "restaurant_admin" || appUser?.role === "superadmin") {
+    redirect("/account?error=cannot_delete_admin_account");
+  }
+
+  const userId = user.id;
+
+  const { data: profile } = await adminClient
+    .from("customer_profiles")
+    .select("name, email")
+    .eq("id", userId)
+    .maybeSingle();
+
+  const deletedName = profile?.name?.trim() || readAuthDisplayName(user) || "Unknown";
+  const deletedEmail = profile?.email?.trim() || user.email?.trim() || "";
+
+  await adminClient.from("customer_addresses").delete().eq("customer_id", userId);
+  await adminClient.from("customer_profiles").delete().eq("id", userId);
+  await adminClient.from("customer_signup_otps").delete().eq("user_id", userId);
+
+  const { error } = await adminClient.auth.admin.deleteUser(userId);
+  if (error) {
+    redirect(`/account?error=${encodeURIComponent(error.message)}`);
+  }
+
+  try {
+    if (deletedEmail) {
+      await sendAdminCustomerDeletedNotification({ name: deletedName, email: deletedEmail });
+    }
+  } catch {
+    // Account is deleted; don't block sign-out redirect.
+  }
+
+  await supabase.auth.signOut();
+  redirect("/login?success=account_deleted");
 }
 
 function readAuthDisplayName(user: { user_metadata?: Record<string, unknown> }): string {
