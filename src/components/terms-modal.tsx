@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from "react";
 
+import { ZBOUN_OPS_EMAIL } from "@/lib/zboun-contact";
+
 const EFFECTIVE_DATE = "28 May 2026";
-const CONTACT_EMAIL = "zbounlb@outlook.com";
+const CONTACT_EMAIL = ZBOUN_OPS_EMAIL;
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (

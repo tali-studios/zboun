@@ -5,6 +5,7 @@ import {
 } from "@/lib/contract-pdf";
 import { formatDateLong } from "@/lib/subscription-billing";
 import { ZBOUN_PRICING } from "@/lib/pricing";
+import { ZBOUN_OPS_EMAIL } from "@/lib/zboun-contact";
 
 function emailShell(title: string, bodyHtml: string) {
   return `<!DOCTYPE html>
@@ -20,7 +21,7 @@ function emailShell(title: string, bodyHtml: string) {
         </td></tr>
         <tr><td style="padding:28px;color:#27272a;font-size:15px;line-height:1.6;">${bodyHtml}</td></tr>
         <tr><td style="padding:0 28px 28px;color:#71717a;font-size:13px;line-height:1.5;">
-          Questions? Reply to this email or contact <a href="mailto:zbounlb@outlook.com" style="color:#4c1d95;">zbounlb@outlook.com</a>.
+          Questions? Reply to this email or contact <a href="mailto:${ZBOUN_OPS_EMAIL}" style="color:#4c1d95;">${ZBOUN_OPS_EMAIL}</a>.
         </td></tr>
       </table>
     </td></tr>

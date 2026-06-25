@@ -3,13 +3,15 @@ import Link from "next/link";
 import { BackButton } from "@/components/back-button";
 import { SiteFooter } from "@/components/site-footer";
 
+import { ZBOUN_OPS_EMAIL } from "@/lib/zboun-contact";
+
 export const metadata = {
   title: "Terms of Service — Zboun",
   description: "Read the Zboun Terms of Service before using our platform.",
 };
 
 const EFFECTIVE_DATE = "28 May 2026";
-const CONTACT_EMAIL = "zbounlb@outlook.com";
+const CONTACT_EMAIL = ZBOUN_OPS_EMAIL;
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (

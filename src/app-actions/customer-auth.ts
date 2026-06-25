@@ -2,11 +2,12 @@
 
 import { cache } from "react";
 import crypto from "node:crypto";
-import nodemailer from "nodemailer";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import { getSafeRedirectPath } from "@/lib/auth-redirect";
+import { sendMail } from "@/lib/mail";
+import { sendCustomerWelcomeEmail } from "@/lib/customer-emails";
 import {
   customerAddressDisplayName,
   duplicateAddressNameMessage,
@@ -57,22 +58,7 @@ function generateOtp() {
 }
 
 async function sendCustomerSignupOtpEmail(to: string, code: string) {
-  const smtpUser = String(process.env.SMTP_USER ?? "").trim();
-  const smtpPass = String(process.env.SMTP_PASS ?? "").replace(/\s+/g, "");
-  const fromEmail = String(process.env.SMTP_FROM ?? smtpUser).trim();
-  if (!smtpUser || !smtpPass || !fromEmail) {
-    throw new Error("Email server is not configured.");
-  }
-
-  const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 465,
-    secure: true,
-    auth: { user: smtpUser, pass: smtpPass },
-  });
-
-  await transporter.sendMail({
-    from: fromEmail,
+  await sendMail({
     to,
     subject: "Your Zboun verification code",
     text: [
@@ -226,7 +212,7 @@ export async function verifyCustomerSignupOtpAction(formData: FormData) {
 
   const { data: profile } = await adminClient
     .from("customer_profiles")
-    .select("id")
+    .select("id, name")
     .eq("email", email)
     .maybeSingle();
   const userId = profile?.id;
@@ -262,6 +248,15 @@ export async function verifyCustomerSignupOtpAction(formData: FormData) {
     .update({ used_at: nowIso })
     .eq("id", otpRow.id)
     .eq("user_id", userId);
+
+  try {
+    await sendCustomerWelcomeEmail({
+      to: email,
+      name: profile.name?.trim() || email.split("@")[0] || "there",
+    });
+  } catch {
+    // Account is verified; don't block login if welcome email fails.
+  }
 
   redirect(`/login?success=email_verified&next=${encodeURIComponent(next)}`);
 }

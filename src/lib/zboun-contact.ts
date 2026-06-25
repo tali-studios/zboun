@@ -1,5 +1,5 @@
 /** Zboun support inbox (also used via ZBOUN_OPS_EMAIL env). */
-export const ZBOUN_OPS_EMAIL = "zbounlb@outlook.com";
+export const ZBOUN_OPS_EMAIL = "admin@zboun.net";
 
 /** Business WhatsApp — digits only, no + prefix. */
 export const ZBOUN_WHATSAPP_DIGITS = "96171212734";

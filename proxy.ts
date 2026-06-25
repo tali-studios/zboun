@@ -4,9 +4,16 @@ import {
   dashboardHrefForRole,
   isCustomerAppPath,
 } from "@/lib/auth-routing";
+import { env } from "@/lib/env";
+import { getRestaurantSubdomainRedirectUrl } from "@/lib/subdomain-redirect";
 import { mergeAuthCookieOptions } from "@/lib/supabase/session";
 
 export async function proxy(request: NextRequest) {
+  const subdomainRedirectUrl = getRestaurantSubdomainRedirectUrl(request, env.appUrl);
+  if (subdomainRedirectUrl) {
+    return NextResponse.redirect(subdomainRedirectUrl, 308);
+  }
+
   let response = NextResponse.next({ request });
   const { pathname } = request.nextUrl;
 

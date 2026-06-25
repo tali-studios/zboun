@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AuthPageLogo } from "@/components/auth-page-logo";
 import { DashboardLoginForm } from "@/components/dashboard-login-form";
+import { ZBOUN_OPS_EMAIL } from "@/lib/zboun-contact";
 
 type Props = {
   searchParams: Promise<{ error?: string }>;
@@ -56,7 +57,7 @@ export default async function LoginPage({ searchParams }: Props) {
           {error === "missing_profile" && (
             <div className="mb-5 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
               Account exists but has no app profile. Please contact{" "}
-              <a href="mailto:zbounlb@outlook.com" className="underline">zbounlb@outlook.com</a>.
+              <a href={`mailto:${ZBOUN_OPS_EMAIL}`} className="underline">{ZBOUN_OPS_EMAIL}</a>.
             </div>
           )}
           {error === "missing_restaurant_link" && (
@@ -67,7 +68,7 @@ export default async function LoginPage({ searchParams }: Props) {
           {error === "account_deactivated" && (
             <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
               Your account is deactivated. Please contact{" "}
-              <a href="mailto:zbounlb@outlook.com" className="underline">zbounlb@outlook.com</a>{" "}
+              <a href={`mailto:${ZBOUN_OPS_EMAIL}`} className="underline">{ZBOUN_OPS_EMAIL}</a>{" "}
               to renew your subscription.
             </div>
           )}
