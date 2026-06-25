@@ -7,7 +7,7 @@ const params = {
   adminEmail: "admin@example.com",
   effectiveDate: new Date(),
   subscriptionEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-  monthlyPrice: 20,
+  monthlyPrice: 10,
 };
 
 async function main() {

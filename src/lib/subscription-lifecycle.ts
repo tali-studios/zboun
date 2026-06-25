@@ -9,6 +9,7 @@ import {
   isSubscriptionAccessValid,
   type SubscriptionReminderKind,
 } from "@/lib/subscription-billing";
+import { ZBOUN_PRICING } from "@/lib/pricing";
 import { sendSubscriptionDeactivatedEmail } from "@/lib/subscription-emails";
 
 export function getServiceSupabaseClient(): SupabaseClient | null {
@@ -216,7 +217,7 @@ export async function enforceSubscriptionExpiryForRestaurant(
     subscriptionId: sub.id as string,
     restaurantName: restaurant.name,
     dueAt,
-    billingPrice: Number(sub.billing_cycle_price ?? 20),
+    billingPrice: Number(sub.billing_cycle_price ?? ZBOUN_PRICING.monthly),
     reason: "expired",
     sendEmail: !alreadyEmailed,
     subscriptionStatus: "overdue",
@@ -290,7 +291,7 @@ export async function deactivateRestaurantManually(restaurantId: string) {
       subscriptionId: sub.id as string,
       restaurantName: restaurant.name,
       dueAt: sub.next_due_at ? new Date(sub.next_due_at) : now,
-      billingPrice: Number(sub.billing_cycle_price ?? 20),
+      billingPrice: Number(sub.billing_cycle_price ?? ZBOUN_PRICING.monthly),
       reason: "manual",
       sendEmail: true,
       subscriptionStatus: "paused",
@@ -306,7 +307,7 @@ export async function deactivateRestaurantManually(restaurantId: string) {
         restaurantName: restaurant.name,
         adminEmail,
         expiredAt: now,
-        monthlyPrice: 20,
+        monthlyPrice: ZBOUN_PRICING.monthly,
       });
       emailSent = true;
     } catch {

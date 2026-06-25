@@ -2,7 +2,7 @@
 
 -- Default monthly plan (matches ZBOUN_PRICING.monthly in app)
 insert into public.subscription_plans (name, interval, price, is_active)
-values ('Monthly', 'monthly', 20.00, true)
+values ('Monthly', 'monthly', 10.00, true)
 on conflict (name) do nothing;
 
 -- Avoid duplicate reminder emails for the same billing period

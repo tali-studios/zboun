@@ -8,6 +8,7 @@ import {
   isSubscriptionAccessValid,
   type SubscriptionReminderKind,
 } from "@/lib/subscription-billing";
+import { ZBOUN_PRICING } from "@/lib/pricing";
 import { sendSubscriptionExpiryReminderEmail } from "@/lib/subscription-emails";
 import {
   deactivateRestaurantForSubscription,
@@ -149,7 +150,7 @@ async function runDayBeforeReminders(
         restaurantName,
         adminEmail,
         dueAt,
-        monthlyPrice: Number(row.billing_cycle_price ?? 20),
+        monthlyPrice: Number(row.billing_cycle_price ?? ZBOUN_PRICING.monthly),
         daysBefore,
       });
 
@@ -247,7 +248,7 @@ export async function runExpiredSubscriptionDeactivations(
         subscriptionId,
         restaurantName,
         dueAt,
-        billingPrice: Number(row.billing_cycle_price ?? 20),
+        billingPrice: Number(row.billing_cycle_price ?? ZBOUN_PRICING.monthly),
         reason: "expired",
         sendEmail: !alreadyHandled,
         subscriptionStatus: "overdue",

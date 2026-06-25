@@ -2,11 +2,11 @@
 export const ZBOUN_PRICING = {
   currency: "USD",
   symbol: "$",
-  monthly: 20,
+  monthly: 10,
   /** Optional one-time onboarding service: we enter your menu data for you. */
   oneTimeDataEntry: 100,
   /** Yearly: 2 months free vs paying monthly × 12 */
-  yearly: 200,
+  yearly: 100,
 } as const;
 
 export function yearlySavings(): number {

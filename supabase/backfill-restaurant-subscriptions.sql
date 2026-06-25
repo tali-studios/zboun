@@ -33,7 +33,7 @@ select
   end,
   coalesce(
     (select price from public.subscription_plans where interval = 'monthly' and is_active = true limit 1),
-    20.00
+    10.00
   ),
   'Backfilled subscription for existing business.'
 from public.restaurants r

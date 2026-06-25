@@ -92,7 +92,16 @@ export async function getOrCreateMonthlyPlanId(supabase: SupabaseClient) {
     .limit(1)
     .maybeSingle();
 
-  if (existing?.id) return { planId: existing.id, price: Number(existing.price) };
+  if (existing?.id) {
+    const price = Number(existing.price);
+    if (price !== ZBOUN_PRICING.monthly) {
+      await supabase
+        .from("subscription_plans")
+        .update({ price: ZBOUN_PRICING.monthly })
+        .eq("id", existing.id);
+    }
+    return { planId: existing.id, price: ZBOUN_PRICING.monthly };
+  }
 
   const { data: created, error } = await supabase
     .from("subscription_plans")
