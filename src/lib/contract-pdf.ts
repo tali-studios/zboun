@@ -1,5 +1,9 @@
 import { jsPDF } from "jspdf";
-import { ZBOUN_PRICING } from "@/lib/pricing";
+import {
+  inferSubscriptionInterval,
+  type SubscriptionInterval,
+  ZBOUN_PRICING,
+} from "@/lib/pricing";
 import {
   CONTRACT_OPERATOR,
   CONTRACT_SECTIONS,
@@ -17,6 +21,7 @@ export type ContractPdfParams = {
   effectiveDate: Date;
   subscriptionEndDate: Date;
   monthlyPrice?: number;
+  billingInterval?: SubscriptionInterval;
 };
 
 /** Professional black & white palette */
@@ -144,6 +149,13 @@ class ContractPdfDocument {
 
   private drawTitlePage(params: ContractPdfParams) {
     const price = params.monthlyPrice ?? ZBOUN_PRICING.monthly;
+    const interval = params.billingInterval ?? inferSubscriptionInterval(price);
+    const feeLabel =
+      interval === "yearly" ? "Yearly subscription fee" : "Monthly subscription fee";
+    const feeValue =
+      interval === "yearly"
+        ? `USD ${price.toFixed(2)} / year`
+        : `USD ${price.toFixed(2)} / month`;
     let contentTop = MARGIN;
 
     if (this.headerLogo) {
@@ -199,7 +211,7 @@ class ContractPdfDocument {
       ["Administrator email", params.adminEmail],
       ["Effective date", formatDate(params.effectiveDate)],
       ["Current period ends", formatDate(params.subscriptionEndDate)],
-      ["Monthly subscription fee", `USD ${price.toFixed(2)}`],
+      [feeLabel, feeValue],
       ["Operator", `${CONTRACT_OPERATOR.legalName} · ${CONTRACT_OPERATOR.contactEmail}`],
     ];
 

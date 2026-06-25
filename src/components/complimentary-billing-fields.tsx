@@ -8,6 +8,7 @@ type Props = {
   defaultEnabled?: boolean;
   defaultUnit?: ComplimentaryUnit;
   defaultAmount?: number;
+  onEnabledChange?: (enabled: boolean) => void;
 };
 
 export function ComplimentaryBillingFields({
@@ -15,6 +16,7 @@ export function ComplimentaryBillingFields({
   defaultEnabled = false,
   defaultUnit = "months",
   defaultAmount = 3,
+  onEnabledChange,
 }: Props) {
   const [enabled, setEnabled] = useState(defaultEnabled);
   const [unit, setUnit] = useState<ComplimentaryUnit>(defaultUnit);
@@ -30,7 +32,10 @@ export function ComplimentaryBillingFields({
           name="complimentary_free"
           value="true"
           checked={enabled}
-          onChange={(e) => setEnabled(e.target.checked)}
+          onChange={(e) => {
+            setEnabled(e.target.checked);
+            onEnabledChange?.(e.target.checked);
+          }}
           className="mt-0.5 h-4 w-4 accent-emerald-600"
         />
         <span className="space-y-1">

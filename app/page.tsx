@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getHomeRestaurants, getCurrentUserRole } from "@/lib/data";
 import { dashboardHrefForRole } from "@/lib/auth-routing";
-import { ZBOUN_PRICING } from "@/lib/pricing";
+import { formatPricingSummary } from "@/lib/pricing";
 import { RestaurantDirectory } from "@/components/restaurant-directory";
 import { SiteFooter } from "@/components/site-footer";
 import { DeliveryLocationProvider } from "@/components/delivery-location-provider";
@@ -123,11 +123,7 @@ export default async function HomePage() {
                 </h2>
                 <p className="mt-1 text-sm text-slate-300">
                   Get your own menu page, QR code, and dashboard from{" "}
-                  <span className="font-semibold text-white">
-                    {ZBOUN_PRICING.symbol}
-                    {ZBOUN_PRICING.monthly}/month
-                  </span>
-                  .
+                  <span className="font-semibold text-white">{formatPricingSummary()}</span>.
                 </p>
               </div>
               <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row">

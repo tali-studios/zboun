@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { contractPdfFilename, generateContractPdfBuffer } from "@/lib/contract-pdf";
 import { getCurrentUserRole } from "@/lib/data";
+import { inferSubscriptionInterval } from "@/lib/pricing";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -31,13 +32,18 @@ export async function GET() {
     ? new Date(subscription.next_due_at)
     : new Date(effectiveDate.getTime() + 30 * 24 * 60 * 60 * 1000);
 
+  const billingPrice = subscription?.billing_cycle_price
+    ? Number(subscription.billing_cycle_price)
+    : undefined;
+
   const pdf = await generateContractPdfBuffer({
     restaurantName,
     adminEmail: appUser.email ?? "",
     effectiveDate,
     subscriptionEndDate,
-    monthlyPrice: subscription?.billing_cycle_price
-      ? Number(subscription.billing_cycle_price)
+    monthlyPrice: billingPrice,
+    billingInterval: billingPrice !== undefined
+      ? inferSubscriptionInterval(billingPrice)
       : undefined,
   });
 

@@ -182,7 +182,7 @@ export function ModuleGrid({
         <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
           <p className="text-sm font-semibold text-slate-800">No modules enabled yet</p>
           <p className="mt-1 text-xs text-slate-500">
-            Ask super admin to enable modules for this business type to activate advanced workflows.
+            Ask super admin to enable modules for this business category to activate advanced workflows.
           </p>
         </div>
       )}

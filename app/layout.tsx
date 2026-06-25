@@ -5,7 +5,7 @@ import { SiteJsonLd } from "@/components/site-json-ld";
 import { PwaRegister } from "@/components/pwa-register";
 import { env } from "@/lib/env";
 import { getMetadataBase, getSiteUrl } from "@/lib/site";
-import { ZBOUN_PRICING } from "@/lib/pricing";
+import { formatPricingSummary } from "@/lib/pricing";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({
 });
 
 const siteUrl = getSiteUrl();
-const monthlyPriceLabel = `${ZBOUN_PRICING.symbol}${ZBOUN_PRICING.monthly}/month`;
+const pricingSummary = formatPricingSummary();
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -38,7 +38,7 @@ export const metadata: Metadata = {
     template: "%s | Zboun",
   },
   description:
-    `Browse restaurant digital menus and send clear orders on WhatsApp. For restaurants: menu page, QR codes, flyer tools, and dashboard from ${monthlyPriceLabel} — no commission on orders.`,
+    `Browse restaurant digital menus and send clear orders on WhatsApp. For restaurants: menu page, QR codes, flyer tools, and dashboard from ${pricingSummary} — no commission on orders.`,
   applicationName: "Zboun",
   keywords: [
     "WhatsApp food order",
@@ -59,13 +59,13 @@ export const metadata: Metadata = {
     siteName: "Zboun",
     title: "Zboun — Restaurant menus & WhatsApp orders",
     description:
-      `Browse menus and order on WhatsApp. Restaurant tools: digital menu, QR, dashboard — ${monthlyPriceLabel}.`,
+      `Browse menus and order on WhatsApp. Restaurant tools: digital menu, QR, dashboard — ${pricingSummary}.`,
   },
   twitter: {
     card: "summary_large_image",
     title: "Zboun — Restaurant menus & WhatsApp orders",
     description:
-      `Browse menus and order on WhatsApp. Digital menus for restaurants from ${monthlyPriceLabel}.`,
+      `Browse menus and order on WhatsApp. Digital menus for restaurants from ${pricingSummary}.`,
   },
   robots: {
     index: true,

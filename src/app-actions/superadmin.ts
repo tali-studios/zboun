@@ -17,12 +17,16 @@ import {
   sendRestaurantOnboardingEmail,
   sendSubscriptionRenewalEmail,
 } from "@/lib/subscription-emails";
-import { parseBrowseSectionsFromForm } from "@/lib/browse-sections";
 import {
-  getBusinessTypeLabel,
-  parseBusinessType,
-  supportsHomeBrowseCategory,
+  formatBrowseSectionsLabel,
+  inferBusinessTypeFromBrowseSections,
+  normalizeBrowseSections,
+  parseFullBrowseSelectionFromForm,
+} from "@/lib/browse-sections";
+import {
+  hasCatalogDashboard,
 } from "@/lib/business-types";
+import { parseSubscriptionInterval } from "@/lib/pricing";
 import { toSlug } from "@/lib/slug";
 import { env } from "@/lib/env";
 
@@ -92,24 +96,32 @@ export async function createRestaurantAction(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const phone = String(formData.get("phone") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  const browseSections = parseBrowseSectionsFromForm(formData);
-  const businessType = parseBusinessType(formData.get("business_type"));
-  const showOnHome = supportsHomeBrowseCategory(businessType);
+  const browseSelection = parseFullBrowseSelectionFromForm(formData);
+  const browseSections = normalizeBrowseSections(browseSelection);
   const complimentaryFree = isComplimentaryGrantRequested(formData);
   const complimentaryPeriod = complimentaryFree
     ? parseComplimentaryPeriodFromForm(formData)
     : null;
   const lifetimeFree = complimentaryPeriod?.kind === "lifetime";
+  const subscriptionInterval = complimentaryPeriod
+    ? null
+    : parseSubscriptionInterval(formData.get("subscription_interval"));
 
   if (!name || !phone || !email) {
     redirect("/dashboard/super-admin?error=missing_restaurant_fields");
   }
 
+  if (browseSections.length === 0) {
+    redirect("/dashboard/super-admin?error=missing_browse_categories");
+  }
+
+  const businessType = inferBusinessTypeFromBrowseSections(browseSections);
+  const categoryLabel = formatBrowseSectionsLabel(browseSelection);
+
   try {
     const slug = await getUniqueSlug(name);
     const adminClient = getAdminClient();
     const appUrl = getAppBaseUrl();
-    const businessTypeLabel = getBusinessTypeLabel(businessType);
 
     const { data: restaurantData, error: restaurantError } = await adminClient
       .from("restaurants")
@@ -118,9 +130,9 @@ export async function createRestaurantAction(formData: FormData) {
         phone,
         slug,
         is_active: true,
-        show_on_home: showOnHome,
+        show_on_home: true,
         business_type: businessType,
-        browse_sections: browseSections,
+        browse_sections: browseSelection,
         billing_exempt: lifetimeFree,
       })
       .select("id")
@@ -188,19 +200,24 @@ export async function createRestaurantAction(formData: FormData) {
 
     const subscription = complimentaryPeriod
       ? await createComplimentarySubscription(adminClient, restaurantData.id, complimentaryPeriod)
-      : await createInitialSubscription(adminClient, restaurantData.id);
+      : await createInitialSubscription(
+          adminClient,
+          restaurantData.id,
+          subscriptionInterval ?? "monthly",
+        );
 
     let emailSent = false;
     try {
       await sendRestaurantOnboardingEmail({
         to: email,
         businessName: name,
-        businessTypeLabel,
-        publicUrl: supportsHomeBrowseCategory(businessType) ? `${appUrl}/${slug}` : null,
+        businessTypeLabel: categoryLabel,
+        publicUrl: hasCatalogDashboard(businessType) ? `${appUrl}/${slug}` : null,
         dashboardUrl: `${appUrl}/dashboard/login`,
         initialPassword,
         subscriptionEndsAt: subscription.periodEnd,
         monthlyPrice: subscription.billingPrice,
+        billingInterval: subscriptionInterval ?? undefined,
         lifetimeFree,
         complimentaryLabel: complimentaryPeriod
           ? complimentaryPeriodLabel(complimentaryPeriod)
@@ -229,11 +246,18 @@ export async function updateRestaurantBrowseSectionsAction(formData: FormData) {
   await requireSuperAdmin();
   const id = String(formData.get("id") ?? "").trim();
   if (!id) return;
-  const browseSections = parseBrowseSectionsFromForm(formData);
+  const browseSelection = parseFullBrowseSelectionFromForm(formData);
+  const browseSections = normalizeBrowseSections(browseSelection);
+  if (browseSections.length === 0) return;
+  const businessType = inferBusinessTypeFromBrowseSections(browseSections);
   const supabase = await createServerSupabaseClient();
   await supabase
     .from("restaurants")
-    .update({ browse_sections: browseSections })
+    .update({
+      browse_sections: browseSelection,
+      business_type: businessType,
+      show_on_home: true,
+    })
     .eq("id", id);
   revalidatePath("/dashboard/super-admin");
   revalidatePath("/");
@@ -373,6 +397,7 @@ export async function renewSubscriptionAction(formData: FormData) {
           periodStart: renewal.periodStart,
           periodEnd: renewal.periodEnd,
           monthlyPrice: renewal.billingPrice,
+          billingInterval: "billingInterval" in renewal ? renewal.billingInterval : undefined,
         });
       } catch {
         revalidatePath("/dashboard/super-admin");

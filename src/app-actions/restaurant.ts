@@ -6,7 +6,11 @@ import { redirect } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import { getCurrentUserRole } from "@/lib/data";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { parseBrowseSectionsFromForm } from "@/lib/browse-sections";
+import {
+  inferBusinessTypeFromBrowseSections,
+  normalizeBrowseSections,
+  parseFullBrowseSelectionFromForm,
+} from "@/lib/browse-sections";
 import { parseMenuThemeColor } from "@/lib/menu-theme";
 import {
   MAX_RESTAURANT_DELIVERY_RADIUS_KM,
@@ -683,6 +687,11 @@ export async function updateRestaurantSettingsAction(formData: FormData) {
     .eq("id", user.restaurant_id)
     .maybeSingle();
 
+  const browseSelection = parseFullBrowseSelectionFromForm(formData);
+  const browseSections = normalizeBrowseSections(browseSelection);
+  const businessType =
+    browseSections.length > 0 ? inferBusinessTypeFromBrowseSections(browseSections) : null;
+
   await supabase
     .from("restaurants")
     .update({
@@ -690,7 +699,8 @@ export async function updateRestaurantSettingsAction(formData: FormData) {
       description: String(formData.get("description") ?? "").trim() || null,
       phone: String(formData.get("phone")),
       lbp_rate: Math.round(lbpRate * 100) / 100,
-      browse_sections: parseBrowseSectionsFromForm(formData),
+      browse_sections: browseSelection,
+      ...(businessType ? { business_type: businessType } : {}),
       logo_url: uploadedLogoUrl ?? (currentLogoUrl || null),
       banner_url: uploadedBannerUrl ?? (currentBannerUrl || null),
       location,

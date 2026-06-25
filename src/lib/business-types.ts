@@ -39,12 +39,6 @@ export const ADDON_LABELS: Record<AddonKey, string> = {
 
 export const BUSINESS_TYPE_PRESETS: BusinessTypePreset[] = [
   {
-    key: "restaurant",
-    label: "Restaurant",
-    description: "Dine-in, takeaway, and food menus.",
-    recommendedAddons: ["pos", "inventory", "crm", "loyalty"],
-  },
-  {
     key: "retail_store",
     label: "Shop / Retail",
     description:
@@ -52,9 +46,16 @@ export const BUSINESS_TYPE_PRESETS: BusinessTypePreset[] = [
     recommendedAddons: ["pos", "inventory", "ecommerce", "crm", "loyalty"],
   },
   {
+    key: "restaurant",
+    label: "Food & Restaurants",
+    description:
+      "Restaurants, cafés, cloud kitchens, and any food business with a menu or catalog.",
+    recommendedAddons: ["pos", "inventory", "crm", "loyalty", "ecommerce", "fleet"],
+  },
+  {
     key: "cloud_kitchen",
-    label: "Cloud Kitchen",
-    description: "Delivery-first food operations and high order throughput.",
+    label: "Food & Restaurants",
+    description: "Delivery-first food operations (legacy category — same as Food & Restaurants).",
     recommendedAddons: ["pos", "inventory", "ecommerce", "fleet", "crm"],
   },
   {
@@ -71,10 +72,24 @@ export const BUSINESS_TYPE_PRESETS: BusinessTypePreset[] = [
   },
 ];
 
-export const DEFAULT_BUSINESS_TYPE: BusinessTypeKey = "restaurant";
+/** @deprecated Use home page categories (`browse_sections`) instead of a separate business type picker. */
+export const BUSINESS_CATEGORY_OPTIONS: BusinessTypePreset[] = BUSINESS_TYPE_PRESETS.filter(
+  (preset) => preset.key === "retail_store" || preset.key === "restaurant",
+);
+
+export const DEFAULT_BUSINESS_TYPE: BusinessTypeKey = "retail_store";
 
 /** Business types with a public catalog on the home page and browse categories. */
 const HOME_BROWSE_TYPES: BusinessTypeKey[] = ["restaurant", "cloud_kitchen", "retail_store"];
+
+export function isLegacySpecialtyBusiness(type: BusinessTypeKey): boolean {
+  return type === "hotel_resort" || type === "fitness_club";
+}
+
+/** Standard businesses get menu, QR, and home listing (not legacy hotel/gym). */
+export function hasCatalogDashboard(type: BusinessTypeKey): boolean {
+  return !isLegacySpecialtyBusiness(type);
+}
 
 const BUSINESS_TYPE_KEY_SET = new Set<BusinessTypeKey>(
   BUSINESS_TYPE_PRESETS.map((preset) => preset.key),
@@ -91,7 +106,7 @@ export function addonsForBusinessType(type: BusinessTypeKey): AddonKey[] {
 }
 
 export function supportsHomeBrowseCategory(type: BusinessTypeKey): boolean {
-  return HOME_BROWSE_TYPES.includes(type);
+  return hasCatalogDashboard(type);
 }
 
 export function getBusinessTypeLabel(type: BusinessTypeKey): string {

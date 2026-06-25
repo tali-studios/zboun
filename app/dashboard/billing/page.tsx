@@ -23,7 +23,9 @@ export default async function RestaurantBillingPage() {
     supabase.from("restaurants").select("name, is_active, billing_exempt").eq("id", restaurantId).single(),
     supabase
       .from("restaurant_subscriptions")
-      .select("status, next_due_at, billing_cycle_price, start_at, ended_at, created_at")
+      .select(
+        "status, next_due_at, billing_cycle_price, start_at, ended_at, created_at, subscription_plans(interval)",
+      )
       .eq("restaurant_id", restaurantId)
       .order("created_at", { ascending: false })
       .limit(1)

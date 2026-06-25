@@ -1,18 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import dynamic from "next/dynamic";
 import { MapPin, Loader2, Map, ChevronDown } from "lucide-react";
 import { BrowseSectionsCheckboxes } from "@/components/browse-sections-checkboxes";
 import { ComplimentaryBillingFields } from "@/components/complimentary-billing-fields";
+import { SubscriptionPlanFields } from "@/components/subscription-plan-fields";
 import { createRestaurantAction } from "@/app-actions/superadmin";
-import { defaultBrowseSectionsForBusinessType, defaultBrowseSubTagsForBusinessType } from "@/lib/browse-sections";
-import {
-  BUSINESS_TYPE_PRESETS,
-  DEFAULT_BUSINESS_TYPE,
-  supportsHomeBrowseCategory,
-  type BusinessTypeKey,
-} from "@/lib/business-types";
+import type { BrowseSection } from "@/lib/browse-sections";
 
 const GoogleMapPicker = dynamic(
   () => import("@/components/google-map-picker").then((m) => m.GoogleMapPicker),
@@ -27,23 +22,16 @@ const GoogleMapPicker = dynamic(
 );
 
 const BEIRUT = { lat: 33.8938, lng: 35.5018 };
+const DEFAULT_CATEGORIES: BrowseSection[] = ["General Shops"];
 
 export function SuperAdminCreateRestaurantForm() {
-  const [businessType, setBusinessType] = useState<BusinessTypeKey>(DEFAULT_BUSINESS_TYPE);
-  const activePreset = useMemo(
-    () => BUSINESS_TYPE_PRESETS.find((preset) => preset.key === businessType) ?? BUSINESS_TYPE_PRESETS[0],
-    [businessType],
-  );
-  const showBrowse = supportsHomeBrowseCategory(businessType);
-  const defaultBrowseSections = defaultBrowseSectionsForBusinessType(businessType);
-  const defaultBrowseSubTags = defaultBrowseSubTagsForBusinessType(businessType);
-
   const [showLocationSection, setShowLocationSection] = useState(false);
   const [showMap, setShowMap] = useState(false);
   const [initLat, setInitLat] = useState<number>(BEIRUT.lat);
   const [initLng, setInitLng] = useState<number>(BEIRUT.lng);
   const [initAddress, setInitAddress] = useState("");
   const [hasPin, setHasPin] = useState(false);
+  const [complimentaryFree, setComplimentaryFree] = useState(false);
 
   return (
     <form action={createRestaurantAction} className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
@@ -52,39 +40,13 @@ export function SuperAdminCreateRestaurantForm() {
       <input name="phone" type="tel" required placeholder="WhatsApp number" className="ui-input" />
 
       <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 md:col-span-2 xl:col-span-4">
-        <label className="space-y-1">
-          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Business type</span>
-          <select
-            name="business_type"
-            value={businessType}
-            onChange={(event) => setBusinessType(event.target.value as BusinessTypeKey)}
-            className="ui-select"
-          >
-            {BUSINESS_TYPE_PRESETS.map((preset) => (
-              <option key={preset.key} value={preset.key}>
-                {preset.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <p className="mt-2 text-xs text-slate-500">{activePreset.description}</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Business categories</p>
+        <p className="mt-1 text-xs text-slate-500">
+          Pick where this business appears on the home page — e.g. Food &amp; Restaurants, Vape &amp;
+          Tobacco, Gas &amp; Fuel. For each category, you can add optional tags.
+        </p>
+        <BrowseSectionsCheckboxes selected={DEFAULT_CATEGORIES} selectedSubs={[]} />
       </div>
-
-      {showBrowse ? (
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 md:col-span-2 xl:col-span-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Home page categories</p>
-          <p className="mt-1 text-xs text-slate-500">
-            Pick where this business appears on the home page — e.g. Food & Restaurants, Vape & Tobacco, Gas & Fuel.
-          </p>
-          <BrowseSectionsCheckboxes
-            key={businessType}
-            selected={defaultBrowseSections}
-            selectedSubs={defaultBrowseSubTags}
-          />
-        </div>
-      ) : (
-        <input type="hidden" name="browse_sections" value="General Shops" />
-      )}
 
       {/* Optional first location */}
       <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 md:col-span-2 xl:col-span-4">
@@ -162,7 +124,11 @@ export function SuperAdminCreateRestaurantForm() {
       </div>
 
       <div className="md:col-span-2 xl:col-span-4">
-        <ComplimentaryBillingFields />
+        <SubscriptionPlanFields disabled={complimentaryFree} />
+      </div>
+
+      <div className="md:col-span-2 xl:col-span-4">
+        <ComplimentaryBillingFields onEnabledChange={setComplimentaryFree} />
       </div>
 
       <button className="btn btn-success rounded-xl">Create business</button>

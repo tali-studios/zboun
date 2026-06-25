@@ -488,6 +488,11 @@ export default async function SuperAdminPage({ searchParams }: Props) {
             Restaurant admin password updated successfully.
           </p>
         )}
+        {error === "missing_browse_categories" && (
+          <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700">
+            Pick at least one business category when creating a business.
+          </p>
+        )}
         {error === "password_too_short" && (
           <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700">
             Password must be at least 8 characters.
@@ -513,19 +518,12 @@ export default async function SuperAdminPage({ searchParams }: Props) {
           error !== "password_mismatch" &&
           error !== "missing_password" &&
           error !== "no_restaurant_admin" &&
-          error !== "missing_restaurant_id" && (
+          error !== "missing_restaurant_id" &&
+          error !== "missing_browse_categories" && (
           <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700">
             {decodeURIComponent(error)}
           </p>
         )}
-
-        <section className="panel p-4 md:p-5">
-          <h2 className="panel-title">Generate contract</h2>
-          <p className="mt-1 text-sm text-slate-600">
-            Fill in the agreement details and download a signed-ready PDF for any restaurant.
-          </p>
-          <SuperAdminContractGenerator restaurants={contractPresets} />
-        </section>
 
         <section className="panel p-4 md:p-5">
           <h2 className="panel-title">Create business + admin invite</h2>
@@ -548,6 +546,14 @@ export default async function SuperAdminPage({ searchParams }: Props) {
           invoices={invoices ?? []}
           payments={payments ?? []}
         />
+
+        <section className="panel p-4 md:p-5">
+          <h2 className="panel-title">Generate contract</h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Fill in the agreement details and download a signed-ready PDF for any restaurant.
+          </p>
+          <SuperAdminContractGenerator restaurants={contractPresets} />
+        </section>
       </div>
     </main>
   );

@@ -29,7 +29,7 @@ const ALL_ADDONS: { key: string; label: string; description: string }[] = [
   { key: "club", label: "Club Management", description: "Membership plans, check-ins, and subscription invoicing." },
 ];
 import { BROWSE_SECTION_OPTIONS, formatBrowseSectionsLabel, getBrowseSubTags, getParentSectionForSubFilter, getRawBrowseSectionValues, getSubFiltersForSection, normalizeBrowseSections, type BrowseSection } from "@/lib/browse-sections";
-import { supportsHomeBrowseCategory, type BusinessTypeKey } from "@/lib/business-types";
+import { hasCatalogDashboard, type BusinessTypeKey } from "@/lib/business-types";
 import {
   formatNextDueLine,
   formatSubscriptionStatus,
@@ -124,7 +124,7 @@ const TABLE_DATA_COLUMNS = [
   { label: "Outstanding", header: "bg-amber-200/90 text-amber-900", cell: "bg-amber-50/80" },
   { label: "Status", header: "bg-violet-200/90 text-violet-900", cell: "bg-violet-50/80" },
   { label: "Home", header: "bg-indigo-200/90 text-indigo-900", cell: "bg-indigo-50/80" },
-  { label: "Home category", header: "bg-fuchsia-200/90 text-fuchsia-900", cell: "bg-fuchsia-50/80" },
+  { label: "Categories", header: "bg-fuchsia-200/90 text-fuchsia-900", cell: "bg-fuchsia-50/80" },
   { label: "Created", header: "bg-stone-200/90 text-stone-800", cell: "bg-stone-50/90" },
 ] as const;
 
@@ -230,8 +230,8 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
   }, [q, restaurants, status]);
 
   function hasHomeCategory(restaurant: RestaurantRow) {
-    return supportsHomeBrowseCategory(
-      (restaurant.business_type ?? "restaurant") as BusinessTypeKey,
+    return hasCatalogDashboard(
+      (restaurant.business_type ?? "retail_store") as BusinessTypeKey,
     );
   }
 
@@ -564,7 +564,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                     {restaurant.show_on_home ? "Visible on home" : "Hidden on home"}
                   </span>
                   <span className="rounded-full bg-slate-100 px-2 py-1">
-                    Home categories: {formatBrowseSectionsLabel(restaurant.browse_sections)}
+                    Categories: {formatBrowseSectionsLabel(restaurant.browse_sections)}
                   </span>
                 </>
               ) : (

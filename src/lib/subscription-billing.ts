@@ -4,7 +4,13 @@ import {
   complimentaryEndDate,
   complimentaryNotes,
 } from "@/lib/complimentary-billing";
-import { ZBOUN_PRICING } from "@/lib/pricing";
+import {
+  inferSubscriptionInterval,
+  subscriptionPeriodMonths,
+  subscriptionPrice,
+  type SubscriptionInterval,
+  ZBOUN_PRICING,
+} from "@/lib/pricing";
 
 function toPeriodDate(date: Date) {
   return date.toISOString().slice(0, 10);
@@ -87,51 +93,85 @@ export function formatDateLong(date: Date) {
   });
 }
 
-export async function getOrCreateMonthlyPlanId(supabase: SupabaseClient) {
+export async function getOrCreatePlanId(
+  supabase: SupabaseClient,
+  interval: SubscriptionInterval = "monthly",
+) {
+  const price = subscriptionPrice(interval);
+  const name = interval === "yearly" ? "Yearly" : "Monthly";
+
   const { data: existing } = await supabase
     .from("subscription_plans")
     .select("id, price")
-    .eq("interval", "monthly")
+    .eq("interval", interval)
     .eq("is_active", true)
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
 
   if (existing?.id) {
-    const price = Number(existing.price);
-    if (price !== ZBOUN_PRICING.monthly) {
+    const storedPrice = Number(existing.price);
+    if (storedPrice !== price) {
       await supabase
         .from("subscription_plans")
-        .update({ price: ZBOUN_PRICING.monthly })
+        .update({ price })
         .eq("id", existing.id);
     }
-    return { planId: existing.id, price: ZBOUN_PRICING.monthly };
+    return { planId: existing.id, price };
   }
 
   const { data: created, error } = await supabase
     .from("subscription_plans")
     .insert({
-      name: "Monthly",
-      interval: "monthly",
-      price: ZBOUN_PRICING.monthly,
+      name,
+      interval,
+      price,
       is_active: true,
     })
     .select("id, price")
     .single();
 
   if (error || !created) {
-    throw new Error(error?.message ?? "Could not create monthly subscription plan.");
+    throw new Error(error?.message ?? `Could not create ${interval} subscription plan.`);
   }
   return { planId: created.id, price: Number(created.price) };
+}
+
+export async function getOrCreateMonthlyPlanId(supabase: SupabaseClient) {
+  return getOrCreatePlanId(supabase, "monthly");
+}
+
+export async function getOrCreateYearlyPlanId(supabase: SupabaseClient) {
+  return getOrCreatePlanId(supabase, "yearly");
+}
+
+async function getPlanIntervalForSubscription(
+  supabase: SupabaseClient,
+  subscription: { plan_id: string | null; billing_cycle_price: number | null },
+): Promise<SubscriptionInterval> {
+  if (subscription.plan_id) {
+    const { data } = await supabase
+      .from("subscription_plans")
+      .select("interval")
+      .eq("id", subscription.plan_id)
+      .maybeSingle();
+
+    if (data?.interval === "yearly") return "yearly";
+    if (data?.interval === "monthly") return "monthly";
+  }
+
+  return inferSubscriptionInterval(subscription.billing_cycle_price);
 }
 
 export async function createInitialSubscription(
   supabase: SupabaseClient,
   restaurantId: string,
+  interval: SubscriptionInterval = "monthly",
 ) {
-  const { planId, price } = await getOrCreateMonthlyPlanId(supabase);
+  const { planId, price } = await getOrCreatePlanId(supabase, interval);
+  const periodMonths = subscriptionPeriodMonths(interval);
   const startAt = new Date();
-  const nextDueAt = addMonths(startAt, SUBSCRIPTION_PERIOD_MONTHS);
+  const nextDueAt = addMonths(startAt, periodMonths);
 
   const { data, error } = await supabase
     .from("restaurant_subscriptions")
@@ -169,6 +209,7 @@ export async function createInitialSubscription(
     billingPrice,
     periodStart: startAt,
     periodEnd: nextDueAt,
+    billingInterval: interval,
   };
 }
 
@@ -330,7 +371,7 @@ export async function getLatestSubscription(
 ) {
   const { data } = await supabase
     .from("restaurant_subscriptions")
-    .select("id, status, next_due_at, billing_cycle_price, start_at")
+    .select("id, status, next_due_at, billing_cycle_price, start_at, plan_id")
     .eq("restaurant_id", restaurantId)
     .order("created_at", { ascending: false })
     .limit(1)
@@ -384,7 +425,12 @@ export async function renewRestaurantSubscription(
   const currentDue = existing.next_due_at ? new Date(existing.next_due_at) : now;
   const base = currentDue.getTime() > now.getTime() ? currentDue : now;
   const periodStart = new Date(base);
-  const nextDueAt = addMonths(periodStart, SUBSCRIPTION_PERIOD_MONTHS);
+  const interval = await getPlanIntervalForSubscription(supabase, {
+    plan_id: existing.plan_id as string | null,
+    billing_cycle_price: existing.billing_cycle_price,
+  });
+  const periodMonths = subscriptionPeriodMonths(interval);
+  const nextDueAt = addMonths(periodStart, periodMonths);
 
   const { error } = await supabase
     .from("restaurant_subscriptions")
@@ -400,7 +446,9 @@ export async function renewRestaurantSubscription(
     throw new Error(error.message);
   }
 
-  const billingPrice = Number(existing.billing_cycle_price ?? ZBOUN_PRICING.monthly);
+  const billingPrice = Number(
+    existing.billing_cycle_price ?? subscriptionPrice(interval),
+  );
 
   await createSubscriptionPeriodInvoice(supabase, {
     restaurantId,
@@ -417,6 +465,7 @@ export async function renewRestaurantSubscription(
     billingPrice,
     periodStart,
     periodEnd: nextDueAt,
+    billingInterval: interval,
     renewed: true as const,
   };
 }

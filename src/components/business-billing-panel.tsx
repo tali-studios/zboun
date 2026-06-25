@@ -7,6 +7,12 @@ import {
   subscriptionStatusBadgeClass,
 } from "@/lib/subscription-display";
 import { hasComplimentaryAccess } from "@/lib/complimentary-billing";
+import {
+  billingCycleLabel,
+  inferSubscriptionInterval,
+  subscriptionPlanLabel,
+  type SubscriptionInterval,
+} from "@/lib/pricing";
 import { formatDateLong } from "@/lib/subscription-billing";
 
 type SubscriptionInfo = {
@@ -15,6 +21,7 @@ type SubscriptionInfo = {
   billing_cycle_price: number;
   start_at: string;
   ended_at: string | null;
+  plan_interval?: SubscriptionInterval | null;
 };
 
 type InvoiceRow = {
@@ -58,6 +65,8 @@ export function BusinessBillingPanel({
     ? !complimentaryAccess &&
       isSubscriptionPastDue(subscription.next_due_at, subscription.status)
     : false;
+  const billingInterval =
+    subscription?.plan_interval ?? inferSubscriptionInterval(subscription?.billing_cycle_price);
 
   return (
     <div className="space-y-6">
@@ -144,9 +153,15 @@ export function BusinessBillingPanel({
           ) : (
             <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
               <div>
-                <dt className="text-slate-500">Monthly fee</dt>
+                <dt className="text-slate-500">Plan</dt>
                 <dd className="font-semibold text-slate-900">
-                  USD {Number(subscription.billing_cycle_price).toFixed(2)}
+                  {subscriptionPlanLabel(billingInterval)}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-slate-500">Subscription fee</dt>
+                <dd className="font-semibold text-slate-900">
+                  {billingCycleLabel(subscription.billing_cycle_price, billingInterval)}
                 </dd>
               </div>
               <div>

@@ -18,7 +18,7 @@ import {
 import { SiteFooter } from "@/components/site-footer";
 import { BackToTopButton } from "@/components/back-to-top-button";
 import { BackButton } from "@/components/back-button";
-import { ZBOUN_PRICING } from "@/lib/pricing";
+import { formatPricingSummary } from "@/lib/pricing";
 
 const restaurantBenefits = [
   "Keep 100% of every order — flat subscription, zero commission",
@@ -306,8 +306,7 @@ export default function AboutPage() {
 
           <div className="mx-auto mt-10 max-w-xl rounded-2xl border border-violet-100 bg-violet-50/50 p-6 text-center">
             <p className="text-sm font-semibold text-slate-800">
-              From {ZBOUN_PRICING.symbol}
-              {ZBOUN_PRICING.monthly}/month — everything included, no commission on orders.
+              From {formatPricingSummary()} — everything included, no commission on orders.
             </p>
             <Link
               href="/for-restaurants"

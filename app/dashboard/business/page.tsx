@@ -17,7 +17,8 @@ import { ImageUploadField } from "@/components/image-upload-field";
 import { IngredientListField } from "@/components/ingredient-list-field";
 import { normalizeBrowseSections, getBrowseSubTags, getRawBrowseSectionValues } from "@/lib/browse-sections";
 import { BrowseSectionsCheckboxes } from "@/components/browse-sections-checkboxes";
-import { getBusinessTypeLabel, parseBusinessType, supportsHomeBrowseCategory } from "@/lib/business-types";
+import { getBusinessTypeLabel, hasCatalogDashboard, parseBusinessType } from "@/lib/business-types";
+import { formatBrowseSectionsLabel } from "@/lib/browse-sections";
 import { RestaurantHoursPanel } from "@/components/restaurant-hours-panel";
 import { RestaurantDashboardToast } from "@/components/restaurant-dashboard-toast";
 import { parseOpeningHours } from "@/lib/opening-hours";
@@ -392,9 +393,9 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const menuUrl = `${appUrl.replace(/\/+$/, "")}/${restaurant?.slug ?? ""}`;
-  const businessType = parseBusinessType(restaurant?.business_type ?? "restaurant");
-  const businessTypeLabel = getBusinessTypeLabel(businessType);
-  const isMenuBusiness = supportsHomeBrowseCategory(businessType);
+  const businessType = parseBusinessType(restaurant?.business_type ?? "retail_store");
+  const categoryLabel = formatBrowseSectionsLabel(restaurant?.browse_sections);
+  const isMenuBusiness = hasCatalogDashboard(businessType);
   const categoryNameById = new Map((categories ?? []).map((category) => [category.id, category.name]));
   const normalizedQuery = (q ?? "").trim().toLowerCase();
   const selectedCategory = (category ?? "").trim();
@@ -436,7 +437,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
         <RestaurantDashboardToast toast={toast} sectionName={sectionName} itemName={itemName} brandName={brandName} />
         <BusinessCategoryDashboard
           businessType={businessType}
-          businessTypeLabel={businessTypeLabel}
+          businessTypeLabel={categoryLabel}
           restaurantName={restaurant?.name ?? ""}
           profileCompleteness={[restaurant?.description, restaurant?.location, restaurant?.phone].filter(Boolean).length}
           clubActiveMembers={clubActiveMembers}
@@ -479,7 +480,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
               <p className="text-xs font-bold uppercase tracking-widest text-violet-200">Restaurant admin</p>
               <h1 className="mt-1 text-xl font-bold md:text-2xl">{restaurant?.name}</h1>
               <p className="mt-0.5 text-xs text-violet-200 md:text-sm">
-                {businessTypeLabel}
+                {categoryLabel}
                 {isMenuBusiness ? (
                   <>
                     {" "}
@@ -605,9 +606,9 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                 <p className="text-xs text-slate-500">Exchange rate used to display LBP conversions.</p>
               </label>
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 md:col-span-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Home page categories</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Business categories</p>
                 <p className="mt-1 text-xs text-slate-500">
-                  Pick home page categories and optional sub-tags (Breakfast, Water Delivery, Vape Devices, etc.).
+                  Where customers find you on the home page. Pick categories and optional tags.
                 </p>
                 <BrowseSectionsCheckboxes
                   selected={[...browseSectionsForForm]}
@@ -667,7 +668,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
           <section className="panel p-5">
             <h2 className="panel-title">Business profile</h2>
             <p className="mt-1 text-sm text-slate-600">
-              This dashboard is tailored for {businessTypeLabel}. Menu and home-browse tools are hidden
+              This dashboard is tailored for {getBusinessTypeLabel(businessType)}. Menu and home-browse tools are hidden
               for non-restaurant businesses.
             </p>
             <form action={updateRestaurantSettingsAction} className="mt-4 grid gap-3 md:grid-cols-2">

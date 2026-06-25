@@ -164,14 +164,32 @@ export function normalizeBrowseSections(input: unknown): BrowseSection[] {
   const normalized = values
     .map((value) => toBrowseSection(String(value ?? "")))
     .filter((value): value is BrowseSection => value !== null);
+
+  for (const value of values) {
+    const trimmed = String(value ?? "").trim();
+    if (!trimmed) continue;
+    const parent =
+      getParentSectionForSubFilter(trimmed) ?? LEGACY_BROWSE_ALIASES[trimmed] ?? null;
+    if (parent && !normalized.includes(parent)) {
+      normalized.push(parent);
+    }
+  }
+
   return [...new Set(normalized)];
 }
 
+export function parseFullBrowseSelectionFromForm(formData: FormData): string[] {
+  const raw = formData
+    .getAll("browse_sections")
+    .map((value) => String(value ?? "").trim())
+    .filter(Boolean);
+  if (raw.length > 0) return [...new Set(raw)];
+  return ["General Shops"];
+}
+
 export function parseBrowseSectionsFromForm(formData: FormData): BrowseSection[] {
-  const multi = normalizeBrowseSections(
-    formData.getAll("browse_sections").map((value) => String(value ?? "").trim()),
-  );
-  if (multi.length > 0) return multi;
+  const topLevel = normalizeBrowseSections(parseFullBrowseSelectionFromForm(formData));
+  if (topLevel.length > 0) return topLevel;
 
   const single = String(formData.get("browse_section") ?? "").trim();
   if (single) {
@@ -179,11 +197,11 @@ export function parseBrowseSectionsFromForm(formData: FormData): BrowseSection[]
     if (normalized.length > 0) return normalized;
   }
 
-  return ["Food & Restaurants"];
+  return ["General Shops"];
 }
 
 export function parseBrowseSectionFromForm(formData: FormData): BrowseSection {
-  return parseBrowseSectionsFromForm(formData)[0] ?? "Food & Restaurants";
+  return parseBrowseSectionsFromForm(formData)[0] ?? "General Shops";
 }
 
 export function formatBrowseSectionsLabel(sections: unknown): string {
@@ -191,7 +209,14 @@ export function formatBrowseSectionsLabel(sections: unknown): string {
   const topLevel = normalizeBrowseSections(raw);
   const subs = getBrowseSubTags(raw);
   const parts = [...topLevel, ...subs];
-  return parts.length > 0 ? parts.join(", ") : "Food & Restaurants";
+  return parts.length > 0 ? parts.join(", ") : "General Shops";
+}
+
+/** Map home page categories to internal dashboard type (legacy hotel/gym unchanged). */
+export function inferBusinessTypeFromBrowseSections(
+  sections: BrowseSection[],
+): "restaurant" | "retail_store" {
+  return sections.includes("Food & Restaurants") ? "restaurant" : "retail_store";
 }
 
 export function defaultBrowseSectionsForBusinessType(

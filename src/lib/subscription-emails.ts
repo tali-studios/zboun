@@ -4,7 +4,12 @@ import {
   generateContractPdfBuffer,
 } from "@/lib/contract-pdf";
 import { formatDateLong } from "@/lib/subscription-billing";
-import { ZBOUN_PRICING } from "@/lib/pricing";
+import {
+  billingCycleLabel,
+  inferSubscriptionInterval,
+  type SubscriptionInterval,
+  ZBOUN_PRICING,
+} from "@/lib/pricing";
 import { ZBOUN_OPS_EMAIL } from "@/lib/zboun-contact";
 
 function emailShell(title: string, bodyHtml: string) {
@@ -39,6 +44,7 @@ export async function sendRestaurantOnboardingEmail(params: {
   initialPassword: string;
   subscriptionEndsAt: Date;
   monthlyPrice: number;
+  billingInterval?: SubscriptionInterval;
   lifetimeFree?: boolean;
   complimentaryLabel?: string;
 }) {
@@ -46,11 +52,13 @@ export async function sendRestaurantOnboardingEmail(params: {
 
   const endLabel = formatDateLong(params.subscriptionEndsAt);
   const price = params.monthlyPrice.toFixed(2);
+  const interval = params.billingInterval ?? inferSubscriptionInterval(params.monthlyPrice);
+  const priceLabel = billingCycleLabel(params.monthlyPrice, interval);
   const subscriptionLine = params.lifetimeFree
     ? "Account type: Lifetime complimentary — no monthly billing."
     : params.complimentaryLabel && params.monthlyPrice === 0
       ? `Account type: Complimentary ${params.complimentaryLabel.toLowerCase()} — free until ${endLabel}.`
-      : `Subscription: Your first billing period is active until ${endLabel} (USD ${price}/month).`;
+      : `Subscription: Your first billing period is active until ${endLabel} (${priceLabel}).`;
 
   const text = [
     `Hello,`,
@@ -81,7 +89,7 @@ export async function sendRestaurantOnboardingEmail(params: {
             ? "<strong>Lifetime complimentary</strong><br>No monthly billing or renewal required."
             : params.complimentaryLabel && params.monthlyPrice === 0
               ? `<strong>Complimentary ${params.complimentaryLabel}</strong><br>Free until <strong>${endLabel}</strong>.`
-              : `Active until <strong>${endLabel}</strong><br>Plan: USD ${price} / month`
+              : `Active until <strong>${endLabel}</strong><br>Plan: ${priceLabel}`
         }
       </p>
       ${params.publicUrl ? `<p><strong>Public menu:</strong> <a href="${params.publicUrl}">${params.publicUrl}</a></p>` : ""}
@@ -99,6 +107,7 @@ export async function sendRestaurantOnboardingEmail(params: {
     effectiveDate,
     subscriptionEndDate: params.subscriptionEndsAt,
     monthlyPrice: params.monthlyPrice,
+    billingInterval: interval,
   });
   const filename = contractPdfFilename(params.businessName);
 
@@ -132,6 +141,7 @@ export async function sendSubscriptionRenewalEmail(params: {
   periodStart: Date;
   periodEnd: Date;
   monthlyPrice: number;
+  billingInterval?: SubscriptionInterval;
 }) {
   if (!isSmtpConfigured()) {
     throw new Error("SMTP is not configured.");
@@ -139,7 +149,8 @@ export async function sendSubscriptionRenewalEmail(params: {
 
   const startLabel = formatDateLong(params.periodStart);
   const endLabel = formatDateLong(params.periodEnd);
-  const price = params.monthlyPrice.toFixed(2);
+  const interval = params.billingInterval ?? inferSubscriptionInterval(params.monthlyPrice);
+  const priceLabel = billingCycleLabel(params.monthlyPrice, interval);
   const effectiveDate = params.periodStart;
 
   const pdf = await generateContractPdfBuffer({
@@ -148,6 +159,7 @@ export async function sendSubscriptionRenewalEmail(params: {
     effectiveDate,
     subscriptionEndDate: params.periodEnd,
     monthlyPrice: params.monthlyPrice,
+    billingInterval: interval,
   });
 
   const filename = contractPdfFilename(params.restaurantName);
@@ -158,7 +170,7 @@ export async function sendSubscriptionRenewalEmail(params: {
     `Your Zboun subscription for "${params.restaurantName}" has been renewed.`,
     ``,
     `Period: ${startLabel} through ${endLabel}`,
-    `Monthly fee: USD ${price}`,
+    `Subscription fee: ${priceLabel}`,
     ``,
     `Attached is your Restaurant Platform Service Agreement (PDF) for your records.`,
     ``,
@@ -175,7 +187,7 @@ export async function sendSubscriptionRenewalEmail(params: {
       <p style="margin:20px 0;padding:16px;background:#f4f4f5;border-radius:8px;">
         <strong>Current period</strong><br>
         ${startLabel} — ${endLabel}<br>
-        Monthly fee: USD ${price}
+        Subscription fee: ${priceLabel}
       </p>
       <p>The attached <strong>Restaurant Platform Service Agreement (PDF)</strong> is provided for your records. Please review it and keep a signed copy if required by your business.</p>
       <p>Thank you for continuing with Zboun.</p>
@@ -210,7 +222,8 @@ export async function sendSubscriptionExpiryReminderEmail(params: {
 
   const days = params.daysBefore;
   const dueLabel = formatDateLong(params.dueAt);
-  const price = params.monthlyPrice.toFixed(2);
+  const interval = inferSubscriptionInterval(params.monthlyPrice);
+  const priceLabel = billingCycleLabel(params.monthlyPrice, interval);
   const ops = getOpsEmail();
   const dayWord = days === 1 ? "1 day" : `${days} days`;
 
@@ -220,7 +233,7 @@ export async function sendSubscriptionExpiryReminderEmail(params: {
     `Restaurant: ${params.restaurantName}`,
     `Administrator: ${params.adminEmail}`,
     `Subscription ends: ${dueLabel}`,
-    `Monthly fee: USD ${price}`,
+    `Subscription fee: ${priceLabel}`,
     ``,
     `This subscription will end in ${dayWord} unless renewed. Contact Zboun to renew your contract before access is deactivated.`,
     ``,
@@ -235,7 +248,7 @@ export async function sendSubscriptionExpiryReminderEmail(params: {
         <strong>${params.restaurantName}</strong><br>
         Admin: ${params.adminEmail}<br>
         Ends: <strong>${dueLabel}</strong><br>
-        Plan: USD ${price} / month
+        Plan: ${priceLabel}
       </p>
       <p>Please renew before the end date to avoid automatic deactivation of your account and public menu.</p>
     `,
@@ -260,7 +273,10 @@ export async function sendSubscriptionDeactivatedEmail(params: {
   }
 
   const expiredLabel = formatDateLong(params.expiredAt);
-  const price = params.monthlyPrice.toFixed(2);
+  const priceLabel = billingCycleLabel(
+    params.monthlyPrice,
+    inferSubscriptionInterval(params.monthlyPrice),
+  );
   const ops = getOpsEmail();
   const contact = ops;
 
@@ -276,7 +292,7 @@ export async function sendSubscriptionDeactivatedEmail(params: {
     `Your public menu is offline and dashboard access is suspended until your subscription is renewed.`,
     ``,
     `To re-activate your account, renew your service agreement with Zboun: ${contact}`,
-    `Monthly fee: USD ${price}`,
+    `Subscription fee: ${priceLabel}`,
     ``,
     `— Zboun Team`,
   ].join("\n");
@@ -292,7 +308,7 @@ export async function sendSubscriptionDeactivatedEmail(params: {
         • Dashboard access is suspended<br>
         • Your data is retained until you renew
       </p>
-      <p><strong>To re-activate:</strong> contact Zboun to renew your service agreement and subscription (USD ${price} / month). After renewal is processed, your account and menu will be restored.</p>
+      <p><strong>To re-activate:</strong> contact Zboun to renew your service agreement and subscription (${priceLabel}). After renewal is processed, your account and menu will be restored.</p>
       <p>Email: <a href="mailto:${contact}">${contact}</a></p>
     `,
   );

@@ -3,7 +3,7 @@ import Image from "next/image";
 import { SiteFooter } from "@/components/site-footer";
 import { BackToTopButton } from "@/components/back-to-top-button";
 import { BackButton } from "@/components/back-button";
-import { ZBOUN_PRICING } from "@/lib/pricing";
+import { ZBOUN_PRICING, formatPricingSummary, yearlySavings } from "@/lib/pricing";
 
 const steps = [
   {
@@ -95,13 +95,12 @@ export default function ForRestaurantsPage() {
             <p className="text-[11px] font-bold uppercase tracking-widest text-violet-600">Pricing</p>
             <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">Simple, flat pricing</h2>
             <p className="mt-2 text-sm text-slate-500">
-              One plan. Includes everything. No hidden fees.
+              Two simple plans. Includes everything. No hidden fees.
             </p>
           </div>
 
-          <div className="mx-auto mt-8 max-w-md">
+          <div className="mx-auto mt-8 grid max-w-3xl gap-6 md:grid-cols-2">
             <article className="relative overflow-hidden rounded-3xl border border-violet-100 bg-white p-7 shadow-[0_12px_40px_rgba(120,84,255,0.12)] md:p-8">
-              {/* Top accent */}
               <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-violet-600 to-fuchsia-600 rounded-t-3xl" />
 
               <p className="text-[11px] font-bold uppercase tracking-widest text-violet-600">Monthly plan</p>
@@ -122,7 +121,51 @@ export default function ForRestaurantsPage() {
                 ))}
               </ul>
 
-              {/* Add-on */}
+              <Link
+                href="/contact"
+                className="mt-6 block w-full rounded-2xl border border-violet-200 bg-violet-50 py-3.5 text-center text-sm font-bold text-violet-800 transition hover:border-violet-300 hover:bg-violet-100"
+              >
+                Get started — monthly
+              </Link>
+            </article>
+
+            <article className="relative overflow-hidden rounded-3xl border-2 border-violet-300 bg-white p-7 shadow-[0_12px_40px_rgba(120,84,255,0.16)] md:p-8">
+              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-fuchsia-600 to-violet-600 rounded-t-3xl" />
+              <span className="absolute right-5 top-5 rounded-full bg-fuchsia-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-fuchsia-700">
+                Best value
+              </span>
+
+              <p className="text-[11px] font-bold uppercase tracking-widest text-violet-600">Yearly plan</p>
+              <div className="mt-3 flex items-baseline gap-1">
+                <span className="text-5xl font-bold tracking-tight text-slate-900">
+                  {ZBOUN_PRICING.symbol}{ZBOUN_PRICING.yearly}
+                </span>
+                <span className="text-lg text-slate-400">/yr</span>
+              </div>
+              <p className="mt-1.5 text-sm text-slate-500">
+                Save {ZBOUN_PRICING.symbol}{yearlySavings()} vs paying monthly for 12 months.
+              </p>
+
+              <ul className="mt-6 space-y-2.5">
+                {includes.map((item) => (
+                  <li key={`yearly-${item}`} className="flex items-start gap-2.5 text-sm text-slate-700">
+                    <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-violet-100 text-[10px] font-bold text-violet-700">✓</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+
+              <Link
+                href="/contact"
+                className="mt-6 block w-full rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 py-3.5 text-center text-sm font-bold text-white shadow-md shadow-violet-400/30 transition hover:brightness-110"
+              >
+                Get started — yearly
+              </Link>
+            </article>
+          </div>
+
+          <div className="mx-auto mt-8 max-w-md">
+            <article className="overflow-hidden rounded-3xl border border-violet-100 bg-white p-7 shadow-sm md:p-8">
               <div className="mt-5 rounded-2xl border border-violet-100 bg-violet-50/60 p-4">
                 <p className="text-[11px] font-bold uppercase tracking-widest text-violet-700">Optional add-on</p>
                 <p className="mt-1.5 text-sm font-semibold text-slate-800">
@@ -138,15 +181,12 @@ export default function ForRestaurantsPage() {
                   ))}
                 </ul>
               </div>
-
-              <Link
-                href="/contact"
-                className="mt-6 block w-full rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 py-3.5 text-center text-sm font-bold text-white shadow-md shadow-violet-400/30 transition hover:brightness-110"
-              >
-                Get started
-              </Link>
             </article>
           </div>
+
+          <p className="mx-auto mt-6 max-w-lg text-center text-xs text-slate-500">
+            Plans from {formatPricingSummary()}. Contact us to choose monthly or yearly when you sign up.
+          </p>
         </section>
 
         {/* ── How it works ───────────────────────────────────────────────────  */}
