@@ -43,7 +43,11 @@ export default async function EditAddressPage({ params, searchParams }: Props) {
       </header>
 
       <div className="mx-auto max-w-lg px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-5 md:py-10">
-        <AddressForm address={address} duplicateNameError={error === "duplicate_name"} />
+        <AddressForm
+          address={address}
+          duplicateNameError={error === "duplicate_name"}
+          missingPhoneError={error === "missing_phone"}
+        />
       </div>
       <CustomerMobileFooterNav />
     </div>

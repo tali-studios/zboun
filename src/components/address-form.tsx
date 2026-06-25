@@ -1,17 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MapPin, Home, Briefcase, Star } from "lucide-react";
 import dynamic from "next/dynamic";
 import { saveCustomerAddressAction } from "@/app-actions/customer-auth";
-import { PhoneCountrySelect } from "@/components/phone-country-select";
-import { DEFAULT_COUNTRY_DIAL } from "@/lib/country-calling-codes";
+import { PhoneNumberField } from "@/components/phone-number-field";
 import { Loader2 } from "lucide-react";
 
 const GoogleMapPicker = dynamic(
   () => import("@/components/google-map-picker").then((m) => m.GoogleMapPicker),
-  { ssr: false, loading: () => <div className="flex h-48 items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-violet-500" /></div> },
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-[22rem] items-center justify-center sm:h-80 md:h-[26rem]">
+        <Loader2 className="h-6 w-6 animate-spin text-violet-500" />
+      </div>
+    ),
+  },
 );
+
+const BEIRUT = { lat: 33.8938, lng: 35.5018 };
 
 type AddressData = {
   id: string;
@@ -32,6 +40,7 @@ type AddressData = {
 type Props = {
   address?: AddressData;
   duplicateNameError?: boolean;
+  missingPhoneError?: boolean;
 };
 
 const LABEL_OPTIONS = [
@@ -41,25 +50,67 @@ const LABEL_OPTIONS = [
   { value: "other", label: "Other", icon: <MapPin className="h-4 w-4" /> },
 ];
 
-export function AddressForm({ address, duplicateNameError = false }: Props) {
+export function AddressForm({ address, duplicateNameError = false, missingPhoneError = false }: Props) {
+  const isNew = !address;
   const [label, setLabel] = useState(address?.label ?? "home");
   const [nickname, setNickname] = useState(() => {
     if (!address) return "";
     if (address.label === "other") return address.nickname?.trim() ?? "";
     return "";
   });
-  const [lat, setLat] = useState(address?.latitude ?? 33.8938);
-  const [lng, setLng] = useState(address?.longitude ?? 35.5018);
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(
+    address ? { lat: address.latitude, lng: address.longitude } : null,
+  );
+  const mapInitialRef = useRef<{ lat: number; lng: number } | null>(
+    address ? { lat: address.latitude, lng: address.longitude } : null,
+  );
+  const [locating, setLocating] = useState(isNew);
   const [formattedAddress, setFormattedAddress] = useState(address?.formatted_address ?? "");
-  const [showMap, setShowMap] = useState(!address);
+  const [showMap, setShowMap] = useState(isNew);
   const [isDefault, setIsDefault] = useState(address?.is_default ?? false);
-  const [countryCode, setCountryCode] = useState(address?.country_code ?? DEFAULT_COUNTRY_DIAL);
+
+  useEffect(() => {
+    if (!isNew) return;
+
+    if (!navigator.geolocation) {
+      mapInitialRef.current = BEIRUT;
+      setCoords(BEIRUT);
+      setLocating(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const next = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        };
+        mapInitialRef.current = next;
+        setCoords(next);
+        setLocating(false);
+      },
+      () => {
+        mapInitialRef.current = BEIRUT;
+        setCoords(BEIRUT);
+        setLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 60_000 },
+    );
+  }, [isNew]);
+
+  const lat = coords?.lat ?? BEIRUT.lat;
+  const lng = coords?.lng ?? BEIRUT.lng;
 
   return (
     <div className="space-y-6">
       {duplicateNameError ? (
         <p className="rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
           You already have an address with this name. Choose a different nickname or category.
+        </p>
+      ) : null}
+      {missingPhoneError ? (
+        <p className="rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+          Please enter your phone number before saving.
         </p>
       ) : null}
       {/* Form */}
@@ -78,8 +129,8 @@ export function AddressForm({ address, duplicateNameError = false }: Props) {
           />
         ) : null}
 
-        {/* Map location picker */}
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+        {/* Map location picker — full width on phone */}
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white max-sm:-mx-2 max-sm:rounded-none max-sm:border-x-0">
           <div className="flex items-center justify-between px-3.5 py-2.5">
             <p className="text-sm font-semibold text-slate-900">Location pin</p>
             <button
@@ -87,22 +138,29 @@ export function AddressForm({ address, duplicateNameError = false }: Props) {
               onClick={() => setShowMap(!showMap)}
               className="text-xs font-medium text-teal-600 transition hover:text-teal-700"
             >
-              {showMap ? "Done map" : "Refine map"}
+              {showMap ? "Hide map" : "Show map"}
             </button>
           </div>
 
           {showMap ? (
-            <div className="h-72 border-t border-slate-100">
-              <GoogleMapPicker
-                initial={{ lat, lng }}
-                onConfirm={(result) => {
-                  setLat(result.lat);
-                  setLng(result.lng);
-                  setFormattedAddress(result.address);
-                  setShowMap(false);
-                }}
-                onClose={() => setShowMap(false)}
-              />
+            <div className="h-[22rem] border-t border-slate-100 sm:h-80 md:h-[26rem]">
+              {locating ? (
+                <div className="flex h-full items-center justify-center bg-slate-50">
+                  <div className="text-center">
+                    <Loader2 className="mx-auto h-7 w-7 animate-spin text-violet-500" />
+                    <p className="mt-2 text-sm font-medium text-slate-600">Finding your location…</p>
+                  </div>
+                </div>
+              ) : (
+                <GoogleMapPicker
+                  inline
+                  initial={coords ?? mapInitialRef.current ?? BEIRUT}
+                  onLocationChange={(result) => {
+                    setCoords({ lat: result.lat, lng: result.lng });
+                    setFormattedAddress(result.address);
+                  }}
+                />
+              )}
             </div>
           ) : (
             <button
@@ -168,53 +226,50 @@ export function AddressForm({ address, duplicateNameError = false }: Props) {
         </div>
 
         <div>
-          <p className="mb-2.5 text-[22px] font-bold tracking-tight text-slate-900">Give us the Details</p>
+          <p className="mb-2.5 text-[22px] font-bold tracking-tight text-slate-900">Delivery details</p>
+          <p className="mb-3 text-sm text-slate-500">
+            Your map pin sets the address. Add building or floor info only if it helps the driver.
+          </p>
         </div>
 
-        <div>
-          <input
-            name="street"
-            type="text"
-            defaultValue={address?.street ?? ""}
-            placeholder="Street"
-            className="ui-input rounded-md"
-          />
-        </div>
+        {formattedAddress && !showMap ? (
+          <div className="rounded-xl border border-violet-100 bg-violet-50/60 px-4 py-3">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-violet-600">From map</p>
+            <p className="mt-1 text-sm font-medium text-slate-800">{formattedAddress}</p>
+          </div>
+        ) : null}
 
         <div>
+          <label className="mb-1.5 block text-xs font-semibold text-slate-600">
+            Building or block <span className="font-normal text-slate-400">(optional)</span>
+          </label>
           <input
             name="building"
             type="text"
             defaultValue={address?.building ?? ""}
-            placeholder="Building"
+            placeholder="e.g. Al-Nakheel Tower, Block C"
             className="ui-input rounded-md"
           />
         </div>
 
         <div>
+          <label className="mb-1.5 block text-xs font-semibold text-slate-600">
+            Floor, apartment, or door <span className="font-normal text-slate-400">(optional)</span>
+          </label>
           <input
             name="apartment"
             type="text"
             defaultValue={address?.apartment ?? ""}
-            placeholder="Apartment"
+            placeholder="e.g. 4th floor, Apt 12B"
             className="ui-input rounded-md"
           />
         </div>
 
-        <div className="flex flex-col gap-2 sm:grid sm:grid-cols-[minmax(10.5rem,12.5rem)_1fr] sm:items-stretch">
-          <PhoneCountrySelect
-            name="country_code"
-            value={countryCode}
-            onChange={setCountryCode}
-          />
-          <input
-            name="phone"
-            type="tel"
-            defaultValue={address?.phone ?? ""}
-            placeholder="Phone number"
-            className="ui-input h-11 min-w-0 rounded-xl"
-          />
-        </div>
+        <PhoneNumberField
+          required
+          defaultPhone={address?.phone ?? ""}
+          defaultCountryCode={address?.country_code ?? undefined}
+        />
 
         {/* Default toggle */}
         <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5">

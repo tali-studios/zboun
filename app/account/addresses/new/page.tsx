@@ -34,8 +34,11 @@ export default async function NewAddressPage({ searchParams }: Props) {
         <div className="w-9" aria-hidden />
       </header>
 
-      <div className="mx-auto max-w-lg px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-5 md:py-10">
-        <AddressForm duplicateNameError={error === "duplicate_name"} />
+      <div className="mx-auto w-full max-w-none px-2 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-3 sm:max-w-2xl sm:px-4 sm:pt-5 md:max-w-3xl md:py-10">
+        <AddressForm
+          duplicateNameError={error === "duplicate_name"}
+          missingPhoneError={error === "missing_phone"}
+        />
       </div>
       <CustomerMobileFooterNav />
     </div>

@@ -12,28 +12,40 @@ export type MapPickerResult = {
 
 type Props = {
   initial?: { lat: number; lng: number };
-  onConfirm: (result: MapPickerResult) => void;
-  onClose: () => void;
+  onConfirm?: (result: MapPickerResult) => void;
+  onLocationChange?: (result: MapPickerResult) => void;
+  onClose?: () => void;
+  /** Live pin updates only — hides confirm/cancel footer buttons. */
+  inline?: boolean;
 };
 
 const BEIRUT = { lat: 33.8938, lng: 35.5018 };
 
-export function GoogleMapPicker({ initial, onConfirm, onClose }: Props) {
+export function GoogleMapPicker({ initial, onConfirm, onLocationChange, onClose, inline = false }: Props) {
   const mapDivRef = useRef<HTMLDivElement>(null);
   const markerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
   const geocoderRef = useRef<google.maps.Geocoder | null>(null);
-  const currentPos = useRef<{ lat: number; lng: number }>(initial ?? BEIRUT);
+  const onLocationChangeRef = useRef(onLocationChange);
+  const initialRef = useRef(initial ?? BEIRUT);
+  const currentPos = useRef<{ lat: number; lng: number }>(initialRef.current);
 
   const [address, setAddress] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [noApiKey, setNoApiKey] = useState(false);
 
+  onLocationChangeRef.current = onLocationChange;
+
   const reverseGeocode = useCallback((lat: number, lng: number) => {
-    if (!geocoderRef.current) return;
+    if (!geocoderRef.current) {
+      onLocationChangeRef.current?.({ lat, lng, address: "" });
+      return;
+    }
     geocoderRef.current.geocode({ location: { lat, lng } }, (results, status) => {
-      if (status === "OK" && results?.[0]) {
-        setAddress(results[0].formatted_address ?? "");
-      }
+      const nextAddress =
+        status === "OK" && results?.[0] ? results[0].formatted_address ?? "" : "";
+      setAddress(nextAddress);
+      currentPos.current = { lat, lng };
+      onLocationChangeRef.current?.({ lat, lng, address: nextAddress });
     });
   }, []);
 
@@ -60,7 +72,7 @@ export function GoogleMapPicker({ initial, onConfirm, onClose }: Props) {
 
         if (cancelled || !mapDivRef.current) return;
 
-        const center = initial ?? BEIRUT;
+        const center = initialRef.current;
         const map = new mapsLib.Map(mapDivRef.current, {
           center,
           zoom: 15,
@@ -127,6 +139,8 @@ export function GoogleMapPicker({ initial, onConfirm, onClose }: Props) {
               currentPos.current = { lat, lng };
               const addr = place.formatted_address ?? place.name ?? "";
               setAddress(addr);
+              currentPos.current = { lat, lng };
+              onLocationChangeRef.current?.({ lat, lng, address: addr });
               if (inputEl) inputEl.value = addr;
             }
           });
@@ -140,7 +154,7 @@ export function GoogleMapPicker({ initial, onConfirm, onClose }: Props) {
 
     initMap();
     return () => { cancelled = true; };
-  }, [initial, reverseGeocode]);
+  }, [reverseGeocode]);
 
   if (noApiKey) {
     return (
@@ -154,7 +168,8 @@ export function GoogleMapPicker({ initial, onConfirm, onClose }: Props) {
           to your environment variables.
         </p>
         <button
-          onClick={onClose}
+          type="button"
+          onClick={() => onClose?.()}
           className="rounded-full bg-violet-600 px-6 py-2 text-sm font-semibold text-white hover:bg-violet-700"
         >
           Close
@@ -191,30 +206,43 @@ export function GoogleMapPicker({ initial, onConfirm, onClose }: Props) {
         </div>
       </div>
 
-      {/* Footer */}
-      <div className="border-t border-slate-100 bg-white px-4 py-4">
-        {address ? (
-          <p className="mb-3 flex items-start gap-2 text-sm text-slate-600">
+      {/* Footer — hidden in inline mode; pin updates live via onLocationChange */}
+      {!inline ? (
+        <div className="border-t border-slate-100 bg-white px-4 py-4">
+          {address ? (
+            <p className="mb-3 flex items-start gap-2 text-sm text-slate-600">
+              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-violet-500" />
+              <span className="line-clamp-2">{address}</span>
+            </p>
+          ) : null}
+          <div className="flex gap-3">
+            {onClose ? (
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex h-12 flex-1 items-center justify-center rounded-2xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => onConfirm?.({ ...currentPos.current, address })}
+              className="flex h-12 flex-[2] items-center justify-center gap-2 rounded-2xl bg-violet-600 text-sm font-semibold text-white shadow-md shadow-violet-600/25 transition hover:bg-violet-700"
+            >
+              <MapPin className="h-4 w-4" />
+              Confirm location
+            </button>
+          </div>
+        </div>
+      ) : address ? (
+        <div className="border-t border-slate-100 bg-white px-4 py-3">
+          <p className="flex items-start gap-2 text-sm text-slate-600">
             <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-violet-500" />
             <span className="line-clamp-2">{address}</span>
           </p>
-        ) : null}
-        <div className="flex gap-3">
-          <button
-            onClick={onClose}
-            className="flex h-12 flex-1 items-center justify-center rounded-2xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={() => onConfirm({ ...currentPos.current, address })}
-            className="flex h-12 flex-[2] items-center justify-center gap-2 rounded-2xl bg-violet-600 text-sm font-semibold text-white shadow-md shadow-violet-600/25 transition hover:bg-violet-700"
-          >
-            <MapPin className="h-4 w-4" />
-            Confirm location
-          </button>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 }

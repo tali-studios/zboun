@@ -29,7 +29,7 @@ import type { MenuTheme } from "@/lib/menu-theme";
 import { menuPrimaryButtonStyle, menuThemeStyle } from "@/lib/menu-theme";
 import { resolveAddressNicknameForSave } from "@/lib/customer-address";
 import { DEFAULT_COUNTRY_DIAL } from "@/lib/country-calling-codes";
-import { PhoneCountrySelect } from "@/components/phone-country-select";
+import { PhoneNumberField } from "@/components/phone-number-field";
 
 const GoogleMapPicker = dynamic(
   () => import("@/components/google-map-picker").then((m) => m.GoogleMapPicker),
@@ -507,20 +507,12 @@ export function CheckoutAddressDetailsSheet({
                 <LabeledField label="Building name/no." value={building} onChange={setBuilding} />
                 <LabeledField label="Floor/Address no." value={apartment} onChange={setApartment} />
 
-                <div className="flex flex-col gap-2 sm:grid sm:grid-cols-[minmax(10.5rem,12.5rem)_1fr] sm:items-stretch">
-                  <PhoneCountrySelect
-                    variant="card"
-                    value={countryCode}
-                    onChange={setCountryCode}
-                  />
-                  <LabeledField
-                    label="Phone number"
-                    value={phone}
-                    onChange={setPhone}
-                    type="tel"
-                    placeholder="Mobile number"
-                  />
-                </div>
+                <PhoneNumberField
+                  phone={phone}
+                  onPhoneChange={setPhone}
+                  countryCode={countryCode}
+                  onCountryCodeChange={setCountryCode}
+                />
 
                 {/* Help the shopper */}
                 <div

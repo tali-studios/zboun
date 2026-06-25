@@ -721,7 +721,14 @@ export async function saveCustomerAddressAction(formData: FormData) {
   const label = String(formData.get("label") ?? "other");
   const nickname = String(formData.get("nickname") ?? "").trim() || null;
   const countryCode = String(formData.get("country_code") ?? "+961").trim() || "+961";
+  const phone = String(formData.get("phone") ?? "").trim();
   const isDefault = formData.get("is_default") === "true";
+
+  if (!phone) {
+    const id = String(formData.get("id") ?? "").trim();
+    if (id) redirect(`/account/addresses/${id}?error=missing_phone`);
+    redirect("/account/addresses/new?error=missing_phone");
+  }
 
   if (isDefault) {
     await supabase
@@ -749,7 +756,7 @@ export async function saveCustomerAddressAction(formData: FormData) {
         street: String(formData.get("street") ?? "").trim() || null,
         building: String(formData.get("building") ?? "").trim() || null,
         apartment: String(formData.get("apartment") ?? "").trim() || null,
-        phone: String(formData.get("phone") ?? "").trim() || null,
+        phone,
         country_code: countryCode,
         driver_notes: String(formData.get("driver_notes") ?? "").trim() || null,
         is_default: isDefault,
@@ -767,7 +774,7 @@ export async function saveCustomerAddressAction(formData: FormData) {
       street: String(formData.get("street") ?? "").trim() || null,
       building: String(formData.get("building") ?? "").trim() || null,
       apartment: String(formData.get("apartment") ?? "").trim() || null,
-      phone: String(formData.get("phone") ?? "").trim() || null,
+      phone,
       country_code: countryCode,
       driver_notes: String(formData.get("driver_notes") ?? "").trim() || null,
       is_default: isDefault,
