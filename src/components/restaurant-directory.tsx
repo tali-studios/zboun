@@ -5,16 +5,17 @@ import Link from "next/link";
 import {
   Bike,
   ChevronDown,
-  Cookie,
-  Croissant,
   CupSoda,
-  Flame,
+  Fuel,
+  Home,
   MapPin,
   Navigation,
   Package,
   SlidersHorizontal,
   Sparkles,
+  Store,
   Utensils,
+  Wind,
   X,
   Zap,
   type LucideIcon,
@@ -25,7 +26,10 @@ import {
   BROWSE_FILTER_ALL_ACCENT,
   BROWSE_SECTION_ACCENTS,
   BROWSE_SECTION_OPTIONS,
-  normalizeBrowseSections,
+  BROWSE_SUB_FILTER_ACCENTS,
+  getSubFiltersForSection,
+  matchesBrowseFilter,
+  sectionHasSubFilters,
   type BrowseSection,
 } from "@/lib/browse-sections";
 import { useDeliveryLocation } from "@/components/delivery-location-provider";
@@ -51,14 +55,18 @@ type QuickFilterKey = "all" | BrowseSection;
 
 const FILTER_STYLES: Record<QuickFilterKey, { Icon: LucideIcon; color: string }> = {
   all: { Icon: Sparkles, color: BROWSE_FILTER_ALL_ACCENT },
-  Breakfast: { Icon: Croissant, color: BROWSE_SECTION_ACCENTS.Breakfast },
-  Lunch: { Icon: Utensils, color: BROWSE_SECTION_ACCENTS.Lunch },
-  Dinner: { Icon: Flame, color: BROWSE_SECTION_ACCENTS.Dinner },
-  "Quick Bites": { Icon: Zap, color: BROWSE_SECTION_ACCENTS["Quick Bites"] },
-  Drinks: { Icon: CupSoda, color: BROWSE_SECTION_ACCENTS.Drinks },
-  Desserts: { Icon: Cookie, color: BROWSE_SECTION_ACCENTS.Desserts },
+  "Food & Restaurants": { Icon: Utensils, color: BROWSE_SECTION_ACCENTS["Food & Restaurants"] },
   Groceries: { Icon: Package, color: BROWSE_SECTION_ACCENTS.Groceries },
+  "Home & Living": { Icon: Home, color: BROWSE_SECTION_ACCENTS["Home & Living"] },
+  "Drinks & Beverages": { Icon: CupSoda, color: BROWSE_SECTION_ACCENTS["Drinks & Beverages"] },
+  "Vape & Tobacco": { Icon: Wind, color: BROWSE_SECTION_ACCENTS["Vape & Tobacco"] },
+  "Gas & Fuel": { Icon: Fuel, color: BROWSE_SECTION_ACCENTS["Gas & Fuel"] },
+  "General Shops": { Icon: Store, color: BROWSE_SECTION_ACCENTS["General Shops"] },
 };
+
+function subFilterAccent(sub: string, parent: BrowseSection): string {
+  return BROWSE_SUB_FILTER_ACCENTS[sub] ?? BROWSE_SECTION_ACCENTS[parent];
+}
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } {
   const h = hex.replace("#", "");
@@ -123,6 +131,7 @@ type Props = {
 export function RestaurantDirectory({ restaurants, savedAddresses = [], isLoggedIn = false }: Props) {
   const [query, setQuery] = useState("");
   const [activeSection, setActiveSection] = useState<string>("all");
+  const [activeSub, setActiveSub] = useState<string>("all");
   const [filterOpen, setFilterOpen] = useState(false);
   const { isFavorite, toggle: toggleFavorite } = useFavorites();
 
@@ -173,8 +182,7 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
             b.name.toLowerCase().includes(normalized),
           );
 
-        const sections = normalizeBrowseSections(r.browse_sections ?? []);
-        const matchesSection = activeSection === "all" || sections.includes(activeSection as BrowseSection);
+        const matchesSection = matchesBrowseFilter(r.browse_sections, activeSection, activeSub);
         return matchesQuery && matchesSection;
       })
       .sort((a, b) => {
@@ -183,14 +191,31 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
         if (b.distKm !== null) return 1;
         return 0;
       });
-  }, [restaurants, query, activeSection, location, radiusKm]);
+  }, [restaurants, query, activeSection, activeSub, location, radiusKm]);
+
+  const activeSectionKey = activeSection as BrowseSection;
+  const showSubFilters = activeSection !== "all" && sectionHasSubFilters(activeSectionKey);
+  const subFilterOptions = showSubFilters ? getSubFiltersForSection(activeSectionKey) : [];
 
   const pickSection = (id: string) => {
     setActiveSection(id);
+    setActiveSub("all");
+    if (id === "all" || !sectionHasSubFilters(id as BrowseSection)) {
+      setFilterOpen(false);
+    }
+  };
+
+  const pickSub = (sub: string) => {
+    setActiveSub(sub);
     setFilterOpen(false);
   };
 
-  const filterButtonLabel = activeSection === "all" ? "All" : activeSection;
+  const filterButtonLabel =
+    activeSection === "all"
+      ? "All"
+      : activeSub !== "all"
+        ? `${activeSection} · ${activeSub}`
+        : activeSection;
 
   const locationLabel = isResolvingLocation
     ? "Finding location…"
@@ -273,7 +298,7 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search restaurants…"
+              placeholder="Search shops & restaurants…"
               className="h-10 w-full rounded-full border border-slate-200 bg-slate-50 pl-9 pr-4 text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 focus:bg-white transition"
             />
           </div>
@@ -294,10 +319,10 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <h1 className="max-w-3xl text-3xl font-bold leading-[1.15] tracking-tight sm:text-4xl md:text-5xl">
-                Every menu, one tap away.
+                Every shop & menu, one tap away.
               </h1>
               <p className="mt-4 max-w-xl text-base leading-relaxed md:text-lg" style={{ color: PAGE.muted }}>
-                Discover restaurants, browse clean menus, and place your order online.
+                Discover restaurants, retail shops, and local stores — browse items and order on WhatsApp.
               </p>
             </div>
           </div>
@@ -400,7 +425,7 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
                     Discover
                   </p>
                   <h2 id="filter-title" className="mt-1 text-2xl font-bold tracking-tight">
-                    Filter restaurants
+                    Filter by category
                   </h2>
                 </div>
                 <button
@@ -413,7 +438,7 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
                 </button>
               </div>
 
-              <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3">
                 {(() => {
                   const { Icon: AllIcon, color: allColor } = FILTER_STYLES.all;
                   const allOn = activeSection === "all";
@@ -421,19 +446,19 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
                     <button
                       type="button"
                       onClick={() => pickSection("all")}
-                      className={`flex items-center gap-2.5 rounded-full px-3 py-3 text-left text-sm font-semibold shadow-sm ring-1 ring-black/[0.04] transition hover:brightness-[0.98] ${
+                      className={`flex items-center gap-2 rounded-full px-2.5 py-2 text-left text-xs font-semibold shadow-sm ring-1 ring-black/[0.04] transition hover:brightness-[0.98] ${
                         allOn ? "text-white" : "text-slate-800"
                       }`}
                       style={{ backgroundColor: allOn ? allColor : rgbaHex(allColor, 0.12) }}
                     >
                       <span
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
                         style={{
                           backgroundColor: allOn ? "rgba(255,255,255,0.22)" : rgbaHex(allColor, 0.22),
                           color: allOn ? "#fff" : allColor,
                         }}
                       >
-                        <AllIcon className="h-4 w-4" strokeWidth={2} aria-hidden />
+                        <AllIcon className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
                       </span>
                       All
                     </button>
@@ -447,26 +472,78 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
                       key={section}
                       type="button"
                       onClick={() => pickSection(section)}
-                      className="flex items-center gap-2.5 rounded-full px-3 py-3 text-left text-sm font-semibold shadow-sm ring-1 ring-black/[0.04] transition hover:brightness-[0.98]"
+                      className="flex items-center gap-2 rounded-full px-2.5 py-2 text-left text-xs font-semibold leading-tight shadow-sm ring-1 ring-black/[0.04] transition hover:brightness-[0.98]"
                       style={{
                         backgroundColor: on ? color : rgbaHex(color, 0.12),
                         color: on ? "#fff" : PAGE.ink,
                       }}
                     >
                       <span
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
                         style={{
                           backgroundColor: on ? "rgba(255,255,255,0.22)" : rgbaHex(color, 0.22),
                           color: on ? "#fff" : color,
                         }}
                       >
-                        <Icon className="h-4 w-4" strokeWidth={2} aria-hidden />
+                        <Icon className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
                       </span>
-                      {section}
+                      <span className="min-w-0">{section}</span>
                     </button>
                   );
                 })}
               </div>
+
+              {showSubFilters ? (
+                <div className="mt-5 border-t border-slate-100 pt-4">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500">
+                    Refine {activeSection}
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => pickSub("all")}
+                      className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                        activeSub === "all"
+                          ? "text-white"
+                          : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                      }`}
+                      style={
+                        activeSub === "all"
+                          ? { backgroundColor: BROWSE_SECTION_ACCENTS[activeSectionKey] }
+                          : undefined
+                      }
+                    >
+                      All
+                    </button>
+                    {subFilterOptions.map((sub) => {
+                      const on = activeSub === sub;
+                      const color = subFilterAccent(sub, activeSectionKey);
+                      return (
+                        <button
+                          key={sub}
+                          type="button"
+                          onClick={() => pickSub(sub)}
+                          className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                            on ? "text-white" : "text-slate-700"
+                          }`}
+                          style={{
+                            backgroundColor: on ? color : rgbaHex(color, 0.14),
+                          }}
+                        >
+                          {sub}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setFilterOpen(false)}
+                    className="mt-4 w-full rounded-full bg-violet-600 py-2.5 text-xs font-bold text-white transition hover:bg-violet-700"
+                  >
+                    Done
+                  </button>
+                </div>
+              ) : null}
             </div>
           </div>
         ) : null}
@@ -477,7 +554,7 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
             className="rounded-3xl border border-dashed border-slate-200 py-16 text-center"
             style={{ backgroundColor: PAGE.surface }}
           >
-            <p className="text-base font-semibold text-slate-700">No restaurants found</p>
+            <p className="text-base font-semibold text-slate-700">No businesses found</p>
             <p className="mt-1 text-sm text-slate-400">
               {location
                 ? "Try increasing the search radius or choosing a different location."

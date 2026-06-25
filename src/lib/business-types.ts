@@ -13,9 +13,9 @@ export type AddonKey =
 export type BusinessTypeKey =
   | "restaurant"
   | "cloud_kitchen"
+  | "retail_store"
   | "hotel_resort"
-  | "fitness_club"
-  | "retail_store";
+  | "fitness_club";
 
 export type BusinessTypePreset = {
   key: BusinessTypeKey;
@@ -41,37 +41,40 @@ export const BUSINESS_TYPE_PRESETS: BusinessTypePreset[] = [
   {
     key: "restaurant",
     label: "Restaurant",
-    description: "Best for dine-in, takeaway, and neighborhood restaurants.",
+    description: "Dine-in, takeaway, and food menus.",
     recommendedAddons: ["pos", "inventory", "crm", "loyalty"],
+  },
+  {
+    key: "retail_store",
+    label: "Shop / Retail",
+    description:
+      "Any store that sells items — vape shops, water delivery, gas stations, home goods, convenience stores, and more.",
+    recommendedAddons: ["pos", "inventory", "ecommerce", "crm", "loyalty"],
   },
   {
     key: "cloud_kitchen",
     label: "Cloud Kitchen",
-    description: "Best for delivery-first operations and high order throughput.",
+    description: "Delivery-first food operations and high order throughput.",
     recommendedAddons: ["pos", "inventory", "ecommerce", "fleet", "crm"],
   },
   {
     key: "hotel_resort",
     label: "Hotel",
-    description: "Best for room operations, bookings, and events.",
+    description: "Room operations, bookings, and events.",
     recommendedAddons: ["pms", "events", "accounting", "pos", "crm"],
   },
   {
     key: "fitness_club",
     label: "Gym",
-    description: "Best for memberships, retention, and recurring customer management.",
+    description: "Memberships, retention, and recurring customer management.",
     recommendedAddons: ["club", "crm", "loyalty", "accounting"],
-  },
-  {
-    key: "retail_store",
-    label: "Retail Store",
-    description: "Best for non-food stores with omnichannel sales.",
-    recommendedAddons: ["pos", "inventory", "ecommerce", "crm", "loyalty"],
   },
 ];
 
 export const DEFAULT_BUSINESS_TYPE: BusinessTypeKey = "restaurant";
-const HOME_BROWSE_TYPES: BusinessTypeKey[] = ["restaurant"];
+
+/** Business types with a public catalog on the home page and browse categories. */
+const HOME_BROWSE_TYPES: BusinessTypeKey[] = ["restaurant", "cloud_kitchen", "retail_store"];
 
 const BUSINESS_TYPE_KEY_SET = new Set<BusinessTypeKey>(
   BUSINESS_TYPE_PRESETS.map((preset) => preset.key),
@@ -93,4 +96,9 @@ export function supportsHomeBrowseCategory(type: BusinessTypeKey): boolean {
 
 export function getBusinessTypeLabel(type: BusinessTypeKey): string {
   return BUSINESS_TYPE_PRESETS.find((preset) => preset.key === type)?.label ?? "Business";
+}
+
+/** Whether this business type sells items through a public menu/catalog page. */
+export function hasPublicCatalog(type: BusinessTypeKey): boolean {
+  return HOME_BROWSE_TYPES.includes(type);
 }

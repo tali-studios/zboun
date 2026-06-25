@@ -46,8 +46,18 @@ export function formatDaysUntilDue(nextDueAt: string | null | undefined) {
 export function formatNextDueLine(
   nextDueAt: string | null | undefined,
   billingExempt?: boolean,
+  billingCyclePrice?: number,
 ) {
   if (billingExempt) return "Lifetime free";
+  if (
+    billingCyclePrice === 0 &&
+    nextDueAt &&
+    new Date(nextDueAt).getTime() < new Date("2099-12-31").getTime()
+  ) {
+    const date = formatNextDueDate(nextDueAt);
+    const days = formatDaysUntilDue(nextDueAt);
+    return days ? `Free until ${date} · ${days}` : `Free until ${date}`;
+  }
   if (!nextDueAt) return "—";
   const date = formatNextDueDate(nextDueAt);
   const days = formatDaysUntilDue(nextDueAt);

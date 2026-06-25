@@ -4,7 +4,9 @@ import { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { MapPin, Loader2, Map, ChevronDown } from "lucide-react";
 import { BrowseSectionsCheckboxes } from "@/components/browse-sections-checkboxes";
+import { ComplimentaryBillingFields } from "@/components/complimentary-billing-fields";
 import { createRestaurantAction } from "@/app-actions/superadmin";
+import { defaultBrowseSectionsForBusinessType, defaultBrowseSubTagsForBusinessType } from "@/lib/browse-sections";
 import {
   BUSINESS_TYPE_PRESETS,
   DEFAULT_BUSINESS_TYPE,
@@ -33,6 +35,8 @@ export function SuperAdminCreateRestaurantForm() {
     [businessType],
   );
   const showBrowse = supportsHomeBrowseCategory(businessType);
+  const defaultBrowseSections = defaultBrowseSectionsForBusinessType(businessType);
+  const defaultBrowseSubTags = defaultBrowseSubTagsForBusinessType(businessType);
 
   const [showLocationSection, setShowLocationSection] = useState(false);
   const [showMap, setShowMap] = useState(false);
@@ -63,30 +67,23 @@ export function SuperAdminCreateRestaurantForm() {
             ))}
           </select>
         </label>
-        {/* <p className="mt-2 text-xs text-slate-500">{activePreset.description}</p>
-        <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Recommended features
-        </p>
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {activePreset.recommendedAddons.map((addonKey) => (
-            <span
-              key={addonKey}
-              className="rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-semibold text-violet-700"
-            >
-              {ADDON_LABELS[addonKey]}
-            </span>
-          ))}
-        </div> */}
+        <p className="mt-2 text-xs text-slate-500">{activePreset.description}</p>
       </div>
 
       {showBrowse ? (
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 md:col-span-2 xl:col-span-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Home browse categories</p>
-          <p className="mt-1 text-xs text-slate-500">Pick one or more sections where this business appears on the home page.</p>
-          <BrowseSectionsCheckboxes selected={["Lunch"]} />
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Home page categories</p>
+          <p className="mt-1 text-xs text-slate-500">
+            Pick where this business appears on the home page — e.g. Food & Restaurants, Vape & Tobacco, Gas & Fuel.
+          </p>
+          <BrowseSectionsCheckboxes
+            key={businessType}
+            selected={defaultBrowseSections}
+            selectedSubs={defaultBrowseSubTags}
+          />
         </div>
       ) : (
-        <input type="hidden" name="browse_sections" value="Lunch" />
+        <input type="hidden" name="browse_sections" value="General Shops" />
       )}
 
       {/* Optional first location */}
@@ -164,20 +161,9 @@ export function SuperAdminCreateRestaurantForm() {
         ) : null}
       </div>
 
-      <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 md:col-span-2 xl:col-span-4">
-        <input
-          type="checkbox"
-          name="lifetime_free"
-          value="true"
-          className="mt-0.5 h-4 w-4 accent-emerald-600"
-        />
-        <span className="space-y-1">
-          <span className="block text-sm font-semibold text-emerald-900">Lifetime free account</span>
-          <span className="block text-xs text-emerald-800">
-            No monthly billing, no expiry lockouts, and no payment reminder emails.
-          </span>
-        </span>
-      </label>
+      <div className="md:col-span-2 xl:col-span-4">
+        <ComplimentaryBillingFields />
+      </div>
 
       <button className="btn btn-success rounded-xl">Create business</button>
     </form>

@@ -217,7 +217,10 @@ export async function enforceSubscriptionExpiryForRestaurant(
     subscriptionId: sub.id as string,
     restaurantName: restaurant.name,
     dueAt,
-    billingPrice: Number(sub.billing_cycle_price ?? ZBOUN_PRICING.monthly),
+    billingPrice:
+      Number(sub.billing_cycle_price) > 0
+        ? Number(sub.billing_cycle_price)
+        : ZBOUN_PRICING.monthly,
     reason: "expired",
     sendEmail: !alreadyEmailed,
     subscriptionStatus: "overdue",
@@ -291,7 +294,10 @@ export async function deactivateRestaurantManually(restaurantId: string) {
       subscriptionId: sub.id as string,
       restaurantName: restaurant.name,
       dueAt: sub.next_due_at ? new Date(sub.next_due_at) : now,
-      billingPrice: Number(sub.billing_cycle_price ?? ZBOUN_PRICING.monthly),
+      billingPrice:
+        Number(sub.billing_cycle_price) > 0
+          ? Number(sub.billing_cycle_price)
+          : ZBOUN_PRICING.monthly,
       reason: "manual",
       sendEmail: true,
       subscriptionStatus: "paused",

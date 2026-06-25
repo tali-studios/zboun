@@ -15,7 +15,7 @@ import { CopyMenuLinkButton } from "@/components/copy-menu-link-button";
 import { BusinessCategoryDashboard } from "@/components/business-category-dashboard";
 import { ImageUploadField } from "@/components/image-upload-field";
 import { IngredientListField } from "@/components/ingredient-list-field";
-import { normalizeBrowseSections } from "@/lib/browse-sections";
+import { normalizeBrowseSections, getBrowseSubTags, getRawBrowseSectionValues } from "@/lib/browse-sections";
 import { BrowseSectionsCheckboxes } from "@/components/browse-sections-checkboxes";
 import { getBusinessTypeLabel, parseBusinessType, supportsHomeBrowseCategory } from "@/lib/business-types";
 import { RestaurantHoursPanel } from "@/components/restaurant-hours-panel";
@@ -424,9 +424,11 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
   const itemsRangeStart = filteredItems.length === 0 ? 0 : itemsPageStart + 1;
   const itemsRangeEnd = Math.min(itemsPageStart + MENU_ITEMS_ADMIN_PAGE_SIZE, filteredItems.length);
   const listHrefBase = { q: q ?? "", category: selectedCategory, stock: selectedStock };
-  const selectedBrowseSections = normalizeBrowseSections(restaurant?.browse_sections ?? []);
+  const rawBrowseSections = getRawBrowseSectionValues(restaurant?.browse_sections ?? []);
+  const selectedBrowseSections = normalizeBrowseSections(rawBrowseSections);
+  const selectedBrowseSubTags = getBrowseSubTags(rawBrowseSections);
   const browseSectionsForForm =
-    selectedBrowseSections.length > 0 ? selectedBrowseSections : (["Lunch"] as const);
+    selectedBrowseSections.length > 0 ? selectedBrowseSections : (["Food & Restaurants"] as const);
 
   if (!isMenuBusiness) {
     return (
@@ -603,13 +605,14 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                 <p className="text-xs text-slate-500">Exchange rate used to display LBP conversions.</p>
               </label>
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 md:col-span-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Home browse categories
-                </p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Home page categories</p>
                 <p className="mt-1 text-xs text-slate-500">
-                  Pick one or more sections where your restaurant appears on the home page.
+                  Pick home page categories and optional sub-tags (Breakfast, Water Delivery, Vape Devices, etc.).
                 </p>
-                <BrowseSectionsCheckboxes selected={[...browseSectionsForForm]} />
+                <BrowseSectionsCheckboxes
+                  selected={[...browseSectionsForForm]}
+                  selectedSubs={selectedBrowseSubTags}
+                />
               </div>
               <MenuThemePicker defaultColor={restaurant?.menu_theme_color ?? null} />
               <div className="md:col-span-3">

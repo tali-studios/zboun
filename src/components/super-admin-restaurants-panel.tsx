@@ -6,11 +6,11 @@ import {
   deleteRestaurantAction,
   disableAddonAction,
   enableAddonAction,
+  grantComplimentaryBillingAction,
   renewSubscriptionAction,
   setNextDueDateAction,
   setRestaurantAdminPasswordAction,
   toggleRestaurantActiveAction,
-  toggleRestaurantBillingExemptAction,
   toggleRestaurantHomeVisibilityAction,
   updateRestaurantBrowseSectionsAction,
   updateSubscriptionStatusAction,
@@ -28,7 +28,8 @@ const ALL_ADDONS: { key: string; label: string; description: string }[] = [
   { key: "fleet", label: "Fleet Management", description: "Vehicles, drivers, delivery dispatch, and maintenance logs." },
   { key: "club", label: "Club Management", description: "Membership plans, check-ins, and subscription invoicing." },
 ];
-import { BROWSE_SECTION_OPTIONS, formatBrowseSectionsLabel, normalizeBrowseSections, type BrowseSection } from "@/lib/browse-sections";
+import { BROWSE_SECTION_OPTIONS, formatBrowseSectionsLabel, getBrowseSubTags, getParentSectionForSubFilter, getRawBrowseSectionValues, getSubFiltersForSection, normalizeBrowseSections, type BrowseSection } from "@/lib/browse-sections";
+import { supportsHomeBrowseCategory, type BusinessTypeKey } from "@/lib/business-types";
 import {
   formatNextDueLine,
   formatSubscriptionStatus,
@@ -36,6 +37,11 @@ import {
   subscriptionStatusBadgeClass,
 } from "@/lib/subscription-display";
 import { SuperAdminSetPasswordModal } from "@/components/super-admin-set-password-modal";
+import { ComplimentaryBillingModalFields } from "@/components/complimentary-billing-fields";
+import {
+  hasComplimentaryAccess,
+  type ComplimentaryUnit,
+} from "@/lib/complimentary-billing";
 
 type RestaurantRow = {
   id: string;
@@ -136,6 +142,7 @@ type BrowseSectionsEditorState = {
   restaurantId: string;
   restaurantName: string;
   sections: BrowseSection[];
+  subTags: string[];
 };
 
 type AddonsEditorState = {
@@ -144,6 +151,32 @@ type AddonsEditorState = {
   restaurantName: string;
   addons: Record<string, boolean>;
 };
+
+type ComplimentaryModalState = {
+  open: boolean;
+  restaurant: RestaurantRow | null;
+  unit: ComplimentaryUnit;
+  amount: number;
+};
+
+function restaurantHasComplimentaryAccess(restaurant: RestaurantRow) {
+  return hasComplimentaryAccess(
+    restaurant.billing_exempt,
+    restaurant.billing_cycle_price,
+    restaurant.next_due_at,
+  );
+}
+
+function subscriptionStatusLabel(restaurant: RestaurantRow) {
+  if (restaurant.billing_exempt) return "Lifetime free";
+  if (restaurantHasComplimentaryAccess(restaurant)) return "Complimentary";
+  return formatSubscriptionStatus(restaurant.subscription_status);
+}
+
+function isRestaurantPastDue(restaurant: RestaurantRow) {
+  if (restaurantHasComplimentaryAccess(restaurant)) return false;
+  return isSubscriptionPastDue(restaurant.next_due_at, restaurant.subscription_status);
+}
 
 export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
   const router = useRouter();
@@ -163,7 +196,8 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
     open: false,
     restaurantId: "",
     restaurantName: "",
-    sections: ["Lunch"],
+    sections: ["Food & Restaurants"],
+    subTags: [],
   });
   const [addonsEditor, setAddonsEditor] = useState<AddonsEditorState>({
     open: false,
@@ -172,6 +206,12 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
     addons: {},
   });
   const [passwordRestaurant, setPasswordRestaurant] = useState<RestaurantRow | null>(null);
+  const [complimentaryModal, setComplimentaryModal] = useState<ComplimentaryModalState>({
+    open: false,
+    restaurant: null,
+    unit: "months",
+    amount: 3,
+  });
 
   const filtered = useMemo(() => {
     const search = q.trim().toLowerCase();
@@ -190,7 +230,9 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
   }, [q, restaurants, status]);
 
   function hasHomeCategory(restaurant: RestaurantRow) {
-    return restaurant.business_type === "restaurant";
+    return supportsHomeBrowseCategory(
+      (restaurant.business_type ?? "restaurant") as BusinessTypeKey,
+    );
   }
 
   function openDeleteModal(restaurant: RestaurantRow) {
@@ -243,14 +285,51 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
     });
   }
 
-  function toggleBillingExempt(restaurant: RestaurantRow) {
+  function openComplimentaryModal(restaurant: RestaurantRow) {
+    setComplimentaryModal({
+      open: true,
+      restaurant,
+      unit: "months",
+      amount: 3,
+    });
+  }
+
+  function grantComplimentaryAccess() {
+    if (!complimentaryModal.restaurant) return;
+    startTransition(async () => {
+      const formData = new FormData();
+      formData.set("id", complimentaryModal.restaurant!.id);
+      formData.set("complimentary_unit", complimentaryModal.unit);
+      formData.set("complimentary_amount", String(complimentaryModal.amount));
+      await grantComplimentaryBillingAction(formData);
+      setComplimentaryModal((prev) => ({ ...prev, open: false, restaurant: null }));
+      router.refresh();
+    });
+  }
+
+  function removeComplimentaryAccess(restaurant: RestaurantRow) {
+    if (
+      !window.confirm(
+        `Remove free access for ${restaurant.name} and return to standard monthly billing?`,
+      )
+    ) {
+      return;
+    }
     startTransition(async () => {
       const formData = new FormData();
       formData.set("id", restaurant.id);
-      formData.set("billing_exempt", String(!restaurant.billing_exempt));
-      await toggleRestaurantBillingExemptAction(formData);
+      formData.set("remove_complimentary", "true");
+      await grantComplimentaryBillingAction(formData);
       router.refresh();
     });
+  }
+
+  function handleComplimentaryAction(restaurant: RestaurantRow) {
+    if (restaurantHasComplimentaryAccess(restaurant)) {
+      removeComplimentaryAccess(restaurant);
+      return;
+    }
+    openComplimentaryModal(restaurant);
   }
 
   function toggleHomeVisibility(restaurantId: string, showOnHome: boolean) {
@@ -264,12 +343,15 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
   }
 
   function openBrowseSectionsEditor(restaurant: RestaurantRow) {
-    const sections = normalizeBrowseSections(restaurant.browse_sections ?? []);
+    const raw = getRawBrowseSectionValues(restaurant.browse_sections ?? []);
+    const sections = normalizeBrowseSections(raw);
+    const subTags = getBrowseSubTags(raw);
     setBrowseSectionsEditor({
       open: true,
       restaurantId: restaurant.id,
       restaurantName: restaurant.name,
-      sections: sections.length > 0 ? sections : ["Lunch"],
+      sections: sections.length > 0 ? sections : ["Food & Restaurants"],
+      subTags,
     });
   }
 
@@ -279,7 +361,18 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
       const sections = has
         ? prev.sections.filter((value) => value !== section)
         : [...prev.sections, section];
-      return { ...prev, sections };
+      const subTags = has
+        ? prev.subTags.filter((tag) => getParentSectionForSubFilter(tag) !== section)
+        : prev.subTags;
+      return { ...prev, sections, subTags };
+    });
+  }
+
+  function toggleSubTag(tag: string) {
+    setBrowseSectionsEditor((prev) => {
+      const has = prev.subTags.includes(tag);
+      const subTags = has ? prev.subTags.filter((value) => value !== tag) : [...prev.subTags, tag];
+      return { ...prev, subTags };
     });
   }
 
@@ -290,6 +383,9 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
       formData.set("id", browseSectionsEditor.restaurantId);
       for (const section of browseSectionsEditor.sections) {
         formData.append("browse_sections", section);
+      }
+      for (const tag of browseSectionsEditor.subTags) {
+        formData.append("browse_sections", tag);
       }
       await updateRestaurantBrowseSectionsAction(formData);
       setBrowseSectionsEditor((prev) => ({ ...prev, open: false }));
@@ -440,18 +536,20 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
               <span
                 className={`rounded-full px-2 py-1 font-semibold ${subscriptionStatusBadgeClass(
                   restaurant.subscription_status,
-                  !restaurant.billing_exempt &&
-                    isSubscriptionPastDue(restaurant.next_due_at, restaurant.subscription_status),
+                  isRestaurantPastDue(restaurant),
                 )}`}
               >
-                {restaurant.billing_exempt
-                  ? "Lifetime free"
-                  : formatSubscriptionStatus(restaurant.subscription_status)}
+                {subscriptionStatusLabel(restaurant)}
               </span>
               <span className="rounded-full bg-slate-100 px-2 py-1">
-                Due: {formatNextDueLine(restaurant.next_due_at, restaurant.billing_exempt)}
+                Due:{" "}
+                {formatNextDueLine(
+                  restaurant.next_due_at,
+                  restaurant.billing_exempt,
+                  restaurant.billing_cycle_price,
+                )}
               </span>
-              {!restaurant.billing_exempt ? (
+              {!restaurantHasComplimentaryAccess(restaurant) ? (
                 <span className="rounded-full bg-amber-50 px-2 py-1 text-amber-700">
                   Outstanding: ${restaurant.outstanding_balance.toFixed(2)}
                 </span>
@@ -477,12 +575,20 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
             </div>
             <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
               <ActionIconButton
-                label={restaurant.billing_exempt ? "Remove lifetime free" : "Grant lifetime free"}
-                shortLabel={restaurant.billing_exempt ? "Paid plan" : "Lifetime free"}
-                icon={restaurant.billing_exempt ? "💳" : "♾"}
-                className={restaurant.billing_exempt ? "bg-slate-700 hover:bg-slate-600" : "bg-emerald-600 hover:bg-emerald-500"}
+                label={
+                  restaurantHasComplimentaryAccess(restaurant)
+                    ? "Remove free access"
+                    : "Grant free access"
+                }
+                shortLabel={restaurantHasComplimentaryAccess(restaurant) ? "Paid plan" : "Free access"}
+                icon={restaurantHasComplimentaryAccess(restaurant) ? "💳" : "🎁"}
+                className={
+                  restaurantHasComplimentaryAccess(restaurant)
+                    ? "bg-slate-700 hover:bg-slate-600"
+                    : "bg-emerald-600 hover:bg-emerald-500"
+                }
                 disabled={isPending}
-                onClick={() => toggleBillingExempt(restaurant)}
+                onClick={() => handleComplimentaryAction(restaurant)}
               />
               <ActionIconButton
                 label="Renew subscription"
@@ -630,20 +736,23 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                   <span
                     className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${subscriptionStatusBadgeClass(
                       restaurant.subscription_status,
-                      !restaurant.billing_exempt &&
-                        isSubscriptionPastDue(restaurant.next_due_at, restaurant.subscription_status),
+                      isRestaurantPastDue(restaurant),
                     )}`}
                   >
-                    {restaurant.billing_exempt
-                      ? "Lifetime free"
-                      : formatSubscriptionStatus(restaurant.subscription_status)}
+                    {subscriptionStatusLabel(restaurant)}
                   </span>
                 </td>
                 <td className={`border-r border-white/50 px-3 py-3 whitespace-nowrap text-slate-700 ${TABLE_DATA_COLUMNS[3].cell}`}>
-                  {formatNextDueLine(restaurant.next_due_at, restaurant.billing_exempt)}
+                  {formatNextDueLine(
+                    restaurant.next_due_at,
+                    restaurant.billing_exempt,
+                    restaurant.billing_cycle_price,
+                  )}
                 </td>
                 <td className={`border-r border-white/50 px-3 py-3 whitespace-nowrap font-semibold text-amber-900 ${TABLE_DATA_COLUMNS[4].cell}`}>
-                  {restaurant.billing_exempt ? "—" : `$${restaurant.outstanding_balance.toFixed(2)}`}
+                  {restaurantHasComplimentaryAccess(restaurant)
+                    ? "—"
+                    : `$${restaurant.outstanding_balance.toFixed(2)}`}
                 </td>
                 <td className={`border-r border-white/50 px-3 py-3 whitespace-nowrap ${TABLE_DATA_COLUMNS[5].cell}`}>
                   <span
@@ -683,11 +792,15 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                   <div className="inline-flex flex-nowrap items-center justify-end gap-1">
                     <ActionIconButton
                       tableRow
-                      label={restaurant.billing_exempt ? "Remove lifetime free" : "Grant lifetime free"}
-                      icon={restaurant.billing_exempt ? "💳" : "♾"}
-                      className={restaurant.billing_exempt ? "bg-slate-700" : "bg-emerald-600"}
+                      label={
+                        restaurantHasComplimentaryAccess(restaurant)
+                          ? "Remove free access"
+                          : "Grant free access"
+                      }
+                      icon={restaurantHasComplimentaryAccess(restaurant) ? "💳" : "🎁"}
+                      className={restaurantHasComplimentaryAccess(restaurant) ? "bg-slate-700" : "bg-emerald-600"}
                       disabled={isPending}
-                      onClick={() => toggleBillingExempt(restaurant)}
+                      onClick={() => handleComplimentaryAction(restaurant)}
                     />
                     <ActionIconButton
                       tableRow
@@ -820,6 +933,45 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
         </div>
       )}
 
+      {complimentaryModal.open && complimentaryModal.restaurant ? (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/40 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl ring-1 ring-slate-200">
+            <h3 className="text-lg font-bold text-slate-900">Grant free access</h3>
+            <p className="mt-2 text-sm text-slate-600">
+              Choose how long <strong>{complimentaryModal.restaurant.name}</strong> stays on a
+              complimentary plan. After that, standard monthly billing applies.
+            </p>
+            <div className="mt-4">
+              <ComplimentaryBillingModalFields
+                unit={complimentaryModal.unit}
+                amount={complimentaryModal.amount}
+                onUnitChange={(unit) => setComplimentaryModal((prev) => ({ ...prev, unit }))}
+                onAmountChange={(amount) => setComplimentaryModal((prev) => ({ ...prev, amount }))}
+              />
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  setComplimentaryModal((prev) => ({ ...prev, open: false, restaurant: null }))
+                }
+                className="btn btn-secondary rounded-xl"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isPending}
+                onClick={grantComplimentaryAccess}
+                className="btn btn-success rounded-xl disabled:opacity-70"
+              >
+                Grant access
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {infoRestaurant && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/40 p-4">
           <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-xl ring-1 ring-slate-200">
@@ -844,11 +996,19 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
               </p>
               <p>
                 <span className="font-semibold">Next due:</span>{" "}
-                {formatNextDueLine(infoRestaurant.next_due_at, infoRestaurant.billing_exempt)}
+                {formatNextDueLine(
+                  infoRestaurant.next_due_at,
+                  infoRestaurant.billing_exempt,
+                  infoRestaurant.billing_cycle_price,
+                )}
               </p>
               <p>
                 <span className="font-semibold">Billing:</span>{" "}
-                {infoRestaurant.billing_exempt ? "Lifetime free" : "Monthly subscription"}
+                {infoRestaurant.billing_exempt
+                  ? "Lifetime free"
+                  : restaurantHasComplimentaryAccess(infoRestaurant)
+                    ? "Complimentary period"
+                    : "Monthly subscription"}
               </p>
               <p><span className="font-semibold">Outstanding:</span> ${infoRestaurant.outstanding_balance.toFixed(2)}</p>
               <p><span className="font-semibold">Created:</span> {new Date(infoRestaurant.created_at).toLocaleDateString()}</p>
@@ -908,6 +1068,31 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                 </label>
               ))}
             </div>
+            {browseSectionsEditor.sections.map((section) => {
+              const subOptions = getSubFiltersForSection(section);
+              if (subOptions.length === 0) return null;
+              return (
+                <div key={section} className="mt-4 border-t border-slate-100 pt-4">
+                  <p className="text-xs font-semibold text-slate-700">{section} tags (optional)</p>
+                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                    {subOptions.map((tag) => (
+                      <label
+                        key={tag}
+                        className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={browseSectionsEditor.subTags.includes(tag)}
+                          onChange={() => toggleSubTag(tag)}
+                          className="h-4 w-4 accent-violet-600"
+                        />
+                        <span>{tag}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
             {browseSectionsEditor.sections.length === 0 ? (
               <p className="mt-2 text-xs font-medium text-amber-700">Select at least one category.</p>
             ) : null}

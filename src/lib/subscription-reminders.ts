@@ -133,6 +133,11 @@ async function runDayBeforeReminders(
       continue;
     }
 
+    if (Number(row.billing_cycle_price) === 0) {
+      result.skipped += 1;
+      continue;
+    }
+
     if (await wasReminderSent(supabase, subscriptionId, reminderKind, dueDate)) {
       result.skipped += 1;
       continue;
@@ -224,6 +229,11 @@ export async function runExpiredSubscriptionDeactivations(
       continue;
     }
 
+    if (Number(row.billing_cycle_price) === 0) {
+      result.skipped += 1;
+      continue;
+    }
+
     const latest = await getLatestSubscription(supabase, restaurantId);
     if (!latest || latest.id !== subscriptionId || isSubscriptionAccessValid(latest)) {
       result.skipped += 1;
@@ -248,7 +258,10 @@ export async function runExpiredSubscriptionDeactivations(
         subscriptionId,
         restaurantName,
         dueAt,
-        billingPrice: Number(row.billing_cycle_price ?? ZBOUN_PRICING.monthly),
+        billingPrice:
+          Number(row.billing_cycle_price) > 0
+            ? Number(row.billing_cycle_price)
+            : ZBOUN_PRICING.monthly,
         reason: "expired",
         sendEmail: !alreadyHandled,
         subscriptionStatus: "overdue",

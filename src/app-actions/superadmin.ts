@@ -6,7 +6,12 @@ import { createClient } from "@supabase/supabase-js";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { getCurrentUserRole } from "@/lib/data";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { createInitialSubscription, createComplimentarySubscription, applyComplimentaryBilling, renewRestaurantSubscription, getRestaurantAdminEmail, getLatestSubscription } from "@/lib/subscription-billing";
+import { createInitialSubscription, createComplimentarySubscription, applyComplimentaryBilling, removeComplimentaryBilling, renewRestaurantSubscription, getRestaurantAdminEmail, getLatestSubscription } from "@/lib/subscription-billing";
+import {
+  isComplimentaryGrantRequested,
+  parseComplimentaryPeriodFromForm,
+  complimentaryPeriodLabel,
+} from "@/lib/complimentary-billing";
 import { deactivateRestaurantManually } from "@/lib/subscription-lifecycle";
 import {
   sendRestaurantOnboardingEmail,
@@ -90,7 +95,11 @@ export async function createRestaurantAction(formData: FormData) {
   const browseSections = parseBrowseSectionsFromForm(formData);
   const businessType = parseBusinessType(formData.get("business_type"));
   const showOnHome = supportsHomeBrowseCategory(businessType);
-  const lifetimeFree = formData.get("lifetime_free") === "true";
+  const complimentaryFree = isComplimentaryGrantRequested(formData);
+  const complimentaryPeriod = complimentaryFree
+    ? parseComplimentaryPeriodFromForm(formData)
+    : null;
+  const lifetimeFree = complimentaryPeriod?.kind === "lifetime";
 
   if (!name || !phone || !email) {
     redirect("/dashboard/super-admin?error=missing_restaurant_fields");
@@ -177,8 +186,8 @@ export async function createRestaurantAction(formData: FormData) {
     );
     if (upsertError) throw upsertError;
 
-    const subscription = lifetimeFree
-      ? await createComplimentarySubscription(adminClient, restaurantData.id)
+    const subscription = complimentaryPeriod
+      ? await createComplimentarySubscription(adminClient, restaurantData.id, complimentaryPeriod)
       : await createInitialSubscription(adminClient, restaurantData.id);
 
     let emailSent = false;
@@ -193,6 +202,9 @@ export async function createRestaurantAction(formData: FormData) {
         subscriptionEndsAt: subscription.periodEnd,
         monthlyPrice: subscription.billingPrice,
         lifetimeFree,
+        complimentaryLabel: complimentaryPeriod
+          ? complimentaryPeriodLabel(complimentaryPeriod)
+          : undefined,
       });
       emailSent = true;
     } catch {
@@ -270,10 +282,10 @@ export async function toggleRestaurantActiveAction(formData: FormData) {
   revalidatePath("/dashboard/billing");
 }
 
-export async function toggleRestaurantBillingExemptAction(formData: FormData) {
+export async function grantComplimentaryBillingAction(formData: FormData) {
   await requireSuperAdmin();
   const id = String(formData.get("id") ?? "").trim();
-  const billingExempt = String(formData.get("billing_exempt") ?? "") === "true";
+  const removeComplimentary = String(formData.get("remove_complimentary") ?? "") === "true";
   if (!id) {
     redirect("/dashboard/super-admin?error=missing_restaurant_id");
   }
@@ -284,25 +296,32 @@ export async function toggleRestaurantBillingExemptAction(formData: FormData) {
   }
 
   try {
-    if (billingExempt) {
-      await applyComplimentaryBilling(adminClient, id);
+    if (removeComplimentary) {
+      await removeComplimentaryBilling(adminClient, id);
     } else {
-      const { error } = await adminClient
-        .from("restaurants")
-        .update({ billing_exempt: false })
-        .eq("id", id);
-      if (error) {
-        throw new Error(error.message);
-      }
+      const period = parseComplimentaryPeriodFromForm(formData);
+      await applyComplimentaryBilling(adminClient, id, period);
     }
   } catch (error) {
-    const message = error instanceof Error ? error.message : "billing_exempt_update_failed";
+    const message = error instanceof Error ? error.message : "complimentary_billing_update_failed";
     redirect(`/dashboard/super-admin?error=${encodeURIComponent(message)}`);
   }
 
   revalidatePath("/dashboard/super-admin");
   revalidatePath("/dashboard/billing");
   revalidatePath("/");
+}
+
+/** @deprecated Use grantComplimentaryBillingAction */
+export async function toggleRestaurantBillingExemptAction(formData: FormData) {
+  const billingExempt = String(formData.get("billing_exempt") ?? "") === "true";
+  if (billingExempt) {
+    formData.set("complimentary_unit", "lifetime");
+    formData.set("complimentary_amount", "1");
+    return grantComplimentaryBillingAction(formData);
+  }
+  formData.set("remove_complimentary", "true");
+  return grantComplimentaryBillingAction(formData);
 }
 
 export async function toggleRestaurantHomeVisibilityAction(formData: FormData) {

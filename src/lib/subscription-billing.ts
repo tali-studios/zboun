@@ -1,4 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { ComplimentaryPeriod } from "@/lib/complimentary-billing";
+import {
+  complimentaryEndDate,
+  complimentaryNotes,
+} from "@/lib/complimentary-billing";
 import { ZBOUN_PRICING } from "@/lib/pricing";
 
 function toPeriodDate(date: Date) {
@@ -184,10 +189,11 @@ export async function isRestaurantBillingExempt(
 export async function createComplimentarySubscription(
   supabase: SupabaseClient,
   restaurantId: string,
+  period: ComplimentaryPeriod = { kind: "lifetime" },
 ) {
   const { planId } = await getOrCreateMonthlyPlanId(supabase);
   const startAt = new Date();
-  const nextDueAt = new Date(LIFETIME_FREE_NEXT_DUE_AT);
+  const nextDueAt = complimentaryEndDate(period, startAt);
 
   const { data, error } = await supabase
     .from("restaurant_subscriptions")
@@ -198,7 +204,7 @@ export async function createComplimentarySubscription(
       start_at: startAt.toISOString(),
       next_due_at: nextDueAt.toISOString(),
       billing_cycle_price: 0,
-      notes: "Lifetime complimentary account — no billing.",
+      notes: complimentaryNotes(period, nextDueAt),
     })
     .select("id, next_due_at, billing_cycle_price")
     .single();
@@ -216,17 +222,22 @@ export async function createComplimentarySubscription(
   };
 }
 
-/** Mark a restaurant as lifetime free and align its subscription row. */
+/** Mark a restaurant as complimentary (lifetime or fixed period) and align its subscription row. */
 export async function applyComplimentaryBilling(
   supabase: SupabaseClient,
   restaurantId: string,
+  period: ComplimentaryPeriod = { kind: "lifetime" },
 ) {
   const nowIso = new Date().toISOString();
+  const nextDueAt = complimentaryEndDate(period);
+  const nextDueIso = nextDueAt.toISOString();
+  const notes = complimentaryNotes(period, nextDueAt);
+  const isLifetime = period.kind === "lifetime";
   const sub = await getLatestSubscription(supabase, restaurantId);
 
   const { error: restaurantError } = await supabase
     .from("restaurants")
-    .update({ billing_exempt: true, is_active: true })
+    .update({ billing_exempt: isLifetime, is_active: true })
     .eq("id", restaurantId);
 
   if (restaurantError) {
@@ -239,9 +250,9 @@ export async function applyComplimentaryBilling(
       .update({
         status: "active",
         ended_at: null,
-        next_due_at: LIFETIME_FREE_NEXT_DUE_AT,
+        next_due_at: nextDueIso,
         billing_cycle_price: 0,
-        notes: "Lifetime complimentary account — no billing.",
+        notes,
         updated_at: nowIso,
       })
       .eq("id", sub.id);
@@ -252,12 +263,59 @@ export async function applyComplimentaryBilling(
 
     return {
       subscriptionId: sub.id as string,
-      nextDueAt: new Date(LIFETIME_FREE_NEXT_DUE_AT),
+      nextDueAt,
       billingPrice: 0,
     };
   }
 
-  return createComplimentarySubscription(supabase, restaurantId);
+  return createComplimentarySubscription(supabase, restaurantId, period);
+}
+
+/** End complimentary access and return the restaurant to standard monthly billing. */
+export async function removeComplimentaryBilling(
+  supabase: SupabaseClient,
+  restaurantId: string,
+) {
+  const { planId, price } = await getOrCreateMonthlyPlanId(supabase);
+  const now = new Date();
+  const nowIso = now.toISOString();
+  const nextDueAt = addMonths(now, SUBSCRIPTION_PERIOD_MONTHS);
+  const sub = await getLatestSubscription(supabase, restaurantId);
+
+  const { error: restaurantError } = await supabase
+    .from("restaurants")
+    .update({ billing_exempt: false })
+    .eq("id", restaurantId);
+
+  if (restaurantError) {
+    throw new Error(restaurantError.message);
+  }
+
+  if (sub?.id) {
+    const { error } = await supabase
+      .from("restaurant_subscriptions")
+      .update({
+        status: "active",
+        ended_at: null,
+        next_due_at: nextDueAt.toISOString(),
+        billing_cycle_price: price,
+        notes: "Returned to standard monthly billing.",
+        updated_at: nowIso,
+      })
+      .eq("id", sub.id);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return {
+      subscriptionId: sub.id as string,
+      nextDueAt,
+      billingPrice: price,
+    };
+  }
+
+  return createInitialSubscription(supabase, restaurantId);
 }
 
 export type SubscriptionAccessRow = {

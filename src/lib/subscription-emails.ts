@@ -40,6 +40,7 @@ export async function sendRestaurantOnboardingEmail(params: {
   subscriptionEndsAt: Date;
   monthlyPrice: number;
   lifetimeFree?: boolean;
+  complimentaryLabel?: string;
 }) {
   if (!isSmtpConfigured()) return;
 
@@ -47,7 +48,9 @@ export async function sendRestaurantOnboardingEmail(params: {
   const price = params.monthlyPrice.toFixed(2);
   const subscriptionLine = params.lifetimeFree
     ? "Account type: Lifetime complimentary — no monthly billing."
-    : `Subscription: Your first billing period is active until ${endLabel} (USD ${price}/month).`;
+    : params.complimentaryLabel && params.monthlyPrice === 0
+      ? `Account type: Complimentary ${params.complimentaryLabel.toLowerCase()} — free until ${endLabel}.`
+      : `Subscription: Your first billing period is active until ${endLabel} (USD ${price}/month).`;
 
   const text = [
     `Hello,`,
@@ -72,11 +75,13 @@ export async function sendRestaurantOnboardingEmail(params: {
       <p>Hello,</p>
       <p>Your <strong>${params.businessTypeLabel}</strong> <strong>${params.businessName}</strong> is live on Zboun.</p>
       <p style="margin:20px 0;padding:16px;background:#f4f4f5;border-radius:8px;">
-        <strong>${params.lifetimeFree ? "Account type" : "Subscription"}</strong><br>
+        <strong>${params.lifetimeFree || (params.complimentaryLabel && params.monthlyPrice === 0) ? "Account type" : "Subscription"}</strong><br>
         ${
           params.lifetimeFree
             ? "<strong>Lifetime complimentary</strong><br>No monthly billing or renewal required."
-            : `Active until <strong>${endLabel}</strong><br>Plan: USD ${price} / month`
+            : params.complimentaryLabel && params.monthlyPrice === 0
+              ? `<strong>Complimentary ${params.complimentaryLabel}</strong><br>Free until <strong>${endLabel}</strong>.`
+              : `Active until <strong>${endLabel}</strong><br>Plan: USD ${price} / month`
         }
       </p>
       ${params.publicUrl ? `<p><strong>Public menu:</strong> <a href="${params.publicUrl}">${params.publicUrl}</a></p>` : ""}

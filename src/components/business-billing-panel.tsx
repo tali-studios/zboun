@@ -6,6 +6,7 @@ import {
   isSubscriptionPastDue,
   subscriptionStatusBadgeClass,
 } from "@/lib/subscription-display";
+import { hasComplimentaryAccess } from "@/lib/complimentary-billing";
 import { formatDateLong } from "@/lib/subscription-billing";
 
 type SubscriptionInfo = {
@@ -44,8 +45,17 @@ export function BusinessBillingPanel({
   invoices,
   opsEmail,
 }: Props) {
+  const complimentaryAccess = billingExempt
+    || (subscription
+      ? hasComplimentaryAccess(
+          billingExempt,
+          subscription.billing_cycle_price,
+          subscription.next_due_at,
+        )
+      : false);
+  const timedComplimentary = complimentaryAccess && !billingExempt;
   const pastDue = subscription
-    ? !billingExempt &&
+    ? !complimentaryAccess &&
       isSubscriptionPastDue(subscription.next_due_at, subscription.status)
     : false;
 
@@ -57,7 +67,9 @@ export function BusinessBillingPanel({
         <p className="mt-2 text-sm text-violet-100">
           {billingExempt
             ? "Your Zboun account is on a complimentary lifetime plan."
-            : "Subscription and invoices for your Zboun account. Contact us to renew or update your plan."}
+            : timedComplimentary
+              ? "Your Zboun account is on a complimentary plan for a limited time."
+              : "Subscription and invoices for your Zboun account. Contact us to renew or update your plan."}
         </p>
         <div className="mt-4">
           <Link href="/dashboard/business" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">
@@ -99,7 +111,11 @@ export function BusinessBillingPanel({
                 pastDue,
               )}`}
             >
-              {billingExempt ? "Lifetime free" : formatSubscriptionStatus(subscription.status)}
+              {billingExempt
+                ? "Lifetime free"
+                : timedComplimentary
+                  ? "Complimentary"
+                  : formatSubscriptionStatus(subscription.status)}
             </span>
           ) : null}
         </div>
@@ -119,6 +135,12 @@ export function BusinessBillingPanel({
               This account is complimentary for life. There is no monthly fee and your dashboard will
               not be locked for non-payment.
             </p>
+          ) : timedComplimentary ? (
+            <p className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+              This account is complimentary until{" "}
+              <strong>{formatDateLong(new Date(subscription.next_due_at as string))}</strong>. After
+              that, standard monthly billing applies.
+            </p>
           ) : (
             <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
               <div>
@@ -136,7 +158,11 @@ export function BusinessBillingPanel({
               <div>
                 <dt className="text-slate-500">Next due / period ends</dt>
                 <dd className="font-semibold text-slate-900">
-                  {formatNextDueLine(subscription.next_due_at)}
+                  {formatNextDueLine(
+                    subscription.next_due_at,
+                    billingExempt,
+                    subscription.billing_cycle_price,
+                  )}
                 </dd>
               </div>
               {subscription.ended_at ? (
