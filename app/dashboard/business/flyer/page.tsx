@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { STORE_ADMIN_LABEL } from "@/lib/browse-sections";
 import { redirect } from "next/navigation";
 import { MenuFlyerCard } from "@/components/menu-flyer-card";
 import { getCurrentUserRole } from "@/lib/data";
@@ -27,7 +28,7 @@ export default async function RestaurantFlyerPage() {
       <div className="flyer-print-wrap mx-auto w-full min-w-0 max-w-6xl space-y-6">
         <header className="panel flex flex-wrap items-center justify-between gap-3 rounded-2xl p-5 print:hidden">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-widest text-violet-600">Restaurant admin</p>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-violet-600">{STORE_ADMIN_LABEL}</p>
             <h1 className="mt-1 text-2xl font-bold text-slate-900">Print flyer (A4)</h1>
           </div>
           <Link href="/dashboard/business" className="btn btn-secondary">

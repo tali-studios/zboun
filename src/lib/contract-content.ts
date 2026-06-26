@@ -9,7 +9,7 @@ export const CONTRACT_OPERATOR = {
 
 export const ZBOUN_PLATFORM_SERVICES = [
   "Digital menu page with categories, items, prices, and optional modifiers",
-  "Restaurant admin dashboard for menu, hours, delivery settings, and orders",
+  "Store admin dashboard for menu, hours, delivery settings, and orders",
   "Customer ordering flow with delivery address and scheduling during opening hours",
   "QR code and printable menu flyer export",
   "WhatsApp notification helper for order alerts (where configured)",

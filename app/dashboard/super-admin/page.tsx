@@ -485,7 +485,7 @@ export default async function SuperAdminPage({ searchParams }: Props) {
         )}
         {success === "restaurant_password_updated" && (
           <p className="rounded-xl border border-violet-200 bg-violet-50 p-3 text-sm font-medium text-violet-700">
-            Restaurant admin password updated successfully.
+            Store admin password updated successfully.
           </p>
         )}
         {error === "missing_browse_categories" && (
@@ -510,7 +510,7 @@ export default async function SuperAdminPage({ searchParams }: Props) {
         )}
         {error === "no_restaurant_admin" && (
           <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700">
-            No restaurant admin account is linked to this business.
+            No store admin account is linked to this business.
           </p>
         )}
         {error &&

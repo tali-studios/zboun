@@ -18,7 +18,7 @@ import { IngredientListField } from "@/components/ingredient-list-field";
 import { normalizeBrowseSections, getBrowseSubTags, getRawBrowseSectionValues } from "@/lib/browse-sections";
 import { BrowseSectionsCheckboxes } from "@/components/browse-sections-checkboxes";
 import { getBusinessTypeLabel, hasCatalogDashboard, parseBusinessType } from "@/lib/business-types";
-import { formatBrowseSectionsLabel, getStorefrontActionLabels } from "@/lib/browse-sections";
+import { formatBrowseSectionsLabel, getStorefrontActionLabels, STORE_ADMIN_LABEL } from "@/lib/browse-sections";
 import { RestaurantHoursPanel } from "@/components/restaurant-hours-panel";
 import { RestaurantDashboardToast } from "@/components/restaurant-dashboard-toast";
 import { parseOpeningHours } from "@/lib/opening-hours";
@@ -488,7 +488,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
           />
           <div className="relative flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-violet-200">Restaurant admin</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-violet-200">{STORE_ADMIN_LABEL}</p>
               <h1 className="mt-1 text-xl font-bold md:text-2xl">{restaurant?.name}</h1>
               <p className="mt-0.5 text-xs text-violet-200 md:text-sm">
                 {categoryLabel}

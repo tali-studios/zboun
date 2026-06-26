@@ -98,7 +98,7 @@ export async function SiteFooter({ padForMobileNav = false }: SiteFooterProps = 
                 </li>
                 <li>
                   <Link href="/dashboard/login" className={linkClass}>
-                    Restaurant login
+                    Store login
                   </Link>
                 </li>
               </ul>

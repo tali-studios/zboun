@@ -42,10 +42,10 @@ export default async function LoginPage({ searchParams }: Props) {
                 <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
                 <polyline points="9 22 9 12 15 12 15 22" />
               </svg>
-              Restaurant Admin
+              Store Admin
             </span>
             <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">Welcome back</h1>
-            <p className="mt-1 text-sm text-slate-500">Sign in to manage your menu and orders.</p>
+            <p className="mt-1 text-sm text-slate-500">Sign in to manage your store and orders.</p>
           </div>
 
           {/* Errors */}

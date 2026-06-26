@@ -358,6 +358,10 @@ export function isFoodSubFilter(value: string): value is FoodSubFilter {
   return isBrowseSubFilter(value);
 }
 
+/** Shared dashboard / footer labels (all business types, not only restaurants). */
+export const STORE_ADMIN_LABEL = "Store admin";
+export const STORE_LOGIN_LABEL = "Store login";
+
 /** Whether this business is primarily food-service (menu wording fits). */
 export function isFoodMenuBusiness(browseSections: unknown): boolean {
   return normalizeBrowseSections(getRawBrowseSectionValues(browseSections)).includes("Food & Restaurants");
@@ -394,7 +398,7 @@ export function getStorefrontQrLabels(browseSections: unknown): {
 } {
   if (isFoodMenuBusiness(browseSections)) {
     return {
-      adminEyebrow: "Restaurant admin",
+      adminEyebrow: STORE_ADMIN_LABEL,
       pageTitle: "Menu QR codes",
       pageIntro:
         "Use the online order QR for delivery and WhatsApp orders. Use the in-restaurant QR on tables or at the counter — guests browse items without add-to-cart buttons.",
@@ -414,7 +418,7 @@ export function getStorefrontQrLabels(browseSections: unknown): {
     };
   }
   return {
-    adminEyebrow: "Store admin",
+    adminEyebrow: STORE_ADMIN_LABEL,
     pageTitle: "Store QR codes",
     pageIntro:
       "Use the online store QR for delivery and WhatsApp orders. Use the in-store QR on shelves or at the counter — customers browse products without add-to-cart buttons.",

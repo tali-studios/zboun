@@ -1198,7 +1198,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
 
       {passwordRestaurant ? (
         <SuperAdminSetPasswordModal
-          title="Reset restaurant admin password"
+          title="Reset store admin password"
           subtitle={`${passwordRestaurant.name} · ${passwordRestaurant.admin_email}`}
           onSubmit={(password, confirmPassword) =>
             resetRestaurantPassword(passwordRestaurant, password, confirmPassword)

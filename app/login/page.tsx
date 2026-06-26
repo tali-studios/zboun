@@ -13,7 +13,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   account_not_found:
     "No user account found for this email. Please sign up first.",
   use_dashboard_login:
-    "This account is a restaurant admin. Please use the dashboard login instead.",
+    "This account is a store admin. Please use the dashboard login instead.",
   email_not_verified:
     "Please verify your email with the 6-digit code before signing in.",
 };
@@ -96,7 +96,7 @@ export default async function CustomerLoginPage({ searchParams }: Props) {
 
         {/* Admin login note */}
         <p className="mt-5 text-center text-xs text-slate-400">
-          Restaurant admin?{" "}
+          Store admin?{" "}
           <Link href="/dashboard/login" className="text-slate-500 underline underline-offset-2 hover:text-slate-700">
             Sign in to your dashboard
           </Link>
