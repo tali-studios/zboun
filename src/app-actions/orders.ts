@@ -142,7 +142,14 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
     return { ok: false, error: "The restaurant is closed right now. Please schedule your delivery." };
   }
 
-  if (!input.customerName.trim() || !input.items.length) {
+  if (!input.items.length) {
+    return { ok: false, error: "Invalid order details." };
+  }
+
+  const isGuestOrder = !user && restaurantRow.allow_guest_checkout;
+  const customerName =
+    input.customerName.trim() || (isGuestOrder ? "Guest" : "");
+  if (!customerName) {
     return { ok: false, error: "Invalid order details." };
   }
 
@@ -192,7 +199,7 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
     .insert({
       restaurant_id: input.restaurantId,
       customer_id: customerId,
-      customer_name: input.customerName.trim(),
+      customer_name: customerName,
       customer_phone: input.customerPhone?.trim() || null,
       delivery_address: input.deliveryAddress?.trim() || null,
       delivery_lat: input.deliveryLat ?? null,
@@ -241,7 +248,7 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
     restaurantName: restaurant?.name ?? "Restaurant",
     restaurantEmail: restaurantEmail ?? "",
     restaurantPhone: restaurant?.phone ?? "",
-    customerName: input.customerName,
+    customerName: customerName,
     customerPhone: input.customerPhone,
     deliveryAddress: input.deliveryAddress,
     deliveryLat: input.deliveryLat,

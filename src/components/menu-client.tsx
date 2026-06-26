@@ -183,6 +183,7 @@ export function MenuClient({
   );
   const orderingBlocked = isTemporarilyClosed || !orderingEnabled;
   const canCheckout = isLoggedIn || allowGuestCheckout;
+  const isGuestCheckout = !isLoggedIn && allowGuestCheckout;
   const canShop = !viewOnly && !orderingBlocked;
   const [cart, setCart] = useState<Record<string, CartLine>>({});
   const [customizing, setCustomizing] = useState<CustomizationState | null>(null);
@@ -190,11 +191,12 @@ export function MenuClient({
   const [menuCategoryFilter, setMenuCategoryFilter] = useState<string>("all");
   const [customerName, setCustomerName] = useState(defaultCustomerName);
   const effectiveCustomerName = useMemo(() => {
+    if (isGuestCheckout) return "Guest";
     if (isLoggedIn) {
       return defaultCustomerName.trim() || customerName.trim();
     }
     return customerName.trim();
-  }, [isLoggedIn, defaultCustomerName, customerName]);
+  }, [isGuestCheckout, isLoggedIn, defaultCustomerName, customerName]);
 
   useEffect(() => {
     if (isLoggedIn && defaultCustomerName.trim()) {
@@ -216,6 +218,7 @@ export function MenuClient({
   const reorderAppliedRef = useRef(false);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [placedOrder, setPlacedOrder] = useState<{ orderId: string; whatsappUrl: string | null } | null>(null);
+  const [guestWhatsAppSent, setGuestWhatsAppSent] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
   const { location } = useDeliveryLocation();
   const orderTopRef = useRef<HTMLDivElement>(null);
@@ -559,8 +562,6 @@ export function MenuClient({
   }
 
   function createWhatsAppMessage() {
-    const cleanName = effectiveCustomerName;
-    const cleanAddress = address.trim();
     const orderNotes = buildOrderNotes();
     const lines = [
       "Hello 👋",
@@ -592,8 +593,17 @@ export function MenuClient({
         return `- ${qtyText} ${item.name}${modifierText}${priceText}`;
       }),
       "",
-      `Name: ${cleanName}`,
-      `Address: ${cleanAddress}`,
+      `Subtotal: ${formatUsd(total)}`,
+      `${deliveryLabel}: ${deliveryCharge === 0 ? "Free" : formatUsd(deliveryCharge)}`,
+      `Total: ${formatUsd(orderTotal)} (${formatLbp(orderTotal)})`,
+      paymentNote ? `Payment: ${paymentNote}` : "",
+      ...(isGuestCheckout
+        ? ["", "I'll share my name and delivery details on WhatsApp."]
+        : [
+            "",
+            `Name: ${effectiveCustomerName}`,
+            `Address: ${address.trim()}`,
+          ]),
       orderNotes ? `Notes: ${orderNotes}` : "",
     ].filter(Boolean);
 
@@ -601,6 +611,29 @@ export function MenuClient({
   }
 
   const orderLink = `https://wa.me/${restaurantPhone.replace(/\D/g, "")}?text=${createWhatsAppMessage()}`;
+
+  function handleGuestWhatsAppOrder() {
+    if (orderingBlocked) {
+      setOrderError("This restaurant is closed and not accepting online orders right now.");
+      return;
+    }
+    if (deliveryTime.mode === "now" && !isOpenNow) {
+      setOrderError("The restaurant is closed right now. Please schedule your delivery for later.");
+      return;
+    }
+    const blockReason = checkoutBlockReason();
+    if (blockReason) {
+      setOrderError(blockReason);
+      return;
+    }
+    setOrderError(null);
+    setCart({});
+    setShowCheckout(false);
+    setCheckoutStep("review");
+    setCheckoutBackToCart(false);
+    setGuestWhatsAppSent(true);
+    orderTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   async function handleOrderClick() {
     if (orderingBlocked) {
@@ -624,9 +657,9 @@ export function MenuClient({
         restaurantSlug,
         customerName: effectiveCustomerName,
         customerPhone: null,
-        deliveryAddress: address.trim(),
-        deliveryLat: location?.lat ?? null,
-        deliveryLng: location?.lng ?? null,
+        deliveryAddress: isGuestCheckout ? null : address.trim() || null,
+        deliveryLat: isGuestCheckout ? null : location?.lat ?? null,
+        deliveryLng: isGuestCheckout ? null : location?.lng ?? null,
         items: items.map((item) => ({
           name: item.name,
           qty: item.qty,
@@ -899,27 +932,27 @@ export function MenuClient({
     if (deliveryTime.mode === "now" && !isOpenNow) {
       return "The restaurant is closed right now. Please schedule your delivery for later.";
     }
-    if (!address.trim()) return "Please add a delivery address before continuing.";
-    if (!effectiveCustomerName) {
-      return isLoggedIn
-        ? "We could not read your account name. Update it under Account, then try again."
-        : allowGuestCheckout
-          ? "Please enter your name before continuing."
+    if (!isGuestCheckout) {
+      if (!address.trim()) return "Please add a delivery address before continuing.";
+      if (!effectiveCustomerName) {
+        return isLoggedIn
+          ? "We could not read your account name. Update it under Account, then try again."
           : "Please sign in to checkout.";
-    }
-    if (location?.lat != null && location.lng != null) {
-      const withinRange = isWithinRestaurantDeliveryRange(
-        { lat: location.lat, lng: location.lng },
-        {
-          latitude: restaurantLatitude,
-          longitude: restaurantLongitude,
-          branches: restaurantBranches,
-          delivery_radius_km: deliveryRadiusKm,
-        },
-      );
-      if (withinRange === false) {
-        const maxKm = normalizeRestaurantDeliveryRadiusKm(deliveryRadiusKm);
-        return `This restaurant only delivers within ${maxKm} km of the store. Choose a closer address or pick another restaurant.`;
+      }
+      if (location?.lat != null && location.lng != null) {
+        const withinRange = isWithinRestaurantDeliveryRange(
+          { lat: location.lat, lng: location.lng },
+          {
+            latitude: restaurantLatitude,
+            longitude: restaurantLongitude,
+            branches: restaurantBranches,
+            delivery_radius_km: deliveryRadiusKm,
+          },
+        );
+        if (withinRange === false) {
+          const maxKm = normalizeRestaurantDeliveryRadiusKm(deliveryRadiusKm);
+          return `This restaurant only delivers within ${maxKm} km of the store. Choose a closer address or pick another restaurant.`;
+        }
       }
     }
     return null;
@@ -968,7 +1001,7 @@ export function MenuClient({
               <ArrowLeft className="h-5 w-5" strokeWidth={2.25} aria-hidden />
             </button>
             <h2 className="text-center text-base font-bold text-slate-900">
-              {isConfirmStep ? "Confirm order" : "Checkout"}
+              {isConfirmStep ? (isGuestCheckout ? "Send via WhatsApp" : "Confirm order") : "Checkout"}
             </h2>
             <div aria-hidden />
           </div>
@@ -985,6 +1018,8 @@ export function MenuClient({
                 onPlaceOrder={handleOrderClick}
                 isPlacingOrder={isPlacingOrder}
                 theme={theme}
+                whatsappOrderUrl={isGuestCheckout ? orderLink : null}
+                onWhatsAppOrder={handleGuestWhatsAppOrder}
               />
               {orderError ? (
                 <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-xs font-medium text-red-600">{orderError}</p>
@@ -993,24 +1028,6 @@ export function MenuClient({
           ) : (
             <>
               <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-4">
-                {!isLoggedIn && allowGuestCheckout ? (
-                  <section className="mb-3 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/[0.04]">
-                    <label className="block">
-                      <span className="text-sm font-bold text-slate-900">Your name</span>
-                      <input
-                        type="text"
-                        value={customerName}
-                        onChange={(e) => setCustomerName(e.target.value)}
-                        placeholder="Name for delivery"
-                        autoComplete="name"
-                        className="ui-input mt-2"
-                      />
-                    </label>
-                    <p className="mt-2 text-xs text-slate-500">
-                      No account needed — we only use this for your order.
-                    </p>
-                  </section>
-                ) : null}
                 <CheckoutDeliverySections
                   address={address}
                   onAddressChange={setAddress}
@@ -1018,6 +1035,7 @@ export function MenuClient({
                   onNotesChange={setNotes}
                   savedAddresses={savedAddresses}
                   isLoggedIn={isLoggedIn}
+                  skipAddressDetails={isGuestCheckout}
                   openingHours={parsedOpeningHours}
                   etaLabel={etaLabel}
                   deliveryTime={deliveryTime}
@@ -1186,6 +1204,23 @@ export function MenuClient({
     <div style={themeVars}>
     <>
       <div ref={orderTopRef} />
+      {guestWhatsAppSent ? (
+        <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+          <p className="font-semibold">Order opened in WhatsApp</p>
+          <p className="mt-0.5 text-xs leading-relaxed text-emerald-800">
+            Tap <span className="font-semibold">Send</span> in WhatsApp to notify{" "}
+            <span className="font-semibold">{restaurantName}</span>. You can add your name and delivery address in the
+            chat.
+          </p>
+          <button
+            type="button"
+            onClick={() => setGuestWhatsAppSent(false)}
+            className="mt-2 text-xs font-semibold text-emerald-700 underline underline-offset-2 hover:text-emerald-900"
+          >
+            Dismiss
+          </button>
+        </div>
+      ) : null}
       {placedOrder ? (
         <div className="py-8">{renderOrderConfirmation()}</div>
       ) : null}

@@ -1,8 +1,4 @@
-1) wtsp direct order without login (enabled by restaurants)
 2) Facebook account
 3) prepare test env and test db
 4) create demo video
-5) zboun.net should directly open the home page, if he needs to order 
-   from a restaurant that requires an account,
-   then request him to sign in or create an account.
 6) algorithm to appear on top in google 

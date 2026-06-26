@@ -17,6 +17,9 @@ type Props = {
   isPlacingOrder: boolean;
   durationSeconds?: number;
   theme: MenuTheme;
+  /** Guest checkout: open WhatsApp instead of placing through Zboun. */
+  whatsappOrderUrl?: string | null;
+  onWhatsAppOrder?: () => void;
 };
 
 export function CheckoutOrderConfirm({
@@ -30,7 +33,10 @@ export function CheckoutOrderConfirm({
   isPlacingOrder,
   durationSeconds = DEFAULT_SECONDS,
   theme,
+  whatsappOrderUrl = null,
+  onWhatsAppOrder,
 }: Props) {
+  const isWhatsAppGuest = Boolean(whatsappOrderUrl);
   const [secondsLeft, setSecondsLeft] = useState(durationSeconds);
   const placedRef = useRef(false);
   const tickRef = useRef<number | null>(null);
@@ -54,6 +60,8 @@ export function CheckoutOrderConfirm({
   }
 
   useEffect(() => {
+    if (isWhatsAppGuest) return;
+
     setSecondsLeft(durationSeconds);
     placedRef.current = false;
 
@@ -80,7 +88,7 @@ export function CheckoutOrderConfirm({
         tickRef.current = null;
       }
     };
-  }, [durationSeconds]);
+  }, [durationSeconds, isWhatsAppGuest]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -95,67 +103,94 @@ export function CheckoutOrderConfirm({
         <p className="relative text-center text-xs font-bold uppercase tracking-[0.2em] text-white/70">
           Final step
         </p>
-        <h3 className="relative mt-1 text-center text-lg font-bold">Confirm your order</h3>
+        <h3 className="relative mt-1 text-center text-lg font-bold">
+          {isWhatsAppGuest ? "Send your order on WhatsApp" : "Confirm your order"}
+        </h3>
         <p className="relative mt-1 text-center text-sm text-white/80">
-          Sending to <span className="font-semibold text-white">{restaurantName}</span>
+          {isWhatsAppGuest ? (
+            <>
+              Notify <span className="font-semibold text-white">{restaurantName}</span> directly on WhatsApp
+            </>
+          ) : (
+            <>
+              Sending to <span className="font-semibold text-white">{restaurantName}</span>
+            </>
+          )}
         </p>
       </div>
 
       <div className="mt-6 flex flex-col items-center">
-        <div className="relative flex h-[140px] w-[140px] items-center justify-center">
-          <svg className="absolute inset-0 h-full w-full -rotate-90" viewBox="0 0 120 120" aria-hidden>
-            <circle
-              cx="60"
-              cy="60"
-              r={ringRadius}
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="8"
-              className="text-slate-100"
-            />
-            <circle
-              cx="60"
-              cy="60"
-              r={ringRadius}
-              fill="none"
-              stroke="url(#confirm-ring-gradient)"
-              strokeWidth="8"
-              strokeLinecap="round"
-              strokeDasharray={circumference}
-              strokeDashoffset={strokeDashoffset}
-              className="transition-[stroke-dashoffset] duration-1000 ease-linear"
-            />
-            <defs>
-              <linearGradient id="confirm-ring-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor={theme.primary} />
-                <stop offset="100%" stopColor={theme.deep} />
-              </linearGradient>
-            </defs>
-          </svg>
-          <div className="relative text-center">
-            {isPlacingOrder ? (
-              <>
-                <div
-                  className="mx-auto h-8 w-8 animate-spin rounded-full border-[3px] border-slate-200"
-                  style={{ borderTopColor: theme.primary }}
-                  aria-hidden
+        {isWhatsAppGuest ? (
+          <>
+            <div className="flex h-[140px] w-[140px] items-center justify-center rounded-full bg-[#25D366]/10">
+              <svg className="h-16 w-16 text-[#25D366]" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+                <path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.124 1.532 5.859L.054 23.285a.75.75 0 00.916.916l5.437-1.478A11.954 11.954 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.89 0-3.67-.5-5.21-1.374l-.374-.213-3.867 1.051 1.052-3.843-.226-.386A9.956 9.956 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" />
+              </svg>
+            </div>
+            <p className="mt-5 max-w-[18rem] text-center text-sm leading-relaxed text-slate-600">
+              Tap the button below to open WhatsApp with your order ready to send. Hit send in WhatsApp to notify the
+              store.
+            </p>
+          </>
+        ) : (
+          <>
+            <div className="relative flex h-[140px] w-[140px] items-center justify-center">
+              <svg className="absolute inset-0 h-full w-full -rotate-90" viewBox="0 0 120 120" aria-hidden>
+                <circle
+                  cx="60"
+                  cy="60"
+                  r={ringRadius}
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="8"
+                  className="text-slate-100"
                 />
-                <p className="mt-2 text-xs font-semibold text-slate-500">Placing…</p>
-              </>
-            ) : (
-              <>
-                <p className="text-4xl font-bold tabular-nums tracking-tight text-slate-900">{secondsLeft}</p>
-                <p className="text-xs font-medium text-slate-400">seconds</p>
-              </>
-            )}
-          </div>
-        </div>
+                <circle
+                  cx="60"
+                  cy="60"
+                  r={ringRadius}
+                  fill="none"
+                  stroke="url(#confirm-ring-gradient)"
+                  strokeWidth="8"
+                  strokeLinecap="round"
+                  strokeDasharray={circumference}
+                  strokeDashoffset={strokeDashoffset}
+                  className="transition-[stroke-dashoffset] duration-1000 ease-linear"
+                />
+                <defs>
+                  <linearGradient id="confirm-ring-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor={theme.primary} />
+                    <stop offset="100%" stopColor={theme.deep} />
+                  </linearGradient>
+                </defs>
+              </svg>
+              <div className="relative text-center">
+                {isPlacingOrder ? (
+                  <>
+                    <div
+                      className="mx-auto h-8 w-8 animate-spin rounded-full border-[3px] border-slate-200"
+                      style={{ borderTopColor: theme.primary }}
+                      aria-hidden
+                    />
+                    <p className="mt-2 text-xs font-semibold text-slate-500">Placing…</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-4xl font-bold tabular-nums tracking-tight text-slate-900">{secondsLeft}</p>
+                    <p className="text-xs font-medium text-slate-400">seconds</p>
+                  </>
+                )}
+              </div>
+            </div>
 
-        <p className="mt-5 max-w-[18rem] text-center text-sm leading-relaxed text-slate-600">
-          {isPlacingOrder
-            ? "Hang tight — we’re sending your order to the restaurant."
-            : "Tap confirm to place now, or wait for the timer to finish."}
-        </p>
+            <p className="mt-5 max-w-[18rem] text-center text-sm leading-relaxed text-slate-600">
+              {isPlacingOrder
+                ? "Hang tight — we’re sending your order to the restaurant."
+                : "Tap confirm to place now, or wait for the timer to finish."}
+            </p>
+          </>
+        )}
       </div>
 
       <div className="mt-6 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/[0.04]">
@@ -180,15 +215,32 @@ export function CheckoutOrderConfirm({
       </div>
 
       <div className="mt-auto space-y-3 pt-6">
-        <button
-          type="button"
-          onClick={placeOrderNow}
-          disabled={isPlacingOrder}
-          className="w-full rounded-2xl py-3.5 text-sm font-bold text-white shadow-md transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
-          style={menuPrimaryButtonStyle(theme)}
-        >
-          {isPlacingOrder ? "Placing order…" : "Confirm order"}
-        </button>
+        {isWhatsAppGuest && whatsappOrderUrl ? (
+          <a
+            href={whatsappOrderUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => onWhatsAppOrder?.()}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-bold text-white shadow-md transition hover:brightness-110"
+            style={{ backgroundColor: "#25D366" }}
+          >
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+              <path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.124 1.532 5.859L.054 23.285a.75.75 0 00.916.916l5.437-1.478A11.954 11.954 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.89 0-3.67-.5-5.21-1.374l-.374-.213-3.867 1.051 1.052-3.843-.226-.386A9.956 9.956 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" />
+            </svg>
+            Place order on WhatsApp
+          </a>
+        ) : (
+          <button
+            type="button"
+            onClick={placeOrderNow}
+            disabled={isPlacingOrder}
+            className="w-full rounded-2xl py-3.5 text-sm font-bold text-white shadow-md transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
+            style={menuPrimaryButtonStyle(theme)}
+          >
+            {isPlacingOrder ? "Placing order…" : "Confirm order"}
+          </button>
+        )}
         <button
           type="button"
           onClick={onCancel}

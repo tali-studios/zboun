@@ -85,6 +85,8 @@ type Props = {
   payingWith?: number | null;
   onPayingWithChange?: (value: number | null) => void;
   theme: MenuTheme;
+  /** Guest checkout: skip delivery address (name/location collected on WhatsApp). */
+  skipAddressDetails?: boolean;
 };
 
 const CASH_QUICK_USD = [5, 10, 20, 50, 100] as const;
@@ -215,6 +217,7 @@ export function CheckoutDeliverySections({
   payingWith = null,
   onPayingWithChange,
   theme,
+  skipAddressDetails = false,
 }: Props) {
   const orderTotals = { usd: orderTotalUsd, lbp: orderTotalLbp };
   const changeDue = computeChangeDue(
@@ -596,6 +599,7 @@ export function CheckoutDeliverySections({
         </section>
 
         {/* Delivery address */}
+        {!skipAddressDetails ? (
         <CheckoutCard title="Delivery Address" onChange={() => setShowAddressSheet(true)}>
           <div className="flex gap-3">
             <div className="relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-xl bg-slate-100 ring-1 ring-slate-200">
@@ -641,6 +645,7 @@ export function CheckoutDeliverySections({
           </div>
 
         </CheckoutCard>
+        ) : null}
 
         {onPayingExactChange && onPayingWithChange && onPaymentCurrencyChange ? (
           <CheckoutCard title="Paying with cash?">
