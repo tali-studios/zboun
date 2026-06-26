@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { MenuClient } from "@/components/menu-client";
 import { RestaurantMenuHero } from "@/components/restaurant-menu-hero";
 import { getRestaurantBySlug, getRestaurantMenu } from "@/lib/data";
+import { getStorefrontQrLabels, isFoodMenuBusiness } from "@/lib/browse-sections";
 import { getSiteUrl } from "@/lib/site";
 
 type Props = {
@@ -17,17 +18,20 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
   const base = getSiteUrl();
   const path = `/${restaurant.slug}/menu`;
-  const title = `${restaurant.name} — menu`;
+  const food = isFoodMenuBusiness(restaurant.browse_sections);
+  const title = food ? `${restaurant.name} — menu` : `${restaurant.name} — store`;
   const description =
     restaurant.description?.trim() ||
-    `Browse the ${restaurant.name} menu — items and prices for in-restaurant reference.`;
+    (food
+      ? `Browse the ${restaurant.name} menu — items and prices for in-restaurant reference.`
+      : `Browse ${restaurant.name} — products and prices for in-store reference.`);
   return {
     title,
     description,
     alternates: { canonical: path },
     robots: { index: true, follow: true },
     openGraph: {
-      title: `${restaurant.name} menu`,
+      title: food ? `${restaurant.name} menu` : `${restaurant.name} store`,
       description,
       url: `${base}${path}`,
       type: "website",
@@ -55,9 +59,8 @@ export default async function RestaurantInStoreMenuPage({ params }: Props) {
 
   const categories = await getRestaurantMenu(restaurant.id);
 
-  const tagline =
-    restaurant.description?.trim() ||
-    "Browse our menu — items and prices for reference while you dine in.";
+  const viewLabels = getStorefrontQrLabels(restaurant.browse_sections);
+  const tagline = restaurant.description?.trim() || viewLabels.inStoreViewTagline;
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#F9FAFB]">
@@ -65,7 +68,7 @@ export default async function RestaurantInStoreMenuPage({ params }: Props) {
         restaurant={restaurant}
         tagline={tagline}
         menuThemeColor={restaurant.menu_theme_color}
-        modeBadge="In-restaurant menu · view only"
+        modeBadge={viewLabels.inStoreViewBadge}
       />
 
       <main className="container px-3 pb-10 pt-3 sm:px-6 sm:pb-12 sm:pt-6 lg:pb-8">

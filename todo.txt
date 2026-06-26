@@ -1,4 +1,2 @@
-2) Facebook account
-3) prepare test env and test db
-4) create demo video
-6) algorithm to appear on top in google 
+1) prepare test env and test db
+2) create demo video

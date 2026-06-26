@@ -11,6 +11,8 @@ type Props = {
   /** Filename suffix, e.g. "menu-qr" or "in-store-menu-qr" */
   downloadSuffix?: string;
   variant?: "order" | "in-store";
+  badgeLabel?: string;
+  openLinkLabel?: string;
 };
 
 export function MenuQrCard({
@@ -20,12 +22,15 @@ export function MenuQrCard({
   description,
   downloadSuffix = "menu-qr",
   variant = "order",
+  badgeLabel,
+  openLinkLabel = "Open menu",
 }: Props) {
   const [qrDataUrl, setQrDataUrl] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
   const isInStore = variant === "in-store";
+  const badge = badgeLabel ?? (isInStore ? "In-store" : "Online order");
 
   async function generateQr() {
     try {
@@ -78,7 +83,7 @@ export function MenuQrCard({
               : "bg-emerald-100 text-emerald-800"
           }`}
         >
-          {isInStore ? "In-store" : "Online order"}
+          {badge}
         </span>
       </div>
 
@@ -110,7 +115,7 @@ export function MenuQrCard({
             Download QR
           </button>
           <a href={menuUrl} target="_blank" rel="noreferrer" className="btn btn-primary">
-            Open menu
+            {openLinkLabel}
           </a>
         </div>
       </div>

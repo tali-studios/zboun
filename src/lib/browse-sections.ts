@@ -375,6 +375,65 @@ export function getStorefrontActionLabels(browseSections: unknown): {
   return { open: "Open store", copyLink: "Copy store link", slugLabel: "Store" };
 }
 
+/** QR codes page — menu vs store wording. */
+export function getStorefrontQrLabels(browseSections: unknown): {
+  adminEyebrow: string;
+  pageTitle: string;
+  pageIntro: string;
+  orderTitle: string;
+  orderDescription: string;
+  orderBadge: string;
+  inStoreTitle: string;
+  inStoreDescription: string;
+  inStoreBadge: string;
+  openLink: string;
+  orderDownloadSuffix: string;
+  inStoreDownloadSuffix: string;
+  inStoreViewBadge: string;
+  inStoreViewTagline: string;
+} {
+  if (isFoodMenuBusiness(browseSections)) {
+    return {
+      adminEyebrow: "Restaurant admin",
+      pageTitle: "Menu QR codes",
+      pageIntro:
+        "Use the online order QR for delivery and WhatsApp orders. Use the in-restaurant QR on tables or at the counter — guests browse items without add-to-cart buttons.",
+      orderTitle: "Online order menu",
+      orderDescription:
+        "Full menu with add-to-cart and WhatsApp ordering — for links, social, and delivery.",
+      orderBadge: "Online order",
+      inStoreTitle: "In-restaurant menu",
+      inStoreDescription:
+        "Same look and items, without + buttons or checkout — ideal for QR on tables inside the venue.",
+      inStoreBadge: "In-store",
+      openLink: "Open menu",
+      orderDownloadSuffix: "menu-qr-order",
+      inStoreDownloadSuffix: "menu-qr-in-store",
+      inStoreViewBadge: "In-restaurant menu · view only",
+      inStoreViewTagline: "Browse our menu — items and prices for reference while you dine in.",
+    };
+  }
+  return {
+    adminEyebrow: "Store admin",
+    pageTitle: "Store QR codes",
+    pageIntro:
+      "Use the online store QR for delivery and WhatsApp orders. Use the in-store QR on shelves or at the counter — customers browse products without add-to-cart buttons.",
+    orderTitle: "Online order store",
+    orderDescription:
+      "Full storefront with add-to-cart and WhatsApp ordering — for links, social, and delivery.",
+    orderBadge: "Online order",
+    inStoreTitle: "In-store catalog",
+    inStoreDescription:
+      "Same products and prices, without + buttons or checkout — ideal for QR inside your shop.",
+    inStoreBadge: "In-store browse",
+    openLink: "Open store",
+    orderDownloadSuffix: "store-qr-order",
+    inStoreDownloadSuffix: "store-qr-in-store",
+    inStoreViewBadge: "In-store catalog · view only",
+    inStoreViewTagline: "Browse our products — items and prices for reference in your shop.",
+  };
+}
+
 /** Home-page filter: top-level category + optional sub-filter. */
 export function matchesBrowseFilter(
   browseSections: unknown,
