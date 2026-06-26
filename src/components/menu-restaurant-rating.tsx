@@ -39,7 +39,7 @@ export function MenuRestaurantRating({
   ratingCount,
   raterId: raterIdProp,
   variant = "hero",
-  title = "Rate this restaurant",
+  title = "Rate this store",
   hint = "Tap a star to save (you can change it anytime).",
 }: Props) {
   const router = useRouter();

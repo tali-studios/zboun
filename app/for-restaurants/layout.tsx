@@ -5,13 +5,13 @@ import { formatPricingSummary } from "@/lib/pricing";
 const pricingSummary = formatPricingSummary();
 
 export const metadata: Metadata = {
-  title: "For restaurants — pricing & subscribe",
+  title: "For stores — pricing & subscribe",
   description:
-    `Zboun for restaurants: digital menu page, QR codes, flyer export, WhatsApp order formatting, and dashboard. Plans from ${pricingSummary}.`,
+    `Zboun for stores: digital storefront page, QR codes, flyer export, WhatsApp order formatting, and dashboard. Plans from ${pricingSummary}.`,
   alternates: { canonical: "/for-restaurants" },
   openGraph: {
-    title: "Zboun for restaurants",
-    description: `Digital menu, QR tools, and WhatsApp orders. Simple pricing from ${pricingSummary}.`,
+    title: "Zboun for stores",
+    description: `Digital storefront, QR tools, and WhatsApp orders. Simple pricing from ${pricingSummary}.`,
     url: `${getSiteUrl()}/for-restaurants`,
   },
 };

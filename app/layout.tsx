@@ -35,23 +35,23 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: getMetadataBase(),
   title: {
-    default: "Zboun — Restaurant menus & WhatsApp orders",
+    default: "Zboun — Store menus & WhatsApp orders",
     template: "%s | Zboun",
   },
   description:
-    `Browse restaurant digital menus and send clear orders on WhatsApp. For restaurants: menu page, QR codes, flyer tools, and dashboard from ${pricingSummary} — no commission on orders.`,
+    `Browse store menus and send clear orders on WhatsApp. For store owners: storefront page, QR codes, flyer tools, and dashboard from ${pricingSummary} — no commission on orders.`,
   applicationName: "Zboun",
   keywords: [
     "WhatsApp food order",
     "digital menu",
-    "restaurant menu online",
+    "store menu online",
     "QR menu",
     "Zboun",
-    "Lebanon restaurant",
+    "Lebanon stores",
     "order food WhatsApp",
     "grocery delivery Lebanon",
     "store menu online",
-    "restaurant ordering app",
+    "store ordering app",
     "menu without commission",
   ],
   authors: [{ name: "Zboun" }],
@@ -62,15 +62,15 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: siteUrl,
     siteName: "Zboun",
-    title: "Zboun — Restaurant menus & WhatsApp orders",
+    title: "Zboun — Store menus & WhatsApp orders",
     description:
-      `Browse menus and order on WhatsApp. Restaurant tools: digital menu, QR, dashboard — ${pricingSummary}.`,
+      `Browse menus and order on WhatsApp. Store tools: digital menu, QR, dashboard — ${pricingSummary}.`,
   },
   twitter: {
     card: "summary_large_image",
-    title: "Zboun — Restaurant menus & WhatsApp orders",
+    title: "Zboun — Store menus & WhatsApp orders",
     description:
-      `Browse menus and order on WhatsApp. Digital menus for restaurants from ${pricingSummary}.`,
+      `Browse menus and order on WhatsApp. Digital storefronts for stores from ${pricingSummary}.`,
   },
   robots: publicPageRobots,
   icons: {

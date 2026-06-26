@@ -413,7 +413,7 @@ export default async function SuperAdminPage({ searchParams }: Props) {
         )}
         {success === "subscription_renewed" && (
           <p className="rounded-xl border border-violet-200 bg-violet-50 p-3 text-sm font-medium text-violet-700">
-            Subscription renewed. The restaurant received a confirmation email with the service
+            Subscription renewed. The store received a confirmation email with the service
             agreement PDF attached.
           </p>
         )}
@@ -550,7 +550,7 @@ export default async function SuperAdminPage({ searchParams }: Props) {
         <section className="panel p-4 md:p-5">
           <h2 className="panel-title">Generate contract</h2>
           <p className="mt-1 text-sm text-slate-600">
-            Fill in the agreement details and download a signed-ready PDF for any restaurant.
+            Fill in the agreement details and download a signed-ready PDF for any store.
           </p>
           <SuperAdminContractGenerator restaurants={contractPresets} />
         </section>

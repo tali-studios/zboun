@@ -18,37 +18,38 @@ import {
 import { SiteFooter } from "@/components/site-footer";
 import { BackToTopButton } from "@/components/back-to-top-button";
 import { BackButton } from "@/components/back-button";
+import { FOR_STORE_OWNERS_LABEL } from "@/lib/browse-sections";
 import { formatPricingSummary } from "@/lib/pricing";
 
-const restaurantBenefits = [
+const storeOwnerBenefits = [
   "Keep 100% of every order — flat subscription, zero commission",
-  "Your own branded menu page with a link you can share anywhere",
+  "Your own branded store page with a link you can share anywhere",
   "Guests order through WhatsApp using clear, structured messages",
   "Update prices, photos, and availability anytime from your dashboard",
-  "QR codes and print-ready flyers — ready for tables, doors, and social",
+  "QR codes and print-ready flyers — ready for counters, doors, and social",
   "Optional visibility on the Zboun home page so new customers discover you",
 ];
 
-const restaurantFeatures = [
+const storeOwnerFeatures = [
   {
     icon: Store,
-    title: "Digital menu page",
-    body: "A mobile-friendly menu at your unique Zboun URL — sections, photos, prices, and item details.",
+    title: "Digital storefront page",
+    body: "A mobile-friendly catalog at your unique Zboun URL — sections, photos, prices, and item details.",
   },
   {
     icon: LayoutDashboard,
-    title: "Restaurant dashboard",
-    body: "Manage your full menu, opening hours, temporary closures, and branding without calling anyone.",
+    title: "Store dashboard",
+    body: "Manage your full catalog, opening hours, temporary closures, and branding without calling anyone.",
   },
   {
     icon: QrCode,
     title: "QR codes",
-    body: "Two QR types: one for online delivery orders, one for in-restaurant browsing on tables.",
+    body: "Two QR types: one for online delivery orders, one for in-store browsing on shelves or tables.",
   },
   {
     icon: Printer,
     title: "Print flyer (A4)",
-    body: "Export a polished flyer with your menu link and QR — ideal for counters, packaging, and windows.",
+    body: "Export a polished flyer with your store link and QR — ideal for counters, packaging, and windows.",
   },
   {
     icon: MessageCircle,
@@ -58,16 +59,16 @@ const restaurantFeatures = [
   {
     icon: Images,
     title: "Photos & branding",
-    body: "Upload your logo, cover image, and dish photos so your menu looks as good as your food.",
+    body: "Upload your logo, cover image, and product photos so your store looks as good as your brand.",
   },
 ];
 
 const guestBenefits = [
-  "Browse restaurants and menus without creating an account",
+  "Browse stores and menus without creating an account",
   "See photos, prices, and options before you order",
   "Build a cart on your phone — no app download required",
   "Free account unlocks delivery checkout, saved addresses, and order history",
-  "Save favorite restaurants and reorder in a few taps",
+  "Save favorite stores and reorder in a few taps",
   "Add Zboun to your home screen — works like a lightweight app",
 ];
 
@@ -75,22 +76,22 @@ const guestFeatures = [
   {
     icon: ShoppingBag,
     title: "Browse & discover",
-    body: "Explore restaurants on Zboun, open any menu instantly, and check what's available near you.",
+    body: "Explore stores on Zboun, open any menu or catalog instantly, and check what's available near you.",
   },
   {
     icon: Smartphone,
-    title: "Mobile-first menus",
-    body: "Fast, thumb-friendly menus designed for phones — the way most people order today.",
+    title: "Mobile-first experience",
+    body: "Fast, thumb-friendly pages designed for phones — the way most people order today.",
   },
   {
     icon: MapPin,
     title: "Delivery checkout",
-    body: "Sign in (free) to add your address, pick a delivery time, and send a complete order to the restaurant.",
+    body: "Sign in (free) to add your address, pick a delivery time, and send a complete order to the store.",
   },
   {
     icon: MessageCircle,
     title: "WhatsApp handoff",
-    body: "Orders are formatted for WhatsApp so the restaurant receives everything they need in one message.",
+    body: "Orders are formatted for WhatsApp so the store receives everything they need in one message.",
   },
   {
     icon: Heart,
@@ -107,12 +108,12 @@ const guestFeatures = [
 const steps = [
   {
     n: "01",
-    title: "Restaurant joins Zboun",
-    body: "We set up your menu page, dashboard access, and QR assets. You stay in control of your brand.",
+    title: "Store joins Zboun",
+    body: "We set up your store page, dashboard access, and QR assets. You stay in control of your brand.",
   },
   {
     n: "02",
-    title: "Guests browse your menu",
+    title: "Guests browse your catalog",
     body: "Customers open your link or scan your QR — on Zboun, social media, or your printed flyer.",
   },
   {
@@ -178,10 +179,10 @@ export default function AboutPage() {
             <div className="mx-auto max-w-3xl text-center">
               <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-violet-600">Who we are</p>
               <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl md:text-5xl">
-                Digital menus &amp; WhatsApp ordering, built for Lebanon&apos;s restaurants
+                Digital storefronts &amp; WhatsApp ordering, built for Lebanon&apos;s businesses
               </h1>
               <p className="mt-5 text-base leading-relaxed text-slate-600 sm:text-lg">
-                Zboun helps restaurants share a beautiful online menu, take structured orders on WhatsApp, and
+                Zboun helps stores share a beautiful online catalog, take structured orders on WhatsApp, and
                 manage everything from one dashboard — while guests browse and order from their phones without
                 downloading another app.
               </p>
@@ -190,18 +191,18 @@ export default function AboutPage() {
                   href="/"
                   className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-600 px-7 py-3.5 text-sm font-semibold text-white shadow-md shadow-violet-400/25 transition hover:brightness-110 sm:w-auto"
                 >
-                  Browse restaurants
+                  Browse stores
                   <ArrowRight className="h-4 w-4" aria-hidden />
                 </Link>
                 <Link
                   href="/for-restaurants"
                   className="inline-flex w-full items-center justify-center rounded-full border border-slate-200 bg-white px-7 py-3.5 text-sm font-semibold text-slate-700 transition hover:border-violet-200 hover:text-violet-700 sm:w-auto"
                 >
-                  Plans for restaurants
+                  Plans for stores
                 </Link>
               </div>
               <p className="mt-4 text-xs text-slate-500">
-                No account required to explore menus and learn about Zboun.
+                No account required to explore stores and learn about Zboun.
               </p>
             </div>
           </div>
@@ -212,20 +213,20 @@ export default function AboutPage() {
           <div className="mx-auto max-w-3xl text-center">
             <p className="text-[11px] font-bold uppercase tracking-widest text-violet-600">What we do</p>
             <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-              One platform, two sides — restaurants and guests
+              One platform, two sides — stores and guests
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-slate-600 sm:text-base">
-              Restaurants get a professional online presence and ordering workflow. Guests get a simple way to
-              discover food, build a cart, and send a complete order — with WhatsApp as the familiar last step.
+              Stores get a professional online presence and ordering workflow. Guests get a simple way to
+              discover products, build a cart, and send a complete order — with WhatsApp as the familiar last step.
             </p>
           </div>
 
           <div className="mx-auto mt-10 grid max-w-5xl gap-5 md:grid-cols-2">
             <article className="rounded-3xl border border-violet-100 bg-white p-7 shadow-sm">
-              <p className="text-[11px] font-bold uppercase tracking-widest text-violet-600">For restaurants</p>
-              <h3 className="mt-2 text-xl font-bold text-slate-900">Your menu, your WhatsApp, your rules</h3>
+              <p className="text-[11px] font-bold uppercase tracking-widest text-violet-600">{FOR_STORE_OWNERS_LABEL}</p>
+              <h3 className="mt-2 text-xl font-bold text-slate-900">Your store, your WhatsApp, your rules</h3>
               <p className="mt-3 text-sm leading-relaxed text-slate-600">
-                Replace scattered PDFs and screenshot menus with a live page you control. Share one link, print one
+                Replace scattered PDFs and screenshot catalogs with a live page you control. Share one link, print one
                 QR, and receive orders in a format your team can read at a glance.
               </p>
             </article>
@@ -233,7 +234,7 @@ export default function AboutPage() {
               <p className="text-[11px] font-bold uppercase tracking-widest text-violet-600">For guests</p>
               <h3 className="mt-2 text-xl font-bold text-slate-900">Browse freely, order when you&apos;re ready</h3>
               <p className="mt-3 text-sm leading-relaxed text-slate-600">
-                Anyone can open Zboun and explore restaurant menus. Create a free account only when you want
+                Anyone can open Zboun and explore local stores. Create a free account only when you want
                 delivery checkout, saved addresses, favorites, and order history.
               </p>
             </article>
@@ -246,7 +247,7 @@ export default function AboutPage() {
             <div className="mx-auto max-w-lg text-center">
               <p className="text-[11px] font-bold uppercase tracking-widest text-violet-600">How it works</p>
               <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-                From menu link to WhatsApp order
+                From store link to WhatsApp order
               </h2>
             </div>
             <div className="mx-auto mt-10 grid max-w-4xl gap-5 md:grid-cols-3">
@@ -266,17 +267,17 @@ export default function AboutPage() {
           </div>
         </section>
 
-        {/* Restaurant benefits + features */}
+        {/* Store owner benefits + features */}
         <section className="container py-12 md:py-16">
           <div className="mx-auto max-w-3xl text-center">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-violet-600">Restaurant owners</p>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-violet-600">{FOR_STORE_OWNERS_LABEL}</p>
             <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-              Why restaurants choose Zboun
+              Why stores choose Zboun
             </h2>
           </div>
 
           <ul className="mx-auto mt-8 grid max-w-3xl gap-3 sm:grid-cols-2">
-            {restaurantBenefits.map((item) => (
+            {storeOwnerBenefits.map((item) => (
               <li key={item} className="flex items-start gap-2.5 text-sm text-slate-700">
                 <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-violet-100 text-violet-700">
                   <Check className="h-3 w-3" strokeWidth={3} aria-hidden />
@@ -287,7 +288,7 @@ export default function AboutPage() {
           </ul>
 
           <div className="mx-auto mt-10 grid max-w-5xl gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {restaurantFeatures.map((feature) => {
+            {storeOwnerFeatures.map((feature) => {
               const Icon = feature.icon;
               return (
                 <article
@@ -322,7 +323,7 @@ export default function AboutPage() {
         <section className="border-t border-slate-100 bg-white py-12 md:py-16">
           <div className="container">
             <div className="mx-auto max-w-3xl text-center">
-              <p className="text-[11px] font-bold uppercase tracking-widest text-violet-600">Guests &amp; diners</p>
+              <p className="text-[11px] font-bold uppercase tracking-widest text-violet-600">Guests &amp; shoppers</p>
               <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
                 A better way to order from your phone
               </h2>
@@ -362,7 +363,7 @@ export default function AboutPage() {
                 href="/"
                 className="inline-flex items-center justify-center rounded-full bg-slate-900 px-7 py-3.5 text-sm font-semibold text-white transition hover:bg-slate-800"
               >
-                Start browsing menus
+                Start browsing stores
               </Link>
               <Link
                 href="/install"
@@ -385,11 +386,11 @@ export default function AboutPage() {
               Share this page
             </p>
             <h2 className="relative mt-3 text-2xl font-bold md:text-3xl">
-              Everything your restaurant needs to know — in one link
+              Everything your store needs to know — in one link
             </h2>
             <p className="relative mx-auto mt-3 max-w-lg text-sm leading-relaxed text-slate-400">
               Send partners and owners to this page when they ask how Zboun works. When they&apos;re ready, reach
-              out and we&apos;ll get their menu live.
+              out and we&apos;ll get their store live.
             </p>
             <div className="relative mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link

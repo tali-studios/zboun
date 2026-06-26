@@ -80,7 +80,7 @@ export function CustomerOrdersList({ orders }: Props) {
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by restaurant, item, or status…"
+            placeholder="Search by store, item, or status…"
             className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
             aria-label="Search past orders"
           />
@@ -95,7 +95,7 @@ export function CustomerOrdersList({ orders }: Props) {
       {visibleOrders.length === 0 ? (
         <div className="rounded-2xl bg-white px-4 py-10 text-center shadow-sm">
           <p className="text-sm font-semibold text-slate-800">No orders match your search</p>
-          <p className="mt-1 text-xs text-slate-500">Try a restaurant name, menu item, or order status.</p>
+          <p className="mt-1 text-xs text-slate-500">Try a store name, menu item, or order status.</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -181,7 +181,7 @@ export function CustomerOrdersList({ orders }: Props) {
                           Reorder unavailable
                         </button>
                         <p className="text-center text-[11px] text-slate-400">
-                          This restaurant is no longer accepting orders.
+                          This store is no longer accepting orders.
                         </p>
                       </div>
                     )}

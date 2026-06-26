@@ -101,7 +101,7 @@ export function RestaurantLocationsPanel({ restaurantId, initialLocations }: Pro
           <MapPin className="mx-auto h-8 w-8 text-slate-300" />
           <p className="mt-2 text-sm font-semibold text-slate-600">No locations yet</p>
           <p className="mt-0.5 text-xs text-slate-400">
-            Customers use locations to find restaurants near them.
+            Customers use locations to find stores near them.
           </p>
           <button
             type="button"

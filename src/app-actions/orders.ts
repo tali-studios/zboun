@@ -118,13 +118,13 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
   }
 
   if (restaurantError || !restaurantRow) {
-    return { ok: false, error: "Restaurant not found." };
+    return { ok: false, error: "Store not found." };
   }
   if (!restaurantRow.is_active) {
-    return { ok: false, error: "This restaurant is not accepting orders." };
+    return { ok: false, error: "This store is not accepting orders." };
   }
   if (restaurantRow.is_temporarily_closed) {
-    return { ok: false, error: "This restaurant is temporarily closed." };
+    return { ok: false, error: "This store is temporarily closed." };
   }
 
   if (!user && !restaurantRow.allow_guest_checkout) {
@@ -139,7 +139,7 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
       return { ok: false, error: "Please choose a valid scheduled delivery time during opening hours." };
     }
   } else if (!isRestaurantOpenNow(hours, { isTemporarilyClosed: false })) {
-    return { ok: false, error: "The restaurant is closed right now. Please schedule your delivery." };
+    return { ok: false, error: "The store is closed right now. Please schedule your delivery." };
   }
 
   if (!input.items.length) {
@@ -183,7 +183,7 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
   let deliveryFeeUsd = 0;
   if (deliverySpeed === "fast") {
     if (!restaurantRow.fast_delivery_enabled) {
-      return { ok: false, error: "Fast delivery is not available for this restaurant." };
+      return { ok: false, error: "Fast delivery is not available for this store." };
     }
     deliveryFeeUsd = Math.max(0, Number(restaurantRow.fast_delivery_fee_usd) || 0);
   } else if (!restaurantRow.free_delivery) {
@@ -245,7 +245,7 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
 
   const notificationParams = {
     orderId: order.id,
-    restaurantName: restaurant?.name ?? "Restaurant",
+    restaurantName: restaurant?.name ?? "Store",
     restaurantEmail: restaurantEmail ?? "",
     restaurantPhone: restaurant?.phone ?? "",
     customerName: customerName,
@@ -346,7 +346,7 @@ export async function getCustomerOrder(orderId: string): Promise<CustomerOrderRo
   return {
     ...(r as unknown as OrderRow),
     restaurant_id: restaurantId,
-    restaurant_name: rest?.name ?? "Restaurant",
+    restaurant_name: rest?.name ?? "Store",
     restaurant_slug: rest?.slug ?? "",
     restaurant_is_active: rest?.is_active !== false,
     restaurant_avg_rating,
@@ -376,7 +376,7 @@ export async function getCustomerOrders(): Promise<CustomerOrderRow[]> {
     return {
       ...(r as unknown as OrderRow),
       restaurant_id: String(r.restaurant_id ?? ""),
-      restaurant_name: rest?.name ?? "Restaurant",
+      restaurant_name: rest?.name ?? "Store",
       restaurant_slug: rest?.slug ?? "",
       restaurant_is_active: rest?.is_active !== false,
       restaurant_avg_rating: null,

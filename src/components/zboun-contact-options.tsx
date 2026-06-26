@@ -92,7 +92,7 @@ function ContactEmailForm({ restaurantName }: { restaurantName?: string }) {
       const lines = [
         `Name: ${name.trim()}`,
         phone.trim() ? `Phone: ${phone.trim()}` : null,
-        restaurantName ? `Restaurant: ${restaurantName}` : null,
+        restaurantName ? `Store: ${restaurantName}` : null,
         "",
         message.trim(),
       ].filter(Boolean);

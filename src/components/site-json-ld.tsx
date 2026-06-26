@@ -15,7 +15,7 @@ export function SiteJsonLd() {
         url,
         logo: `${url}/icon-512.png`,
         description:
-          `Digital restaurant and store menus with WhatsApp ordering in Lebanon. Subscription plans for owners from ${pricing}; no commission on customer orders.`,
+          `Digital storefronts and store menus with WhatsApp ordering in Lebanon. Subscription plans for owners from ${pricing}; no commission on customer orders.`,
         areaServed: {
           "@type": "Country",
           name: "Lebanon",
@@ -28,7 +28,7 @@ export function SiteJsonLd() {
         name: "Zboun",
         url,
         description:
-          "Browse local restaurant and store menus, order on WhatsApp, and discover businesses near you.",
+          "Browse local store menus, order on WhatsApp, and discover businesses near you.",
         publisher: { "@id": `${url}/#organization` },
         inLanguage: "en",
       },
@@ -40,7 +40,7 @@ export function SiteJsonLd() {
         offers: {
           "@type": "Offer",
           priceCurrency: "USD",
-          description: `Restaurant and store menu platform — ${pricing}`,
+          description: `Store menu and catalog platform — ${pricing}`,
         },
         url,
       },

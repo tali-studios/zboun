@@ -564,7 +564,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                 <textarea
                   name="description"
                   defaultValue={restaurant?.description ?? ""}
-                  placeholder="Short about text shown under your restaurant name on menu page"
+                  placeholder="Short about text shown under your store name on your page"
                   className="ui-input min-h-24"
                 />
                 <p className="text-xs text-slate-500">Example: Fresh pasta and handmade sauces since 2015.</p>
@@ -647,14 +647,14 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
               <div className="md:col-span-3">
                 <ImageUploadField
                   name="logo_file"
-                  label="Restaurant logo"
+                  label="Store logo"
                   initialImageUrl={restaurant?.logo_url ?? null}
                 />
               </div>
               <div className="md:col-span-3">
                 <ImageUploadField
                   name="banner_file"
-                  label="Restaurant banner image"
+                  label="Store banner image"
                   initialImageUrl={restaurant?.banner_url ?? null}
                 />
                 <p className="mt-1 text-xs text-slate-500">Recommended wide image (for top profile header on menu page).</p>

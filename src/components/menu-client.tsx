@@ -614,11 +614,11 @@ export function MenuClient({
 
   function handleGuestWhatsAppOrder() {
     if (orderingBlocked) {
-      setOrderError("This restaurant is closed and not accepting online orders right now.");
+      setOrderError("This store is closed and not accepting online orders right now.");
       return;
     }
     if (deliveryTime.mode === "now" && !isOpenNow) {
-      setOrderError("The restaurant is closed right now. Please schedule your delivery for later.");
+      setOrderError("The store is closed right now. Please schedule your delivery for later.");
       return;
     }
     const blockReason = checkoutBlockReason();
@@ -637,11 +637,11 @@ export function MenuClient({
 
   async function handleOrderClick() {
     if (orderingBlocked) {
-      setOrderError("This restaurant is closed and not accepting online orders right now.");
+      setOrderError("This store is closed and not accepting online orders right now.");
       return;
     }
     if (deliveryTime.mode === "now" && !isOpenNow) {
-      setOrderError("The restaurant is closed right now. Please schedule your delivery for later.");
+      setOrderError("The store is closed right now. Please schedule your delivery for later.");
       return;
     }
     const blockReason = checkoutBlockReason();
@@ -928,9 +928,9 @@ export function MenuClient({
 
   function checkoutBlockReason(): string | null {
     if (items.length === 0) return "Your cart is empty.";
-    if (orderingBlocked) return "This restaurant is closed and not accepting online orders right now.";
+    if (orderingBlocked) return "This store is closed and not accepting online orders right now.";
     if (deliveryTime.mode === "now" && !isOpenNow) {
-      return "The restaurant is closed right now. Please schedule your delivery for later.";
+      return "The store is closed right now. Please schedule your delivery for later.";
     }
     if (!isGuestCheckout) {
       if (!address.trim()) return "Please add a delivery address before continuing.";

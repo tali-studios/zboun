@@ -361,6 +361,14 @@ export function isFoodSubFilter(value: string): value is FoodSubFilter {
 /** Shared dashboard / footer labels (all business types, not only restaurants). */
 export const STORE_ADMIN_LABEL = "Store admin";
 export const STORE_LOGIN_LABEL = "Store login";
+export const STORES_NAV_LABEL = "Stores";
+export const FOR_STORE_OWNERS_LABEL = "For store owners";
+export const SITE_TAGLINE =
+  "Digital storefronts and WhatsApp ordering — simple for guests, easy for your team.";
+export const HOME_SEARCH_PLACEHOLDER = "Search shops & stores…";
+export const HOME_HERO_TITLE = "Every shop & store, one tap away.";
+export const HOME_HERO_SUBTITLE =
+  "Discover local stores, groceries, and food spots — browse items and order on WhatsApp.";
 
 /** Whether this business is primarily food-service (menu wording fits). */
 export function isFoodMenuBusiness(browseSections: unknown): boolean {

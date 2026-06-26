@@ -31,6 +31,9 @@ import {
   BROWSE_SECTION_ACCENTS,
   BROWSE_SECTION_OPTIONS,
   BROWSE_SUB_FILTER_ACCENTS,
+  HOME_HERO_SUBTITLE,
+  HOME_HERO_TITLE,
+  HOME_SEARCH_PLACEHOLDER,
   getSubFiltersForSection,
   matchesBrowseFilter,
   sectionHasSubFilters,
@@ -306,7 +309,7 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search shops & restaurants…"
+              placeholder={HOME_SEARCH_PLACEHOLDER}
               className="h-10 w-full rounded-full border border-slate-200 bg-slate-50 pl-9 pr-4 text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 focus:bg-white transition"
             />
           </div>
@@ -327,10 +330,10 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <h1 className="max-w-3xl text-3xl font-bold leading-[1.15] tracking-tight sm:text-4xl md:text-5xl">
-                Every shop & menu, one tap away.
+                {HOME_HERO_TITLE}
               </h1>
               <p className="mt-4 max-w-xl text-base leading-relaxed md:text-lg" style={{ color: PAGE.muted }}>
-                Discover restaurants, retail shops, and local stores — browse items and order on WhatsApp.
+                {HOME_HERO_SUBTITLE}
               </p>
             </div>
           </div>
@@ -624,7 +627,7 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
                         </span>
                       ) : null}
 
-                      {/* Favourite heart — bottom-right */}
+                      {/* favorite heart — bottom-right */}
                       <button
                         type="button"
                         aria-label={isFavorite(restaurant.slug) ? "Remove from favorites" : "Add to favorites"}

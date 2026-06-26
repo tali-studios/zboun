@@ -1,5 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
+import {
+  SITE_TAGLINE,
+  STORES_NAV_LABEL,
+  STORE_LOGIN_LABEL,
+} from "@/lib/browse-sections";
 
 type SiteFooterProps = {
   /** Reserve space for the fixed customer mobile bottom nav (home, etc.). */
@@ -43,7 +48,7 @@ export async function SiteFooter({ padForMobileNav = false }: SiteFooterProps = 
               />
             </Link>
             <p className="mt-4 text-sm leading-relaxed text-slate-600 sm:text-[15px]">
-              Digital menus and WhatsApp ordering — simple for guests, easy for your team.
+              {SITE_TAGLINE}
             </p>
           </div>
 
@@ -86,9 +91,9 @@ export async function SiteFooter({ padForMobileNav = false }: SiteFooterProps = 
                 </li>
               </ul>
             </nav>
-            <nav aria-label="For restaurants">
+            <nav aria-label="For stores">
               <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-violet-600/90">
-                Restaurants
+                {STORES_NAV_LABEL}
               </p>
               <ul className="flex flex-col gap-1 sm:gap-0.5">
                 <li>
@@ -98,7 +103,7 @@ export async function SiteFooter({ padForMobileNav = false }: SiteFooterProps = 
                 </li>
                 <li>
                   <Link href="/dashboard/login" className={linkClass}>
-                    Store login
+                    {STORE_LOGIN_LABEL}
                   </Link>
                 </li>
               </ul>

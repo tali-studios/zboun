@@ -23,7 +23,7 @@ export default async function FavoritesPage() {
       </header>
 
       <main className="mx-auto max-w-5xl px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-5 md:pb-12 md:pt-8">
-        <p className="mb-4 hidden text-lg font-bold text-slate-900 md:block">Your favourite restaurants</p>
+        <p className="mb-4 hidden text-lg font-bold text-slate-900 md:block">Your favorite stores</p>
         <DeliveryLocationProvider>
           <FavoritesView restaurants={restaurants} />
         </DeliveryLocationProvider>

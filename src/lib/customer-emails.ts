@@ -48,7 +48,7 @@ export async function sendCustomerWelcomeEmail(params: { to: string; name: strin
     </p>
     <p style="margin:0 0 16px;">Here's what you can do:</p>
     <ul style="margin:0 0 20px;padding-left:20px;">
-      <li style="margin-bottom:8px;">Discover restaurants near you</li>
+      <li style="margin-bottom:8px;">Discover stores near you</li>
       <li style="margin-bottom:8px;">Browse digital menus and build your order</li>
       <li style="margin-bottom:8px;">Send clear orders on WhatsApp in one tap</li>
       <li style="margin-bottom:8px;">Save favorites and track your order history</li>
@@ -68,7 +68,7 @@ export async function sendCustomerWelcomeEmail(params: { to: string; name: strin
     "Welcome to Zboun — your account is verified and you're all set.",
     "",
     "Here's what you can do:",
-    "- Discover restaurants near you",
+    "- Discover stores near you",
     "- Browse digital menus and build your order",
     "- Send clear orders on WhatsApp in one tap",
     "- Save favorites and track your order history",

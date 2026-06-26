@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
 
-export const alt = "Zboun — WhatsApp restaurant ordering";
+export const alt = "Zboun — WhatsApp store ordering";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -44,7 +44,7 @@ export default function OpenGraphImage() {
           Browse menus. Order on WhatsApp.
         </div>
         <div style={{ marginTop: 20, fontSize: 28, color: "#475569", maxWidth: 820 }}>
-          Digital menus for restaurants — zero commission on orders.
+          Digital storefronts for local businesses — zero commission on orders.
         </div>
       </div>
     ),

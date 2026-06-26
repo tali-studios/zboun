@@ -126,7 +126,7 @@ async function runDayBeforeReminders(
     const restaurantId = row.restaurant_id;
     const dueAt = new Date(row.next_due_at);
     const dueDate = toUtcDateString(dueAt);
-    const restaurantName = row.restaurants?.name ?? "Restaurant";
+    const restaurantName = row.restaurants?.name ?? "Store";
 
     if (row.restaurants?.billing_exempt) {
       result.skipped += 1;
@@ -221,7 +221,7 @@ export async function runExpiredSubscriptionDeactivations(
     const restaurantId = row.restaurant_id;
     const dueAt = new Date(row.next_due_at);
     const dueDate = toUtcDateString(dueAt);
-    const restaurantName = row.restaurants?.name ?? "Restaurant";
+    const restaurantName = row.restaurants?.name ?? "Store";
     const wasActive = row.restaurants?.is_active !== false;
 
     if (row.restaurants?.billing_exempt) {

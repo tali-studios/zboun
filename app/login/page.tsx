@@ -52,7 +52,7 @@ export default async function CustomerLoginPage({ searchParams }: Props) {
             <p className="text-[10px] font-bold uppercase tracking-widest text-violet-600">Welcome back</p>
             <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">Sign in</h1>
             <p className="mt-1 text-sm text-slate-500">
-              Order from your favourite restaurants.
+              Order from your favorite stores.
             </p>
           </div>
 
@@ -89,7 +89,7 @@ export default async function CustomerLoginPage({ searchParams }: Props) {
               href={next === "/" ? "/signup" : `/signup?next=${encodeURIComponent(next)}`}
               className="font-semibold text-violet-600 transition hover:text-violet-700"
             >
-              Create one free
+              Create one for free
             </Link>
           </p>
         </div>

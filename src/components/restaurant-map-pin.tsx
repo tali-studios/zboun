@@ -65,12 +65,12 @@ export function RestaurantMapPin({ initialLat, initialLng }: Props) {
         <div className="flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-100 px-3 py-2">
           <MapPin className="h-4 w-4 shrink-0 text-emerald-600" />
           <p className="text-xs text-emerald-700 font-medium">
-            {address || `${lat.toFixed(5)}, ${lng.toFixed(5)}`} — customers within your radius will see your restaurant
+            {address || `${lat.toFixed(5)}, ${lng.toFixed(5)}`} — customers within your radius will see your store
           </p>
         </div>
       ) : (
         <p className="text-xs text-slate-400">
-          Set your restaurant&apos;s coordinates so customers can filter by location on the home page.
+          Set your store&apos;s coordinates so customers can filter by location on the home page.
         </p>
       )}
 

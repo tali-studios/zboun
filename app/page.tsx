@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { getHomeRestaurants } from "@/lib/data";
 import { formatPricingSummary } from "@/lib/pricing";
+import { FOR_STORE_OWNERS_LABEL } from "@/lib/browse-sections";
 import { RestaurantDirectory } from "@/components/restaurant-directory";
 import { SiteFooter } from "@/components/site-footer";
 import { DeliveryLocationProvider } from "@/components/delivery-location-provider";
@@ -108,13 +109,13 @@ export default async function HomePage() {
             <div className="relative flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
               <div>
                 <p className="text-xs font-bold uppercase tracking-widest text-violet-300">
-                  For restaurant owners
+                  {FOR_STORE_OWNERS_LABEL}
                 </p>
                 <h2 className="mt-2 text-xl font-bold text-white md:text-2xl">
-                  Your menu. Your WhatsApp. Zero commission.
+                  Your storefront. Your WhatsApp. Zero commission.
                 </h2>
                 <p className="mt-1 text-sm text-slate-300">
-                  Get your own menu page, QR code, and dashboard from{" "}
+                  Get your own store page, QR code, and dashboard from{" "}
                   <span className="font-semibold text-white">{formatPricingSummary()}</span>.
                 </p>
               </div>

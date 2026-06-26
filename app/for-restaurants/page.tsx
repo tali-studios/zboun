@@ -9,25 +9,25 @@ const steps = [
   {
     n: "01",
     title: "We set up your page",
-    body: "Unique menu URL, QR assets, and a clean WhatsApp order format for your brand.",
+    body: "Unique store URL, QR assets, and a clean WhatsApp order format for your brand.",
   },
   {
     n: "02",
-    title: "You manage the menu",
+    title: "You manage your catalog",
     body: "Sections, items, photos, prices, and availability — updated anytime from your dashboard.",
   },
   {
     n: "03",
     title: "Customers order on WhatsApp",
-    body: "No app installs. Guests browse your menu and send structured orders to your number.",
+    body: "No app installs. Guests browse your store and send structured orders to your number.",
   },
 ];
 
 const includes = [
-  "Digital menu page + shareable link",
+  "Digital store page + shareable link",
   "QR code & print-ready flyer tools",
   "WhatsApp order message builder",
-  "Unlimited menu updates",
+  "Unlimited catalog updates",
   "Logo & item photos",
   "Optional listing on the Zboun home discovery page",
 ];
@@ -171,7 +171,7 @@ export default function ForRestaurantsPage() {
                 <p className="mt-1.5 text-sm font-semibold text-slate-800">
                   One-time data entry: {ZBOUN_PRICING.symbol}{ZBOUN_PRICING.oneTimeDataEntry}
                 </p>
-                <p className="mt-1 text-xs text-slate-500">We set up your full menu if you provide:</p>
+                <p className="mt-1 text-xs text-slate-500">We set up your full catalog if you provide:</p>
                 <ul className="mt-2 space-y-1 text-xs text-slate-600">
                   {onboardingRequirements.map((item) => (
                     <li key={item} className="flex items-start gap-1.5">
@@ -242,7 +242,7 @@ export default function ForRestaurantsPage() {
               {
                 label: "Loyalty Management",
                 available: true,
-                desc: "Points, stamp cards, tiers (Silver/Gold/Platinum), and referral bonuses — all configurable per restaurant.",
+                desc: "Points, stamp cards, tiers (Silver/Gold/Platinum), and referral bonuses — all configurable per store.",
               },
               {
                 label: "Accounting & Payroll",
@@ -320,10 +320,10 @@ export default function ForRestaurantsPage() {
               Ready to go live?
             </p>
             <h2 className="relative mt-3 text-2xl font-bold md:text-3xl">
-              Tell us your restaurant name.
+              Tell us your store name.
             </h2>
             <p className="relative mt-2 text-sm text-slate-400">
-              We'll get your menu page up and running quickly.
+              We&apos;ll get your store page up and running quickly.
             </p>
             <Link
               href="/contact"
