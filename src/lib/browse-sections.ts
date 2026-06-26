@@ -237,6 +237,40 @@ export function parseFullBrowseSelectionFromForm(formData: FormData): string[] {
   return ["General Shops"];
 }
 
+export type BrowseSelectionValidation =
+  | { ok: true; selection: string[] }
+  | { ok: false; error: string; section?: BrowseSection };
+
+/** Each selected category with sub-tags must have at least one tag chosen. */
+export function validateBrowseSelection(values: string[]): BrowseSelectionValidation {
+  const raw = [...new Set(values.map((value) => value.trim()).filter(Boolean))];
+  const topLevel = normalizeBrowseSections(raw);
+
+  if (topLevel.length === 0) {
+    return { ok: false, error: "Pick at least one business category." };
+  }
+
+  const subs = getBrowseSubTags(raw);
+
+  for (const section of topLevel) {
+    if (!sectionHasSubFilters(section)) continue;
+    const hasTag = subs.some((tag) => getParentSectionForSubFilter(tag) === section);
+    if (!hasTag) {
+      return {
+        ok: false,
+        error: `Pick at least one tag for ${section}.`,
+        section,
+      };
+    }
+  }
+
+  return { ok: true, selection: [...new Set([...topLevel, ...subs])] };
+}
+
+export function validateBrowseSelectionFromForm(formData: FormData): BrowseSelectionValidation {
+  return validateBrowseSelection(parseFullBrowseSelectionFromForm(formData));
+}
+
 export function parseBrowseSectionsFromForm(formData: FormData): BrowseSection[] {
   const topLevel = normalizeBrowseSections(parseFullBrowseSelectionFromForm(formData));
   if (topLevel.length > 0) return topLevel;
@@ -322,6 +356,23 @@ export function isBrowseSubFilter(value: string): boolean {
 /** @deprecated Use isBrowseSubFilter */
 export function isFoodSubFilter(value: string): value is FoodSubFilter {
   return isBrowseSubFilter(value);
+}
+
+/** Whether this business is primarily food-service (menu wording fits). */
+export function isFoodMenuBusiness(browseSections: unknown): boolean {
+  return normalizeBrowseSections(getRawBrowseSectionValues(browseSections)).includes("Food & Restaurants");
+}
+
+/** Dashboard / QR action labels — "menu" for food businesses, neutral "store" for retail. */
+export function getStorefrontActionLabels(browseSections: unknown): {
+  open: string;
+  copyLink: string;
+  slugLabel: string;
+} {
+  if (isFoodMenuBusiness(browseSections)) {
+    return { open: "Open menu", copyLink: "Copy menu link", slugLabel: "Menu" };
+  }
+  return { open: "Open store", copyLink: "Copy store link", slugLabel: "Store" };
 }
 
 /** Home-page filter: top-level category + optional sub-filter. */

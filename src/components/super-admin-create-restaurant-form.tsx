@@ -34,7 +34,7 @@ export function SuperAdminCreateRestaurantForm() {
   const [complimentaryFree, setComplimentaryFree] = useState(false);
 
   return (
-    <form action={createRestaurantAction} className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+    <form id="super-admin-create-restaurant-form" action={createRestaurantAction} className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
       <input name="name" required placeholder="Business name" className="ui-input" />
       <input name="email" type="email" required placeholder="Admin email" className="ui-input" />
       <input name="phone" type="tel" required placeholder="WhatsApp number" className="ui-input" />
@@ -42,10 +42,13 @@ export function SuperAdminCreateRestaurantForm() {
       <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 md:col-span-2 xl:col-span-4">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Business categories</p>
         <p className="mt-1 text-xs text-slate-500">
-          Pick where this business appears on the home page — e.g. Food &amp; Restaurants,
-          Fashion &amp; Apparel, Electronics &amp; Tech, Vape &amp; Tobacco.
+          Pick where this business appears on the home page. Each category needs at least one tag.
         </p>
-        <BrowseSectionsCheckboxes selected={DEFAULT_CATEGORIES} selectedSubs={[]} />
+        <BrowseSectionsCheckboxes
+          formId="super-admin-create-restaurant-form"
+          selected={DEFAULT_CATEGORIES}
+          selectedSubs={["Other"]}
+        />
       </div>
 
       {/* Optional first location */}

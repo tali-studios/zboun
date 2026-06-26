@@ -5,5 +5,4 @@
 5) zboun.net should directly open the home page, if he needs to order 
    from a restaurant that requires an account,
    then request him to sign in or create an account.
-7) quantities for exampe for vapes
-8) algorithm to appear on top in google 
+6) algorithm to appear on top in google 

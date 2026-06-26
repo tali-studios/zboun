@@ -4,9 +4,10 @@ import { useState } from "react";
 
 type Props = {
   url: string;
+  label?: string;
 };
 
-export function CopyMenuLinkButton({ url }: Props) {
+export function CopyMenuLinkButton({ url, label = "Copy menu link" }: Props) {
   const [copied, setCopied] = useState(false);
 
   async function onCopy() {
@@ -25,7 +26,7 @@ export function CopyMenuLinkButton({ url }: Props) {
       onClick={onCopy}
       className="btn border border-white/50 text-white"
     >
-      {copied ? "Copied" : "Copy menu link"}
+      {copied ? "Copied" : label}
     </button>
   );
 }

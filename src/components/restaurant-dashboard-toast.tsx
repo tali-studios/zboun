@@ -6,11 +6,12 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 type Props = {
   toast: string | undefined | null;
   sectionName?: string | undefined | null;
+  sectionsCount?: number | null;
   itemName?: string | undefined | null;
   brandName?: string | undefined | null;
 };
 
-export function RestaurantDashboardToast({ toast, sectionName, itemName, brandName }: Props) {
+export function RestaurantDashboardToast({ toast, sectionName, sectionsCount, itemName, brandName }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const [open, setOpen] = useState(Boolean(toast));
@@ -19,6 +20,7 @@ export function RestaurantDashboardToast({ toast, sectionName, itemName, brandNa
     const params = new URLSearchParams(window.location.search);
     params.delete("toast");
     params.delete("section_name");
+    params.delete("sections_count");
     params.delete("item_name");
     params.delete("brand_name");
     const qs = params.toString();
@@ -52,6 +54,17 @@ export function RestaurantDashboardToast({ toast, sectionName, itemName, brandNa
     ) : (
       "Your new menu section is ready."
     );
+  } else if (toast === "sections_created") {
+    heading = "Sections created";
+    message =
+      sectionsCount && sectionsCount > 1 ? (
+        <>
+          <span className="font-semibold text-slate-900">{sectionsCount}</span> sections were added to your
+          menu.
+        </>
+      ) : (
+        "Your new sections are ready."
+      );
   } else if (toast === "section_name_required") {
     heading = "Name required";
     message = "Enter a section name before adding.";
@@ -143,6 +156,9 @@ export function RestaurantDashboardToast({ toast, sectionName, itemName, brandNa
   } else if (toast === "invalid_delivery_radius") {
     heading = "Invalid delivery range";
     message = "Enter how far you deliver in kilometres (for example 5). Must be between 1 and 50 km.";
+  } else if (toast === "browse_tags_required") {
+    heading = "Tags required";
+    message = "For each business category you select, pick at least one tag (for example Lunch under Food & Restaurants).";
   } else {
     return null;
   }
@@ -177,7 +193,8 @@ export function RestaurantDashboardToast({ toast, sectionName, itemName, brandNa
                 toast === "item_create_failed" ||
                 toast === "invalid_delivery_fee" ||
                 toast === "invalid_fast_delivery_fee" ||
-                toast === "invalid_delivery_radius"
+                toast === "invalid_delivery_radius" ||
+                toast === "browse_tags_required"
                   ? "linear-gradient(135deg,#f59e0b,#d97706)"
                   : "linear-gradient(135deg,#7854ff,#9f3bfe)",
             }}

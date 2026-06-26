@@ -166,6 +166,7 @@ export default async function RestaurantMenuPage({ params, searchParams }: Props
             restaurantLongitude={restaurant.longitude}
             restaurantBranches={restaurant.branches}
             orderingEnabled={orderingEnabled}
+            allowGuestCheckout={restaurant.allow_guest_checkout}
             reorderFrom={reorderFrom}
             menuThemeColor={restaurant.menu_theme_color}
           />

@@ -60,6 +60,7 @@ type Props = {
   restaurantLongitude?: number | null;
   restaurantBranches?: RestaurantLocationBranch[];
   orderingEnabled?: boolean;
+  allowGuestCheckout?: boolean;
   reorderFrom?: MenuReorderPayload | null;
   menuThemeColor?: string | null;
 };
@@ -167,6 +168,7 @@ export function MenuClient({
   restaurantLongitude = null,
   restaurantBranches = [],
   orderingEnabled = true,
+  allowGuestCheckout = false,
   reorderFrom = null,
   menuThemeColor = null,
 }: Props) {
@@ -180,6 +182,7 @@ export function MenuClient({
     [parsedOpeningHours, isTemporarilyClosed],
   );
   const orderingBlocked = isTemporarilyClosed || !orderingEnabled;
+  const canCheckout = isLoggedIn || allowGuestCheckout;
   const canShop = !viewOnly && !orderingBlocked;
   const [cart, setCart] = useState<Record<string, CartLine>>({});
   const [customizing, setCustomizing] = useState<CustomizationState | null>(null);
@@ -852,7 +855,7 @@ export function MenuClient({
               style={{ background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.accent} 100%)` }}
             >
               <span className="text-[11px] font-semibold leading-none opacity-80">
-                {isLoggedIn ? "Checkout" : "Sign in to checkout"}
+                {canCheckout ? "Checkout" : "Sign in to checkout"}
               </span>
               <span className="mt-0.5 text-sm font-bold leading-none">{formatLbp(orderTotal)}</span>
             </button>
@@ -872,7 +875,7 @@ export function MenuClient({
   }
 
   function beginCheckout(options?: { closeCart?: () => void }) {
-    if (!isLoggedIn) {
+    if (!canCheckout) {
       const next = pathname || `/${restaurantSlug}`;
       router.push(`/login?next=${encodeURIComponent(next)}`);
       return;
@@ -884,11 +887,11 @@ export function MenuClient({
   }
 
   useEffect(() => {
-    if (!showCheckout || isLoggedIn) return;
+    if (!showCheckout || canCheckout) return;
     setShowCheckout(false);
     const next = pathname || `/${restaurantSlug}`;
     router.push(`/login?next=${encodeURIComponent(next)}`);
-  }, [showCheckout, isLoggedIn, pathname, restaurantSlug, router]);
+  }, [showCheckout, canCheckout, pathname, restaurantSlug, router]);
 
   function checkoutBlockReason(): string | null {
     if (items.length === 0) return "Your cart is empty.";
@@ -900,7 +903,9 @@ export function MenuClient({
     if (!effectiveCustomerName) {
       return isLoggedIn
         ? "We could not read your account name. Update it under Account, then try again."
-        : "Please sign in to checkout.";
+        : allowGuestCheckout
+          ? "Please enter your name before continuing."
+          : "Please sign in to checkout.";
     }
     if (location?.lat != null && location.lng != null) {
       const withinRange = isWithinRestaurantDeliveryRange(
@@ -988,6 +993,24 @@ export function MenuClient({
           ) : (
             <>
               <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-4">
+                {!isLoggedIn && allowGuestCheckout ? (
+                  <section className="mb-3 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/[0.04]">
+                    <label className="block">
+                      <span className="text-sm font-bold text-slate-900">Your name</span>
+                      <input
+                        type="text"
+                        value={customerName}
+                        onChange={(e) => setCustomerName(e.target.value)}
+                        placeholder="Name for delivery"
+                        autoComplete="name"
+                        className="ui-input mt-2"
+                      />
+                    </label>
+                    <p className="mt-2 text-xs text-slate-500">
+                      No account needed — we only use this for your order.
+                    </p>
+                  </section>
+                ) : null}
                 <CheckoutDeliverySections
                   address={address}
                   onAddressChange={setAddress}
@@ -1110,11 +1133,22 @@ export function MenuClient({
           They will confirm it shortly.
         </p>
         <p className="mt-2 text-xs text-slate-500">
-          Once your order is delivered, you can rate the restaurant from{" "}
-          <a href="/account/orders" className="font-semibold text-violet-600 hover:underline">
-            My Orders
-          </a>
-          .
+          {isLoggedIn ? (
+            <>
+              Once your order is delivered, you can rate the restaurant from{" "}
+              <a href="/account/orders" className="font-semibold text-violet-600 hover:underline">
+                My Orders
+              </a>
+              .
+            </>
+          ) : (
+            <>
+              <a href="/signup" className="font-semibold text-violet-600 hover:underline">
+                Create an account
+              </a>{" "}
+              to track orders and save addresses for next time.
+            </>
+          )}
         </p>
 
         {placedOrder.whatsappUrl ? (

@@ -70,19 +70,12 @@ export async function proxy(request: NextRequest) {
   }
 
   const dashboardHref = dashboardHrefForRole(dashboardRole);
-  if (dashboardHref && isCustomerAppPath(pathname)) {
+  // Store admins may browse the home page; other dashboard routes still redirect away from login/signup/account.
+  if (dashboardHref && isCustomerAppPath(pathname) && pathname !== "/") {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = dashboardHref;
     redirectUrl.search = "";
     return NextResponse.redirect(redirectUrl);
-  }
-
-  // Home page: customers must be signed in
-  if (pathname === "/" && !user) {
-    const loginUrl = request.nextUrl.clone();
-    loginUrl.pathname = "/login";
-    loginUrl.searchParams.set("next", "/");
-    return NextResponse.redirect(loginUrl);
   }
 
   return response;

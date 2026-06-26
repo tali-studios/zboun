@@ -12,10 +12,10 @@ export type RestaurantBranchLike = {
 const GENERIC_BRANCH_NAMES = new Set(["main branch", "branch", "main"]);
 
 const RESTAURANT_ADMIN_SELECT_FULL =
-  "name, slug, phone, logo_url, banner_url, description, lbp_rate, browse_sections, location, eta_label, business_type, latitude, longitude, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd, delivery_radius_km, menu_theme_color";
+  "name, slug, phone, logo_url, banner_url, description, lbp_rate, browse_sections, location, eta_label, business_type, latitude, longitude, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd, delivery_radius_km, menu_theme_color, allow_guest_checkout";
 
 const RESTAURANT_ADMIN_SELECT_CORE =
-  "name, slug, phone, logo_url, banner_url, description, lbp_rate, browse_sections, location, eta_label, business_type, latitude, longitude, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd, delivery_radius_km";
+  "name, slug, phone, logo_url, banner_url, description, lbp_rate, browse_sections, location, eta_label, business_type, latitude, longitude, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd, delivery_radius_km, allow_guest_checkout";
 
 export type RestaurantAdminProfile = {
   name: string;
@@ -39,6 +39,7 @@ export type RestaurantAdminProfile = {
   fast_delivery_fee_usd: number;
   delivery_radius_km: number | null;
   menu_theme_color: string | null;
+  allow_guest_checkout: boolean;
 };
 
 export function pickMainBranch<T extends RestaurantBranchLike>(branches: T[]): T | null {
@@ -77,17 +78,25 @@ export async function loadRestaurantForAdminDashboard(
     .single();
 
   if (!full.error && full.data) {
-    return full.data as RestaurantAdminProfile;
+    return {
+      ...(full.data as RestaurantAdminProfile),
+      allow_guest_checkout: (full.data as { allow_guest_checkout?: boolean }).allow_guest_checkout ?? false,
+    };
   }
 
   const core = await supabase
     .from("restaurants")
-    .select(RESTAURANT_ADMIN_SELECT_CORE)
+    .select(RESTAURANT_ADMIN_SELECT_CORE.replace(", allow_guest_checkout", ""))
     .eq("id", restaurantId)
     .single();
 
   if (!core.error && core.data) {
-    return { ...(core.data as Omit<RestaurantAdminProfile, "menu_theme_color">), menu_theme_color: null };
+    const row = core.data as unknown as Omit<RestaurantAdminProfile, "menu_theme_color" | "allow_guest_checkout">;
+    return {
+      ...row,
+      menu_theme_color: null,
+      allow_guest_checkout: false,
+    };
   }
 
   return null;

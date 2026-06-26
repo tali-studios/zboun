@@ -21,7 +21,7 @@ import {
   formatBrowseSectionsLabel,
   inferBusinessTypeFromBrowseSections,
   normalizeBrowseSections,
-  parseFullBrowseSelectionFromForm,
+  validateBrowseSelectionFromForm,
 } from "@/lib/browse-sections";
 import {
   hasCatalogDashboard,
@@ -96,7 +96,11 @@ export async function createRestaurantAction(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const phone = String(formData.get("phone") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  const browseSelection = parseFullBrowseSelectionFromForm(formData);
+  const browseValidated = validateBrowseSelectionFromForm(formData);
+  if (!browseValidated.ok) {
+    redirect(`/dashboard/super-admin?error=${encodeURIComponent(browseValidated.error)}`);
+  }
+  const browseSelection = browseValidated.selection;
   const browseSections = normalizeBrowseSections(browseSelection);
   const complimentaryFree = isComplimentaryGrantRequested(formData);
   const complimentaryPeriod = complimentaryFree
@@ -109,10 +113,6 @@ export async function createRestaurantAction(formData: FormData) {
 
   if (!name || !phone || !email) {
     redirect("/dashboard/super-admin?error=missing_restaurant_fields");
-  }
-
-  if (browseSections.length === 0) {
-    redirect("/dashboard/super-admin?error=missing_browse_categories");
   }
 
   const businessType = inferBusinessTypeFromBrowseSections(browseSections);
@@ -246,7 +246,11 @@ export async function updateRestaurantBrowseSectionsAction(formData: FormData) {
   await requireSuperAdmin();
   const id = String(formData.get("id") ?? "").trim();
   if (!id) return;
-  const browseSelection = parseFullBrowseSelectionFromForm(formData);
+  const browseValidated = validateBrowseSelectionFromForm(formData);
+  if (!browseValidated.ok) {
+    redirect(`/dashboard/super-admin?error=${encodeURIComponent(browseValidated.error)}`);
+  }
+  const browseSelection = browseValidated.selection;
   const browseSections = normalizeBrowseSections(browseSelection);
   if (browseSections.length === 0) return;
   const businessType = inferBusinessTypeFromBrowseSections(browseSections);

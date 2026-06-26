@@ -1,8 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { getHomeRestaurants, getCurrentUserRole } from "@/lib/data";
-import { dashboardHrefForRole } from "@/lib/auth-routing";
+import { getHomeRestaurants } from "@/lib/data";
 import { formatPricingSummary } from "@/lib/pricing";
 import { RestaurantDirectory } from "@/components/restaurant-directory";
 import { SiteFooter } from "@/components/site-footer";
@@ -12,16 +10,10 @@ import { CustomerMobileFooterNav } from "@/components/customer-mobile-footer-nav
 import { BackToTopButton } from "@/components/back-to-top-button";
 
 export default async function HomePage() {
-  const [appUser, restaurants, customerCtx] = await Promise.all([
-    getCurrentUserRole(),
+  const [restaurants, customerCtx] = await Promise.all([
     getHomeRestaurants(),
     getCustomerOrderContext(),
   ]);
-
-  const dashboardHref = dashboardHrefForRole(appUser?.role);
-  if (dashboardHref) {
-    redirect(dashboardHref);
-  }
 
   return (
     <div className="flex min-h-screen flex-col bg-white">

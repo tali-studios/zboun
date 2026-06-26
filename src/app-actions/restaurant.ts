@@ -9,7 +9,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import {
   inferBusinessTypeFromBrowseSections,
   normalizeBrowseSections,
-  parseFullBrowseSelectionFromForm,
+  validateBrowseSelectionFromForm,
 } from "@/lib/browse-sections";
 import { parseMenuThemeColor } from "@/lib/menu-theme";
 import {
@@ -63,7 +63,11 @@ function getStorageAdminClient() {
   });
 }
 
+const knownBuckets = new Set<string>();
+
 async function ensureBucketExists(bucket: string) {
+  if (knownBuckets.has(bucket)) return;
+
   const adminClient = getStorageAdminClient();
   const { data: buckets, error: listError } = await adminClient.storage.listBuckets();
   if (listError) {
@@ -71,7 +75,10 @@ async function ensureBucketExists(bucket: string) {
   }
 
   const exists = (buckets ?? []).some((item) => item.name === bucket);
-  if (exists) return;
+  if (exists) {
+    knownBuckets.add(bucket);
+    return;
+  }
 
   const { error: createError } = await adminClient.storage.createBucket(bucket, {
     public: true,
@@ -80,6 +87,7 @@ async function ensureBucketExists(bucket: string) {
   if (createError) {
     throw createError;
   }
+  knownBuckets.add(bucket);
 }
 
 async function uploadMenuItemImage(file: File, restaurantId: string) {
@@ -227,18 +235,41 @@ async function resolveMenuBrandForItem(
 
 export async function createCategoryAction(formData: FormData) {
   const user = await requireRestaurantAdmin();
-  const name = String(formData.get("name") ?? "").trim();
-  if (!name) {
+  const names = [
+    ...new Set(
+      formData
+        .getAll("name")
+        .map((value) => String(value ?? "").trim())
+        .filter(Boolean),
+    ),
+  ];
+  if (names.length === 0) {
     redirect("/dashboard/business?toast=section_name_required");
   }
+
   const supabase = await createServerSupabaseClient();
-  await supabase.from("categories").insert({
+  const { data: lastCategory } = await supabase
+    .from("categories")
+    .select("position")
+    .eq("restaurant_id", user.restaurant_id)
+    .order("position", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  let position = Number(lastCategory?.position ?? -1) + 1;
+  const inserts = names.map((name) => ({
     name,
     restaurant_id: user.restaurant_id,
-    position: 0,
-  });
+    position: position++,
+  }));
+
+  await supabase.from("categories").insert(inserts);
   revalidatePath("/dashboard/business");
-  redirect(`/dashboard/business?toast=section_created&section_name=${encodeURIComponent(name)}`);
+
+  if (names.length === 1) {
+    redirect(`/dashboard/business?toast=section_created&section_name=${encodeURIComponent(names[0]!)}`);
+  }
+  redirect(`/dashboard/business?toast=sections_created&sections_count=${names.length}`);
 }
 
 export async function updateCategoryAction(formData: FormData) {
@@ -635,44 +666,44 @@ export async function deleteMenuItemAction(formData: FormData) {
   revalidatePath("/dashboard/business");
 }
 
-export async function updateRestaurantSettingsAction(formData: FormData) {
+export type UpdateRestaurantSettingsResult =
+  | { ok: true }
+  | { ok: false; toast: string; message?: string };
+
+export async function updateRestaurantSettingsAction(
+  formData: FormData,
+): Promise<UpdateRestaurantSettingsResult> {
   const user = await requireRestaurantAdmin();
-  const logoFile = formData.get("logo_file");
-  const bannerFile = formData.get("banner_file");
-  const currentLogoUrl = String(formData.get("current_logo_url") ?? "").trim();
-  const currentBannerUrl = String(formData.get("current_banner_url") ?? "").trim();
+
+  const browseValidated = validateBrowseSelectionFromForm(formData);
+  if (!browseValidated.ok) {
+    return { ok: false, toast: "browse_tags_required", message: browseValidated.error };
+  }
+
   const lbpRateRaw = String(formData.get("lbp_rate") ?? "").trim();
   const lbpRate = Number(lbpRateRaw);
   if (!Number.isFinite(lbpRate) || lbpRate <= 0) {
-    redirect("/dashboard/business?q=invalid_lbp_rate");
+    return { ok: false, toast: "invalid_lbp_rate" };
   }
-  const uploadedLogoUrl =
-    logoFile instanceof File ? await uploadRestaurantLogo(logoFile, user.restaurant_id) : null;
-  const uploadedBannerUrl =
-    bannerFile instanceof File ? await uploadRestaurantBanner(bannerFile, user.restaurant_id) : null;
-  const location = String(formData.get("location") ?? "").trim() || null;
-  const eta_label = String(formData.get("eta_label") ?? "").trim() || null;
-  const latRaw = String(formData.get("latitude") ?? "").trim();
-  const lngRaw = String(formData.get("longitude") ?? "").trim();
-  const latitude = latRaw && Number.isFinite(Number(latRaw)) ? Number(latRaw) : null;
-  const longitude = lngRaw && Number.isFinite(Number(lngRaw)) ? Number(lngRaw) : null;
-  const freeDelivery = formData.get("free_delivery") === "true" || formData.get("free_delivery") === "on";
+
   const deliveryFeeRaw = String(formData.get("delivery_fee_usd") ?? "").trim();
-  let deliveryFeeUsd = Number(deliveryFeeRaw);
+  const deliveryFeeUsd = Number(deliveryFeeRaw);
   if (!Number.isFinite(deliveryFeeUsd) || deliveryFeeUsd <= 0) {
-    redirect("/dashboard/business?toast=invalid_delivery_fee");
+    return { ok: false, toast: "invalid_delivery_fee" };
   }
+
   const fastDeliveryEnabled =
     formData.get("fast_delivery_enabled") === "true" || formData.get("fast_delivery_enabled") === "on";
   const fastDeliveryFeeRaw = String(formData.get("fast_delivery_fee_usd") ?? "").trim();
   let fastDeliveryFeeUsd = Number(fastDeliveryFeeRaw);
   if (fastDeliveryEnabled) {
     if (!Number.isFinite(fastDeliveryFeeUsd) || fastDeliveryFeeUsd <= 0) {
-      redirect("/dashboard/business?toast=invalid_fast_delivery_fee");
+      return { ok: false, toast: "invalid_fast_delivery_fee" };
     }
   } else {
     fastDeliveryFeeUsd = Number.isFinite(fastDeliveryFeeUsd) && fastDeliveryFeeUsd > 0 ? fastDeliveryFeeUsd : 0;
   }
+
   const deliveryRadiusRaw = String(formData.get("delivery_radius_km") ?? "").trim();
   const deliveryRadiusParsed = Number(deliveryRadiusRaw);
   if (
@@ -681,24 +712,40 @@ export async function updateRestaurantSettingsAction(formData: FormData) {
     deliveryRadiusParsed < MIN_RESTAURANT_DELIVERY_RADIUS_KM ||
     deliveryRadiusParsed > MAX_RESTAURANT_DELIVERY_RADIUS_KM
   ) {
-    redirect("/dashboard/business?toast=invalid_delivery_radius");
+    return { ok: false, toast: "invalid_delivery_radius" };
   }
   const deliveryRadiusKm = normalizeRestaurantDeliveryRadiusKm(deliveryRadiusParsed);
 
+  const logoFile = formData.get("logo_file");
+  const bannerFile = formData.get("banner_file");
+  const currentLogoUrl = String(formData.get("current_logo_url") ?? "").trim();
+  const currentBannerUrl = String(formData.get("current_banner_url") ?? "").trim();
+  const uploadedLogoUrl =
+    logoFile instanceof File && logoFile.size > 0
+      ? await uploadRestaurantLogo(logoFile, user.restaurant_id)
+      : null;
+  const uploadedBannerUrl =
+    bannerFile instanceof File && bannerFile.size > 0
+      ? await uploadRestaurantBanner(bannerFile, user.restaurant_id)
+      : null;
+  const location = String(formData.get("location") ?? "").trim() || null;
+  const eta_label = String(formData.get("eta_label") ?? "").trim() || null;
+  const latRaw = String(formData.get("latitude") ?? "").trim();
+  const lngRaw = String(formData.get("longitude") ?? "").trim();
+  const latitude = latRaw && Number.isFinite(Number(latRaw)) ? Number(latRaw) : null;
+  const longitude = lngRaw && Number.isFinite(Number(lngRaw)) ? Number(lngRaw) : null;
+  const freeDelivery = formData.get("free_delivery") === "true" || formData.get("free_delivery") === "on";
+  const allowGuestCheckout =
+    formData.get("allow_guest_checkout") === "true" || formData.get("allow_guest_checkout") === "on";
+
   const supabase = await createServerSupabaseClient();
   const menuThemeColor = parseMenuThemeColor(formData.get("menu_theme_color"));
-  const { data: restaurantRow } = await supabase
-    .from("restaurants")
-    .select("slug")
-    .eq("id", user.restaurant_id)
-    .maybeSingle();
-
-  const browseSelection = parseFullBrowseSelectionFromForm(formData);
+  const browseSelection = browseValidated.selection;
   const browseSections = normalizeBrowseSections(browseSelection);
   const businessType =
     browseSections.length > 0 ? inferBusinessTypeFromBrowseSections(browseSections) : null;
 
-  await supabase
+  const { data: restaurantRow, error: updateError } = await supabase
     .from("restaurants")
     .update({
       name: String(formData.get("name")),
@@ -719,15 +766,22 @@ export async function updateRestaurantSettingsAction(formData: FormData) {
       fast_delivery_fee_usd: Math.round(fastDeliveryFeeUsd * 100) / 100,
       delivery_radius_km: deliveryRadiusKm,
       menu_theme_color: menuThemeColor,
+      allow_guest_checkout: allowGuestCheckout,
     })
-    .eq("id", user.restaurant_id);
-  revalidatePath("/dashboard/business");
+    .eq("id", user.restaurant_id)
+    .select("slug")
+    .maybeSingle();
+
+  if (updateError) {
+    return { ok: false, toast: "settings_save_failed", message: updateError.message };
+  }
+
   revalidatePath("/");
   if (restaurantRow?.slug) {
     revalidatePath(`/${restaurantRow.slug}`);
     revalidatePath(`/${restaurantRow.slug}/menu`);
   }
-  redirect("/dashboard/business?toast=settings_saved");
+  return { ok: true };
 }
 
 function parseOpeningHoursFromForm(raw: string): Array<{ day: number; open: string; close: string; closed: boolean }> {

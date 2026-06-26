@@ -28,7 +28,7 @@ const ALL_ADDONS: { key: string; label: string; description: string }[] = [
   { key: "fleet", label: "Fleet Management", description: "Vehicles, drivers, delivery dispatch, and maintenance logs." },
   { key: "club", label: "Club Management", description: "Membership plans, check-ins, and subscription invoicing." },
 ];
-import { BROWSE_SECTION_OPTIONS, formatBrowseSectionsLabel, getBrowseSubTags, getParentSectionForSubFilter, getRawBrowseSectionValues, getSubFiltersForSection, normalizeBrowseSections, type BrowseSection } from "@/lib/browse-sections";
+import { BROWSE_SECTION_OPTIONS, formatBrowseSectionsLabel, getBrowseSubTags, getParentSectionForSubFilter, getRawBrowseSectionValues, getSubFiltersForSection, normalizeBrowseSections, validateBrowseSelection, type BrowseSection } from "@/lib/browse-sections";
 import { hasCatalogDashboard, type BusinessTypeKey } from "@/lib/business-types";
 import {
   formatNextDueLine,
@@ -36,6 +36,7 @@ import {
   isSubscriptionPastDue,
   subscriptionStatusBadgeClass,
 } from "@/lib/subscription-display";
+import { DashboardAlertModal } from "@/components/dashboard-alert-modal";
 import { SuperAdminSetPasswordModal } from "@/components/super-admin-set-password-modal";
 import { ComplimentaryBillingModalFields } from "@/components/complimentary-billing-fields";
 import {
@@ -143,6 +144,7 @@ type BrowseSectionsEditorState = {
   restaurantName: string;
   sections: BrowseSection[];
   subTags: string[];
+  error: string | null;
 };
 
 type AddonsEditorState = {
@@ -198,6 +200,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
     restaurantName: "",
     sections: ["Food & Restaurants"],
     subTags: [],
+    error: null,
   });
   const [addonsEditor, setAddonsEditor] = useState<AddonsEditorState>({
     open: false,
@@ -352,6 +355,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
       restaurantName: restaurant.name,
       sections: sections.length > 0 ? sections : ["Food & Restaurants"],
       subTags,
+      error: null,
     });
   }
 
@@ -364,7 +368,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
       const subTags = has
         ? prev.subTags.filter((tag) => getParentSectionForSubFilter(tag) !== section)
         : prev.subTags;
-      return { ...prev, sections, subTags };
+      return { ...prev, sections, subTags, error: null };
     });
   }
 
@@ -372,12 +376,17 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
     setBrowseSectionsEditor((prev) => {
       const has = prev.subTags.includes(tag);
       const subTags = has ? prev.subTags.filter((value) => value !== tag) : [...prev.subTags, tag];
-      return { ...prev, subTags };
+      return { ...prev, subTags, error: null };
     });
   }
 
   function saveBrowseSections() {
-    if (browseSectionsEditor.sections.length === 0) return;
+    const selection = [...browseSectionsEditor.sections, ...browseSectionsEditor.subTags];
+    const validated = validateBrowseSelection(selection);
+    if (!validated.ok) {
+      setBrowseSectionsEditor((prev) => ({ ...prev, error: validated.error }));
+      return;
+    }
     startTransition(async () => {
       const formData = new FormData();
       formData.set("id", browseSectionsEditor.restaurantId);
@@ -1051,8 +1060,9 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
             <p className="mt-1 text-sm text-slate-600">
               Pick one or more sections where{" "}
               <span className="font-semibold">{browseSectionsEditor.restaurantName}</span> appears on the home page.
+              Each category needs at least one tag.
             </p>
-            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
               {BROWSE_SECTION_OPTIONS.map((section) => (
                 <label
                   key={section}
@@ -1073,8 +1083,10 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
               if (subOptions.length === 0) return null;
               return (
                 <div key={section} className="mt-4 border-t border-slate-100 pt-4">
-                  <p className="text-xs font-semibold text-slate-700">{section} tags (optional)</p>
-                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                  <p className="text-xs font-semibold text-slate-700">
+                    {section} tags <span className="text-red-500">*</span>
+                  </p>
+                  <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
                     {subOptions.map((tag) => (
                       <label
                         key={tag}
@@ -1096,6 +1108,13 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
             {browseSectionsEditor.sections.length === 0 ? (
               <p className="mt-2 text-xs font-medium text-amber-700">Select at least one category.</p>
             ) : null}
+            <DashboardAlertModal
+              open={browseSectionsEditor.error != null}
+              heading="Tags required"
+              message={browseSectionsEditor.error ?? ""}
+              variant="warning"
+              onClose={() => setBrowseSectionsEditor((prev) => ({ ...prev, error: null }))}
+            />
             <div className="mt-4 flex justify-end gap-2">
               <button
                 type="button"

@@ -97,13 +97,25 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
   const serviceClient = getServiceClient();
   const insertClient = serviceClient ?? supabase;
 
-  const { data: restaurantRow, error: restaurantError } = await insertClient
+  let { data: restaurantRow, error: restaurantError } = await insertClient
     .from("restaurants")
     .select(
-      "is_active, is_temporarily_closed, opening_hours, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd, delivery_radius_km, latitude, longitude, restaurant_locations(latitude, longitude)",
+      "is_active, is_temporarily_closed, allow_guest_checkout, opening_hours, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd, delivery_radius_km, latitude, longitude, restaurant_locations(latitude, longitude)",
     )
     .eq("id", input.restaurantId)
     .maybeSingle();
+
+  if (restaurantError && /allow_guest_checkout/i.test(restaurantError.message ?? "")) {
+    const retry = await insertClient
+      .from("restaurants")
+      .select(
+        "is_active, is_temporarily_closed, opening_hours, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd, delivery_radius_km, latitude, longitude, restaurant_locations(latitude, longitude)",
+      )
+      .eq("id", input.restaurantId)
+      .maybeSingle();
+    restaurantRow = retry.data ? { ...retry.data, allow_guest_checkout: false } : null;
+    restaurantError = retry.error;
+  }
 
   if (restaurantError || !restaurantRow) {
     return { ok: false, error: "Restaurant not found." };
@@ -113,6 +125,10 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
   }
   if (restaurantRow.is_temporarily_closed) {
     return { ok: false, error: "This restaurant is temporarily closed." };
+  }
+
+  if (!user && !restaurantRow.allow_guest_checkout) {
+    return { ok: false, error: "Please sign in to place an order from this store." };
   }
 
   const hours = parseOpeningHours(restaurantRow.opening_hours);

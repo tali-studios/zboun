@@ -3,12 +3,12 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { signOutAction } from "@/app-actions/auth";
 import {
-  createCategoryAction,
   deleteMenuItemAction,
   toggleMenuItemAvailabilityAction,
   updateMenuItemAction,
-  updateRestaurantSettingsAction,
 } from "@/app-actions/restaurant";
+import { AddSectionsForm } from "@/components/add-sections-form";
+import { StoreSettingsForm, StoreSettingsSubmitButton } from "@/components/store-settings-form";
 import { getCurrentUserRole } from "@/lib/data";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { CopyMenuLinkButton } from "@/components/copy-menu-link-button";
@@ -18,7 +18,7 @@ import { IngredientListField } from "@/components/ingredient-list-field";
 import { normalizeBrowseSections, getBrowseSubTags, getRawBrowseSectionValues } from "@/lib/browse-sections";
 import { BrowseSectionsCheckboxes } from "@/components/browse-sections-checkboxes";
 import { getBusinessTypeLabel, hasCatalogDashboard, parseBusinessType } from "@/lib/business-types";
-import { formatBrowseSectionsLabel } from "@/lib/browse-sections";
+import { formatBrowseSectionsLabel, getStorefrontActionLabels } from "@/lib/browse-sections";
 import { RestaurantHoursPanel } from "@/components/restaurant-hours-panel";
 import { RestaurantDashboardToast } from "@/components/restaurant-dashboard-toast";
 import { parseOpeningHours } from "@/lib/opening-hours";
@@ -96,6 +96,7 @@ type Props = {
     jump?: string;
     toast?: string;
     section_name?: string;
+    sections_count?: string;
     item_name?: string;
     brand_name?: string;
   }>;
@@ -106,7 +107,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
   if (!appUser || appUser.role !== "restaurant_admin" || !appUser.restaurant_id) {
     redirect("/dashboard/login");
   }
-  const { q, category, stock, page: pageRaw, toast, section_name: sectionNameRaw, item_name: itemNameRaw, brand_name: brandNameRaw } =
+  const { q, category, stock, page: pageRaw, toast, section_name: sectionNameRaw, sections_count: sectionsCountRaw, item_name: itemNameRaw, brand_name: brandNameRaw } =
     await searchParams;
   let sectionName: string | undefined = undefined;
   if (typeof sectionNameRaw === "string" && sectionNameRaw.length > 0) {
@@ -132,6 +133,10 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
       brandName = brandNameRaw;
     }
   }
+  const sectionsCount =
+    typeof sectionsCountRaw === "string" && sectionsCountRaw.length > 0
+      ? Number(sectionsCountRaw)
+      : null;
 
   const supabase = await createServerSupabaseClient();
   const restaurantId = appUser.restaurant_id;
@@ -400,6 +405,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
   const menuUrl = `${appUrl.replace(/\/+$/, "")}/${restaurant?.slug ?? ""}`;
   const businessType = parseBusinessType(restaurant?.business_type ?? "retail_store");
   const categoryLabel = formatBrowseSectionsLabel(restaurant?.browse_sections);
+  const storefrontLabels = getStorefrontActionLabels(restaurant?.browse_sections);
   const isMenuBusiness = hasCatalogDashboard(businessType);
   const categoryNameById = new Map((categories ?? []).map((category) => [category.id, category.name]));
   const normalizedQuery = (q ?? "").trim().toLowerCase();
@@ -439,7 +445,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
   if (!isMenuBusiness) {
     return (
       <>
-        <RestaurantDashboardToast toast={toast} sectionName={sectionName} itemName={itemName} brandName={brandName} />
+        <RestaurantDashboardToast toast={toast} sectionName={sectionName} sectionsCount={sectionsCount} itemName={itemName} brandName={brandName} />
         <BusinessCategoryDashboard
           businessType={businessType}
           businessTypeLabel={categoryLabel}
@@ -472,7 +478,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
 
   return (
     <main className="min-h-screen bg-[#f8f8ff] p-3 sm:p-4 md:p-8">
-      <RestaurantDashboardToast toast={toast} sectionName={sectionName} itemName={itemName} brandName={brandName} />
+      <RestaurantDashboardToast toast={toast} sectionName={sectionName} sectionsCount={sectionsCount} itemName={itemName} brandName={brandName} />
       <div className="mx-auto max-w-7xl space-y-5">
         {/* Dashboard header */}
         <header className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-violet-700 via-violet-600 to-fuchsia-600 p-5 text-white shadow-lg shadow-violet-600/30 md:p-6">
@@ -489,7 +495,8 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                 {isMenuBusiness ? (
                   <>
                     {" "}
-                    · Menu: <span className="font-medium text-white">/{restaurant?.slug}</span>
+                    · {storefrontLabels.slugLabel}:{" "}
+                    <span className="font-medium text-white">/{restaurant?.slug}</span>
                   </>
                 ) : null}
               </p>
@@ -503,9 +510,9 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                     rel="noreferrer"
                     className="btn rounded-full bg-white text-violet-700 shadow-sm hover:bg-violet-50"
                   >
-                    Open menu
+                    {storefrontLabels.open}
                   </Link>
-                  <CopyMenuLinkButton url={menuUrl} />
+                  <CopyMenuLinkButton url={menuUrl} label={storefrontLabels.copyLink} />
                   <Link
                     href="/dashboard/business/orders"
                     className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20"
@@ -541,10 +548,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
         {isMenuBusiness ? (
         <>
         <section className="grid gap-4 lg:grid-cols-3">
-          <form
-            action={updateRestaurantSettingsAction}
-            className="flex flex-col gap-4 lg:col-span-2"
-          >
+          <StoreSettingsForm>
           <div className="panel p-5">
             <h2 className="panel-title">Store settings</h2>
             <div className="mt-3 grid gap-2 md:grid-cols-3">
@@ -597,6 +601,24 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                 />
                 <p className="text-xs text-slate-500">Used for customer WhatsApp contact actions.</p>
               </label>
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 md:col-span-3">
+                <label className="flex cursor-pointer items-start gap-3">
+                  <input
+                    type="checkbox"
+                    name="allow_guest_checkout"
+                    value="true"
+                    defaultChecked={restaurant?.allow_guest_checkout ?? false}
+                    className="mt-1 h-4 w-4 rounded border-slate-300 text-violet-600 focus:ring-violet-500"
+                  />
+                  <span>
+                    <span className="text-sm font-semibold text-slate-800">Allow guest checkout</span>
+                    <span className="mt-1 block text-xs leading-relaxed text-slate-500">
+                      When enabled, customers can complete WhatsApp orders from your menu without signing in to
+                      Zboun. When off, they must create an account or sign in before checkout.
+                    </span>
+                  </span>
+                </label>
+              </div>
               <label className="space-y-1">
                 <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Dollar Rate</span>
                 <input
@@ -613,9 +635,10 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 md:col-span-3">
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Business categories</p>
                 <p className="mt-1 text-xs text-slate-500">
-                  Where customers find you on the home page. Pick categories and optional tags.
+                  Where customers find you on the home page. Pick categories and at least one tag per category.
                 </p>
                 <BrowseSectionsCheckboxes
+                  formId="restaurant-store-settings-form"
                   selected={[...browseSectionsForForm]}
                   selectedSubs={selectedBrowseSubTags}
                 />
@@ -648,20 +671,13 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
           />
 
           <div className="panel p-5">
-            <button type="submit" className="btn btn-primary w-full rounded-xl sm:w-auto">
+            <StoreSettingsSubmitButton className="btn btn-primary w-full rounded-xl sm:w-auto">
               Save store &amp; delivery settings
-            </button>
+            </StoreSettingsSubmitButton>
           </div>
-          </form>
+          </StoreSettingsForm>
 
-          <form action={createCategoryAction} className="panel p-5">
-            <h2 className="panel-title">Add section</h2>
-            <div className="mt-3 space-y-2">
-              <input name="name" required placeholder="Section name" className="ui-input" />
-              <p className="text-xs text-slate-500">Examples: Burgers, Drinks, Desserts, Grocery.</p>
-              <button className="btn btn-success w-full rounded-xl">Add section</button>
-            </div>
-          </form>
+          <AddSectionsForm />
         </section>
 
         <RestaurantHoursPanel
@@ -676,10 +692,16 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
               This dashboard is tailored for {getBusinessTypeLabel(businessType)}. Menu and home-browse tools are hidden
               for non-restaurant businesses.
             </p>
-            <form action={updateRestaurantSettingsAction} className="mt-4 grid gap-3 md:grid-cols-2">
+            <StoreSettingsForm className="mt-4 grid gap-3 md:grid-cols-2">
               <input type="hidden" name="current_logo_url" value={restaurant?.logo_url ?? ""} />
               <input type="hidden" name="current_banner_url" value={restaurant?.banner_url ?? ""} />
               <input type="hidden" name="lbp_rate" value={String(restaurant?.lbp_rate ?? 89500)} />
+              <input type="hidden" name="delivery_fee_usd" value={String(restaurant?.delivery_fee_usd ?? 2)} />
+              <input type="hidden" name="delivery_radius_km" value={String(restaurant?.delivery_radius_km ?? 5)} />
+              <input type="hidden" name="fast_delivery_fee_usd" value={String(restaurant?.fast_delivery_fee_usd ?? 0)} />
+              {rawBrowseSections.map((value) => (
+                <input key={value} type="hidden" name="browse_sections" value={value} />
+              ))}
               <label className="space-y-1">
                 <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Business Name</span>
                 <input name="name" defaultValue={restaurant?.name} placeholder="Business name" className="ui-input" />
@@ -720,8 +742,10 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                   className="ui-input"
                 />
               </label>
-              <button className="btn btn-primary rounded-xl md:col-span-2">Save profile</button>
-            </form>
+              <StoreSettingsSubmitButton className="btn btn-primary rounded-xl md:col-span-2">
+                Save profile
+              </StoreSettingsSubmitButton>
+            </StoreSettingsForm>
           </section>
         )}
 

@@ -44,6 +44,7 @@ export type RestaurantForMenuPage = {
   user_avg_rating: number | null;
   user_rating_count: number;
   menu_theme_color: string | null;
+  allow_guest_checkout: boolean;
 };
 
 async function loadRatingStatsMap(supabase: SupabaseClient, ids: string[]): Promise<Map<string, RatingAgg>> {
@@ -127,19 +128,32 @@ type RestaurantRowCore = {
   latitude?: number | null;
   longitude?: number | null;
   menu_theme_color?: string | null;
+  allow_guest_checkout?: boolean;
 };
 
 export async function getRestaurantBySlug(slug: string): Promise<RestaurantForMenuPage | null> {
   const supabase = await createServerSupabaseClient();
   const fullSelect =
-    "id, name, slug, phone, logo_url, banner_url, description, lbp_rate, is_active, browse_sections, location, eta_label, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd, delivery_radius_km, latitude, longitude, menu_theme_color";
-  const { data, error } = await supabase.from("restaurants").select(fullSelect).eq("slug", slug).single();
+    "id, name, slug, phone, logo_url, banner_url, description, lbp_rate, is_active, browse_sections, location, eta_label, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd, delivery_radius_km, latitude, longitude, menu_theme_color, allow_guest_checkout";
+  let { data, error } = await supabase.from("restaurants").select(fullSelect).eq("slug", slug).single();
+
+  if (error && /allow_guest_checkout/i.test(error.message ?? "")) {
+    const retry = await supabase
+      .from("restaurants")
+      .select(
+        "id, name, slug, phone, logo_url, banner_url, description, lbp_rate, is_active, browse_sections, location, eta_label, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd, delivery_radius_km, latitude, longitude, menu_theme_color",
+      )
+      .eq("slug", slug)
+      .single();
+    data = retry.data ? { ...retry.data, allow_guest_checkout: false } : null;
+    error = retry.error;
+  }
 
   let row: RestaurantRowCore | null = null;
 
   if (!error && data) {
     row = data as RestaurantRowCore;
-  } else {
+  } else if (!data) {
     const legacy = await supabase
       .from("restaurants")
       .select("id, name, slug, phone, logo_url, banner_url, description, lbp_rate, is_active, browse_sections")
@@ -196,6 +210,7 @@ export async function getRestaurantBySlug(slug: string): Promise<RestaurantForMe
     longitude: row.longitude ?? null,
     branches: (branchRows ?? []) as RestaurantLocationBranch[],
     menu_theme_color: row.menu_theme_color ?? null,
+    allow_guest_checkout: row.allow_guest_checkout ?? false,
     user_avg_rating: agg?.avgRating ?? null,
     user_rating_count: agg?.ratingCount ?? 0,
   };
