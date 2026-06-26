@@ -123,7 +123,14 @@ async function testPublicPages(slug) {
 
 async function testSeoRoutes() {
   section("SEO / metadata routes");
-  for (const path of ["/robots.txt", "/sitemap.xml", "/manifest.webmanifest", "/llms.txt", "/llms-full.txt"]) {
+  for (const path of [
+    "/robots.txt",
+    "/sitemap.xml",
+    "/manifest.webmanifest",
+    "/llms.txt",
+    "/llms-full.txt",
+    "/BingSiteAuth.xml",
+  ]) {
     const res = await fetchStatus(path);
     expectStatus(path, res, [200, 307, 308]);
   }
