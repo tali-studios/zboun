@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { STORE_ADMIN_LABEL } from "@/lib/browse-sections";
+import { getStorefrontActionLabels, STORE_ADMIN_LABEL } from "@/lib/browse-sections";
 import { redirect } from "next/navigation";
 import { MenuFlyerCard } from "@/components/menu-flyer-card";
 import { getCurrentUserRole } from "@/lib/data";
@@ -16,12 +16,13 @@ export default async function RestaurantFlyerPage() {
   const supabase = await createServerSupabaseClient();
   const { data: restaurant } = await supabase
     .from("restaurants")
-    .select("name, slug, logo_url")
+    .select("name, slug, logo_url, browse_sections, menu_theme_color")
     .eq("id", appUser.restaurant_id)
     .single();
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const menuUrl = `${appUrl.replace(/\/+$/, "")}/${restaurant?.slug ?? ""}`;
+  const storefrontLabels = getStorefrontActionLabels(restaurant?.browse_sections);
 
   return (
     <main className="flyer-print-page min-h-screen overflow-x-hidden bg-[#f8f8ff] px-3 py-4 sm:p-8">
@@ -38,8 +39,10 @@ export default async function RestaurantFlyerPage() {
 
         <MenuFlyerCard
           menuUrl={menuUrl}
-          restaurantName={restaurant?.name ?? "Restaurant"}
+          restaurantName={restaurant?.name ?? "Store"}
           logoUrl={restaurant?.logo_url ?? null}
+          openLinkLabel={storefrontLabels.open}
+          themeColor={restaurant?.menu_theme_color ?? null}
         />
       </div>
     </main>

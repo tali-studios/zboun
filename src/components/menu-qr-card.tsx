@@ -23,7 +23,7 @@ export function MenuQrCard({
   downloadSuffix = "menu-qr",
   variant = "order",
   badgeLabel,
-  openLinkLabel = "Open menu",
+  openLinkLabel = "Open store",
 }: Props) {
   const [qrDataUrl, setQrDataUrl] = useState("");
   const [isLoading, setIsLoading] = useState(true);
