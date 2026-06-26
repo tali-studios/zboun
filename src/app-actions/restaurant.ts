@@ -19,6 +19,7 @@ import {
 } from "@/lib/delivery-radius";
 import { deriveLocationLabelFromBranch } from "@/lib/restaurant-profile";
 import { parseDisplayQuantityFromForm } from "@/lib/display-quantity";
+import { buildMenuItemStockPayload } from "@/lib/menu-item-stock";
 import { parseOptionalCalories, parseOptionalProteinGrams, isNutritionColumnMigrationError } from "@/lib/menu-nutrition";
 import { env } from "@/lib/env";
 
@@ -404,6 +405,7 @@ export async function createMenuItemAction(formData: FormData) {
     name: item.name,
     price: item.price ?? 0,
   }));
+  const stock = buildMenuItemStockPayload(formData);
 
   const description = String(formData.get("description") ?? "").trim() || null;
   const calories = parseOptionalCalories(formData.get("calories"));
@@ -433,7 +435,8 @@ export async function createMenuItemAction(formData: FormData) {
     add_ingredients: addIngredients,
     option_label: optionLabel || null,
     option_values: optionValues,
-    is_available: true,
+    ...stock,
+    is_available: stock.track_stock ? stock.is_available! : true,
     sold_by_weight: soldByWeight,
     price_per_kg: soldByWeight ? pricePerKg : null,
     weight_step_kg: soldByWeight ? weightStepKg : 0.1,
@@ -514,6 +517,7 @@ export async function updateMenuItemAction(formData: FormData) {
     name: item.name,
     price: item.price ?? 0,
   }));
+  const stock = buildMenuItemStockPayload(formData);
 
   if (!name || !categoryId) {
     redirect("/dashboard/business?toast=item_update_invalid");
@@ -567,6 +571,8 @@ export async function updateMenuItemAction(formData: FormData) {
     add_ingredients: addIngredients,
     option_label: optionLabel || null,
     option_values: optionValues,
+    ...stock,
+    ...(stock.track_stock ? { is_available: stock.is_available! } : {}),
     sold_by_weight: soldByWeight,
     price_per_kg: soldByWeight ? pricePerKg : null,
     weight_step_kg: soldByWeight ? weightStepKg : 0.1,

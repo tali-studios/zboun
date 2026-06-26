@@ -13,6 +13,7 @@ export type ReorderCartLine = {
   removedIngredients: string[];
   addedIngredients: Array<{ name: string; price: number; qty: number }>;
   specialInstructions: string;
+  selectedOption: string | null;
 };
 
 export type MenuReorderPayload = {
@@ -45,12 +46,14 @@ function findMenuItemByName(categories: CategoryWithItems[], name: string) {
 
 function buildLineKey(
   itemId: string,
+  selectedOption: string | null | undefined,
   removed: string[],
   added: Array<{ name: string; qty: number }>,
   note: string,
 ) {
   return [
     itemId,
+    selectedOption?.trim() ?? "",
     [...removed].sort().join("|"),
     added
       .map((entry) => `${entry.name}:${entry.qty}`)
@@ -76,7 +79,8 @@ export function buildCartFromReorder(
       qty: Number(entry.qty ?? 0),
     }));
     const note = item.specialInstructions?.trim() ?? "";
-    const key = buildLineKey(itemId, removed, added, note);
+    const selectedOption = item.selectedOption?.trim() || null;
+    const key = buildLineKey(itemId, selectedOption, removed, added, note);
     const soldByWeight = Boolean((menuItem as { sold_by_weight?: boolean } | undefined)?.sold_by_weight);
     const unit: "each" | "kg" = item.unit === "kg" || soldByWeight ? "kg" : "each";
 
@@ -91,6 +95,7 @@ export function buildCartFromReorder(
       removedIngredients: [...removed],
       addedIngredients: added,
       specialInstructions: note,
+      selectedOption,
     };
   }
 

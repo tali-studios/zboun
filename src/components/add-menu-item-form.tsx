@@ -6,6 +6,8 @@ import { IngredientListField } from "@/components/ingredient-list-field";
 import { ImageUploadField } from "@/components/image-upload-field";
 import { DisplayQuantityFields } from "@/components/display-quantity-fields";
 import { MenuNutritionFields } from "@/components/menu-nutrition-fields";
+import { MenuItemOptionsFields } from "@/components/menu-item-options-fields";
+import { MenuItemStockFields } from "@/components/menu-item-stock-fields";
 
 type Category = { id: string; name: string };
 type Brand = { id: string; name: string; logo_url: string | null };
@@ -347,7 +349,7 @@ export function AddMenuItemForm({
             </div>
             <div>
               <p className="text-sm font-bold text-slate-900">Customization options</p>
-              <p className="text-xs text-slate-400">Removable ingredients, add-ons, size variants</p>
+              <p className="text-xs text-slate-400">Sizes, colors, add-ons, and stock count</p>
             </div>
           </div>
           <svg
@@ -359,7 +361,8 @@ export function AddMenuItemForm({
         </button>
 
         {showAdvanced && (
-          <div className="border-t border-slate-100 p-5">
+          <div className="border-t border-slate-100 p-5 space-y-4">
+            <MenuItemStockFields />
             <div className="grid gap-4 sm:grid-cols-2">
               <IngredientListField
                 name="removable_ingredients"
@@ -371,23 +374,7 @@ export function AddMenuItemForm({
                 withPrice
               />
             </div>
-            <div className="mt-4 space-y-3 border-t border-slate-100 pt-4">
-              <div>
-                <FieldLabel htmlFor="add-option_label" optional>Option type</FieldLabel>
-                <input
-                  id="add-option_label"
-                  name="option_label"
-                  placeholder="e.g. Size, Quantity, Packing"
-                  className="ui-input w-full"
-                />
-                <p className="mt-1 text-xs text-slate-400">Add one option category, then define the values below.</p>
-              </div>
-              <IngredientListField
-                name="option_values"
-                label="Option values (Small / Large, 1kg / 2kg, etc.)"
-                withPrice
-              />
-            </div>
+            <MenuItemOptionsFields />
           </div>
         )}
       </div>

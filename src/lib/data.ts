@@ -5,6 +5,7 @@ import { env } from "@/lib/env";
 import { unstable_cache } from "next/cache";
 import { enforceSubscriptionExpiryForRestaurant } from "@/lib/subscription-lifecycle";
 import { isNutritionColumnMigrationError } from "@/lib/menu-nutrition";
+import { isStockColumnMigrationError } from "@/lib/menu-item-stock";
 
 type RatingAgg = { avgRating: number; ratingCount: number };
 
@@ -84,6 +85,10 @@ export type CategoryWithItems = {
     weight_step_kg?: number | null;
     removable_ingredients: Array<{ name: string }>;
     add_ingredients: Array<{ name: string; price: number }>;
+    option_label?: string | null;
+    option_values?: Array<{ name: string; price: number }>;
+    track_stock?: boolean;
+    stock_quantity?: number | null;
     image_url: string | null;
     is_available: boolean;
   }[];
@@ -224,6 +229,12 @@ function mapRestaurantMenuCategories(data: unknown[] | null | undefined) {
         weight_step_kg: (item.weight_step_kg as number | null) ?? null,
         removable_ingredients: (item.removable_ingredients as Array<{ name: string }>) ?? [],
         add_ingredients: (item.add_ingredients as Array<{ name: string; price: number }>) ?? [],
+        option_label: (item.option_label as string | null) ?? null,
+        option_values: Array.isArray(item.option_values)
+          ? (item.option_values as Array<{ name: string; price: number }>)
+          : [],
+        track_stock: Boolean(item.track_stock),
+        stock_quantity: item.stock_quantity != null ? Number(item.stock_quantity) : null,
         image_url: (item.image_url as string | null) ?? null,
         is_available: Boolean(item.is_available),
       })),
@@ -233,28 +244,41 @@ function mapRestaurantMenuCategories(data: unknown[] | null | undefined) {
 
 export async function getRestaurantMenu(restaurantId: string) {
   const supabase = await createServerSupabaseClient();
-  const menuItemsSelectCore =
-    "id, name, brand_id, brand_name, menu_brands(id, name, logo_url), description, contents, grams, display_quantity, display_unit, price, sold_by_weight, price_per_kg, weight_step_kg, removable_ingredients, add_ingredients, image_url, is_available";
-  const menuItemsSelectWithNutrition = `${menuItemsSelectCore}, calories, protein_g`;
+  const menuItemsSelectBase =
+    "id, name, brand_id, brand_name, menu_brands(id, name, logo_url), description, contents, grams, display_quantity, display_unit, price, sold_by_weight, price_per_kg, weight_step_kg, removable_ingredients, add_ingredients, option_label, option_values, image_url, is_available";
+  const menuItemsSelectWithStock = `${menuItemsSelectBase}, track_stock, stock_quantity`;
+  const menuItemsSelectWithNutrition = `${menuItemsSelectWithStock}, calories, protein_g`;
+  const menuItemsSelectWithNutritionNoStock = `${menuItemsSelectBase}, calories, protein_g`;
   const categorySelect = (menuItemsSelect: string) =>
     `id, name, position, menu_items(${menuItemsSelect})`;
 
-  let { data, error } = await supabase
-    .from("categories")
-    .select(categorySelect(menuItemsSelectWithNutrition))
-    .eq("restaurant_id", restaurantId)
-    .order("position", { ascending: true })
-    .order("name", { referencedTable: "menu_items", ascending: true });
-
-  if (error && isNutritionColumnMigrationError(error.message, error.code)) {
-    const retry = await supabase
+  async function runQuery(menuItemsSelect: string) {
+    return supabase
       .from("categories")
-      .select(categorySelect(menuItemsSelectCore))
+      .select(categorySelect(menuItemsSelect))
       .eq("restaurant_id", restaurantId)
       .order("position", { ascending: true })
       .order("name", { referencedTable: "menu_items", ascending: true });
-    data = retry.data;
-    error = retry.error;
+  }
+
+  let menuItemsSelect = menuItemsSelectWithNutrition;
+  let { data, error } = await runQuery(menuItemsSelect);
+
+  if (error && isNutritionColumnMigrationError(error.message, error.code)) {
+    menuItemsSelect = menuItemsSelectWithStock;
+    ({ data, error } = await runQuery(menuItemsSelect));
+  }
+
+  if (error && isStockColumnMigrationError(error.message, error.code)) {
+    menuItemsSelect = menuItemsSelect.includes("calories")
+      ? menuItemsSelectWithNutritionNoStock
+      : menuItemsSelectBase;
+    ({ data, error } = await runQuery(menuItemsSelect));
+  }
+
+  if (error && isNutritionColumnMigrationError(error.message, error.code)) {
+    menuItemsSelect = menuItemsSelectBase;
+    ({ data, error } = await runQuery(menuItemsSelect));
   }
 
   if (error) {

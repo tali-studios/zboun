@@ -1,10 +1,14 @@
 export const BROWSE_SECTION_OPTIONS = [
   "Food & Restaurants",
   "Groceries",
+  "Fashion & Apparel",
+  "Electronics & Tech",
+  "Health & Beauty",
   "Home & Living",
   "Drinks & Beverages",
   "Vape & Tobacco",
   "Gas & Fuel",
+  "Pets & Supplies",
   "General Shops",
 ] as const;
 
@@ -20,10 +24,31 @@ export const BROWSE_SUB_FILTERS_BY_SECTION = {
   ],
   Groceries: [
     "Fresh Produce",
+    "Butchery & Meat",
     "Bakery",
     "Frozen Foods",
     "Household Staples",
     "Organic",
+  ],
+  "Fashion & Apparel": [
+    "Clothing",
+    "Shoes & Footwear",
+    "Bags & Accessories",
+    "Sportswear",
+    "Kids & Baby",
+  ],
+  "Electronics & Tech": [
+    "Phones & Tablets",
+    "Computers",
+    "Gaming",
+    "Audio & TV",
+    "Smart Home",
+  ],
+  "Health & Beauty": [
+    "Pharmacy",
+    "Cosmetics",
+    "Personal Care",
+    "Supplements",
   ],
   "Home & Living": [
     "Furniture",
@@ -45,7 +70,8 @@ export const BROWSE_SUB_FILTERS_BY_SECTION = {
     "Tobacco",
   ],
   "Gas & Fuel": ["LPG & Gas Cylinders", "Fuel Station"],
-  "General Shops": ["Electronics", "Fashion", "Gifts", "Other"],
+  "Pets & Supplies": ["Pet Food", "Pet Accessories", "Grooming"],
+  "General Shops": ["Gifts", "Books & Stationery", "Hobbies & Crafts", "Other"],
 } as const satisfies Record<BrowseSection, readonly string[]>;
 
 export type BrowseSubFilter =
@@ -65,16 +91,22 @@ const LEGACY_BROWSE_ALIASES: Record<string, BrowseSection> = {
   Desserts: "Food & Restaurants",
   Drinks: "Drinks & Beverages",
   Groceries: "Groceries",
+  Fashion: "Fashion & Apparel",
+  Electronics: "Electronics & Tech",
 };
 
 /** Primary accent per top-level section. */
 export const BROWSE_SECTION_ACCENTS: Record<BrowseSection, string> = {
   "Food & Restaurants": "#ff6b4a",
   Groceries: "#17a398",
+  "Fashion & Apparel": "#db2777",
+  "Electronics & Tech": "#2563eb",
+  "Health & Beauty": "#14b8a6",
   "Home & Living": "#8b5cf6",
   "Drinks & Beverages": "#22a7f0",
   "Vape & Tobacco": "#64748b",
   "Gas & Fuel": "#f59e0b",
+  "Pets & Supplies": "#ca8a04",
   "General Shops": "#5f4be8",
 };
 
@@ -85,6 +117,7 @@ export const BROWSE_SUB_FILTER_ACCENTS: Record<string, string> = {
   "Quick Bites": "#7c5cff",
   Desserts: "#ff5c8a",
   "Fresh Produce": "#34d399",
+  "Butchery & Meat": "#dc2626",
   Bakery: "#fbbf24",
   "Frozen Foods": "#38bdf8",
   "Household Staples": "#14b8a6",
@@ -104,9 +137,26 @@ export const BROWSE_SUB_FILTER_ACCENTS: Record<string, string> = {
   Tobacco: "#57534e",
   "LPG & Gas Cylinders": "#f59e0b",
   "Fuel Station": "#ea580c",
-  Electronics: "#3b82f6",
-  Fashion: "#ec4899",
+  Clothing: "#f472b6",
+  "Shoes & Footwear": "#e11d48",
+  "Bags & Accessories": "#a855f7",
+  Sportswear: "#0d9488",
+  "Kids & Baby": "#fb7185",
+  "Phones & Tablets": "#3b82f6",
+  Computers: "#6366f1",
+  Gaming: "#7c3aed",
+  "Audio & TV": "#0284c7",
+  "Smart Home": "#0891b2",
+  Pharmacy: "#059669",
+  Cosmetics: "#ec4899",
+  "Personal Care": "#2dd4bf",
+  Supplements: "#84cc16",
+  "Pet Food": "#d97706",
+  "Pet Accessories": "#b45309",
+  Grooming: "#f59e0b",
   Gifts: "#8b5cf6",
+  "Books & Stationery": "#6366f1",
+  "Hobbies & Crafts": "#a78bfa",
   Other: "#64748b",
 };
 

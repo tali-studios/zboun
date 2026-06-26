@@ -32,6 +32,47 @@ set browse_sections = (
 where browse_sections @> array['Drinks']::text[]
   and not (browse_sections @> array['Drinks & Beverages']::text[]);
 
+-- 2b) Legacy General Shops sub-tags → new top-level categories
+update public.restaurants
+set browse_sections = (
+  select array_agg(distinct entry order by entry)
+  from (
+    select case
+      when entry = 'Fashion' then 'Fashion & Apparel'
+      when entry = 'Electronics' then 'Electronics & Tech'
+      else entry
+    end as entry
+    from unnest(browse_sections) as entry
+  ) mapped
+)
+where browse_sections && array['Fashion', 'Electronics']::text[];
+
+update public.restaurants
+set browse_sections = browse_sections || array['Fashion & Apparel']::text[]
+where browse_sections @> array['Fashion']::text[]
+  and not (browse_sections @> array['Fashion & Apparel']::text[]);
+
+update public.restaurants
+set browse_sections = (
+  select array_agg(distinct entry order by entry)
+  from unnest(browse_sections) as entry
+  where entry <> 'Fashion'
+)
+where browse_sections @> array['Fashion']::text[];
+
+update public.restaurants
+set browse_sections = browse_sections || array['Electronics & Tech']::text[]
+where browse_sections @> array['Electronics']::text[]
+  and not (browse_sections @> array['Electronics & Tech']::text[]);
+
+update public.restaurants
+set browse_sections = (
+  select array_agg(distinct entry order by entry)
+  from unnest(browse_sections) as entry
+  where entry <> 'Electronics'
+)
+where browse_sections @> array['Electronics']::text[];
+
 -- 3) Food businesses with empty/unknown categories → Food & Restaurants + Lunch
 update public.restaurants
 set browse_sections = array['Food & Restaurants', 'Lunch']::text[]

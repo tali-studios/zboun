@@ -27,6 +27,9 @@ import { RestaurantLocationsPanel } from "@/components/restaurant-locations-pane
 import type { RestaurantLocationRow } from "@/app-actions/restaurant";
 import { MenuItemPricingFields } from "@/components/menu-item-pricing-fields";
 import { MenuNutritionFields } from "@/components/menu-nutrition-fields";
+import { MenuItemOptionsFields } from "@/components/menu-item-options-fields";
+import { MenuItemStockFields } from "@/components/menu-item-stock-fields";
+import { getMenuItemStockState } from "@/lib/menu-item-stock";
 import { formatMenuNutrition, isNutritionColumnMigrationError } from "@/lib/menu-nutrition";
 import { resolveMenuItemBrandId } from "@/lib/menu-brands";
 import { AddMenuItemForm } from "@/components/add-menu-item-form";
@@ -231,7 +234,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
   ]);
 
   const itemsSelectCore =
-    "id, name, brand_id, brand_name, description, price, image_url, grams, display_quantity, display_unit, contents, sold_by_weight, price_per_kg, weight_step_kg, removable_ingredients, add_ingredients, option_label, option_values, is_available, category_id, menu_brands(id, name, logo_url), categories(name)";
+    "id, name, brand_id, brand_name, description, price, image_url, grams, display_quantity, display_unit, contents, sold_by_weight, price_per_kg, weight_step_kg, removable_ingredients, add_ingredients, option_label, option_values, track_stock, stock_quantity, is_available, category_id, menu_brands(id, name, logo_url), categories(name)";
   const itemsSelectWithNutrition = `${itemsSelectCore}, calories, protein_g`;
   const itemsSelectLegacy =
     "id, name, brand_id, brand_name, description, price, image_url, grams, contents, sold_by_weight, price_per_kg, weight_step_kg, removable_ingredients, add_ingredients, is_available, category_id, categories(name)";
@@ -260,7 +263,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
 
   const { data: legacyItems } =
     itemsQueryError &&
-    /option_label|option_values|brand_name|brand_id|menu_brands|display_quantity|display_unit/i.test(
+    /option_label|option_values|track_stock|stock_quantity|brand_name|brand_id|menu_brands|display_quantity|display_unit/i.test(
       itemsQueryError.message ?? "",
     )
       ? await supabase
@@ -294,6 +297,8 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
     add_ingredients: Array<{ name?: string; price?: number }>;
     option_label?: string | null;
     option_values?: Array<{ name?: string; price?: number }>;
+    track_stock?: boolean;
+    stock_quantity?: number | null;
     is_available: boolean;
     category_id: string | null;
     categories?: { name?: string } | null;
@@ -796,15 +801,24 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                     </td>
                     <td className="px-4 py-3 text-slate-700">${item.price.toFixed(2)}</td>
                     <td className="px-4 py-3">
-                      <span
-                        className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                          item.is_available
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-amber-100 text-amber-700"
-                        }`}
-                      >
-                        {item.is_available ? "In stock" : "Out of stock"}
-                      </span>
+                      {(() => {
+                        const stock = getMenuItemStockState(item);
+                        return (
+                          <span
+                            className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                              stock.available
+                                ? "bg-emerald-100 text-emerald-700"
+                                : "bg-amber-100 text-amber-700"
+                            }`}
+                          >
+                            {stock.available
+                              ? item.track_stock && item.stock_quantity != null
+                                ? `${item.stock_quantity} in stock`
+                                : "In stock"
+                              : "Out of stock"}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex min-w-0 flex-nowrap items-center justify-start gap-2">
@@ -965,11 +979,28 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                                     defaultProteinG={item.protein_g}
                                   />
                                 </div>
-                                <label className="space-y-1 md:col-span-2">
-                                  <FormFieldLabel optional>Option type</FormFieldLabel>
-                                  <input name="option_label" defaultValue={item.option_label ?? ""} placeholder="Option type (Size, Quantity, Type...)" className="ui-input" />
-                                  <p className="text-xs text-slate-500">Example: Size, Quantity, Type, or Pack.</p>
-                                </label>
+                                <div className="md:col-span-2">
+                                  <MenuItemStockFields
+                                    idPrefix={`edit-stock-${item.id}-`}
+                                    defaultTrackStock={Boolean(item.track_stock)}
+                                    defaultStockQuantity={item.stock_quantity}
+                                  />
+                                </div>
+                                <div className="md:col-span-2">
+                                  <MenuItemOptionsFields
+                                    idPrefix={`edit-opt-${item.id}-`}
+                                    defaultLabel={item.option_label}
+                                    defaultValues={(item.option_values ?? [])
+                                      .filter(
+                                        (entry): entry is { name: string; price?: number } =>
+                                          Boolean(entry && typeof entry.name === "string" && entry.name.trim()),
+                                      )
+                                      .map((entry) => ({
+                                        name: entry.name,
+                                        price: Number.isFinite(Number(entry.price)) ? Number(entry.price) : 0,
+                                      }))}
+                                  />
+                                </div>
                                 <IngredientListField
                                   name="removable_ingredients"
                                   label={`Remove ingredients (${categoryNameById.get(item.category_id ?? "") ?? "section"})`}
@@ -985,20 +1016,6 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                                   label={`Add ingredients (${categoryNameById.get(item.category_id ?? "") ?? "section"}) — extra price per line`}
                                   withPrice
                                   defaultItems={(item.add_ingredients ?? [])
-                                    .filter(
-                                      (entry): entry is { name: string; price?: number } =>
-                                        Boolean(entry && typeof entry.name === "string" && entry.name.trim()),
-                                    )
-                                    .map((entry) => ({
-                                      name: entry.name,
-                                      price: Number.isFinite(Number(entry.price)) ? Number(entry.price) : 0,
-                                    }))}
-                                />
-                                <IngredientListField
-                                  name="option_values"
-                                  label={`Option values for ${item.option_label || "item"}`}
-                                  withPrice
-                                  defaultItems={(item.option_values ?? [])
                                     .filter(
                                       (entry): entry is { name: string; price?: number } =>
                                         Boolean(entry && typeof entry.name === "string" && entry.name.trim()),

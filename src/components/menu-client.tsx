@@ -32,6 +32,7 @@ import {
   getItemBudgetPriceUsd,
   isSoldByWeightItem,
 } from "@/lib/budget-mode";
+import { getMenuItemStockState } from "@/lib/menu-item-stock";
 
 const WHATSAPP_GREEN = "#25D366";
 
@@ -74,15 +75,18 @@ type CartLine = {
   removedIngredients: string[];
   addedIngredients: Array<{ name: string; price: number; qty: number }>;
   specialInstructions: string;
+  selectedOption: string | null;
 };
 
 type AddIngredientOption = { name: string; price: number };
+type MenuItemRow = CategoryWithItems["menu_items"][number];
 type CustomizationState = {
-  item: CategoryWithItems["menu_items"][number];
+  item: MenuItemRow;
   remove: string[];
   add: Record<string, number>;
   note: string;
   qty: number; // either count (each) or kilograms (kg) when sold_by_weight
+  selectedOption: string | null;
   editingKey?: string;
 };
 
@@ -90,7 +94,7 @@ function isSoldByWeight(item: CategoryWithItems["menu_items"][number]) {
   return Boolean((item as { sold_by_weight?: boolean }).sold_by_weight);
 }
 
-function getMenuItemBrand(item: CategoryWithItems["menu_items"][number]) {
+function getMenuItemBrand(item: MenuItemRow) {
   if (item.menu_brands?.name) {
     return item.menu_brands;
   }
@@ -98,6 +102,38 @@ function getMenuItemBrand(item: CategoryWithItems["menu_items"][number]) {
     return { id: item.brand_id ?? "", name: item.brand_name, logo_url: null };
   }
   return null;
+}
+
+function getItemOptionValues(item: MenuItemRow) {
+  return (item.option_values ?? []).filter((value) => String(value?.name ?? "").trim());
+}
+
+function itemHasOptions(item: MenuItemRow) {
+  return Boolean(item.option_label?.trim()) && getItemOptionValues(item).length > 0;
+}
+
+function needsCustomizationModal(item: MenuItemRow) {
+  const stock = getMenuItemStockState(item);
+  if (!stock.available) return false;
+  return (
+    isSoldByWeight(item) ||
+    (item.removable_ingredients?.length ?? 0) > 0 ||
+    (item.add_ingredients?.length ?? 0) > 0 ||
+    itemHasOptions(item)
+  );
+}
+
+function getCartQtyForItem(cart: Record<string, CartLine>, itemId: string) {
+  return Object.values(cart).reduce((sum, line) => {
+    if (line.itemId !== itemId || line.unit === "kg") return sum;
+    return sum + line.qty;
+  }, 0);
+}
+
+function getOptionExtraPrice(item: MenuItemRow, selectedOption: string | null) {
+  if (!selectedOption) return 0;
+  const match = getItemOptionValues(item).find((value) => value.name === selectedOption);
+  return Number(match?.price ?? 0);
 }
 
 function formatQty(unit: "each" | "kg", qty: number): string {
@@ -275,9 +311,53 @@ export function MenuClient({
       .filter((item) => item.name);
   }
 
-  function openCustomization(item: CategoryWithItems["menu_items"][number]) {
+  function openCustomization(item: MenuItemRow) {
     const unitQty = isSoldByWeight(item) ? 1 : 1;
-    setCustomizing({ item, remove: [], add: {}, note: "", qty: unitQty });
+    setCustomizing({
+      item,
+      remove: [],
+      add: {},
+      note: "",
+      qty: unitQty,
+      selectedOption: itemHasOptions(item) ? null : "",
+    });
+  }
+
+  function quickAddToCart(item: MenuItemRow) {
+    const stock = getMenuItemStockState(item);
+    if (!stock.available) return;
+    const maxQty = stock.maxQty;
+    const inCart = getCartQtyForItem(cart, item.id);
+    if (maxQty != null && inCart >= maxQty) return;
+
+    const lineKey = `${item.id}::::`;
+    setCart((prev) => {
+      const existing = prev[lineKey];
+      return {
+        ...prev,
+        [lineKey]: {
+          key: lineKey,
+          itemId: item.id,
+          name: item.name,
+          imageUrl: item.image_url ?? null,
+          qty: existing ? existing.qty + 1 : 1,
+          unit: "each",
+          unitPrice: Number(item.price),
+          removedIngredients: [],
+          addedIngredients: [],
+          specialInstructions: "",
+          selectedOption: null,
+        },
+      };
+    });
+  }
+
+  function handleAddItemClick(item: MenuItemRow) {
+    if (needsCustomizationModal(item)) {
+      openCustomization(item);
+      return;
+    }
+    quickAddToCart(item);
   }
 
   function openEditCustomization(line: CartLine) {
@@ -295,6 +375,7 @@ export function MenuClient({
       add,
       note: line.specialInstructions,
       qty: line.qty,
+      selectedOption: line.selectedOption,
       editingKey: line.key,
     });
   }
@@ -305,6 +386,11 @@ export function MenuClient({
 
   function addCustomizedItem() {
     if (!customizing) return;
+    if (itemHasOptions(customizing.item) && !customizing.selectedOption) return;
+
+    const stock = getMenuItemStockState(customizing.item);
+    if (!stock.available) return;
+
     const addOptions = normalizeAddIngredients(customizing.item.add_ingredients);
     const selectedAdd = addOptions
       .map((option) => {
@@ -317,9 +403,13 @@ export function MenuClient({
     const baseUnitPrice = soldByWeight
       ? Number((customizing.item as { price_per_kg?: number | null }).price_per_kg ?? 0)
       : Number(customizing.item.price);
-    const unitPrice = Math.max(0, baseUnitPrice + addCost);
+    const unitPrice = Math.max(
+      0,
+      baseUnitPrice + addCost + getOptionExtraPrice(customizing.item, customizing.selectedOption),
+    );
     const lineKey = [
       customizing.item.id,
+      customizing.selectedOption ?? "",
       [...customizing.remove].sort().join("|"),
       Object.entries(customizing.add)
         .filter(([, qty]) => qty > 0)
@@ -330,6 +420,15 @@ export function MenuClient({
     ].join("::");
 
     setCart((prev) => {
+      const inCartOthers = Object.entries(prev)
+        .filter(([key, line]) => line.itemId === customizing.item.id && key !== customizing.editingKey)
+        .reduce((sum, [, line]) => sum + (line.unit === "kg" ? 0 : line.qty), 0);
+      const requestedQty = customizing.editingKey ? customizing.qty : customizing.qty;
+      const maxQty = stock.maxQty;
+      if (maxQty != null && inCartOthers + requestedQty > maxQty) {
+        return prev;
+      }
+
       const baseCart =
         customizing.editingKey && prev[customizing.editingKey]
           ? Object.fromEntries(
@@ -349,6 +448,7 @@ export function MenuClient({
             addedIngredients: selectedAdd,
             unitPrice,
             unit: soldByWeight ? "kg" : "each",
+            selectedOption: customizing.selectedOption,
           },
         };
       }
@@ -365,6 +465,7 @@ export function MenuClient({
           removedIngredients: [...customizing.remove],
           addedIngredients: selectedAdd,
           specialInstructions: customizing.note.trim(),
+          selectedOption: customizing.selectedOption,
         },
       };
     });
@@ -396,6 +497,13 @@ export function MenuClient({
     setCart((prev) => {
       const line = prev[key];
       if (!line) return prev;
+      const menuItem = getMenuItemById(line.itemId);
+      if (menuItem?.track_stock) {
+        const stock = getMenuItemStockState(menuItem);
+        if (stock.maxQty != null && getCartQtyForItem(prev, line.itemId) >= stock.maxQty) {
+          return prev;
+        }
+      }
       const step = getQtyStepForLine(line);
       const newQty = Math.round((line.qty + step) * 1000) / 1000;
       return { ...prev, [key]: { ...line, qty: newQty } };
@@ -467,6 +575,11 @@ export function MenuClient({
               .join(", ")}`,
           );
         }
+        if (item.selectedOption) {
+          const menuItem = getMenuItemById(item.itemId);
+          const label = menuItem?.option_label?.trim() || "Option";
+          modifiers.push(`${label}: ${item.selectedOption}`);
+        }
         if (item.specialInstructions) {
           modifiers.push(`note: ${item.specialInstructions}`);
         }
@@ -519,6 +632,10 @@ export function MenuClient({
           removedIngredients: item.removedIngredients,
           addedIngredients: item.addedIngredients,
           specialInstructions: item.specialInstructions,
+          selectedOption: item.selectedOption,
+          optionLabel: item.selectedOption
+            ? getMenuItemById(item.itemId)?.option_label?.trim() || "Option"
+            : null,
         })),
         notes: buildOrderNotes(),
         paymentNote,
@@ -621,6 +738,7 @@ export function MenuClient({
                 const hasModifiers =
                   item.removedIngredients.length > 0 ||
                   item.addedIngredients.length > 0 ||
+                  Boolean(item.selectedOption) ||
                   Boolean(item.specialInstructions);
 
                 return (
@@ -651,6 +769,11 @@ export function MenuClient({
                         <p className="line-clamp-2 text-sm font-bold leading-snug text-slate-900">
                           {item.name}
                         </p>
+                        {item.selectedOption ? (
+                          <p className="mt-0.5 text-[11px] font-medium text-slate-500">
+                            {getMenuItemById(item.itemId)?.option_label?.trim() || "Option"}: {item.selectedOption}
+                          </p>
+                        ) : null}
                         <p className="mt-1 text-sm font-bold text-slate-900">{formatLbp(lineTotal)}</p>
                         {hasModifiers ? (
                           <p className="mt-0.5 text-[11px] text-slate-400">Tap to edit options</p>
@@ -1161,11 +1284,12 @@ export function MenuClient({
                   const brand = getMenuItemBrand(item);
                   const displaySize = resolveDisplayQuantityFields(item);
                   const sizeLabel = formatDisplayQuantity(displaySize.quantity, displaySize.unit);
+                  const stock = getMenuItemStockState(item);
                   return (
                   <article
                     key={item.id}
                     className={`relative flex gap-3 rounded-2xl bg-white p-3 shadow-md ring-1 ring-black/[0.06] transition ${
-                      item.is_available ? "" : "opacity-60"
+                      stock.available ? "" : "opacity-60"
                     }`}
                   >
                     {/* Image */}
@@ -1209,12 +1333,15 @@ export function MenuClient({
                           </span>
                         ) : null}
                         {item.name}
-                        {!item.is_available ? (
+                        {!stock.available ? (
                           <span className="ml-2 align-middle text-[10px] font-bold uppercase tracking-wide text-slate-400">
                             — Out
                           </span>
                         ) : null}
                       </h3>
+                      {stock.label ? (
+                        <p className="mt-0.5 text-[11px] font-semibold text-amber-700">{stock.label}</p>
+                      ) : null}
                       {item.description ? (
                         <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-slate-500 sm:text-sm">
                           {item.description}
@@ -1243,11 +1370,11 @@ export function MenuClient({
 
                     {canShop ? (
                       <button
-                        disabled={!item.is_available}
-                        onClick={() => openCustomization(item)}
+                        disabled={!stock.available}
+                        onClick={() => handleAddItemClick(item)}
                         className="absolute bottom-3 right-3 flex h-10 w-10 items-center justify-center rounded-full text-xl font-light leading-none text-white shadow-md transition hover:brightness-110 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
-                        style={{ backgroundColor: item.is_available ? theme.primary : undefined }}
-                        aria-label={item.is_available ? `Add ${item.name}` : `${item.name} unavailable`}
+                        style={{ backgroundColor: stock.available ? theme.primary : undefined }}
+                        aria-label={stock.available ? `Add ${item.name}` : `${item.name} unavailable`}
                       >
                         +
                       </button>
@@ -1381,6 +1508,40 @@ export function MenuClient({
                 ×
               </button>
             </div>
+
+            {itemHasOptions(customizing.item) ? (
+              <div className="mt-5 border-t border-slate-100 pt-4">
+                <h4 className="text-sm font-bold text-slate-900">
+                  {customizing.item.option_label}
+                  <span className="ml-1 text-red-500">*</span>
+                </h4>
+                <div className="mt-2.5 flex flex-wrap gap-2">
+                  {getItemOptionValues(customizing.item).map((option) => {
+                    const selected = customizing.selectedOption === option.name;
+                    const extra = Number(option.price ?? 0);
+                    return (
+                      <button
+                        key={option.name}
+                        type="button"
+                        onClick={() =>
+                          setCustomizing((prev) =>
+                            prev ? { ...prev, selectedOption: option.name } : prev,
+                          )
+                        }
+                        className={`rounded-full border px-3 py-1.5 text-sm font-semibold transition ${
+                          selected
+                            ? "border-violet-500 bg-violet-50 text-violet-800"
+                            : "border-slate-200 bg-white text-slate-700 hover:border-violet-200"
+                        }`}
+                      >
+                        {option.name}
+                        {extra > 0 ? ` +${formatUsd(extra)}` : ""}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
 
             {/* Remove ingredients */}
             {(customizing.item.removable_ingredients?.length ?? 0) > 0 ? (
@@ -1558,7 +1719,8 @@ export function MenuClient({
               <button
                 type="button"
                 onClick={addCustomizedItem}
-                className="flex-1 rounded-xl py-3 text-sm font-bold text-white shadow-md transition hover:brightness-105"
+                disabled={itemHasOptions(customizing.item) && !customizing.selectedOption}
+                className="flex-1 rounded-xl py-3 text-sm font-bold text-white shadow-md transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
                 style={menuPrimaryButtonStyle(theme)}
               >
                 Add to cart — {formatUsd(
@@ -1569,7 +1731,8 @@ export function MenuClient({
                     const base = soldByWeight
                       ? Number((customizing.item as { price_per_kg?: number | null }).price_per_kg ?? 0)
                       : Number(customizing.item.price);
-                    return Math.max(0, base + addCost) * customizing.qty;
+                    const optionExtra = getOptionExtraPrice(customizing.item, customizing.selectedOption);
+                    return Math.max(0, base + addCost + optionExtra) * customizing.qty;
                   })()
                 )}
               </button>

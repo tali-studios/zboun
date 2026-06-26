@@ -8,6 +8,8 @@ export type OrderNotificationItem = {
   removedIngredients?: string[];
   addedIngredients?: Array<{ name: string; qty: number; price: number }>;
   specialInstructions?: string;
+  selectedOption?: string | null;
+  optionLabel?: string | null;
 };
 
 export type OrderNotificationParams = {
@@ -60,6 +62,10 @@ export function buildOrderPlainText(p: OrderNotificationParams): string {
       if (item.removedIngredients?.length) modParts.push(`−${item.removedIngredients.join(", ")}`);
       if (item.addedIngredients?.length)
         modParts.push(`+${item.addedIngredients.map((a) => `${a.name}×${a.qty}`).join(", ")}`);
+      if (item.selectedOption) {
+        const label = item.optionLabel?.trim() || "Option";
+        modParts.push(`${label}: ${item.selectedOption}`);
+      }
       if (item.specialInstructions) modParts.push(item.specialInstructions);
       const mod = modParts.length ? ` [${modParts.join(" | ")}]` : "";
       return `  • ${formatQty(item.unit, item.qty)} ${item.name}${mod} — $${(item.qty * item.unitPrice).toFixed(2)}`;
@@ -82,6 +88,10 @@ function buildOrderEmailHtml(p: OrderNotificationParams): string {
       if (item.removedIngredients?.length) mods.push(`Remove: ${item.removedIngredients.join(", ")}`);
       if (item.addedIngredients?.length)
         mods.push(`Add: ${item.addedIngredients.map((a) => `${a.name} ×${a.qty}`).join(", ")}`);
+      if (item.selectedOption) {
+        const label = item.optionLabel?.trim() || "Option";
+        mods.push(`${label}: ${item.selectedOption}`);
+      }
       if (item.specialInstructions) mods.push(`Note: ${item.specialInstructions}`);
       const modsHtml = mods.length
         ? `<br/><span style="font-size:12px;color:#6b7280">${mods.join(" &bull; ")}</span>`

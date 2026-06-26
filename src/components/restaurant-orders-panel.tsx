@@ -409,6 +409,8 @@ export function RestaurantOrdersPanel({ initialOrders, restaurantId }: Props) {
                   removedIngredients?: string[];
                   addedIngredients?: Array<{ name: string; qty: number }>;
                   specialInstructions?: string;
+                  selectedOption?: string | null;
+                  optionLabel?: string | null;
                 }>).map((item, idx) => (
                   <div key={idx} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
                     <div className="flex items-start justify-between gap-2">
@@ -425,6 +427,11 @@ export function RestaurantOrdersPanel({ initialOrders, restaurantId }: Props) {
                     {item.addedIngredients?.length ? (
                       <p className="mt-0.5 text-xs text-emerald-600">
                         Add: {item.addedIngredients.map((a) => `${a.name} ×${a.qty}`).join(", ")}
+                      </p>
+                    ) : null}
+                    {item.selectedOption ? (
+                      <p className="mt-0.5 text-xs text-violet-600">
+                        {item.optionLabel?.trim() || "Option"}: {item.selectedOption}
                       </p>
                     ) : null}
                     {item.specialInstructions ? (

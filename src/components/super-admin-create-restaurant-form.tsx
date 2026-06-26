@@ -42,8 +42,8 @@ export function SuperAdminCreateRestaurantForm() {
       <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 md:col-span-2 xl:col-span-4">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Business categories</p>
         <p className="mt-1 text-xs text-slate-500">
-          Pick where this business appears on the home page — e.g. Food &amp; Restaurants, Vape &amp;
-          Tobacco, Gas &amp; Fuel. For each category, you can add optional tags.
+          Pick where this business appears on the home page — e.g. Food &amp; Restaurants,
+          Fashion &amp; Apparel, Electronics &amp; Tech, Vape &amp; Tobacco.
         </p>
         <BrowseSectionsCheckboxes selected={DEFAULT_CATEGORIES} selectedSubs={[]} />
       </div>
