@@ -123,7 +123,7 @@ async function testPublicPages(slug) {
 
 async function testSeoRoutes() {
   section("SEO / metadata routes");
-  for (const path of ["/robots.txt", "/sitemap.xml", "/manifest.webmanifest"]) {
+  for (const path of ["/robots.txt", "/sitemap.xml", "/manifest.webmanifest", "/llms.txt", "/llms-full.txt"]) {
     const res = await fetchStatus(path);
     expectStatus(path, res, [200, 307, 308]);
   }

@@ -4,10 +4,13 @@ import { BackButton } from "@/components/back-button";
 import { SiteFooter } from "@/components/site-footer";
 
 import { ZBOUN_OPS_EMAIL } from "@/lib/zboun-contact";
+import { publicPageRobots } from "@/lib/seo";
 
 export const metadata = {
   title: "Terms of Service — Zboun",
   description: "Read the Zboun Terms of Service before using our platform.",
+  alternates: { canonical: "/terms" },
+  robots: publicPageRobots,
 };
 
 const EFFECTIVE_DATE = "28 May 2026";

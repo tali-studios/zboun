@@ -5,6 +5,7 @@ import { SiteJsonLd } from "@/components/site-json-ld";
 import { PwaRegister } from "@/components/pwa-register";
 import { env } from "@/lib/env";
 import { getMetadataBase, getSiteUrl } from "@/lib/site";
+import { publicPageRobots } from "@/lib/seo";
 import { formatPricingSummary } from "@/lib/pricing";
 import "./globals.css";
 
@@ -48,6 +49,10 @@ export const metadata: Metadata = {
     "Zboun",
     "Lebanon restaurant",
     "order food WhatsApp",
+    "grocery delivery Lebanon",
+    "store menu online",
+    "restaurant ordering app",
+    "menu without commission",
   ],
   authors: [{ name: "Zboun" }],
   creator: "Zboun",
@@ -67,11 +72,7 @@ export const metadata: Metadata = {
     description:
       `Browse menus and order on WhatsApp. Digital menus for restaurants from ${pricingSummary}.`,
   },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 },
-  },
+  robots: publicPageRobots,
   icons: {
     icon: [
       { url: "/icon.svg?v=10", type: "image/svg+xml", sizes: "any" },
@@ -89,6 +90,13 @@ export const metadata: Metadata = {
   },
   ...(env.googleSiteVerification
     ? { verification: { google: env.googleSiteVerification } }
+    : {}),
+  ...(env.bingSiteVerification
+    ? {
+        other: {
+          "msvalidate.01": env.bingSiteVerification,
+        },
+      }
     : {}),
 };
 

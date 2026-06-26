@@ -12,6 +12,8 @@ export const env = {
   appUrl: trimTrailingSlash(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
   /** Optional: Google Search Console HTML tag verification content value */
   googleSiteVerification: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION?.trim() || undefined,
+  /** Optional: Bing Webmaster Tools HTML tag verification content value */
+  bingSiteVerification: process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION?.trim() || undefined,
   /** Google Maps JavaScript API key (restrict by HTTP referrer in Google Cloud) */
   googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY?.trim() || "",
   /** Default delivery search radius in km */

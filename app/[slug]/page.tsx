@@ -11,6 +11,8 @@ import { RestaurantMenuHero } from "@/components/restaurant-menu-hero";
 import { DeliveryLocationProvider } from "@/components/delivery-location-provider";
 import { getCustomerOrderContext } from "@/lib/customer-order-context";
 import { getSiteUrl } from "@/lib/site";
+import { publicPageRobots } from "@/lib/seo";
+import { RestaurantJsonLd } from "@/components/restaurant-json-ld";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -54,6 +56,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title: `${restaurant.name} menu`,
       description,
     },
+    robots: publicPageRobots,
   };
 }
 
@@ -90,6 +93,7 @@ export default async function RestaurantMenuPage({ params, searchParams }: Props
 
   return (
     <DeliveryLocationProvider savedAddresses={savedAddresses}>
+      <RestaurantJsonLd restaurant={restaurant} />
       <div className="min-h-screen overflow-x-hidden bg-[#F9FAFB]">
         {/* Sticky header — all screen sizes */}
         <header className="sticky top-0 z-40 border-b border-slate-200/60 bg-white/95 backdrop-blur-md shadow-sm">
