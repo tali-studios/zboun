@@ -29,6 +29,8 @@ export type OrderNotificationParams = {
   totalUsd: number;
   deliverySpeed?: "standard" | "fast";
   paymentNote?: string | null;
+  couponCode?: string | null;
+  couponDiscountUsd?: number | null;
 };
 
 function formatQty(unit: "each" | "kg", qty: number): string {
@@ -72,6 +74,9 @@ export function buildOrderPlainText(p: OrderNotificationParams): string {
       return `  • ${formatQty(item.unit, item.qty)} ${item.name}${mod} — $${(item.qty * item.unitPrice).toFixed(2)}`;
     }),
     ``,
+    ...(p.couponCode && p.couponDiscountUsd
+      ? [`🏷 Promo (${p.couponCode}): −$${p.couponDiscountUsd.toFixed(2)}`, ``]
+      : []),
     `💰 Total: $${p.totalUsd.toFixed(2)}`,
     ...(p.paymentNote ? [`💵 Payment: ${p.paymentNote}`] : []),
     ...(p.notes ? [`📝 Notes: ${p.notes}`] : []),
@@ -131,7 +136,16 @@ function buildOrderEmailHtml(p: OrderNotificationParams): string {
         <th style="padding:8px 12px;text-align:right;font-size:12px;font-weight:600;text-transform:uppercase;color:#6b7280">Price</th>
       </tr></thead>
       <tbody>${itemRows}</tbody>
-      <tfoot><tr style="background:#faf9ff">
+      <tfoot>
+        ${
+          p.couponCode && p.couponDiscountUsd
+            ? `<tr style="background:#faf9ff">
+        <td style="padding:8px 12px;font-size:14px;color:#6b7280">Promo (${p.couponCode})</td>
+        <td style="padding:8px 12px;font-size:14px;text-align:right;color:#059669">−$${p.couponDiscountUsd.toFixed(2)}</td>
+      </tr>`
+            : ""
+        }
+        <tr style="background:#faf9ff">
         <td style="padding:12px;font-weight:700;font-size:16px">Total</td>
         <td style="padding:12px;font-weight:700;font-size:16px;text-align:right;color:#4c1d95">$${p.totalUsd.toFixed(2)}</td>
       </tr></tfoot>

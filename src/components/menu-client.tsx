@@ -11,6 +11,7 @@ import { formatDisplayQuantity, resolveDisplayQuantityFields } from "@/lib/displ
 import { MenuNutritionBadges } from "@/components/menu-nutrition-badges";
 import { CheckoutDeliverySections } from "@/components/checkout-delivery-sections";
 import { CheckoutOrderConfirm } from "@/components/checkout-order-confirm";
+import { CheckoutPromoCode, type AppliedCoupon } from "@/components/checkout-promo-code";
 import type { DeliveryTimeChoice } from "@/components/delivery-time-sheet";
 import type { SavedAddressOption } from "@/components/order-delivery-fields";
 import { formatDeliveryTimeLabel, isRestaurantOpenNow, parseOpeningHours } from "@/lib/opening-hours";
@@ -228,6 +229,7 @@ export function MenuClient({
   const [placedOrder, setPlacedOrder] = useState<{ orderId: string; whatsappUrl: string | null } | null>(null);
   const [guestWhatsAppSent, setGuestWhatsAppSent] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
+  const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
   const { location } = useDeliveryLocation();
   const orderTopRef = useRef<HTMLDivElement>(null);
 
@@ -270,8 +272,17 @@ export function MenuClient({
     if (deliverySpeed === "fast" && fastDeliveryEnabled) return "Fast delivery";
     return "Standard delivery";
   }, [deliverySpeed, fastDeliveryEnabled]);
-  const orderTotal = useMemo(() => total + deliveryCharge, [total, deliveryCharge]);
+  const invoiceBeforeDiscount = useMemo(() => total + deliveryCharge, [total, deliveryCharge]);
+  const couponDiscountUsd = appliedCoupon?.discountUsd ?? 0;
+  const orderTotal = useMemo(
+    () => Math.max(0, Math.round((invoiceBeforeDiscount - couponDiscountUsd) * 100) / 100),
+    [invoiceBeforeDiscount, couponDiscountUsd],
+  );
   const orderTotalLbp = useMemo(() => Math.round(orderTotal * lbpRate), [orderTotal, lbpRate]);
+
+  useEffect(() => {
+    setAppliedCoupon(null);
+  }, [total, deliveryCharge]);
   const paymentNote = useMemo(
     () =>
       formatPaymentNote(
@@ -601,6 +612,9 @@ export function MenuClient({
       "",
       `Subtotal: ${formatUsd(total)}`,
       `${deliveryLabel}: ${deliveryCharge === 0 ? "Free" : formatUsd(deliveryCharge)}`,
+      ...(appliedCoupon
+        ? [`Promo (${appliedCoupon.code}): -${formatUsd(appliedCoupon.discountUsd)}`]
+        : []),
       `Total: ${formatUsd(orderTotal)} (${formatLbp(orderTotal)})`,
       paymentNote ? `Payment: ${paymentNote}` : "",
       ...(isGuestCheckout
@@ -683,6 +697,7 @@ export function MenuClient({
         notes: buildOrderNotes(),
         paymentNote,
         totalUsd: orderTotal,
+        couponCode: appliedCoupon?.code ?? null,
         scheduledFor: deliveryTime.mode === "scheduled" ? deliveryTime.at : null,
         deliverySpeed: fastDeliveryEnabled ? deliverySpeed : "standard",
       });
@@ -691,6 +706,7 @@ export function MenuClient({
         return;
       }
       setPlacedOrder({ orderId: result.orderId, whatsappUrl: result.whatsappNotifyUrl });
+      setAppliedCoupon(null);
       setCart({});
       setShowCheckout(false);
       setCheckoutStep("review");
@@ -1065,6 +1081,15 @@ export function MenuClient({
                   theme={theme}
                 />
 
+                <CheckoutPromoCode
+                  restaurantId={restaurantId}
+                  itemsSubtotalUsd={total}
+                  deliveryFeeUsd={deliveryCharge}
+                  applied={appliedCoupon}
+                  onApplied={setAppliedCoupon}
+                  theme={theme}
+                />
+
                 <section className="mt-3 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/[0.04]">
                   <p className="text-sm font-bold text-slate-900">Order summary</p>
                   <div className="mt-3 space-y-2">
@@ -1092,6 +1117,15 @@ export function MenuClient({
                       {deliveryCharge === 0 ? "Free" : formatLbp(deliveryCharge)}
                     </p>
                   </div>
+                  {appliedCoupon ? (
+                    <div className="mt-2 flex items-center justify-between">
+                      <p className="text-sm text-emerald-700">
+                        Promo <span className="font-mono font-semibold">{appliedCoupon.code}</span> (
+                        {appliedCoupon.percentOff}% off)
+                      </p>
+                      <p className="text-sm font-semibold text-emerald-700">−{formatLbp(couponDiscountUsd)}</p>
+                    </div>
+                  ) : null}
                   {paymentNote ? (
                     <div className="mt-2 flex items-start justify-between gap-2">
                       <p className="text-sm text-slate-600">Cash payment</p>

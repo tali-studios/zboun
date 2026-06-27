@@ -20,6 +20,8 @@ import {
 } from "@/lib/delivery-radius";
 import { getRestaurantMenu } from "@/lib/data";
 import { buildMenuItemPricingMap, validateOrderLinesPricing } from "@/lib/menu-promotions";
+import { computeOrderCouponDiscount } from "@/lib/menu-coupon-codes";
+import { lookupCouponForOrder } from "@/app-actions/menu-coupon-codes";
 
 export type DeliverySpeed = "standard" | "fast";
 
@@ -35,6 +37,7 @@ export type PlaceOrderInput = {
   notes?: string | null;
   paymentNote?: string | null;
   totalUsd: number;
+  couponCode?: string | null;
   scheduledFor?: string | null;
   deliverySpeed?: DeliverySpeed;
 };
@@ -195,14 +198,34 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
   } else if (!restaurantRow.free_delivery) {
     deliveryFeeUsd = Math.max(0, Number(restaurantRow.delivery_fee_usd) || 0);
   }
-  const expectedTotal = Math.round((itemsSubtotal + deliveryFeeUsd) * 100) / 100;
+  const expectedTotalBeforeCoupon = Math.round((itemsSubtotal + deliveryFeeUsd) * 100) / 100;
+
+  let couponDiscountUsd = 0;
+  let couponCodeId: string | null = null;
+  let couponCodeStored: string | null = null;
+
+  const couponCodeRaw = input.couponCode?.trim();
+  if (couponCodeRaw) {
+    const couponResult = await lookupCouponForOrder(serviceClient, input.restaurantId, couponCodeRaw);
+    if (!couponResult.ok) {
+      return { ok: false, error: couponResult.error };
+    }
+    const discount = computeOrderCouponDiscount({
+      percentOff: couponResult.coupon.percent_off,
+      itemsSubtotalUsd: itemsSubtotal,
+      deliveryFeeUsd,
+    });
+    couponDiscountUsd = discount.discountUsd;
+    couponCodeId = couponResult.coupon.id;
+    couponCodeStored = couponResult.coupon.code;
+  }
+
+  const expectedTotal = Math.round((expectedTotalBeforeCoupon - couponDiscountUsd) * 100) / 100;
   if (Math.abs(expectedTotal - input.totalUsd) > 0.02) {
     return { ok: false, error: "Order total does not match. Please refresh and try again." };
   }
 
-  const { data: order, error: insertError } = await insertClient
-    .from("orders")
-    .insert({
+  const orderInsert: Record<string, unknown> = {
       restaurant_id: input.restaurantId,
       customer_id: customerId,
       customer_name: customerName,
@@ -219,9 +242,21 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
       scheduled_for: scheduledFor,
       status: "pending",
       whatsapp_sent: false,
-    })
-    .select("id")
-    .single();
+      coupon_code: couponCodeStored,
+      coupon_discount_usd: couponDiscountUsd,
+      coupon_code_id: couponCodeId,
+  };
+
+  let { data: order, error: insertError } = await insertClient.from("orders").insert(orderInsert).select("id").single();
+
+  if (!insertError && couponCodeId && serviceClient) {
+    const { data: redeemed, error: redeemError } = await serviceClient.rpc("increment_menu_coupon_usage", {
+      p_coupon_id: couponCodeId,
+    });
+    if (redeemError || !redeemed) {
+      console.warn("[placeOrder] coupon usage increment failed", couponCodeId, redeemError?.message);
+    }
+  }
 
   if (insertError || !order) {
     console.error("[placeOrder] insert failed", insertError?.message);
@@ -261,9 +296,11 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
     deliveryLng: input.deliveryLng,
     items: input.items,
     notes: input.notes,
-    totalUsd: input.totalUsd,
+    totalUsd: expectedTotal,
     deliverySpeed,
     paymentNote: input.paymentNote?.trim() || null,
+    couponCode: couponCodeStored,
+    couponDiscountUsd: couponDiscountUsd > 0 ? couponDiscountUsd : null,
   };
 
   // Fire-and-forget email notification

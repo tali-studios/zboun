@@ -9,7 +9,7 @@ import {
 } from "@/app-actions/restaurant";
 import { AddSectionsForm } from "@/components/add-sections-form";
 import { StoreSettingsForm, StoreSettingsSubmitButton } from "@/components/store-settings-form";
-import { getCurrentUserRole, getRestaurantMenuPromotions } from "@/lib/data";
+import { getCurrentUserRole, getRestaurantMenuCouponCodes, getRestaurantMenuPromotions } from "@/lib/data";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { CopyMenuLinkButton } from "@/components/copy-menu-link-button";
 import { BusinessCategoryDashboard } from "@/components/business-category-dashboard";
@@ -36,6 +36,7 @@ import { AddMenuItemForm } from "@/components/add-menu-item-form";
 import { BrandManagePanel } from "@/components/brand-manage-panel";
 import { SectionManagePanel } from "@/components/section-manage-panel";
 import { MenuPromotionsPanel } from "@/components/menu-promotions-panel";
+import { MenuCouponCodesPanel } from "@/components/menu-coupon-codes-panel";
 import { DeliveryFeeSettings } from "@/components/delivery-fee-settings";
 import { MenuThemePicker } from "@/components/menu-theme-picker";
 import { MENU_ITEMS_ADMIN_PAGE_SIZE } from "@/lib/dashboard-admin";
@@ -143,7 +144,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
   const restaurantId = appUser.restaurant_id;
   const today = new Date().toISOString().split("T")[0];
 
-  const [restaurantRaw, { data: categories }, { data: addonRows }, menuPromotions] = await Promise.all([
+  const [restaurantRaw, { data: categories }, { data: addonRows }, menuPromotions, menuCouponCodes] = await Promise.all([
     loadRestaurantForAdminDashboard(supabase, restaurantId),
     supabase
       .from("categories")
@@ -155,6 +156,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
       .select("addon_key, is_enabled")
       .eq("restaurant_id", restaurantId),
     getRestaurantMenuPromotions(restaurantId),
+    getRestaurantMenuCouponCodes(restaurantId),
   ]);
 
   const addonOn = (key: string) =>
@@ -778,6 +780,8 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
             category_id: item.category_id ?? null,
           }))}
         />
+
+        <MenuCouponCodesPanel coupons={menuCouponCodes} />
 
         <section className="rounded-2xl border border-violet-100 bg-gradient-to-br from-[#faf9ff] to-white p-5 shadow-sm">
           <div className="mb-5">

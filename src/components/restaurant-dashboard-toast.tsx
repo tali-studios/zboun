@@ -98,6 +98,15 @@ export function RestaurantDashboardToast({ toast, sectionName, sectionsCount, it
   } else if (toast === "promotion_deleted") {
     heading = "Sale removed";
     message = "The discount no longer applies to your store.";
+  } else if (toast === "coupon_created") {
+    heading = "Coupon created";
+    message = "Share the code with customers — they can apply it at checkout.";
+  } else if (toast === "coupon_updated") {
+    heading = "Coupon updated";
+    message = "Promo code settings were saved.";
+  } else if (toast === "coupon_deleted") {
+    heading = "Coupon removed";
+    message = "This promo code can no longer be used.";
   } else if (toast === "item_created") {
     heading = "Item added";
     message = itemName ? (

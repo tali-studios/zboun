@@ -11,6 +11,7 @@ import {
   isMenuPromotionsMigrationError,
   type MenuPromotion,
 } from "@/lib/menu-promotions";
+import { isMenuCouponCodesMigrationError } from "@/lib/menu-coupon-codes";
 
 type RatingAgg = { avgRating: number; ratingCount: number };
 
@@ -268,6 +269,35 @@ function mapRestaurantMenuCategories(data: unknown[] | null | undefined, promoti
       }),
     };
   });
+}
+
+export async function getRestaurantMenuCouponCodes(restaurantId: string) {
+  const supabase = await createServerSupabaseClient();
+  const { data, error } = await supabase
+    .from("menu_coupon_codes")
+    .select(
+      "id, restaurant_id, code, percent_off, max_uses, times_used, starts_at, ends_at, is_active",
+    )
+    .eq("restaurant_id", restaurantId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    if (isMenuCouponCodesMigrationError(error.message, error.code)) return [];
+    console.error("[getRestaurantMenuCouponCodes]", error.message);
+    return [];
+  }
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    restaurant_id: row.restaurant_id,
+    code: row.code,
+    percent_off: Number(row.percent_off),
+    max_uses: row.max_uses != null ? Number(row.max_uses) : null,
+    times_used: Number(row.times_used ?? 0),
+    starts_at: row.starts_at,
+    ends_at: row.ends_at,
+    is_active: Boolean(row.is_active),
+  }));
 }
 
 export async function getRestaurantMenuPromotions(restaurantId: string): Promise<MenuPromotion[]> {
