@@ -30,8 +30,16 @@ import {
 import { buildCartFromReorder, type MenuReorderPayload } from "@/lib/reorder-cart";
 import {
   getItemBudgetPriceUsd,
+  getItemListBudgetPriceUsd,
   isSoldByWeightItem,
 } from "@/lib/budget-mode";
+import {
+  getEffectiveFlatPrice,
+  getEffectivePricePerKg,
+  getListFlatPrice,
+  getListPricePerKg,
+  itemHasActiveSale,
+} from "@/lib/menu-promotions";
 import { getMenuItemStockState } from "@/lib/menu-item-stock";
 
 const WHATSAPP_GREEN = "#25D366";
@@ -348,7 +356,7 @@ export function MenuClient({
           imageUrl: item.image_url ?? null,
           qty: existing ? existing.qty + 1 : 1,
           unit: "each",
-          unitPrice: Number(item.price),
+          unitPrice: getEffectiveFlatPrice(item),
           removedIngredients: [],
           addedIngredients: [],
           specialInstructions: "",
@@ -406,9 +414,7 @@ export function MenuClient({
       .filter((option): option is AddIngredientOption & { qty: number } => Boolean(option));
     const addCost = selectedAdd.reduce((sum, option) => sum + option.price * option.qty, 0);
     const soldByWeight = isSoldByWeight(customizing.item);
-    const baseUnitPrice = soldByWeight
-      ? Number((customizing.item as { price_per_kg?: number | null }).price_per_kg ?? 0)
-      : Number(customizing.item.price);
+    const baseUnitPrice = soldByWeight ? getEffectivePricePerKg(customizing.item) : getEffectiveFlatPrice(customizing.item);
     const unitPrice = Math.max(
       0,
       baseUnitPrice + addCost + getOptionExtraPrice(customizing.item, customizing.selectedOption),
@@ -661,6 +667,7 @@ export function MenuClient({
         deliveryLat: isGuestCheckout ? null : location?.lat ?? null,
         deliveryLng: isGuestCheckout ? null : location?.lng ?? null,
         items: items.map((item) => ({
+          menuItemId: item.itemId,
           name: item.name,
           qty: item.qty,
           unit: item.unit,
@@ -1349,6 +1356,8 @@ export function MenuClient({
               <div className="space-y-3">
                 {category.menu_items.map((item) => {
                   const budgetPriceUsd = getItemBudgetPriceUsd(item);
+                  const listBudgetPriceUsd = getItemListBudgetPriceUsd(item);
+                  const hasSale = itemHasActiveSale(item);
                   const soldByWeight = isSoldByWeightItem(item);
                   const brand = getMenuItemBrand(item);
                   const displaySize = resolveDisplayQuantityFields(item);
@@ -1426,7 +1435,17 @@ export function MenuClient({
                         proteinG={item.protein_g}
                         className="mt-1"
                       />
+                      {hasSale ? (
+                        <span className="mt-1 inline-flex w-fit rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-rose-700">
+                          {item.promotion_label ?? `-${Math.round(item.percent_off ?? 0)}%`}
+                        </span>
+                      ) : null}
                       <div className="mt-auto flex flex-wrap items-end gap-x-2 pt-2">
+                        {hasSale ? (
+                          <span className="text-sm font-semibold text-slate-400 line-through">
+                            {soldByWeight ? `From ${formatUsd(listBudgetPriceUsd)}` : formatUsd(listBudgetPriceUsd)}
+                          </span>
+                        ) : null}
                         <span className="text-base font-bold" style={{ color: theme.primary }}>
                           {soldByWeight ? `From ${formatUsd(budgetPriceUsd)}` : formatUsd(budgetPriceUsd)}
                         </span>
@@ -1547,18 +1566,23 @@ export function MenuClient({
                 {customizing.item.description ? (
                   <p className="mt-0.5 text-sm text-slate-500">{customizing.item.description}</p>
                 ) : null}
-                <div className="mt-1.5 flex items-baseline gap-2">
+                <div className="mt-1.5 flex flex-wrap items-baseline gap-2">
+                  {itemHasActiveSale(customizing.item) ? (
+                    <span className="text-sm font-semibold text-slate-400 line-through">
+                      {isSoldByWeight(customizing.item)
+                        ? `${formatUsd(getListPricePerKg(customizing.item))} / kg`
+                        : formatUsd(getListFlatPrice(customizing.item))}
+                    </span>
+                  ) : null}
                   <span className="text-base font-bold" style={{ color: theme.primary }}>
                     {isSoldByWeight(customizing.item)
-                      ? `${formatUsd(
-                          Number(
-                            (customizing.item as { price_per_kg?: number | null }).price_per_kg ?? 0,
-                          ),
-                        )} / kg`
-                      : formatUsd(customizing.item.price)}
+                      ? `${formatUsd(getEffectivePricePerKg(customizing.item))} / kg`
+                      : formatUsd(getEffectiveFlatPrice(customizing.item))}
                   </span>
                   <span className="text-sm text-slate-400">
-                    {isSoldByWeight(customizing.item) ? "" : formatLbp(customizing.item.price)}
+                    {isSoldByWeight(customizing.item)
+                      ? ""
+                      : formatLbp(getEffectiveFlatPrice(customizing.item))}
                   </span>
                 </div>
                 <MenuNutritionBadges

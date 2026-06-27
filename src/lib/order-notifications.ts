@@ -1,6 +1,7 @@
 import { sendMail, isSmtpConfigured } from "@/lib/mail";
 
 export type OrderNotificationItem = {
+  menuItemId?: string | null;
   name: string;
   qty: number;
   unit: "each" | "kg";

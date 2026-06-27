@@ -89,6 +89,15 @@ export function RestaurantDashboardToast({ toast, sectionName, sectionsCount, it
   } else if (toast === "brand_create_failed") {
     heading = "Could not add brand";
     message = "Something went wrong while saving the brand. Try again.";
+  } else if (toast === "promotion_created") {
+    heading = "Sale created";
+    message = "Your discount is live on the store page (or will start on the scheduled date).";
+  } else if (toast === "promotion_updated") {
+    heading = "Sale updated";
+    message = "Discount settings were saved.";
+  } else if (toast === "promotion_deleted") {
+    heading = "Sale removed";
+    message = "The discount no longer applies to your store.";
   } else if (toast === "item_created") {
     heading = "Item added";
     message = itemName ? (

@@ -1,7 +1,14 @@
 import type { CategoryWithItems } from "@/lib/data";
 import type { PaymentCurrency } from "@/lib/payment-note";
+import {
+  getEffectiveFlatPrice,
+  getEffectivePricePerKg,
+  getListFlatPrice,
+  getListPricePerKg,
+  type MenuItemPricingFields,
+} from "@/lib/menu-promotions";
 
-type MenuItem = CategoryWithItems["menu_items"][number];
+type MenuItem = CategoryWithItems["menu_items"][number] & MenuItemPricingFields;
 
 export function isSoldByWeightItem(item: MenuItem): boolean {
   return Boolean(item.sold_by_weight);
@@ -10,13 +17,21 @@ export function isSoldByWeightItem(item: MenuItem): boolean {
 /** Lowest typical order cost in USD (base item, no add-ons). */
 export function getItemBudgetPriceUsd(item: MenuItem): number {
   if (isSoldByWeightItem(item)) {
-    const perKg = Number(item.price_per_kg ?? item.price ?? 0);
+    const perKg = getEffectivePricePerKg(item);
     const step = Number(item.weight_step_kg ?? 0.25);
     return Math.max(0, perKg * (step > 0 ? step : 0.25));
   }
-  return Math.max(0, Number(item.price ?? 0));
+  return getEffectiveFlatPrice(item);
 }
 
+export function getItemListBudgetPriceUsd(item: MenuItem): number {
+  if (isSoldByWeightItem(item)) {
+    const perKg = getListPricePerKg(item);
+    const step = Number(item.weight_step_kg ?? 0.25);
+    return Math.max(0, perKg * (step > 0 ? step : 0.25));
+  }
+  return getListFlatPrice(item);
+}
 export function budgetAmountToUsd(
   amount: number | null,
   currency: PaymentCurrency,

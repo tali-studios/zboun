@@ -6,6 +6,11 @@ import { unstable_cache } from "next/cache";
 import { enforceSubscriptionExpiryForRestaurant } from "@/lib/subscription-lifecycle";
 import { isNutritionColumnMigrationError } from "@/lib/menu-nutrition";
 import { isStockColumnMigrationError } from "@/lib/menu-item-stock";
+import {
+  attachSalePricingToItem,
+  isMenuPromotionsMigrationError,
+  type MenuPromotion,
+} from "@/lib/menu-promotions";
 
 type RatingAgg = { avgRating: number; ratingCount: number };
 
@@ -90,6 +95,10 @@ export type CategoryWithItems = {
     option_values?: Array<{ name: string; price: number }>;
     track_stock?: boolean;
     stock_quantity?: number | null;
+    sale_price?: number | null;
+    sale_price_per_kg?: number | null;
+    percent_off?: number | null;
+    promotion_label?: string | null;
     image_url: string | null;
     is_available: boolean;
   }[];
@@ -216,49 +225,85 @@ export async function getRestaurantBySlug(slug: string): Promise<RestaurantForMe
   };
 }
 
-function mapRestaurantMenuCategories(data: unknown[] | null | undefined) {
+function mapRestaurantMenuCategories(data: unknown[] | null | undefined, promotions: MenuPromotion[] = []) {
   return (data ?? []).map((category) => {
     const row = category as Record<string, unknown>;
+    const categoryId = row.id as string;
     return {
-      id: row.id as string,
+      id: categoryId,
       name: row.name as string,
       position: row.position as number,
-      menu_items: ((row.menu_items ?? []) as Array<Record<string, unknown>>).map((item) => ({
-        id: item.id as string,
-        name: item.name as string,
-        brand_name: (item.brand_name as string | null) ?? null,
-        brand_id: (item.brand_id as string | null) ?? null,
-        menu_brands: normalizeMenuBrand(
-          item.menu_brands as MenuBrandEmbed | MenuBrandEmbed[] | null | undefined,
-        ),
-        description: (item.description as string | null) ?? null,
-        contents: (item.contents as string | null) ?? null,
-        grams: (item.grams as number | null) ?? null,
-        display_quantity: (item.display_quantity as number | null) ?? null,
-        display_unit: (item.display_unit as string | null) ?? null,
-        calories: item.calories != null ? Number(item.calories) : null,
-        protein_g: item.protein_g != null ? Number(item.protein_g) : null,
-        price: Number(item.price),
-        sold_by_weight: item.sold_by_weight as boolean | undefined,
-        price_per_kg: (item.price_per_kg as number | null) ?? null,
-        weight_step_kg: (item.weight_step_kg as number | null) ?? null,
-        removable_ingredients: (item.removable_ingredients as Array<{ name: string }>) ?? [],
-        add_ingredients: (item.add_ingredients as Array<{ name: string; price: number }>) ?? [],
-        option_label: (item.option_label as string | null) ?? null,
-        option_values: Array.isArray(item.option_values)
-          ? (item.option_values as Array<{ name: string; price: number }>)
-          : [],
-        track_stock: Boolean(item.track_stock),
-        stock_quantity: item.stock_quantity != null ? Number(item.stock_quantity) : null,
-        image_url: (item.image_url as string | null) ?? null,
-        is_available: Boolean(item.is_available),
-      })),
+      menu_items: ((row.menu_items ?? []) as Array<Record<string, unknown>>).map((item) => {
+        const mapped = {
+          id: item.id as string,
+          name: item.name as string,
+          brand_name: (item.brand_name as string | null) ?? null,
+          brand_id: (item.brand_id as string | null) ?? null,
+          menu_brands: normalizeMenuBrand(
+            item.menu_brands as MenuBrandEmbed | MenuBrandEmbed[] | null | undefined,
+          ),
+          description: (item.description as string | null) ?? null,
+          contents: (item.contents as string | null) ?? null,
+          grams: (item.grams as number | null) ?? null,
+          display_quantity: (item.display_quantity as number | null) ?? null,
+          display_unit: (item.display_unit as string | null) ?? null,
+          calories: item.calories != null ? Number(item.calories) : null,
+          protein_g: item.protein_g != null ? Number(item.protein_g) : null,
+          price: Number(item.price),
+          sold_by_weight: item.sold_by_weight as boolean | undefined,
+          price_per_kg: (item.price_per_kg as number | null) ?? null,
+          weight_step_kg: (item.weight_step_kg as number | null) ?? null,
+          removable_ingredients: (item.removable_ingredients as Array<{ name: string }>) ?? [],
+          add_ingredients: (item.add_ingredients as Array<{ name: string; price: number }>) ?? [],
+          option_label: (item.option_label as string | null) ?? null,
+          option_values: Array.isArray(item.option_values)
+            ? (item.option_values as Array<{ name: string; price: number }>)
+            : [],
+          track_stock: Boolean(item.track_stock),
+          stock_quantity: item.stock_quantity != null ? Number(item.stock_quantity) : null,
+          image_url: (item.image_url as string | null) ?? null,
+          is_available: Boolean(item.is_available),
+        };
+        return attachSalePricingToItem(mapped, categoryId, promotions);
+      }),
     };
   });
 }
 
+export async function getRestaurantMenuPromotions(restaurantId: string): Promise<MenuPromotion[]> {
+  const supabase = await createServerSupabaseClient();
+  const { data, error } = await supabase
+    .from("menu_promotions")
+    .select(
+      "id, restaurant_id, scope_type, scope_id, percent_off, label, starts_at, ends_at, is_active, priority",
+    )
+    .eq("restaurant_id", restaurantId)
+    .order("priority", { ascending: false })
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    if (isMenuPromotionsMigrationError(error.message, error.code)) return [];
+    console.error("[getRestaurantMenuPromotions]", error.message);
+    return [];
+  }
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    restaurant_id: row.restaurant_id,
+    scope_type: row.scope_type as MenuPromotion["scope_type"],
+    scope_id: row.scope_id,
+    percent_off: Number(row.percent_off),
+    label: row.label,
+    starts_at: row.starts_at,
+    ends_at: row.ends_at,
+    is_active: Boolean(row.is_active),
+    priority: Number(row.priority ?? 0),
+  }));
+}
+
 export async function getRestaurantMenu(restaurantId: string) {
   const supabase = await createServerSupabaseClient();
+  const promotions = await getRestaurantMenuPromotions(restaurantId);
   const menuItemsSelectBase =
     "id, name, brand_id, brand_name, menu_brands(id, name, logo_url), description, contents, grams, display_quantity, display_unit, price, sold_by_weight, price_per_kg, weight_step_kg, removable_ingredients, add_ingredients, option_label, option_values, image_url, is_available";
   const menuItemsSelectWithStock = `${menuItemsSelectBase}, track_stock, stock_quantity`;
@@ -301,7 +346,7 @@ export async function getRestaurantMenu(restaurantId: string) {
     return [];
   }
 
-  return mapRestaurantMenuCategories(data);
+  return mapRestaurantMenuCategories(data, promotions);
 }
 
 type HomeRestaurantCard = {

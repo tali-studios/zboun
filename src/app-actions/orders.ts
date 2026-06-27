@@ -18,6 +18,8 @@ import {
   isWithinRestaurantDeliveryRange,
   normalizeRestaurantDeliveryRadiusKm,
 } from "@/lib/delivery-radius";
+import { getRestaurantMenu } from "@/lib/data";
+import { buildMenuItemPricingMap, validateOrderLinesPricing } from "@/lib/menu-promotions";
 
 export type DeliverySpeed = "standard" | "fast";
 
@@ -170,15 +172,19 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
       const maxKm = normalizeRestaurantDeliveryRadiusKm(restaurantRow.delivery_radius_km);
       return {
         ok: false,
-        error: `This restaurant only delivers within ${maxKm} km of the store. Choose a closer address.`,
+        error: `This store only delivers within ${maxKm} km of the store. Choose a closer address.`,
       };
     }
   }
 
-  const itemsSubtotal = input.items.reduce(
-    (sum, item) => sum + Number(item.qty) * Number(item.unitPrice),
-    0,
-  );
+  const categories = await getRestaurantMenu(input.restaurantId);
+  const menuById = buildMenuItemPricingMap(categories);
+  const pricingCheck = validateOrderLinesPricing(input.items, menuById);
+  if (!pricingCheck.ok) {
+    return { ok: false, error: pricingCheck.error };
+  }
+
+  const itemsSubtotal = pricingCheck.subtotal;
   const deliverySpeed: DeliverySpeed = input.deliverySpeed === "fast" ? "fast" : "standard";
   let deliveryFeeUsd = 0;
   if (deliverySpeed === "fast") {
