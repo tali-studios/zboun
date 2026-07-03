@@ -101,7 +101,7 @@ export function StoreSettingsForm({ children, className = "flex flex-col gap-4 l
       <form id="restaurant-store-settings-form" onSubmit={handleSubmit} className={className}>
         {children}
         {isPending ? (
-          <p className="text-xs font-medium text-violet-600" aria-live="polite">
+          <p className="px-5 pb-4 text-xs font-medium text-violet-600" aria-live="polite">
             Saving settings…
           </p>
         ) : null}

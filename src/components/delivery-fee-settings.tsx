@@ -16,6 +16,43 @@ type Props = {
   deliveryRadiusDefault?: number | null;
 };
 
+function ToggleSwitch({
+  checked,
+  onChange,
+  name,
+  activeClass,
+}: {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  name: string;
+  activeClass: string;
+}) {
+  return (
+    <span className="relative inline-flex shrink-0 items-center">
+      <input
+        type="checkbox"
+        name={name}
+        value="true"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="peer sr-only"
+      />
+      <span
+        className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors ${
+          checked ? activeClass : "bg-slate-200"
+        }`}
+        aria-hidden
+      >
+        <span
+          className={`block h-5 w-5 rounded-full bg-white shadow transition-transform ${
+            checked ? "translate-x-[18px]" : "translate-x-0.5"
+          }`}
+        />
+      </span>
+    </span>
+  );
+}
+
 export function DeliveryFeeSettings({
   freeDeliveryDefault = false,
   deliveryFeeDefault = 0,
@@ -27,99 +64,61 @@ export function DeliveryFeeSettings({
   const [fastDeliveryEnabled, setFastDeliveryEnabled] = useState(fastDeliveryEnabledDefault);
 
   return (
-    <section className="panel p-5">
-      <div className="flex items-start gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-700">
-          <Bike className="h-5 w-5" strokeWidth={2} aria-hidden />
+    <div>
+      <div className="flex items-center gap-2.5">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-violet-700">
+          <Bike className="h-4 w-4" strokeWidth={2} aria-hidden />
         </span>
         <div>
           <h2 className="panel-title">Delivery settings</h2>
-          <p className="mt-1 text-sm text-slate-500">
-            Set how far you deliver, what customers pay at checkout, and what appears on your home page card.
-          </p>
+          <p className="text-xs text-slate-500">How far you deliver and what customers pay.</p>
         </div>
       </div>
 
-      <div className="mt-5 space-y-4">
-        <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4">
-          <label className="block space-y-1.5">
-            <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
-              <MapPin className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
-              Maximum delivery distance (km)
-            </span>
-            <input
-              name="delivery_radius_km"
-              type="number"
-              step="0.5"
-              min={MIN_RESTAURANT_DELIVERY_RADIUS_KM}
-              max={MAX_RESTAURANT_DELIVERY_RADIUS_KM}
-              required
-              defaultValue={
-                deliveryRadiusDefault != null && deliveryRadiusDefault > 0
-                  ? String(deliveryRadiusDefault)
-                  : String(env.defaultDeliveryRadiusKm)
-              }
-              placeholder="5"
-              className="ui-input max-w-xs"
-            />
-            <p className="text-xs leading-relaxed text-slate-500">
-              Customers farther than this from your store location won&apos;t see you on the home page and can&apos;t
-              place delivery orders. Measured from your branch pin on the map ({MIN_RESTAURANT_DELIVERY_RADIUS_KM}–
-              {MAX_RESTAURANT_DELIVERY_RADIUS_KM} km).
-            </p>
+      <div className="mt-3 space-y-2">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2">
+          <label
+            htmlFor="delivery_radius_km"
+            className="flex min-w-[13rem] flex-1 items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500"
+          >
+            <MapPin className="h-3.5 w-3.5 shrink-0" strokeWidth={2} aria-hidden />
+            Max delivery distance (km)
           </label>
+          <input
+            id="delivery_radius_km"
+            name="delivery_radius_km"
+            type="number"
+            step="0.5"
+            min={MIN_RESTAURANT_DELIVERY_RADIUS_KM}
+            max={MAX_RESTAURANT_DELIVERY_RADIUS_KM}
+            required
+            defaultValue={
+              deliveryRadiusDefault != null && deliveryRadiusDefault > 0
+                ? String(deliveryRadiusDefault)
+                : String(env.defaultDeliveryRadiusKm)
+            }
+            placeholder="5"
+            className="ui-input h-9 w-24 shrink-0 py-1.5"
+          />
         </div>
 
-        <label
-          className={`flex cursor-pointer items-center justify-between gap-4 rounded-xl border px-4 py-3.5 transition ${
+        <div
+          className={`flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border px-3 py-2 transition ${
             freeDelivery
-              ? "border-emerald-300 bg-emerald-50/80 ring-1 ring-emerald-200/60"
-              : "border-slate-200 bg-white hover:border-slate-300"
+              ? "border-emerald-300 bg-emerald-50/80"
+              : "border-slate-200 bg-white"
           }`}
         >
-          <div className="min-w-0">
+          <div className="min-w-[11rem] flex-1">
             <p className="text-sm font-semibold text-slate-900">Free delivery</p>
-            <p className="mt-0.5 text-xs leading-relaxed text-slate-500">
-              Waive delivery charges and show a <span className="font-semibold text-[#E23744]">FREE DELIVERY</span>{" "}
-              badge on the home page.
+            <p className="text-xs leading-snug text-slate-500">
+              Shows a <span className="font-semibold text-[#E23744]">FREE DELIVERY</span> badge on the home page.
             </p>
           </div>
-          <span className="inline-flex shrink-0 items-center gap-2">
-            <input
-              type="checkbox"
-              name="free_delivery"
-              value="true"
-              checked={freeDelivery}
-              onChange={(e) => setFreeDelivery(e.target.checked)}
-              className="peer sr-only"
-            />
-            <span
-              className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
-                freeDelivery ? "bg-emerald-500" : "bg-slate-200"
-              }`}
-              aria-hidden
-            >
+          <div className="flex shrink-0 items-center gap-2">
+            <div className="relative w-24">
               <span
-                className={`block h-6 w-6 rounded-full bg-white shadow transition-transform ${
-                  freeDelivery ? "translate-x-5" : "translate-x-0.5"
-                }`}
-              />
-            </span>
-          </span>
-        </label>
-
-        <div
-          className={`rounded-xl border border-slate-200 bg-slate-50/80 p-4 transition ${
-            freeDelivery ? "opacity-60" : ""
-          }`}
-        >
-          <label className="block space-y-1.5">
-            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Standard delivery fee (USD)
-            </span>
-            <div className="relative max-w-xs">
-              <span
-                className="pointer-events-none absolute left-3.5 top-1/2 z-[1] -translate-y-1/2 text-sm font-medium text-slate-400"
+                className="pointer-events-none absolute left-3 top-1/2 z-[1] -translate-y-1/2 text-sm font-medium text-slate-400"
                 aria-hidden
               >
                 $
@@ -132,70 +131,40 @@ export function DeliveryFeeSettings({
                 required
                 defaultValue={deliveryFeeDefault > 0 ? String(deliveryFeeDefault) : ""}
                 placeholder="2.50"
-                className="ui-input ui-input-currency w-full"
+                aria-label="Standard delivery fee (USD)"
+                title={freeDelivery ? "Saved but not charged while free delivery is on." : "Standard delivery fee (USD)"}
+                className="ui-input ui-input-currency h-9 w-full py-1.5"
               />
             </div>
-            <p className="text-xs leading-relaxed text-slate-500">
-              {freeDelivery
-                ? "This fee is saved but not charged while free delivery is on. Minimum $0.01."
-                : "Added to the order total at checkout. Minimum $0.01."}
-            </p>
-          </label>
+            <ToggleSwitch
+              name="free_delivery"
+              checked={freeDelivery}
+              onChange={setFreeDelivery}
+              activeClass="bg-emerald-500"
+            />
+          </div>
         </div>
 
-        <label
-          className={`flex cursor-pointer items-center justify-between gap-4 rounded-xl border px-4 py-3.5 transition ${
+        <div
+          className={`flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border px-3 py-2 transition ${
             fastDeliveryEnabled
-              ? "border-amber-300 bg-amber-50/80 ring-1 ring-amber-200/60"
-              : "border-slate-200 bg-white hover:border-slate-300"
+              ? "border-amber-300 bg-amber-50/80"
+              : "border-slate-200 bg-white"
           }`}
         >
-          <div className="min-w-0">
+          <div className="min-w-[11rem] flex-1">
             <p className="flex items-center gap-1.5 text-sm font-semibold text-slate-900">
-              <Zap className="h-4 w-4 text-amber-500" strokeWidth={2} aria-hidden />
+              <Zap className="h-3.5 w-3.5 text-amber-500" strokeWidth={2} aria-hidden />
               Fast delivery
             </p>
-            <p className="mt-0.5 text-xs leading-relaxed text-slate-500">
-              Let customers choose a priority delivery option. A dedicated driver picks up the order as soon as it is
-              ready. Shows a <span className="font-semibold text-amber-600">FAST DELIVERY</span> badge on the home page.
+            <p className="text-xs leading-snug text-slate-500">
+              Priority option with a <span className="font-semibold text-amber-600">FAST DELIVERY</span> badge.
             </p>
           </div>
-          <span className="inline-flex shrink-0 items-center gap-2">
-            <input
-              type="checkbox"
-              name="fast_delivery_enabled"
-              value="true"
-              checked={fastDeliveryEnabled}
-              onChange={(e) => setFastDeliveryEnabled(e.target.checked)}
-              className="peer sr-only"
-            />
-            <span
-              className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
-                fastDeliveryEnabled ? "bg-amber-500" : "bg-slate-200"
-              }`}
-              aria-hidden
-            >
+          <div className="flex shrink-0 items-center gap-2">
+            <div className="relative w-24">
               <span
-                className={`block h-6 w-6 rounded-full bg-white shadow transition-transform ${
-                  fastDeliveryEnabled ? "translate-x-5" : "translate-x-0.5"
-                }`}
-              />
-            </span>
-          </span>
-        </label>
-
-        <div
-          className={`rounded-xl border border-slate-200 bg-slate-50/80 p-4 transition ${
-            fastDeliveryEnabled ? "" : "opacity-60"
-          }`}
-        >
-          <label className="block space-y-1.5">
-            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Fast delivery fee (USD)
-            </span>
-            <div className="relative max-w-xs">
-              <span
-                className="pointer-events-none absolute left-3.5 top-1/2 z-[1] -translate-y-1/2 text-sm font-medium text-slate-400"
+                className="pointer-events-none absolute left-3 top-1/2 z-[1] -translate-y-1/2 text-sm font-medium text-slate-400"
                 aria-hidden
               >
                 $
@@ -208,17 +177,20 @@ export function DeliveryFeeSettings({
                 required={fastDeliveryEnabled}
                 defaultValue={fastDeliveryFeeDefault > 0 ? String(fastDeliveryFeeDefault) : ""}
                 placeholder="5.00"
-                className="ui-input ui-input-currency w-full"
+                aria-label="Fast delivery fee (USD)"
+                title="Fast delivery fee (USD)"
+                className="ui-input ui-input-currency h-9 w-full py-1.5"
               />
             </div>
-            <p className="text-xs leading-relaxed text-slate-500">
-              {fastDeliveryEnabled
-                ? "Required when fast delivery is on. Charged on top of the order when a customer picks fast delivery."
-                : "Set a price before enabling fast delivery. Minimum $0.01."}
-            </p>
-          </label>
+            <ToggleSwitch
+              name="fast_delivery_enabled"
+              checked={fastDeliveryEnabled}
+              onChange={setFastDeliveryEnabled}
+              activeClass="bg-amber-500"
+            />
+          </div>
         </div>
       </div>
-    </section>
+    </div>
   );
 }

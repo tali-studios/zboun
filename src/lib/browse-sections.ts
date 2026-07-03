@@ -163,6 +163,21 @@ export const BROWSE_SUB_FILTER_ACCENTS: Record<string, string> = {
 /** @deprecated Use BROWSE_SUB_FILTER_ACCENTS */
 export const FOOD_SUB_FILTER_ACCENTS = BROWSE_SUB_FILTER_ACCENTS;
 
+/** Small emoji icon per top-level category — used for store-type badges in dashboards. */
+export const BROWSE_SECTION_ICONS: Record<BrowseSection, string> = {
+  "Food & Restaurants": "🍽",
+  Groceries: "🥦",
+  "Fashion & Apparel": "👕",
+  "Electronics & Tech": "💻",
+  "Health & Beauty": "💄",
+  "Home & Living": "🛋",
+  "Drinks & Beverages": "🥤",
+  "Vape & Tobacco": "💨",
+  "Gas & Fuel": "⛽",
+  "Pets & Supplies": "🐾",
+  "General Shops": "🛍",
+};
+
 const SUB_FILTER_PARENT = new Map<string, BrowseSection>();
 for (const section of BROWSE_SECTION_OPTIONS) {
   for (const sub of BROWSE_SUB_FILTERS_BY_SECTION[section]) {

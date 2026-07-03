@@ -1,5 +1,6 @@
 "use client";
 
+import { Check, Trash2 } from "lucide-react";
 import { deleteCategoryAction, updateCategoryAction } from "@/app-actions/restaurant";
 
 type Props = {
@@ -7,13 +8,14 @@ type Props = {
     id: string;
     name: string;
   };
+  rowBg?: string;
 };
 
-export function SectionManageRow({ category }: Props) {
+export function SectionManageRow({ category, rowBg = "bg-white" }: Props) {
   const formId = `update-category-${category.id}`;
 
   return (
-    <tr>
+    <tr className={`transition-colors hover:bg-violet-50/30 ${rowBg}`}>
       <td className="px-4 py-3">
         <input type="hidden" name="id" value={category.id} form={formId} />
         <input
@@ -26,15 +28,15 @@ export function SectionManageRow({ category }: Props) {
         />
       </td>
       <td className="w-[1%] whitespace-nowrap px-4 py-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <form id={formId} action={updateCategoryAction}>
             <button
               type="submit"
               title="Save section"
               aria-label={`Save ${category.name}`}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-violet-600 text-sm text-white shadow-sm transition hover:bg-violet-700"
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-violet-200 bg-violet-50 text-violet-600 transition hover:bg-violet-100 hover:text-violet-800"
             >
-              💾
+              <Check className="h-4 w-4" strokeWidth={2.25} aria-hidden />
             </button>
           </form>
           <form action={deleteCategoryAction}>
@@ -43,9 +45,9 @@ export function SectionManageRow({ category }: Props) {
               type="submit"
               title="Delete section"
               aria-label={`Delete ${category.name}`}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-red-600 text-sm text-white shadow-sm transition hover:bg-red-700"
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-500 transition hover:bg-red-100 hover:text-red-700"
             >
-              🗑
+              <Trash2 className="h-4 w-4" strokeWidth={2.25} aria-hidden />
             </button>
           </form>
         </div>

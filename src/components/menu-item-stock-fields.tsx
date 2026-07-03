@@ -26,13 +26,9 @@ export function MenuItemStockFields({
   defaultCriticalQty = null,
 }: Props) {
   const [trackStock, setTrackStock] = useState(defaultTrackStock);
-  const [warningQty, setWarningQty] = useState(
-    String(defaultWarningQty ?? DEFAULT_STOCK_ALERT_WARNING),
-  );
+  const [warningQty, setWarningQty] = useState(String(defaultWarningQty ?? DEFAULT_STOCK_ALERT_WARNING));
   const [urgentQty, setUrgentQty] = useState(String(defaultUrgentQty ?? DEFAULT_STOCK_ALERT_URGENT));
-  const [criticalQty, setCriticalQty] = useState(
-    String(defaultCriticalQty ?? DEFAULT_STOCK_ALERT_CRITICAL),
-  );
+  const [criticalQty, setCriticalQty] = useState(String(defaultCriticalQty ?? DEFAULT_STOCK_ALERT_CRITICAL));
   const fieldId = (name: string) => `${idPrefix}${name}`;
 
   const thresholdError = useMemo(() => {
@@ -41,7 +37,7 @@ export function MenuItemStockFields({
     const urgent = Number(urgentQty);
     const critical = Number(criticalQty);
     if (![warning, urgent, critical].every((n) => Number.isFinite(n) && n >= 1)) {
-      return "Each alert threshold must be a whole number of at least 1.";
+      return "Each threshold must be a whole number of at least 1.";
     }
     return validateStockAlertThresholds({
       warning_qty: Math.floor(warning),
@@ -51,102 +47,131 @@ export function MenuItemStockFields({
   }, [trackStock, warningQty, urgentQty, criticalQty]);
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+    <div className="space-y-4">
       <input type="hidden" name="track_stock" value={trackStock ? "true" : "false"} />
-      <label className="flex cursor-pointer items-start gap-3">
-        <input
-          type="checkbox"
-          checked={trackStock}
-          onChange={(event) => setTrackStock(event.target.checked)}
-          className="mt-0.5 h-4 w-4 accent-violet-600"
-        />
-        <span className="space-y-1">
-          <span className="block text-sm font-semibold text-slate-800">Track stock quantity</span>
-          <span className="block text-xs text-slate-500">
-            Show how many are left on your store page. When stock hits your alert levels, you get an email.
-            Orders automatically reduce the count.
-          </span>
-        </span>
-      </label>
 
-      {trackStock ? (
-        <div className="mt-3 space-y-4 border-t border-slate-200 pt-3">
-          <div>
-            <label
-              htmlFor={fieldId("stock_quantity")}
-              className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500"
-            >
-              Quantity in stock
-            </label>
+      {/* Enable / disable row */}
+      <div className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+        <div>
+          <p className="text-sm font-semibold text-slate-800">Enable stock tracking</p>
+          <p className="text-xs text-slate-500">
+            Counts down with every order · shows availability · sends email alerts
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setTrackStock((v) => !v)}
+          aria-pressed={trackStock}
+          className={`relative h-6 w-11 shrink-0 rounded-full transition-colors duration-200 focus:outline-none ${
+            trackStock ? "bg-violet-600" : "bg-slate-300"
+          }`}
+        >
+          <span className="sr-only">{trackStock ? "Disable" : "Enable"} stock tracking</span>
+          <span
+            className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-200 ${
+              trackStock ? "translate-x-[22px]" : "translate-x-0.5"
+            }`}
+          />
+        </button>
+      </div>
+
+      {/* Quantity */}
+      <div>
+        <label
+          htmlFor={fieldId("stock_quantity")}
+          className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500"
+        >
+          Quantity in stock{trackStock && <span className="ml-1 text-red-500">*</span>}
+        </label>
+        <div className="flex items-center gap-3">
+          <input
+            id={fieldId("stock_quantity")}
+            name="stock_quantity"
+            type="number"
+            min={0}
+            step={1}
+            defaultValue={defaultStockQuantity ?? 10}
+            disabled={!trackStock}
+            className={`ui-input w-28 tabular-nums ${!trackStock ? "opacity-40" : ""}`}
+            required={trackStock}
+          />
+          <p className="text-xs text-slate-400">units currently available</p>
+        </div>
+      </div>
+
+      {/* Alert thresholds */}
+      <div>
+        <p className="mb-0.5 text-xs font-bold uppercase tracking-wide text-slate-500">
+          Email alert thresholds
+        </p>
+        <p className="mb-3 text-xs text-slate-400">
+          Get notified when stock drops to these levels. Warning → Urgent → Very urgent (e.g. 10 → 5 → 3).
+        </p>
+        <div className={`grid gap-3 sm:grid-cols-3 ${!trackStock ? "opacity-40 pointer-events-none" : ""}`}>
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+            <div className="mb-1.5 flex items-center gap-1.5">
+              <span className="text-amber-500">⚠</span>
+              <span className="text-xs font-semibold text-amber-700">Warning</span>
+            </div>
             <input
-              id={fieldId("stock_quantity")}
-              name="stock_quantity"
+              id={fieldId("stock_alert_warning_qty")}
+              name="stock_alert_warning_qty"
               type="number"
-              min={0}
+              min={1}
               step={1}
-              defaultValue={defaultStockQuantity ?? 10}
-              className="ui-input w-full max-w-[10rem]"
-              required
+              value={warningQty}
+              onChange={(e) => setWarningQty(e.target.value)}
+              className="w-full rounded-lg border border-amber-300 bg-white px-2 py-1.5 text-sm font-semibold tabular-nums text-amber-900 outline-none focus:ring-2 focus:ring-amber-300"
+              required={trackStock}
             />
+            <p className="mt-1 text-[10px] text-amber-600">e.g. 10 items left</p>
           </div>
 
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Email alerts when stock reaches
-            </p>
-            <p className="mt-1 text-xs text-slate-500">
-              Warning must be highest, then urgent, then very urgent (e.g. 10 → 5 → 3).
-            </p>
-            <div className="mt-3 grid gap-3 sm:grid-cols-3">
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-amber-700">Warning</span>
-                <input
-                  id={fieldId("stock_alert_warning_qty")}
-                  name="stock_alert_warning_qty"
-                  type="number"
-                  min={1}
-                  step={1}
-                  value={warningQty}
-                  onChange={(e) => setWarningQty(e.target.value)}
-                  className="ui-input w-full"
-                  required
-                />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-orange-700">Urgent</span>
-                <input
-                  id={fieldId("stock_alert_urgent_qty")}
-                  name="stock_alert_urgent_qty"
-                  type="number"
-                  min={1}
-                  step={1}
-                  value={urgentQty}
-                  onChange={(e) => setUrgentQty(e.target.value)}
-                  className="ui-input w-full"
-                  required
-                />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-red-700">Very urgent</span>
-                <input
-                  id={fieldId("stock_alert_critical_qty")}
-                  name="stock_alert_critical_qty"
-                  type="number"
-                  min={1}
-                  step={1}
-                  value={criticalQty}
-                  onChange={(e) => setCriticalQty(e.target.value)}
-                  className="ui-input w-full"
-                  required
-                />
-              </label>
+          <div className="rounded-xl border border-orange-200 bg-orange-50 p-3">
+            <div className="mb-1.5 flex items-center gap-1.5">
+              <span className="text-orange-500">🔶</span>
+              <span className="text-xs font-semibold text-orange-700">Urgent</span>
             </div>
-            {thresholdError ? (
-              <p className="mt-2 text-xs font-medium text-red-600">{thresholdError}</p>
-            ) : null}
+            <input
+              id={fieldId("stock_alert_urgent_qty")}
+              name="stock_alert_urgent_qty"
+              type="number"
+              min={1}
+              step={1}
+              value={urgentQty}
+              onChange={(e) => setUrgentQty(e.target.value)}
+              className="w-full rounded-lg border border-orange-300 bg-white px-2 py-1.5 text-sm font-semibold tabular-nums text-orange-900 outline-none focus:ring-2 focus:ring-orange-300"
+              required={trackStock}
+            />
+            <p className="mt-1 text-[10px] text-orange-600">e.g. 5 items left</p>
+          </div>
+
+          <div className="rounded-xl border border-red-200 bg-red-50 p-3">
+            <div className="mb-1.5 flex items-center gap-1.5">
+              <span className="text-red-500">🚨</span>
+              <span className="text-xs font-semibold text-red-700">Very urgent</span>
+            </div>
+            <input
+              id={fieldId("stock_alert_critical_qty")}
+              name="stock_alert_critical_qty"
+              type="number"
+              min={1}
+              step={1}
+              value={criticalQty}
+              onChange={(e) => setCriticalQty(e.target.value)}
+              className="w-full rounded-lg border border-red-300 bg-white px-2 py-1.5 text-sm font-semibold tabular-nums text-red-900 outline-none focus:ring-2 focus:ring-red-300"
+              required={trackStock}
+            />
+            <p className="mt-1 text-[10px] text-red-600">e.g. 3 items left</p>
           </div>
         </div>
-      ) : null}
+
+        {thresholdError && (
+          <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-600">
+            ⚠ {thresholdError}
+          </p>
+        )}
+      </div>
     </div>
   );
 }

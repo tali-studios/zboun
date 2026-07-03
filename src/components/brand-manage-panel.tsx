@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createBrandAction } from "@/app-actions/restaurant";
 import { BrandManageRow } from "@/components/brand-manage-row";
 import { ImageUploadField } from "@/components/image-upload-field";
+import { SortableTh } from "@/components/sortable-th";
 import { BRANDS_ADMIN_PAGE_SIZE } from "@/lib/menu-brands";
 
 type Brand = {
@@ -53,6 +54,10 @@ export function BrandManagePanel({ brands }: Props) {
   const rangeStart = filteredBrands.length === 0 ? 0 : pageStart + 1;
   const rangeEnd = Math.min(pageStart + BRANDS_ADMIN_PAGE_SIZE, filteredBrands.length);
 
+  function toggleNameSort() {
+    setSort((prev) => (prev === "name-asc" ? "name-desc" : "name-asc"));
+  }
+
   return (
     <section className="panel overflow-x-hidden p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -87,44 +92,18 @@ export function BrandManagePanel({ brands }: Props) {
 
       {brands.length > 0 ? (
         <>
-          <div className="mt-4 space-y-3">
-            <div className="max-w-md">
-              <label htmlFor="brand-search" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Search brands
-              </label>
-              <input
-                id="brand-search"
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search by brand name…"
-                className="ui-input w-full max-w-full"
-              />
-            </div>
-            <div>
-              <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Sort</span>
-              <div className="flex flex-wrap gap-2">
-                {(
-                  [
-                    { id: "name-asc" as const, label: "A–Z" },
-                    { id: "name-desc" as const, label: "Z–A" },
-                  ] as const
-                ).map((option) => (
-                  <button
-                    key={option.id}
-                    type="button"
-                    onClick={() => setSort(option.id)}
-                    className={`rounded-full border px-3.5 py-2 text-xs font-semibold transition ${
-                      sort === option.id
-                        ? "border-violet-500 bg-violet-50 text-violet-700"
-                        : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
-                    }`}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            </div>
+          <div className="mt-4 max-w-md">
+            <label htmlFor="brand-search" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Search brands
+            </label>
+            <input
+              id="brand-search"
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search by brand name…"
+              className="ui-input w-full max-w-full"
+            />
           </div>
 
           {query.trim() && filteredBrands.length === 0 ? (
@@ -140,18 +119,31 @@ export function BrandManagePanel({ brands }: Props) {
                 </p>
               ) : null}
 
-              <div className="mt-4 overflow-x-auto sm:rounded-2xl sm:border sm:border-slate-200 sm:bg-white sm:shadow-sm">
-                <table className="min-w-[640px] text-sm md:min-w-full">
-                  <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    <tr>
-                      <th className="w-[9.5rem] px-4 py-3">Logo</th>
-                      <th className="px-4 py-3">Brand name</th>
-                      <th className="w-[1%] whitespace-nowrap px-4 py-3">Actions</th>
+              <div className="mt-4 overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <table className="min-w-[640px] w-full text-sm md:min-w-full">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-slate-50/80">
+                      <th className="w-[9.5rem] px-4 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                        Logo
+                      </th>
+                      <SortableTh
+                        direction={sort === "name-asc" ? "asc" : "desc"}
+                        onClick={toggleNameSort}
+                      >
+                        Brand name
+                      </SortableTh>
+                      <th className="w-[1%] whitespace-nowrap px-4 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                        Actions
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {pagedBrands.map((brand) => (
-                      <BrandManageRow key={brand.id} brand={brand} />
+                    {pagedBrands.map((brand, idx) => (
+                      <BrandManageRow
+                        key={brand.id}
+                        brand={brand}
+                        rowBg={idx % 2 === 0 ? "bg-white" : "bg-slate-50/40"}
+                      />
                     ))}
                   </tbody>
                 </table>

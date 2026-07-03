@@ -7,7 +7,6 @@ import {
   toggleMenuItemAvailabilityAction,
   updateMenuItemAction,
 } from "@/app-actions/restaurant";
-import { AddSectionsForm } from "@/components/add-sections-form";
 import { StoreSettingsForm, StoreSettingsSubmitButton } from "@/components/store-settings-form";
 import { getCurrentUserRole, getRestaurantMenuCouponCodes, getRestaurantMenuPromotions } from "@/lib/data";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
@@ -15,10 +14,11 @@ import { CopyMenuLinkButton } from "@/components/copy-menu-link-button";
 import { BusinessCategoryDashboard } from "@/components/business-category-dashboard";
 import { ImageUploadField } from "@/components/image-upload-field";
 import { IngredientListField } from "@/components/ingredient-list-field";
-import { normalizeBrowseSections, getBrowseSubTags, getRawBrowseSectionValues } from "@/lib/browse-sections";
-import { BrowseSectionsCheckboxes } from "@/components/browse-sections-checkboxes";
+import { normalizeBrowseSections, getBrowseSubTags, getRawBrowseSectionValues, BROWSE_SECTION_ICONS } from "@/lib/browse-sections";
+import type { BrowseSection } from "@/lib/browse-sections";
 import { getBusinessTypeLabel, hasCatalogDashboard, parseBusinessType } from "@/lib/business-types";
 import { formatBrowseSectionsLabel, getStorefrontActionLabels, STORE_ADMIN_LABEL } from "@/lib/browse-sections";
+import { resolveStoreItemProfile } from "@/lib/store-item-profile";
 import { RestaurantHoursPanel } from "@/components/restaurant-hours-panel";
 import { RestaurantDashboardToast } from "@/components/restaurant-dashboard-toast";
 import { parseOpeningHours } from "@/lib/opening-hours";
@@ -486,6 +486,13 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
   const selectedBrowseSubTags = getBrowseSubTags(rawBrowseSections);
   const browseSectionsForForm =
     selectedBrowseSections.length > 0 ? selectedBrowseSections : (["Food & Restaurants"] as const);
+  const itemProfileBadgeSections: BrowseSection[] =
+    selectedBrowseSections.length > 0
+      ? selectedBrowseSections
+      : businessType === "restaurant" || businessType === "cloud_kitchen"
+      ? ["Food & Restaurants"]
+      : ["General Shops"];
+  const itemProfile = resolveStoreItemProfile(itemProfileBadgeSections);
 
   if (!isMenuBusiness) {
     return (
@@ -596,49 +603,17 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
 
         {isMenuBusiness ? (
         <>
-        <section className="grid gap-4 lg:grid-cols-3">
-          <StoreSettingsForm>
-          <div className="panel p-5">
+        <section>
+          <StoreSettingsForm className="panel divide-y divide-slate-100 overflow-hidden p-0">
+          <div className="p-5">
             <h2 className="panel-title">Store settings</h2>
-            <div className="mt-3 grid gap-2 md:grid-cols-3">
+            <div className="mt-3 grid gap-3 md:grid-cols-3">
               <input type="hidden" name="current_logo_url" value={restaurant?.logo_url ?? ""} />
               <input type="hidden" name="current_banner_url" value={restaurant?.banner_url ?? ""} />
               <label className="space-y-1">
                 <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Store Name</span>
                 <input name="name" defaultValue={restaurant?.name} placeholder="Store name" className="ui-input" />
                 <p className="text-xs text-slate-500">Public name shown at the top of your menu.</p>
-              </label>
-              <label className="space-y-1 md:col-span-3">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Store Description</span>
-                <textarea
-                  name="description"
-                  defaultValue={restaurant?.description ?? ""}
-                  placeholder="Short about text shown under your store name on your page"
-                  className="ui-input min-h-24"
-                />
-                <p className="text-xs text-slate-500">Example: Fresh pasta and handmade sauces since 2015.</p>
-              </label>
-              <label className="space-y-1 md:col-span-2">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Location / area</span>
-                <input
-                  name="location"
-                  defaultValue={storeLocationLabel}
-                  placeholder="e.g. Mar Mikhael"
-                  className="ui-input"
-                />
-                <p className="text-xs text-slate-500">Neighborhood or short address label for customers.</p>
-              </label>
-              <label className="space-y-1 md:col-span-3">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Prep / delivery time label
-                </span>
-                <input
-                  name="eta_label"
-                  defaultValue={restaurant?.eta_label ?? ""}
-                  placeholder="e.g. 20–30 min"
-                  className="ui-input"
-                />
-                <p className="text-xs text-slate-500">Short text for the time pill on home cards (optional).</p>
               </label>
               <label className="space-y-1">
                 <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Phone Number</span>
@@ -650,24 +625,28 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                 />
                 <p className="text-xs text-slate-500">Used for customer WhatsApp contact actions.</p>
               </label>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 md:col-span-3">
-                <label className="flex cursor-pointer items-start gap-3">
-                  <input
-                    type="checkbox"
-                    name="allow_guest_checkout"
-                    value="true"
-                    defaultChecked={restaurant?.allow_guest_checkout ?? false}
-                    className="mt-1 h-4 w-4 rounded border-slate-300 text-violet-600 focus:ring-violet-500"
-                  />
-                  <span>
-                    <span className="text-sm font-semibold text-slate-800">Allow guest checkout</span>
-                    <span className="mt-1 block text-xs leading-relaxed text-slate-500">
-                      When enabled, customers can complete WhatsApp orders from your menu without signing in to
-                      Zboun. When off, they must create an account or sign in before checkout.
-                    </span>
-                  </span>
-                </label>
-              </div>
+              <label className="space-y-1">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Location / area</span>
+                <input
+                  name="location"
+                  defaultValue={storeLocationLabel}
+                  placeholder="e.g. Mar Mikhael"
+                  className="ui-input"
+                />
+                <p className="text-xs text-slate-500">Neighborhood or short address label for customers.</p>
+              </label>
+              <label className="space-y-1">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Prep / delivery time label
+                </span>
+                <input
+                  name="eta_label"
+                  defaultValue={restaurant?.eta_label ?? ""}
+                  placeholder="e.g. 20–30 min"
+                  className="ui-input"
+                />
+                <p className="text-xs text-slate-500">Short text for the time pill on home cards (optional).</p>
+              </label>
               <label className="space-y-1">
                 <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Dollar Rate</span>
                 <input
@@ -681,16 +660,56 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                 />
                 <p className="text-xs text-slate-500">Exchange rate used to display LBP conversions.</p>
               </label>
+              <div className="space-y-1">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Guest checkout</span>
+                <label className="ui-input flex cursor-pointer items-center gap-2.5">
+                  <input
+                    type="checkbox"
+                    name="allow_guest_checkout"
+                    value="true"
+                    defaultChecked={restaurant?.allow_guest_checkout ?? false}
+                    className="h-4 w-4 shrink-0 rounded border-slate-300 text-violet-600 focus:ring-violet-500"
+                  />
+                  <span className="text-sm text-slate-800">Allow orders without signing in</span>
+                </label>
+                <p className="text-xs text-slate-500">When off, customers must create an account before checkout.</p>
+              </div>
+              <label className="space-y-1 md:col-span-3">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Store Description</span>
+                <textarea
+                  name="description"
+                  defaultValue={restaurant?.description ?? ""}
+                  placeholder="Short about text shown under your store name on your page"
+                  className="ui-input min-h-24"
+                />
+                <p className="text-xs text-slate-500">Example: Fresh pasta and handmade sauces since 2015.</p>
+              </label>
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 md:col-span-3">
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Business categories</p>
                 <p className="mt-1 text-xs text-slate-500">
-                  Where customers find you on the home page. Pick categories and at least one tag per category.
+                  Where customers find you on the home page. Contact Zboun support to change your categories.
                 </p>
-                <BrowseSectionsCheckboxes
-                  formId="restaurant-store-settings-form"
-                  selected={[...browseSectionsForForm]}
-                  selectedSubs={selectedBrowseSubTags}
-                />
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {browseSectionsForForm.map((section) => (
+                    <span
+                      key={section}
+                      className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200"
+                    >
+                      {BROWSE_SECTION_ICONS[section]} {section}
+                    </span>
+                  ))}
+                  {selectedBrowseSubTags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="rounded-full bg-violet-50 px-3 py-1 text-xs font-medium text-violet-700 ring-1 ring-violet-100"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+                {rawBrowseSections.map((value) => (
+                  <input key={value} type="hidden" name="browse_sections" value={value} />
+                ))}
               </div>
               <MenuThemePicker defaultColor={restaurant?.menu_theme_color ?? null} />
               <div className="md:col-span-3">
@@ -711,23 +730,31 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
             </div>
           </div>
 
-          <DeliveryFeeSettings
-            freeDeliveryDefault={restaurant?.free_delivery ?? false}
-            deliveryFeeDefault={Number(restaurant?.delivery_fee_usd ?? 0)}
-            fastDeliveryEnabledDefault={restaurant?.fast_delivery_enabled ?? false}
-            fastDeliveryFeeDefault={Number(restaurant?.fast_delivery_fee_usd ?? 0)}
-            deliveryRadiusDefault={restaurant?.delivery_radius_km ?? null}
-          />
+          <div className="p-5">
+            <DeliveryFeeSettings
+              freeDeliveryDefault={restaurant?.free_delivery ?? false}
+              deliveryFeeDefault={Number(restaurant?.delivery_fee_usd ?? 0)}
+              fastDeliveryEnabledDefault={restaurant?.fast_delivery_enabled ?? false}
+              fastDeliveryFeeDefault={Number(restaurant?.fast_delivery_fee_usd ?? 0)}
+              deliveryRadiusDefault={restaurant?.delivery_radius_km ?? null}
+            />
+          </div>
 
-          <div className="panel p-5">
+          <div className="bg-slate-50/60 p-5">
             <StoreSettingsSubmitButton className="btn btn-primary w-full rounded-xl sm:w-auto">
               Save store &amp; delivery settings
             </StoreSettingsSubmitButton>
           </div>
           </StoreSettingsForm>
-
-          <AddSectionsForm />
         </section>
+
+        <SectionManagePanel
+          categories={(categories ?? []).map((c) => ({
+            id: c.id,
+            name: c.name,
+            position: c.position ?? 0,
+          }))}
+        />
 
         <RestaurantHoursPanel
           openingHours={parseOpeningHours(restaurant?.opening_hours)}
@@ -805,14 +832,6 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
           />
         ) : null}
 
-        <SectionManagePanel
-          categories={(categories ?? []).map((c) => ({
-            id: c.id,
-            name: c.name,
-            position: c.position ?? 0,
-          }))}
-        />
-
         <BrandManagePanel brands={menuBrands} />
 
         <MenuPromotionsPanel
@@ -829,34 +848,58 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
         <MenuCouponCodesPanel coupons={menuCouponCodes} />
 
         <section className="rounded-2xl border border-violet-100 bg-gradient-to-br from-[#faf9ff] to-white p-5 shadow-sm">
-          <div className="mb-5">
-            <h2 className="text-base font-bold text-slate-900">Add menu item</h2>
-            <p className="mt-0.5 text-xs text-slate-500">Fill in the details below and click "Add item to menu"</p>
+          <div className="mb-5 flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-base font-bold text-slate-900">
+                Add {itemProfile.isFoodLike ? "menu item" : "store item"}
+              </h2>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Fill in the essentials, then expand optional sections for more detail — fields below match your store's categories.
+              </p>
+            </div>
+            <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
+              {itemProfileBadgeSections.map((section) => (
+                <span
+                  key={section}
+                  className="rounded-full bg-violet-100 px-2.5 py-1 text-[11px] font-bold text-violet-700"
+                >
+                  {BROWSE_SECTION_ICONS[section]} {section}
+                </span>
+              ))}
+            </div>
           </div>
           <AddMenuItemForm
             categories={(categories ?? []).map((c) => ({ id: c.id, name: c.name }))}
             brands={menuBrands}
+            profile={itemProfile}
           />
         </section>
 
         <section className="panel overflow-hidden p-0 md:p-0">
           <div className="border-b border-slate-200 px-4 py-4 md:px-5">
-            <h2 className="panel-title" id="items-toolbar">
-              Manage menu items
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Search, sort, and update stock directly in the table. Use <span className="font-medium">Track stock</span>{" "}
-              to enable quantity tracking and email alerts.
-            </p>
-            {menuItemsLowStockCount > 0 ? (
-              <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                <span className="font-semibold">{menuItemsLowStockCount} item(s)</span> need attention — stock is at
-                warning, urgent, or very urgent levels.{" "}
-                <Link href={buildMenuItemsListHref({ stock: "low" })} className="font-semibold underline underline-offset-2">
-                  View low-stock items
-                </Link>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="panel-title" id="items-toolbar">
+                  {itemProfile.isFoodLike ? "Menu items" : "Store items"}
+                </h2>
+                <p className="mt-0.5 text-sm text-slate-500">
+                  Search, filter, and update stock directly in the table — click any quantity to edit it.
+                </p>
               </div>
-            ) : null}
+              <div className="flex flex-wrap gap-1.5">
+                <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-semibold text-slate-500">
+                  {normalizedItems.length} item{normalizedItems.length !== 1 ? "s" : ""}
+                </span>
+                {menuItemsLowStockCount > 0 && (
+                  <Link
+                    href={buildMenuItemsListHref({ stock: "low" })}
+                    className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700 transition hover:bg-amber-100"
+                  >
+                    ⚠ {menuItemsLowStockCount} low stock
+                  </Link>
+                )}
+              </div>
+            </div>
           </div>
 
           <BusinessMenuItemsToolbar
@@ -982,6 +1025,8 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                               <form action={updateMenuItemAction} className="mt-4 grid gap-3 md:grid-cols-2">
                                 <input type="hidden" name="id" value={item.id} />
                                 <input type="hidden" name="current_image_url" value={item.image_url ?? ""} />
+
+                                {/* — Identity — */}
                                 <label className="space-y-1">
                                   <FormFieldLabel required>Section</FormFieldLabel>
                                   <select name="category_id" required defaultValue={item.category_id ?? ""} className="ui-select">
@@ -989,58 +1034,67 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                                       <option key={category.id} value={category.id}>{category.name}</option>
                                     ))}
                                   </select>
-                                  <p className="text-xs text-slate-500">Where this item appears in your menu.</p>
                                 </label>
                                 <label className="space-y-1">
                                   <FormFieldLabel required>Item name</FormFieldLabel>
                                   <input name="name" required defaultValue={item.name} placeholder="Item name" className="ui-input" />
-                                  <p className="text-xs text-slate-500">Displayed to customers in the menu.</p>
                                 </label>
                                 <label className="space-y-1">
                                   <FormFieldLabel optional>Brand</FormFieldLabel>
-                                  <select
-                                    name="brand_id"
-                                    defaultValue={resolveMenuItemBrandId(item, menuBrands)}
-                                    className="ui-select"
-                                  >
+                                  <select name="brand_id" defaultValue={resolveMenuItemBrandId(item, menuBrands)} className="ui-select">
                                     <option value="">No brand</option>
                                     {menuBrands.map((brand) => (
-                                      <option key={brand.id} value={brand.id}>
-                                        {brand.name}
-                                      </option>
+                                      <option key={brand.id} value={brand.id}>{brand.name}</option>
                                     ))}
                                   </select>
-                                  <p className="text-xs text-slate-500">
-                                    Pick from your saved brands (manage them above).
-                                  </p>
                                 </label>
                                 <label className="space-y-1 md:col-span-2">
                                   <FormFieldLabel optional>Description</FormFieldLabel>
-                                  <input name="description" defaultValue={item.description ?? ""} placeholder="Description (what this item is)" className="ui-input" />
-                                  <p className="text-xs text-slate-500">Explain what the item is.</p>
+                                  <input name="description" defaultValue={item.description ?? ""} placeholder="Description" className="ui-input" />
                                 </label>
-                                <MenuItemPricingFields
-                                  idPrefix={`edit-${item.id}-qty`}
-                                  defaultPrice={item.price}
-                                  defaultGrams={item.grams}
-                                  defaultDisplayQuantity={item.display_quantity}
-                                  defaultDisplayUnit={item.display_unit}
-                                  defaultSoldByWeight={Boolean((item as { sold_by_weight?: boolean }).sold_by_weight)}
-                                  defaultPricePerKg={(item as { price_per_kg?: number | null }).price_per_kg}
-                                  defaultWeightStepKg={(item as { weight_step_kg?: number | null }).weight_step_kg}
-                                />
-                                <label className="space-y-1 md:col-span-2">
-                                  <FormFieldLabel optional>Contains / ingredients</FormFieldLabel>
-                                  <input name="contents" defaultValue={item.contents ?? ""} placeholder="Contains / ingredients (allergens, key contents)" className="ui-input" />
-                                  <p className="text-xs text-slate-500">Useful for allergens and key components.</p>
-                                </label>
+
+                                {/* — Pricing — */}
                                 <div className="md:col-span-2">
-                                  <MenuNutritionFields
-                                    idPrefix={`edit-${item.id}-nutrition`}
-                                    defaultCalories={item.calories}
-                                    defaultProteinG={item.protein_g}
+                                  <MenuItemPricingFields
+                                    idPrefix={`edit-${item.id}-qty`}
+                                    defaultPrice={item.price}
+                                    defaultGrams={item.grams}
+                                    defaultDisplayQuantity={item.display_quantity}
+                                    defaultDisplayUnit={item.display_unit}
+                                    defaultSoldByWeight={Boolean((item as { sold_by_weight?: boolean }).sold_by_weight)}
+                                    defaultPricePerKg={(item as { price_per_kg?: number | null }).price_per_kg}
+                                    defaultWeightStepKg={(item as { weight_step_kg?: number | null }).weight_step_kg}
                                   />
                                 </div>
+
+                                {/* — Contents & nutrition — only for categories where it applies — */}
+                                {(itemProfile.contents || itemProfile.nutrition) ? (
+                                  <>
+                                    {itemProfile.contents ? (
+                                      <label className="space-y-1 md:col-span-2">
+                                        <FormFieldLabel optional>
+                                          {itemProfile.isFoodLike ? "Contains / ingredients" : "Ingredients / contents"}
+                                        </FormFieldLabel>
+                                        <input name="contents" defaultValue={item.contents ?? ""} placeholder="e.g. wheat, milk, sesame" className="ui-input" />
+                                      </label>
+                                    ) : (
+                                      <input type="hidden" name="contents" value={item.contents ?? ""} />
+                                    )}
+                                    {itemProfile.nutrition && (
+                                      <div className="md:col-span-2">
+                                        <MenuNutritionFields
+                                          idPrefix={`edit-${item.id}-nutrition`}
+                                          defaultCalories={item.calories}
+                                          defaultProteinG={item.protein_g}
+                                        />
+                                      </div>
+                                    )}
+                                  </>
+                                ) : (
+                                  <input type="hidden" name="contents" value={item.contents ?? ""} />
+                                )}
+
+                                {/* — Stock — */}
                                 <div className="md:col-span-2">
                                   <MenuItemStockFields
                                     idPrefix={`edit-stock-${item.id}-`}
@@ -1051,52 +1105,56 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                                     defaultCriticalQty={item.stock_alert_critical_qty}
                                   />
                                 </div>
+
+                                {/* — Options/Variants — */}
                                 <div className="md:col-span-2">
                                   <MenuItemOptionsFields
                                     idPrefix={`edit-opt-${item.id}-`}
                                     defaultLabel={item.option_label}
                                     defaultValues={(item.option_values ?? [])
-                                      .filter(
-                                        (entry): entry is { name: string; price?: number } =>
-                                          Boolean(entry && typeof entry.name === "string" && entry.name.trim()),
-                                      )
+                                      .filter((entry): entry is { name: string; price?: number } =>
+                                        Boolean(entry && typeof entry.name === "string" && entry.name.trim()))
                                       .map((entry) => ({
                                         name: entry.name,
                                         price: Number.isFinite(Number(entry.price)) ? Number(entry.price) : 0,
                                       }))}
                                   />
                                 </div>
-                                <IngredientListField
-                                  name="removable_ingredients"
-                                  label={`Remove ingredients (${categoryNameById.get(item.category_id ?? "") ?? "section"})`}
-                                  defaultItems={(item.removable_ingredients ?? [])
-                                    .filter(
-                                      (entry): entry is { name: string } =>
-                                        Boolean(entry && typeof entry.name === "string" && entry.name.trim()),
-                                    )
-                                    .map((entry) => ({ name: entry.name }))}
-                                />
-                                <IngredientListField
-                                  name="add_ingredients"
-                                  label={`Add ingredients (${categoryNameById.get(item.category_id ?? "") ?? "section"}) — extra price per line`}
-                                  withPrice
-                                  defaultItems={(item.add_ingredients ?? [])
-                                    .filter(
-                                      (entry): entry is { name: string; price?: number } =>
-                                        Boolean(entry && typeof entry.name === "string" && entry.name.trim()),
-                                    )
-                                    .map((entry) => ({
-                                      name: entry.name,
-                                      price: Number.isFinite(Number(entry.price)) ? Number(entry.price) : 0,
-                                    }))}
-                                />
+
+                                {/* — Ingredient customization — only for categories where dish-style customization applies — */}
+                                {itemProfile.ingredientCustomization ? (
+                                  <>
+                                    <IngredientListField
+                                      name="removable_ingredients"
+                                      label={`Remove (${categoryNameById.get(item.category_id ?? "") ?? "section"})`}
+                                      defaultItems={(item.removable_ingredients ?? [])
+                                        .filter((entry): entry is { name: string } =>
+                                          Boolean(entry && typeof entry.name === "string" && entry.name.trim()))
+                                        .map((entry) => ({ name: entry.name }))}
+                                    />
+                                    <IngredientListField
+                                      name="add_ingredients"
+                                      label="Add-ons (extra price per line)"
+                                      withPrice
+                                      defaultItems={(item.add_ingredients ?? [])
+                                        .filter((entry): entry is { name: string; price?: number } =>
+                                          Boolean(entry && typeof entry.name === "string" && entry.name.trim()))
+                                        .map((entry) => ({
+                                          name: entry.name,
+                                          price: Number.isFinite(Number(entry.price)) ? Number(entry.price) : 0,
+                                        }))}
+                                    />
+                                  </>
+                                ) : (
+                                  <>
+                                    <input type="hidden" name="removable_ingredients" value="[]" />
+                                    <input type="hidden" name="add_ingredients" value="[]" />
+                                  </>
+                                )}
+
+                                {/* — Image — */}
                                 <div className="md:col-span-2">
-                                  <ImageUploadField
-                                    name="image_file"
-                                    initialImageUrl={item.image_url}
-                                    label="Update image"
-                                    optional
-                                  />
+                                  <ImageUploadField name="image_file" initialImageUrl={item.image_url} label="Update image" optional />
                                 </div>
                                 <div className="md:col-span-2 border-t border-slate-100 pt-1">
                                   <button type="submit" className="btn btn-primary w-full rounded-xl py-3">

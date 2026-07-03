@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { SectionManageRow } from "@/components/section-manage-row";
+import { AddSectionsForm } from "@/components/add-sections-form";
+import { SortableTh } from "@/components/sortable-th";
 import { SECTIONS_ADMIN_PAGE_SIZE } from "@/lib/dashboard-admin";
 
 type Category = {
@@ -54,59 +56,46 @@ export function SectionManagePanel({ categories }: Props) {
   const rangeStart = filteredCategories.length === 0 ? 0 : pageStart + 1;
   const rangeEnd = Math.min(pageStart + SECTIONS_ADMIN_PAGE_SIZE, filteredCategories.length);
 
+  function toggleNameSort() {
+    setSort((prev) => (prev === "name-asc" ? "name-desc" : prev === "name-desc" ? "menu-order" : "name-asc"));
+  }
+
   return (
     <section className="panel overflow-x-hidden p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="panel-title">Manage sections</h2>
-        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+        <div>
+          <h2 className="panel-title">Sections</h2>
+          <p className="mt-0.5 text-sm text-slate-500">
+            Sections organize your menu — customers see them as tabs (Burgers, Drinks, Dairy…).
+          </p>
+        </div>
+        <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
           {categories.length} {categories.length === 1 ? "section" : "sections"}
         </span>
       </div>
-      <p className="mt-1 text-sm text-slate-600">
-        The list shows {SECTIONS_ADMIN_PAGE_SIZE} sections at a time. Use search to find a section quickly.
-      </p>
+
+      <div className="mt-4">
+        <AddSectionsForm />
+      </div>
 
       {categories.length > 0 ? (
         <>
-          <div className="mt-4 space-y-3">
-            <div className="max-w-md">
-              <label htmlFor="section-search" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Search sections
-              </label>
-              <input
-                id="section-search"
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search by section name…"
-                className="ui-input w-full max-w-full"
-              />
-            </div>
-            <div>
-              <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Sort</span>
-              <div className="flex flex-wrap gap-2">
-                {(
-                  [
-                    { id: "menu-order" as const, label: "Menu order" },
-                    { id: "name-asc" as const, label: "A–Z" },
-                    { id: "name-desc" as const, label: "Z–A" },
-                  ] as const
-                ).map((option) => (
-                  <button
-                    key={option.id}
-                    type="button"
-                    onClick={() => setSort(option.id)}
-                    className={`rounded-full border px-3.5 py-2 text-xs font-semibold transition ${
-                      sort === option.id
-                        ? "border-violet-500 bg-violet-50 text-violet-700"
-                        : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
-                    }`}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            </div>
+          <div className="mt-6 mb-1 flex items-center gap-3">
+            <h3 className="shrink-0 text-xs font-bold uppercase tracking-widest text-slate-400">Your sections</h3>
+            <div className="h-px flex-1 bg-slate-100" />
+          </div>
+          <div className="mt-3 max-w-md">
+            <label htmlFor="section-search" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Search sections
+            </label>
+            <input
+              id="section-search"
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search by section name…"
+              className="ui-input w-full max-w-full"
+            />
           </div>
 
           {query.trim() && filteredCategories.length === 0 ? (
@@ -122,17 +111,28 @@ export function SectionManagePanel({ categories }: Props) {
                 </p>
               ) : null}
 
-              <div className="mt-4 overflow-x-auto sm:mx-0 sm:rounded-2xl sm:border sm:border-slate-200 sm:bg-white sm:shadow-sm">
-                <table className="min-w-[560px] text-sm md:min-w-full">
-                  <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    <tr>
-                      <th className="px-4 py-3">Section name</th>
-                      <th className="px-4 py-3">Actions</th>
+              <div className="mt-4 overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <table className="min-w-[560px] w-full text-sm md:min-w-full">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-slate-50/80">
+                      <SortableTh
+                        direction={sort === "name-asc" ? "asc" : sort === "name-desc" ? "desc" : null}
+                        onClick={toggleNameSort}
+                      >
+                        Section name
+                      </SortableTh>
+                      <th className="w-[1%] whitespace-nowrap px-4 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                        Actions
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {pagedCategories.map((category) => (
-                      <SectionManageRow key={category.id} category={category} />
+                    {pagedCategories.map((category, idx) => (
+                      <SectionManageRow
+                        key={category.id}
+                        category={category}
+                        rowBg={idx % 2 === 0 ? "bg-white" : "bg-slate-50/40"}
+                      />
                     ))}
                   </tbody>
                 </table>
