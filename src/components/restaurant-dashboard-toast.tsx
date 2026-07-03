@@ -123,6 +123,15 @@ export function RestaurantDashboardToast({ toast, sectionName, sectionsCount, it
     heading = "Could not save item";
     message =
       "Something went wrong while saving to the database. Confirm the section still exists and try again. If it keeps happening, contact support.";
+  } else if (toast === "item_stock_alerts_invalid") {
+    heading = "Check stock alerts";
+    message = "Warning must be greater than urgent, and urgent must be greater than very urgent.";
+  } else if (toast === "item_create_stock_alerts_migration") {
+    heading = "Item saved (alerts pending)";
+    message = "The item was saved, but stock alert emails need a database update. Run add-menu-item-stock-alerts.sql in Supabase.";
+  } else if (toast === "item_update_stock_alerts_migration") {
+    heading = "Item updated (alerts pending)";
+    message = "Changes were saved, but stock alert emails need a database update. Run add-menu-item-stock-alerts.sql in Supabase.";
   } else if (toast === "item_updated") {
     heading = "Changes saved";
     message = itemName ? (

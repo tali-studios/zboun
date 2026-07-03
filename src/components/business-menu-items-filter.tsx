@@ -123,6 +123,7 @@ export function BusinessMenuItemsFilter({
         >
           <option value="">All</option>
           <option value="in">In stock</option>
+          <option value="low">Low / alert</option>
           <option value="out">Out of stock</option>
         </select>
         <p className="text-xs text-slate-500">Show items.</p>

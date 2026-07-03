@@ -19,7 +19,16 @@ import {
 } from "@/lib/delivery-radius";
 import { deriveLocationLabelFromBranch } from "@/lib/restaurant-profile";
 import { parseDisplayQuantityFromForm } from "@/lib/display-quantity";
-import { buildMenuItemStockPayload } from "@/lib/menu-item-stock";
+import {
+  DEFAULT_STOCK_ALERT_CRITICAL,
+  DEFAULT_STOCK_ALERT_URGENT,
+  DEFAULT_STOCK_ALERT_WARNING,
+  buildMenuItemStockPayload,
+  isStockAlertColumnMigrationError,
+  isStockColumnMigrationError,
+  parseStockQuantityFromForm,
+} from "@/lib/menu-item-stock";
+import { notifyMenuItemStockAlerts, type MenuItemStockAlertRow } from "@/lib/menu-item-stock-alerts";
 import { parseOptionalCalories, parseOptionalProteinGrams, isNutritionColumnMigrationError } from "@/lib/menu-nutrition";
 import { env } from "@/lib/env";
 
@@ -29,6 +38,36 @@ async function requireRestaurantAdmin() {
     redirect("/dashboard/login");
   }
   return user;
+}
+
+const MENU_ITEM_STOCK_ALERT_SELECT =
+  "id, name, restaurant_id, track_stock, stock_quantity, is_available, stock_alert_warning_qty, stock_alert_urgent_qty, stock_alert_critical_qty, stock_alert_warning_sent_at, stock_alert_urgent_sent_at, stock_alert_critical_sent_at, stock_alert_out_sent_at";
+
+async function notifyStockAlertsForMenuItem(
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+  itemId: string,
+  restaurantId: string,
+) {
+  const { data: item } = await supabase
+    .from("menu_items")
+    .select(MENU_ITEM_STOCK_ALERT_SELECT)
+    .eq("id", itemId)
+    .eq("restaurant_id", restaurantId)
+    .maybeSingle();
+
+  if (item?.track_stock) {
+    void notifyMenuItemStockAlerts(supabase, item as MenuItemStockAlertRow);
+  }
+}
+
+function stripStockAlertColumns<T extends Record<string, unknown>>(payload: T) {
+  const {
+    stock_alert_warning_qty: _w,
+    stock_alert_urgent_qty: _u,
+    stock_alert_critical_qty: _c,
+    ...rest
+  } = payload;
+  return rest;
 }
 
 function parseIngredientJson(raw: FormDataEntryValue | null): Array<{ name: string; price?: number }> {
@@ -437,6 +476,9 @@ export async function createMenuItemAction(formData: FormData) {
     price: item.price ?? 0,
   }));
   const stock = buildMenuItemStockPayload(formData);
+  if ("error" in stock) {
+    redirect("/dashboard/business?toast=item_stock_alerts_invalid");
+  }
 
   const description = String(formData.get("description") ?? "").trim() || null;
   const calories = parseOptionalCalories(formData.get("calories"));
@@ -447,7 +489,7 @@ export async function createMenuItemAction(formData: FormData) {
     String(formData.get("brand_id") ?? ""),
   );
 
-  const { error } = await supabase.from("menu_items").insert({
+  const { data: createdItem, error } = await supabase.from("menu_items").insert({
     restaurant_id: user.restaurant_id,
     category_id: categoryId,
     name,
@@ -471,7 +513,43 @@ export async function createMenuItemAction(formData: FormData) {
     sold_by_weight: soldByWeight,
     price_per_kg: soldByWeight ? pricePerKg : null,
     weight_step_kg: soldByWeight ? weightStepKg : 0.1,
-  });
+  }).select("id").single();
+
+  if (error && isStockAlertColumnMigrationError(error.message, error.code)) {
+    const { data: retryItem, error: retryError } = await supabase
+      .from("menu_items")
+      .insert(stripStockAlertColumns({
+        restaurant_id: user.restaurant_id,
+        category_id: categoryId,
+        name,
+        brand_id: brandId,
+        brand_name: brandName,
+        description,
+        price,
+        image_url: imageUrl,
+        grams: displayQty.grams,
+        display_quantity: displayQty.display_quantity,
+        display_unit: displayQty.display_unit,
+        calories,
+        protein_g: proteinG,
+        contents: String(formData.get("contents") ?? "").trim() || null,
+        removable_ingredients: removableIngredients,
+        add_ingredients: addIngredients,
+        option_label: optionLabel || null,
+        option_values: optionValues,
+        ...stock,
+        is_available: stock.track_stock ? stock.is_available! : true,
+        sold_by_weight: soldByWeight,
+        price_per_kg: soldByWeight ? pricePerKg : null,
+        weight_step_kg: soldByWeight ? weightStepKg : 0.1,
+      }))
+      .select("id")
+      .single();
+    if (!retryError && retryItem?.id) {
+      revalidatePath("/dashboard/business");
+      redirect("/dashboard/business?toast=item_create_stock_alerts_migration");
+    }
+  }
 
   if (error && isNutritionColumnMigrationError(error.message, error.code)) {
     const { error: retryError } = await supabase.from("menu_items").insert({
@@ -505,6 +583,10 @@ export async function createMenuItemAction(formData: FormData) {
   if (error) {
     console.error("[createMenuItemAction]", error.message, error.code, error.details);
     redirect("/dashboard/business?toast=item_create_failed");
+  }
+
+  if (createdItem?.id) {
+    void notifyStockAlertsForMenuItem(supabase, createdItem.id, user.restaurant_id);
   }
 
   revalidatePath("/dashboard/business");
@@ -549,6 +631,9 @@ export async function updateMenuItemAction(formData: FormData) {
     price: item.price ?? 0,
   }));
   const stock = buildMenuItemStockPayload(formData);
+  if ("error" in stock) {
+    redirect("/dashboard/business?toast=item_stock_alerts_invalid");
+  }
 
   if (!name || !categoryId) {
     redirect("/dashboard/business?toast=item_update_invalid");
@@ -615,6 +700,20 @@ export async function updateMenuItemAction(formData: FormData) {
     .eq("id", id)
     .eq("restaurant_id", user.restaurant_id);
 
+  if (error && isStockAlertColumnMigrationError(error.message, error.code)) {
+    const retry = await supabase
+      .from("menu_items")
+      .update(stripStockAlertColumns(updatePayload))
+      .eq("id", id)
+      .eq("restaurant_id", user.restaurant_id);
+    if (!retry.error) {
+      void notifyStockAlertsForMenuItem(supabase, id, user.restaurant_id);
+      revalidatePath("/dashboard/business");
+      redirect("/dashboard/business?toast=item_update_stock_alerts_migration");
+    }
+    error = retry.error;
+  }
+
   if (error && isNutritionColumnMigrationError(error.message, error.code)) {
     const { calories: _c, protein_g: _p, ...payloadWithoutNutrition } = updatePayload;
     const retry = await supabase
@@ -637,6 +736,8 @@ export async function updateMenuItemAction(formData: FormData) {
     redirect("/dashboard/business?toast=item_update_failed");
   }
 
+  void notifyStockAlertsForMenuItem(supabase, id, user.restaurant_id);
+
   revalidatePath("/dashboard/business");
   redirect(`/dashboard/business?toast=item_updated&item_name=${encodeURIComponent(name)}`);
 }
@@ -648,12 +749,99 @@ export async function toggleMenuItemAvailabilityAction(formData: FormData) {
   if (!id) return;
 
   const supabase = await createServerSupabaseClient();
-  await supabase
+  const { data: item } = await supabase
     .from("menu_items")
-    .update({ is_available: !isAvailable })
+    .select("track_stock, stock_quantity")
+    .eq("id", id)
+    .eq("restaurant_id", user.restaurant_id)
+    .maybeSingle();
+
+  const nextAvailable = !isAvailable;
+  const payload: Record<string, unknown> = { is_available: nextAvailable };
+  if (item?.track_stock) {
+    payload.stock_quantity = nextAvailable
+      ? Math.max(1, Math.floor(Number(item.stock_quantity ?? 0)))
+      : 0;
+  }
+
+  await supabase.from("menu_items").update(payload).eq("id", id).eq("restaurant_id", user.restaurant_id);
+
+  if (item?.track_stock) {
+    void notifyStockAlertsForMenuItem(supabase, id, user.restaurant_id);
+  }
+  revalidatePath("/dashboard/business");
+}
+
+export async function updateMenuItemStockQuickAction(
+  formData: FormData,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const user = await requireRestaurantAdmin();
+  const id = String(formData.get("id") ?? "").trim();
+  const trackStock = String(formData.get("track_stock") ?? "").trim() === "true";
+  const stockQuantity = parseStockQuantityFromForm(formData);
+
+  if (!id) return { ok: false, error: "Item not found." };
+
+  const supabase = await createServerSupabaseClient();
+
+  let payload: Record<string, unknown>;
+  if (trackStock) {
+    const { data: existing } = await supabase
+      .from("menu_items")
+      .select("stock_alert_warning_qty, stock_alert_urgent_qty, stock_alert_critical_qty")
+      .eq("id", id)
+      .eq("restaurant_id", user.restaurant_id)
+      .maybeSingle();
+
+    payload = {
+      track_stock: true,
+      stock_quantity: stockQuantity,
+      is_available: stockQuantity > 0,
+      ...(existing?.stock_alert_warning_qty == null
+        ? {
+            stock_alert_warning_qty: DEFAULT_STOCK_ALERT_WARNING,
+            stock_alert_urgent_qty: DEFAULT_STOCK_ALERT_URGENT,
+            stock_alert_critical_qty: DEFAULT_STOCK_ALERT_CRITICAL,
+          }
+        : {}),
+    };
+  } else {
+    payload = {
+      track_stock: false,
+      stock_quantity: null,
+      stock_alert_warning_qty: null,
+      stock_alert_urgent_qty: null,
+      stock_alert_critical_qty: null,
+    };
+  }
+
+  let { error } = await supabase
+    .from("menu_items")
+    .update(payload)
     .eq("id", id)
     .eq("restaurant_id", user.restaurant_id);
+
+  if (error && isStockAlertColumnMigrationError(error.message, error.code)) {
+    const retry = await supabase
+      .from("menu_items")
+      .update(stripStockAlertColumns(payload))
+      .eq("id", id)
+      .eq("restaurant_id", user.restaurant_id);
+    error = retry.error;
+  }
+
+  if (error && isStockColumnMigrationError(error.message, error.code)) {
+    return {
+      ok: false,
+      error: "Stock columns are missing. Run add-menu-item-stock.sql in Supabase.",
+    };
+  }
+
+  if (error) return { ok: false, error: error.message };
+
+  void notifyStockAlertsForMenuItem(supabase, id, user.restaurant_id);
   revalidatePath("/dashboard/business");
+  return { ok: true };
 }
 
 export async function deleteMenuItemAction(formData: FormData) {

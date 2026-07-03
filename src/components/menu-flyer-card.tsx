@@ -412,25 +412,25 @@ export function MenuFlyerCard({ menuUrl, restaurantName, logoUrl, openLinkLabel 
       <div className="mx-auto mb-4 w-full max-w-full print:hidden lg:w-[210mm]">
         <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1 lg:overflow-visible lg:pb-0">
           <button type="button" className="btn btn-primary shrink-0" onClick={() => window.print()}>
-            Print A4 flyer
-          </button>
-          <button
-            type="button"
-            className="btn btn-primary shrink-0 disabled:opacity-60"
-            onClick={downloadFlyerAsPng}
-            disabled={isLoading || isExporting}
-          >
+          Print A4 flyer
+        </button>
+        <button
+          type="button"
+          className="btn btn-primary shrink-0 disabled:opacity-60"
+          onClick={downloadFlyerAsPng}
+          disabled={isLoading || isExporting}
+        >
             {isExporting ? "Preparing…" : "Download PNG"}
-          </button>
-          <button
-            type="button"
-            className="btn btn-primary shrink-0 disabled:opacity-60"
-            onClick={downloadFlyerAsPdf}
-            disabled={isLoading || isExporting}
-          >
+        </button>
+        <button
+          type="button"
+          className="btn btn-primary shrink-0 disabled:opacity-60"
+          onClick={downloadFlyerAsPdf}
+          disabled={isLoading || isExporting}
+        >
             {isExporting ? "Preparing…" : "Download PDF"}
-          </button>
-          <a href={menuUrl} target="_blank" rel="noreferrer" className="btn btn-primary shrink-0">
+        </button>
+        <a href={menuUrl} target="_blank" rel="noreferrer" className="btn btn-primary shrink-0">
             {openLinkLabel}
           </a>
         </div>

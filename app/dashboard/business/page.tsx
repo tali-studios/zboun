@@ -22,14 +22,18 @@ import { formatBrowseSectionsLabel, getStorefrontActionLabels, STORE_ADMIN_LABEL
 import { RestaurantHoursPanel } from "@/components/restaurant-hours-panel";
 import { RestaurantDashboardToast } from "@/components/restaurant-dashboard-toast";
 import { parseOpeningHours } from "@/lib/opening-hours";
-import { BusinessMenuItemsFilter } from "@/components/business-menu-items-filter";
+import { BusinessMenuItemsToolbar } from "@/components/business-menu-items-toolbar";
+import { parseMenuItemsSort, sortMenuItems } from "@/lib/menu-items-admin";
+import { DashboardSectionJump } from "@/components/dashboard-section-jump";
+import { MenuItemStockQuickEdit } from "@/components/menu-item-stock-quick-edit";
 import { RestaurantLocationsPanel } from "@/components/restaurant-locations-panel";
 import type { RestaurantLocationRow } from "@/app-actions/restaurant";
 import { MenuItemPricingFields } from "@/components/menu-item-pricing-fields";
 import { MenuNutritionFields } from "@/components/menu-nutrition-fields";
 import { MenuItemOptionsFields } from "@/components/menu-item-options-fields";
 import { MenuItemStockFields } from "@/components/menu-item-stock-fields";
-import { getMenuItemStockState } from "@/lib/menu-item-stock";
+import { getMenuItemStockAlertLevel, isMenuItemLowStock } from "@/lib/menu-item-stock";
+import { stockAlertBadgeClass, stockAlertBadgeLabel } from "@/lib/menu-item-stock-alerts";
 import { formatMenuNutrition, isNutritionColumnMigrationError } from "@/lib/menu-nutrition";
 import { resolveMenuItemBrandId } from "@/lib/menu-brands";
 import { AddMenuItemForm } from "@/components/add-menu-item-form";
@@ -52,15 +56,17 @@ function buildMenuItemsListHref(opts: {
   q?: string;
   category?: string;
   stock?: string;
+  sort?: string;
   page?: number;
 }) {
   const params = new URLSearchParams();
   if (opts.q?.trim()) params.set("q", opts.q.trim());
   if (opts.category?.trim()) params.set("category", opts.category.trim());
   if (opts.stock?.trim()) params.set("stock", opts.stock.trim());
+  if (opts.sort?.trim() && opts.sort !== "name_asc") params.set("sort", opts.sort.trim());
   if (opts.page && opts.page > 1) params.set("page", String(opts.page));
   const qs = params.toString();
-  return qs ? `/dashboard/business?${qs}` : "/dashboard/business";
+  return qs ? `/dashboard/business?${qs}#items-toolbar` : `/dashboard/business#items-toolbar`;
 }
 
 function FormFieldLabel({
@@ -94,6 +100,7 @@ type Props = {
     q?: string;
     category?: string;
     stock?: string;
+    sort?: string;
     page?: string;
     jump?: string;
     toast?: string;
@@ -109,7 +116,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
   if (!appUser || appUser.role !== "restaurant_admin" || !appUser.restaurant_id) {
     redirect("/dashboard/login");
   }
-  const { q, category, stock, page: pageRaw, toast, section_name: sectionNameRaw, sections_count: sectionsCountRaw, item_name: itemNameRaw, brand_name: brandNameRaw } =
+  const { q, category, stock, sort: sortRaw, page: pageRaw, jump, toast, section_name: sectionNameRaw, sections_count: sectionsCountRaw, item_name: itemNameRaw, brand_name: brandNameRaw } =
     await searchParams;
   let sectionName: string | undefined = undefined;
   if (typeof sectionNameRaw === "string" && sectionNameRaw.length > 0) {
@@ -242,9 +249,11 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
       : Promise.resolve({ data: [] as { id: string; status: string }[] }),
   ]);
 
-  const itemsSelectCore =
-    "id, name, brand_id, brand_name, description, price, image_url, grams, display_quantity, display_unit, contents, sold_by_weight, price_per_kg, weight_step_kg, removable_ingredients, add_ingredients, option_label, option_values, track_stock, stock_quantity, is_available, category_id, menu_brands(id, name, logo_url), categories(name)";
-  const itemsSelectWithNutrition = `${itemsSelectCore}, calories, protein_g`;
+  const itemsSelectBase =
+    "id, name, brand_id, brand_name, description, price, image_url, grams, display_quantity, display_unit, contents, sold_by_weight, price_per_kg, weight_step_kg, removable_ingredients, add_ingredients, option_label, option_values, is_available, category_id, menu_brands(id, name, logo_url), categories(name)";
+  const itemsSelectWithStock = `${itemsSelectBase}, track_stock, stock_quantity`;
+  const itemsSelectWithStockAlerts = `${itemsSelectWithStock}, stock_alert_warning_qty, stock_alert_urgent_qty, stock_alert_critical_qty`;
+  const itemsSelectWithNutrition = `${itemsSelectWithStockAlerts}, calories, protein_g`;
   const itemsSelectLegacy =
     "id, name, brand_id, brand_name, description, price, image_url, grams, contents, sold_by_weight, price_per_kg, weight_step_kg, removable_ingredients, add_ingredients, is_available, category_id, categories(name)";
 
@@ -257,13 +266,36 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
   let itemsRows: unknown[] | null = itemsWithOptions;
   let itemsQueryError = itemsWithOptionsError;
 
+  if (itemsQueryError && isNutritionColumnMigrationError(itemsQueryError.message, itemsQueryError.code)) {
+    const retry = await supabase
+      .from("menu_items")
+      .select(itemsSelectWithStockAlerts)
+      .eq("restaurant_id", appUser.restaurant_id)
+      .order("name");
+    itemsRows = retry.data;
+    itemsQueryError = retry.error;
+  }
+
   if (
     itemsQueryError &&
-    isNutritionColumnMigrationError(itemsQueryError.message, itemsQueryError.code)
+    /stock_alert_/i.test(itemsQueryError.message ?? "")
   ) {
     const retry = await supabase
       .from("menu_items")
-      .select(itemsSelectCore)
+      .select(itemsSelectWithStock)
+      .eq("restaurant_id", appUser.restaurant_id)
+      .order("name");
+    itemsRows = retry.data;
+    itemsQueryError = retry.error;
+  }
+
+  if (
+    itemsQueryError &&
+    /track_stock|stock_quantity/i.test(itemsQueryError.message ?? "")
+  ) {
+    const retry = await supabase
+      .from("menu_items")
+      .select(itemsSelectBase)
       .eq("restaurant_id", appUser.restaurant_id)
       .order("name");
     itemsRows = retry.data;
@@ -272,7 +304,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
 
   const { data: legacyItems } =
     itemsQueryError &&
-    /option_label|option_values|track_stock|stock_quantity|brand_name|brand_id|menu_brands|display_quantity|display_unit/i.test(
+    /option_label|option_values|brand_name|brand_id|menu_brands|display_quantity|display_unit/i.test(
       itemsQueryError.message ?? "",
     )
       ? await supabase
@@ -308,6 +340,9 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
     option_values?: Array<{ name?: string; price?: number }>;
     track_stock?: boolean;
     stock_quantity?: number | null;
+    stock_alert_warning_qty?: number | null;
+    stock_alert_urgent_qty?: number | null;
+    stock_alert_critical_qty?: number | null;
     is_available: boolean;
     category_id: string | null;
     categories?: { name?: string } | null;
@@ -346,6 +381,8 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
       option_values: Array.isArray(item.option_values) ? item.option_values : [],
     };
   });
+
+  const menuItemsLowStockCount = items.filter((item) => isMenuItemLowStock(item)).length;
 
   const inventoryEnabled = addonOn("inventory");
   const inventoryLowStock = inventoryEnabled
@@ -415,10 +452,13 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
   const normalizedQuery = (q ?? "").trim().toLowerCase();
   const selectedCategory = (category ?? "").trim();
   const selectedStock = (stock ?? "").trim();
+  const selectedSort = parseMenuItemsSort(sortRaw);
   const filteredItems = normalizedItems.filter((item) => {
     if (selectedCategory && item.category_id !== selectedCategory) return false;
     if (selectedStock === "in" && !item.is_available) return false;
     if (selectedStock === "out" && item.is_available) return false;
+    if (selectedStock === "low" && !isMenuItemLowStock(item)) return false;
+    if (selectedStock === "tracked" && !item.track_stock) return false;
     if (!normalizedQuery) return true;
     const categoryName = categoryNameById.get(item.category_id ?? "") ?? "";
     const optionText = `${item.option_label ?? ""} ${JSON.stringify(item.option_values ?? [])}`.toLowerCase();
@@ -432,14 +472,15 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
       optionText.includes(normalizedQuery)
     );
   });
+  const sortedItems = sortMenuItems(filteredItems, selectedSort, categoryNameById);
   const itemsPage = Math.max(1, Number.parseInt(String(pageRaw ?? "1"), 10) || 1);
-  const itemsTotalPages = Math.max(1, Math.ceil(filteredItems.length / MENU_ITEMS_ADMIN_PAGE_SIZE));
+  const itemsTotalPages = Math.max(1, Math.ceil(sortedItems.length / MENU_ITEMS_ADMIN_PAGE_SIZE));
   const itemsSafePage = Math.min(itemsPage, itemsTotalPages);
   const itemsPageStart = (itemsSafePage - 1) * MENU_ITEMS_ADMIN_PAGE_SIZE;
-  const pagedItems = filteredItems.slice(itemsPageStart, itemsPageStart + MENU_ITEMS_ADMIN_PAGE_SIZE);
-  const itemsRangeStart = filteredItems.length === 0 ? 0 : itemsPageStart + 1;
-  const itemsRangeEnd = Math.min(itemsPageStart + MENU_ITEMS_ADMIN_PAGE_SIZE, filteredItems.length);
-  const listHrefBase = { q: q ?? "", category: selectedCategory, stock: selectedStock };
+  const pagedItems = sortedItems.slice(itemsPageStart, itemsPageStart + MENU_ITEMS_ADMIN_PAGE_SIZE);
+  const itemsRangeStart = sortedItems.length === 0 ? 0 : itemsPageStart + 1;
+  const itemsRangeEnd = Math.min(itemsPageStart + MENU_ITEMS_ADMIN_PAGE_SIZE, sortedItems.length);
+  const listHrefBase = { q: q ?? "", category: selectedCategory, stock: selectedStock, sort: selectedSort };
   const rawBrowseSections = getRawBrowseSectionValues(restaurant?.browse_sections ?? []);
   const selectedBrowseSections = normalizeBrowseSections(rawBrowseSections);
   const selectedBrowseSubTags = getBrowseSubTags(rawBrowseSections);
@@ -482,6 +523,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
 
   return (
     <main className="min-h-screen bg-[#f8f8ff] p-3 sm:p-4 md:p-8">
+      <DashboardSectionJump target={jump} />
       <RestaurantDashboardToast toast={toast} sectionName={sectionName} sectionsCount={sectionsCount} itemName={itemName} brandName={brandName} />
       <div className="mx-auto max-w-7xl space-y-5">
         {/* Dashboard header */}
@@ -528,6 +570,9 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                   </Link>
                   <Link href="/dashboard/business/flyer" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">
                     Print flyer
+                  </Link>
+                  <Link href="#items-toolbar" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">
+                    Menu items
                   </Link>
                 </>
               ) : null}
@@ -794,148 +839,124 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
           />
         </section>
 
-        <section className="panel p-4 md:p-5">
-          <h2 className="panel-title mb-3" id="items-toolbar">
-            Manage menu items
-          </h2>
-          <BusinessMenuItemsFilter
+        <section className="panel overflow-hidden p-0 md:p-0">
+          <div className="border-b border-slate-200 px-4 py-4 md:px-5">
+            <h2 className="panel-title" id="items-toolbar">
+              Manage menu items
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Search, sort, and update stock directly in the table. Use <span className="font-medium">Track stock</span>{" "}
+              to enable quantity tracking and email alerts.
+            </p>
+            {menuItemsLowStockCount > 0 ? (
+              <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                <span className="font-semibold">{menuItemsLowStockCount} item(s)</span> need attention — stock is at
+                warning, urgent, or very urgent levels.{" "}
+                <Link href={buildMenuItemsListHref({ stock: "low" })} className="font-semibold underline underline-offset-2">
+                  View low-stock items
+                </Link>
+              </div>
+            ) : null}
+          </div>
+
+          <BusinessMenuItemsToolbar
             categories={(categories ?? []).map((c) => ({ id: c.id, name: c.name }))}
             initialQ={q ?? ""}
             initialCategory={selectedCategory}
             initialStock={selectedStock}
+            initialSort={selectedSort}
+            totalCount={normalizedItems.length}
+            filteredCount={sortedItems.length}
           />
-          {normalizedQuery ? (
-            <p className="mt-2 text-sm text-slate-600">
-              {filteredItems.length} result(s) for &ldquo;<span className="font-semibold">{q}</span>&rdquo;
-              {filteredItems.length > MENU_ITEMS_ADMIN_PAGE_SIZE
-                ? ` — showing ${itemsRangeStart}–${itemsRangeEnd}`
-                : null}
-              .
-            </p>
-          ) : filteredItems.length > MENU_ITEMS_ADMIN_PAGE_SIZE ? (
-            <p className="mt-2 text-sm text-slate-600">
-              Showing {itemsRangeStart}–{itemsRangeEnd} of {filteredItems.length} items.
-            </p>
-          ) : null}
-          <div className="-mx-4 mt-4 overflow-x-auto sm:mx-0 sm:rounded-2xl sm:border sm:border-slate-200 sm:bg-white sm:shadow-sm">
-            <table className="min-w-[760px] text-sm md:min-w-full">
-              <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                <tr>
-                  <th className="px-4 py-3">Item</th>
-                  <th className="px-4 py-3">Section</th>
-                  <th className="px-4 py-3">Price</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Actions</th>
+
+          <div className="overflow-x-auto">
+            <table className="min-w-[980px] w-full text-sm md:min-w-full">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50/80">
+                  <th className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400">Item</th>
+                  <th className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400">Section</th>
+                  <th className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400">Price</th>
+                  <th className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                    Stock qty
+                    <span className="ml-1.5 rounded bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold text-violet-700 normal-case tracking-normal">
+                      editable
+                    </span>
+                  </th>
+                  <th className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-slate-400">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {pagedItems.map((item) => (
-                  <tr key={item.id}>
-                    <td className="px-4 py-3 font-medium text-slate-900">
-                      {item.name}
-                      {item.brand_name ? (
-                        <span className="mt-0.5 block text-xs font-normal text-slate-500">{item.brand_name}</span>
-                      ) : null}
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">
-                      {categoryNameById.get(item.category_id ?? "") ?? "Uncategorized"}
-                    </td>
-                    <td className="px-4 py-3 text-slate-700">${item.price.toFixed(2)}</td>
-                    <td className="px-4 py-3">
-                      {(() => {
-                        const stock = getMenuItemStockState(item);
-                        return (
-                          <span
-                            className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                              stock.available
-                                ? "bg-emerald-100 text-emerald-700"
-                                : "bg-amber-100 text-amber-700"
-                            }`}
-                          >
-                            {stock.available
-                              ? item.track_stock && item.stock_quantity != null
-                                ? `${item.stock_quantity} in stock`
-                                : "In stock"
-                              : "Out of stock"}
-                          </span>
-                        );
-                      })()}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex min-w-0 flex-nowrap items-center justify-start gap-2">
-                        <div className="relative">
-                          <input id={`view-${item.id}`} type="checkbox" className="peer hidden" />
-                          <label
-                            htmlFor={`view-${item.id}`}
-                            aria-label="View item details"
-                            title="View item details"
-                            className="inline-flex cursor-pointer items-center justify-center rounded-full border border-slate-200 px-2.5 py-1.5 text-center text-[11px] font-semibold text-slate-700 hover:bg-slate-50 max-sm:h-10 max-sm:w-10 max-sm:min-w-10 max-sm:p-0 sm:text-xs"
-                          >
-                            <svg className="h-4 w-4 shrink-0 sm:hidden" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            </svg>
-                            <span className="hidden sm:inline">View</span>
-                          </label>
-                          <div className="pointer-events-none fixed inset-0 z-40 hidden items-center justify-center bg-slate-900/50 p-4 peer-checked:flex peer-checked:pointer-events-auto">
-                            <label htmlFor={`view-${item.id}`} className="absolute inset-0 cursor-pointer" />
-                            <div className="relative z-10 w-full max-w-2xl rounded-2xl bg-white p-4 shadow-xl sm:p-5">
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="min-w-0 flex-1 pr-2">
-                                  <h3 className="text-lg font-bold text-slate-900">{item.name}</h3>
-                                  <p className="mt-1 text-sm text-slate-600">
-                                    Section: {categoryNameById.get(item.category_id ?? "") ?? "Uncategorized"}
-                                  </p>
-                                </div>
-                                <label
-                                  htmlFor={`view-${item.id}`}
-                                  className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full text-slate-500 ring-1 ring-slate-200 transition hover:bg-slate-50 hover:text-slate-800"
-                                  aria-label="Close"
-                                  title="Close"
-                                >
-                                  <span className="text-2xl leading-none" aria-hidden>
-                                    ×
-                                  </span>
-                                </label>
-                              </div>
-                              <div className="mt-4 space-y-2 text-sm text-slate-700">
-                                <p><span className="font-semibold">Price:</span> ${item.price.toFixed(2)}</p>
-                                {item.brand_name ? <p><span className="font-semibold">Brand:</span> {item.brand_name}</p> : null}
-                                {item.description ? <p><span className="font-semibold">Description:</span> {item.description}</p> : null}
-                                {item.contents ? <p><span className="font-semibold">Contains / ingredients:</span> {item.contents}</p> : null}
-                                {formatMenuNutrition(item.calories, item.protein_g) ? (
-                                  <p><span className="font-semibold">Nutrition:</span> {formatMenuNutrition(item.calories, item.protein_g)}</p>
-                                ) : null}
-                                {item.option_label && Array.isArray(item.option_values) && item.option_values.length > 0 ? (
-                                  <p>
-                                    <span className="font-semibold">{item.option_label} options:</span>{" "}
-                                    {item.option_values.map((v: { name?: string; price?: number }) =>
-                                      `${v.name ?? ""}${Number(v.price ?? 0) > 0 ? ` (+$${Number(v.price).toFixed(2)})` : ""}`,
-                                    ).join(", ")}
-                                  </p>
-                                ) : null}
-                              </div>
-                              <div className="mt-4 text-right">
-                                <label htmlFor={`view-${item.id}`} title="Close" className="inline-flex cursor-pointer rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-                                  Close
-                                </label>
-                              </div>
-                            </div>
+                {pagedItems.map((item, idx) => {
+                  const alertLevel = getMenuItemStockAlertLevel(item);
+                  const rowBg = idx % 2 === 0 ? "bg-white" : "bg-slate-50/40";
+                  return (
+                  <tr key={item.id} className={`${rowBg} transition-colors hover:bg-violet-50/30`}>
+                    <td className="px-5 py-4">
+                      <div className="flex items-start gap-3">
+                        {item.image_url ? (
+                          <img
+                            src={item.image_url}
+                            alt=""
+                            className="h-10 w-10 shrink-0 rounded-xl object-cover shadow-sm ring-1 ring-slate-200"
+                          />
+                        ) : (
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-lg">
+                            🍽️
                           </div>
+                        )}
+                        <div className="min-w-0">
+                          <p className="font-semibold text-slate-900 leading-snug">{item.name}</p>
+                          {item.brand_name ? (
+                            <span className="mt-0.5 inline-block rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
+                              {item.brand_name}
+                            </span>
+                          ) : null}
+                          {!item.is_available ? (
+                            <span className="ml-1 mt-0.5 inline-block rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-600">
+                              Out of stock
+                            </span>
+                          ) : alertLevel && alertLevel !== "ok" ? (
+                            <span className={`ml-1 mt-0.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${stockAlertBadgeClass(alertLevel)}`}>
+                              {stockAlertBadgeLabel(item)}
+                            </span>
+                          ) : null}
                         </div>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+                        {categoryNameById.get(item.category_id ?? "") ?? "—"}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className="font-semibold text-slate-900">${item.price.toFixed(2)}</span>
+                    </td>
+                    <td className="px-5 py-4">
+                      <MenuItemStockQuickEdit
+                        itemId={item.id}
+                        itemName={item.name}
+                        trackStock={Boolean(item.track_stock)}
+                        stockQuantity={item.stock_quantity ?? null}
+                        warningQty={item.stock_alert_warning_qty}
+                        urgentQty={item.stock_alert_urgent_qty}
+                        criticalQty={item.stock_alert_critical_qty}
+                      />
+                    </td>
+                    <td className="px-5 py-4">
+                      <div className="flex flex-nowrap items-center gap-1.5">
 
+                        {/* EDIT */}
                         <div className="relative">
                           <input id={`edit-${item.id}`} type="checkbox" className="peer hidden" />
                           <label
                             htmlFor={`edit-${item.id}`}
                             aria-label="Edit item"
                             title="Edit this item"
-                            className="inline-flex cursor-pointer items-center justify-center rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1.5 text-center text-[11px] font-semibold text-violet-700 hover:bg-violet-100 max-sm:h-10 max-sm:w-10 max-sm:min-w-10 max-sm:p-0 sm:text-xs"
+                            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-violet-200 bg-violet-50 text-violet-600 transition hover:bg-violet-100 hover:text-violet-800"
                           >
-                            <svg className="h-4 w-4 shrink-0 sm:hidden" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden>
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
                             </svg>
-                            <span className="hidden sm:inline">Edit</span>
                           </label>
                           <div className="pointer-events-none fixed inset-0 z-40 hidden items-center justify-center bg-slate-900/50 p-4 peer-checked:flex peer-checked:pointer-events-auto">
                             <label htmlFor={`edit-${item.id}`} className="absolute inset-0 cursor-pointer" />
@@ -1025,6 +1046,9 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                                     idPrefix={`edit-stock-${item.id}-`}
                                     defaultTrackStock={Boolean(item.track_stock)}
                                     defaultStockQuantity={item.stock_quantity}
+                                    defaultWarningQty={item.stock_alert_warning_qty}
+                                    defaultUrgentQty={item.stock_alert_urgent_qty}
+                                    defaultCriticalQty={item.stock_alert_critical_qty}
                                   />
                                 </div>
                                 <div className="md:col-span-2">
@@ -1095,12 +1119,11 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                             htmlFor={`delete-${item.id}`}
                             aria-label="Delete item"
                             title="Delete this item"
-                            className="inline-flex cursor-pointer items-center justify-center rounded-full border border-red-200 bg-red-50 px-2.5 py-1.5 text-center text-[11px] font-semibold text-red-700 hover:bg-red-100 max-sm:h-10 max-sm:w-10 max-sm:min-w-10 max-sm:p-0 sm:text-xs"
+                            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-500 transition hover:bg-red-100 hover:text-red-700"
                           >
-                            <svg className="h-4 w-4 shrink-0 sm:hidden" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden>
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
                             </svg>
-                            <span className="hidden sm:inline">Delete</span>
                           </label>
                           <div className="pointer-events-none fixed inset-0 z-40 hidden items-center justify-center bg-slate-900/50 p-4 peer-checked:flex peer-checked:pointer-events-auto">
                             <label htmlFor={`delete-${item.id}`} className="absolute inset-0 cursor-pointer" />
@@ -1130,20 +1153,21 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                             htmlFor={`stock-${item.id}`}
                             aria-label={item.is_available ? "Mark out of stock" : "Mark in stock"}
                             title={item.is_available ? "Mark as out of stock" : "Mark as in stock"}
-                            className={`inline-flex cursor-pointer items-center justify-center rounded-full px-2.5 py-1.5 text-center text-[11px] font-semibold text-white max-sm:h-10 max-sm:w-10 max-sm:min-w-10 max-sm:p-0 sm:text-xs ${
-                              item.is_available ? "bg-amber-500 hover:bg-amber-600" : "bg-violet-600 hover:bg-violet-700"
+                            className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg transition ${
+                              item.is_available
+                                ? "border border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-100 hover:text-amber-800"
+                                : "border border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-800"
                             }`}
                           >
                             {item.is_available ? (
-                              <svg className="h-4 w-4 shrink-0 sm:hidden" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden>
+                              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
                               </svg>
                             ) : (
-                              <svg className="h-4 w-4 shrink-0 sm:hidden" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden>
+                              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                               </svg>
                             )}
-                            <span className="hidden sm:inline">{item.is_available ? "Out of Stock" : "In Stock"}</span>
                           </label>
                           <div className="pointer-events-none fixed inset-0 z-40 hidden items-center justify-center bg-slate-900/50 p-4 peer-checked:flex peer-checked:pointer-events-auto">
                             <label htmlFor={`stock-${item.id}`} className="absolute inset-0 cursor-pointer" />
@@ -1172,15 +1196,19 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
-            {filteredItems.length === 0 ? (
-              <p className="p-4 text-sm text-slate-500">No items found for current filters.</p>
+            {sortedItems.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 py-16 text-center">
+                <span className="text-4xl">📦</span>
+                <p className="text-sm font-medium text-slate-500">No items match your current filters.</p>
+              </div>
             ) : null}
           </div>
-          {filteredItems.length > MENU_ITEMS_ADMIN_PAGE_SIZE ? (
-            <div className="mt-3 flex items-center justify-between gap-3">
+          {sortedItems.length > MENU_ITEMS_ADMIN_PAGE_SIZE ? (
+            <div className="mt-0 flex items-center justify-between gap-3 border-t border-slate-200 px-4 py-3 md:px-5">
               {itemsSafePage > 1 ? (
                 <Link
                   href={buildMenuItemsListHref({ ...listHrefBase, page: itemsSafePage - 1 })}

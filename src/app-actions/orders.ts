@@ -22,6 +22,7 @@ import { getRestaurantMenu } from "@/lib/data";
 import { buildMenuItemPricingMap, validateOrderLinesPricing } from "@/lib/menu-promotions";
 import { computeOrderCouponDiscount } from "@/lib/menu-coupon-codes";
 import { lookupCouponForOrder } from "@/app-actions/menu-coupon-codes";
+import { decrementMenuItemStockForOrder } from "@/lib/menu-item-stock-alerts";
 
 export type DeliverySpeed = "standard" | "fast";
 
@@ -262,6 +263,9 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
     console.error("[placeOrder] insert failed", insertError?.message);
     return { ok: false, error: insertError?.message ?? "Failed to place order" };
   }
+
+  void decrementMenuItemStockForOrder(insertClient, input.restaurantId, input.items);
+  revalidatePath("/dashboard/business");
 
   revalidatePath(`/dashboard/business/orders`);
 
