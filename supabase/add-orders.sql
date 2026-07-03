@@ -13,6 +13,8 @@ create table if not exists public.orders (
   delivery_lng      double precision,
   items             jsonb       not null default '[]',
   notes             text,
+  expected_delivery_time text,
+  expected_delivery_time_set_at timestamptz,
   total_usd         numeric(10,2) not null default 0,
   status            text        not null default 'pending'
                     check (status in ('pending','confirmed','preparing','ready','out_for_delivery','delivered','cancelled')),
@@ -20,6 +22,10 @@ create table if not exists public.orders (
   created_at        timestamptz not null default now(),
   updated_at        timestamptz not null default now()
 );
+
+alter table public.orders
+  add column if not exists expected_delivery_time text,
+  add column if not exists expected_delivery_time_set_at timestamptz;
 
 create index if not exists idx_orders_restaurant_id   on public.orders (restaurant_id);
 create index if not exists idx_orders_customer_id     on public.orders (customer_id);

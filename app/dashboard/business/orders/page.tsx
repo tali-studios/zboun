@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { getCurrentUserRole } from "@/lib/data";
-import { getRestaurantOrders } from "@/app-actions/orders";
+import { getCurrentUserRole, getRestaurantMenu } from "@/lib/data";
+import { getRestaurantOrderDefaultEtaLabel, getRestaurantOrders } from "@/app-actions/orders";
 import { RestaurantOrdersPanel } from "@/components/restaurant-orders-panel";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +12,11 @@ export default async function RestaurantOrdersPage() {
     redirect("/dashboard/login");
   }
 
-  const orders = await getRestaurantOrders(appUser.restaurant_id);
+  const [orders, defaultDeliveryTimeLabel, menuCategories] = await Promise.all([
+    getRestaurantOrders(appUser.restaurant_id),
+    getRestaurantOrderDefaultEtaLabel(appUser.restaurant_id),
+    getRestaurantMenu(appUser.restaurant_id),
+  ]);
 
   return (
     <main className="min-h-screen bg-[#f8f8ff] p-3 sm:p-4 md:p-8">
@@ -41,6 +45,8 @@ export default async function RestaurantOrdersPage() {
           <RestaurantOrdersPanel
             initialOrders={orders}
             restaurantId={appUser.restaurant_id}
+            defaultDeliveryTimeLabel={defaultDeliveryTimeLabel}
+            menuCategories={menuCategories}
           />
         </div>
       </div>

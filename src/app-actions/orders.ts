@@ -54,10 +54,36 @@ export type PlaceOrderResult =
 export type OrderStatusUpdate = {
   orderId: string;
   status: "confirmed" | "preparing" | "ready" | "out_for_delivery" | "delivered" | "cancelled";
+  expectedDeliveryTime?: string | null;
+};
+
+export type RestaurantOrderUpdateInput = {
+  orderId: string;
+  customerName: string;
+  customerPhone?: string | null;
+  deliveryAddress?: string | null;
+  notes?: string | null;
+  paymentNote?: string | null;
+  totalUsd: number;
+  menuAdditions?: Array<{
+    menuItemId: string;
+    qty: number;
+    unit: "each" | "kg";
+    unitPrice: number;
+    name: string;
+  }>;
+  manualAdjustmentLabel?: string | null;
+  manualAdjustmentUsd?: number | null;
+};
+
+export type OrderExpectedDeliveryTimeUpdate = {
+  orderId: string;
+  expectedDeliveryTime: string;
 };
 
 export type OrderRow = {
   id: string;
+  customer_id: string | null;
   customer_name: string;
   customer_phone: string | null;
   delivery_address: string | null;
@@ -66,9 +92,14 @@ export type OrderRow = {
   items: OrderNotificationItem[];
   notes: string | null;
   payment_note: string | null;
+  expected_delivery_time: string | null;
+  expected_delivery_time_set_at: string | null;
   total_usd: number;
   delivery_fee_usd: number;
   delivery_speed: DeliverySpeed;
+  scheduled_for: string | null;
+  coupon_code: string | null;
+  coupon_discount_usd: number;
   status: string;
   whatsapp_sent: boolean;
   created_at: string;
@@ -248,7 +279,7 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
       coupon_code_id: couponCodeId,
   };
 
-  let { data: order, error: insertError } = await insertClient.from("orders").insert(orderInsert).select("id").single();
+  const { data: order, error: insertError } = await insertClient.from("orders").insert(orderInsert).select("id").single();
 
   if (!insertError && couponCodeId && serviceClient) {
     const { data: redeemed, error: redeemError } = await serviceClient.rpc("increment_menu_coupon_usage", {
@@ -323,10 +354,16 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
 
 export async function updateOrderStatusAction(input: OrderStatusUpdate): Promise<{ ok: boolean; error?: string }> {
   const supabase = await createServerSupabaseClient();
+  const updatePayload: Record<string, unknown> = { status: input.status };
+  const expectedDeliveryTime = input.expectedDeliveryTime?.trim();
+  if (input.status === "confirmed" && expectedDeliveryTime) {
+    updatePayload.expected_delivery_time = expectedDeliveryTime;
+    updatePayload.expected_delivery_time_set_at = new Date().toISOString();
+  }
 
   const { error } = await supabase
     .from("orders")
-    .update({ status: input.status })
+    .update(updatePayload)
     .eq("id", input.orderId);
 
   if (error) return { ok: false, error: error.message };
@@ -335,13 +372,184 @@ export async function updateOrderStatusAction(input: OrderStatusUpdate): Promise
   return { ok: true };
 }
 
+const RESTAURANT_ORDER_SELECT =
+  "id, customer_id, customer_name, customer_phone, delivery_address, delivery_lat, delivery_lng, items, notes, payment_note, expected_delivery_time, expected_delivery_time_set_at, total_usd, delivery_fee_usd, delivery_speed, scheduled_for, coupon_code, coupon_discount_usd, status, whatsapp_sent, created_at, updated_at";
+
+export async function getRestaurantOrderDefaultEtaLabel(restaurantId: string): Promise<string | null> {
+  const supabase = await createServerSupabaseClient();
+  const { data } = await supabase
+    .from("restaurants")
+    .select("eta_label")
+    .eq("id", restaurantId)
+    .maybeSingle();
+
+  return data?.eta_label?.trim() || null;
+}
+
+export async function updateOrderExpectedDeliveryTimeAction(
+  input: OrderExpectedDeliveryTimeUpdate,
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createServerSupabaseClient();
+  const expectedDeliveryTime = input.expectedDeliveryTime.trim();
+
+  if (!expectedDeliveryTime) {
+    return { ok: false, error: "Expected delivery time is required." };
+  }
+
+  const { data: orderStatus, error: statusError } = await supabase
+    .from("orders")
+    .select("status")
+    .eq("id", input.orderId)
+    .maybeSingle();
+
+  if (statusError) return { ok: false, error: statusError.message };
+  if (!orderStatus) return { ok: false, error: "Order not found or not allowed." };
+  if (["delivered", "cancelled"].includes(orderStatus.status)) {
+    return { ok: false, error: "Delivered or cancelled orders cannot update ETA." };
+  }
+
+  const { error } = await supabase
+    .from("orders")
+    .update({
+      expected_delivery_time: expectedDeliveryTime,
+      expected_delivery_time_set_at: new Date().toISOString(),
+    })
+    .eq("id", input.orderId);
+
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/dashboard/business/orders");
+  return { ok: true };
+}
+
+export async function updateRestaurantOrderAction(
+  input: RestaurantOrderUpdateInput,
+): Promise<{ ok: true; order: OrderRow } | { ok: false; error: string }> {
+  const supabase = await createServerSupabaseClient();
+  const customerName = input.customerName.trim();
+  const totalUsd = Math.round(Number(input.totalUsd) * 100) / 100;
+  const manualAdjustmentUsd = Math.round(Number(input.manualAdjustmentUsd ?? 0) * 100) / 100;
+
+  if (!customerName) {
+    return { ok: false, error: "Customer name is required." };
+  }
+  if (!Number.isFinite(totalUsd) || totalUsd < 0) {
+    return { ok: false, error: "Enter a valid order total." };
+  }
+  if (!Number.isFinite(manualAdjustmentUsd) || manualAdjustmentUsd < 0) {
+    return { ok: false, error: "Enter a valid extra charge." };
+  }
+
+  const { data: currentOrder, error: fetchError } = await supabase
+    .from("orders")
+    .select("restaurant_id, items")
+    .eq("id", input.orderId)
+    .maybeSingle();
+
+  if (fetchError) return { ok: false, error: fetchError.message };
+  if (!currentOrder) return { ok: false, error: "Order not found or not allowed." };
+
+  const items = Array.isArray(currentOrder.items)
+    ? ([...currentOrder.items] as OrderNotificationItem[])
+    : [];
+
+  const menuAdditions = (input.menuAdditions ?? [])
+    .map((addition) => ({
+      menuItemId: addition.menuItemId,
+      name: addition.name.trim(),
+      qty: Math.round(Number(addition.qty) * 1000) / 1000,
+      unit: addition.unit === "kg" ? "kg" as const : "each" as const,
+      unitPrice: Math.round(Number(addition.unitPrice) * 100) / 100,
+    }))
+    .filter(
+      (addition) =>
+        addition.menuItemId &&
+        addition.name &&
+        Number.isFinite(addition.qty) &&
+        addition.qty > 0 &&
+        Number.isFinite(addition.unitPrice) &&
+        addition.unitPrice >= 0,
+    );
+
+  if (menuAdditions.length) {
+    const menuItemIds = [...new Set(menuAdditions.map((addition) => addition.menuItemId))];
+    const { data: menuRows, error: menuError } = await supabase
+      .from("menu_items")
+      .select("id, name")
+      .eq("restaurant_id", currentOrder.restaurant_id)
+      .in("id", menuItemIds);
+
+    if (menuError) return { ok: false, error: menuError.message };
+
+    const validMenuItems = new Map((menuRows ?? []).map((item) => [item.id, item.name]));
+    for (const addition of menuAdditions) {
+      const menuName = validMenuItems.get(addition.menuItemId);
+      if (!menuName) {
+        return { ok: false, error: "One of the selected menu items is no longer available." };
+      }
+      items.push({
+        menuItemId: addition.menuItemId,
+        name: menuName,
+        qty: addition.qty,
+        unit: addition.unit,
+        unitPrice: addition.unitPrice,
+        specialInstructions: "Added by the store from the menu.",
+      });
+    }
+  }
+
+  if (manualAdjustmentUsd > 0) {
+    items.push({
+      name: input.manualAdjustmentLabel?.trim() || "Manual order adjustment",
+      qty: 1,
+      unit: "each",
+      unitPrice: manualAdjustmentUsd,
+      specialInstructions: "Added by the store after customer request.",
+    });
+  }
+
+  const { data: updatedOrder, error: updateError } = await supabase
+    .from("orders")
+    .update({
+      customer_name: customerName,
+      customer_phone: input.customerPhone?.trim() || null,
+      delivery_address: input.deliveryAddress?.trim() || null,
+      notes: input.notes?.trim() || null,
+      payment_note: input.paymentNote?.trim() || null,
+      total_usd: totalUsd,
+      items,
+    })
+    .eq("id", input.orderId)
+    .select(RESTAURANT_ORDER_SELECT)
+    .single();
+
+  if (updateError || !updatedOrder) {
+    return { ok: false, error: updateError?.message ?? "Failed to update order." };
+  }
+
+  revalidatePath("/dashboard/business");
+  revalidatePath("/dashboard/business/orders");
+  return { ok: true, order: updatedOrder as OrderRow };
+}
+
+export async function deleteRestaurantOrderAction(
+  orderId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const supabase = await createServerSupabaseClient();
+  const { error } = await supabase.from("orders").delete().eq("id", orderId);
+
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/dashboard/business");
+  revalidatePath("/dashboard/business/orders");
+  return { ok: true };
+}
+
 export async function getRestaurantOrders(restaurantId: string): Promise<OrderRow[]> {
   const supabase = await createServerSupabaseClient();
   const { data } = await supabase
     .from("orders")
-    .select(
-      "id, customer_name, customer_phone, delivery_address, delivery_lat, delivery_lng, items, notes, payment_note, total_usd, delivery_fee_usd, delivery_speed, status, whatsapp_sent, created_at, updated_at",
-    )
+    .select(RESTAURANT_ORDER_SELECT)
     .eq("restaurant_id", restaurantId)
     .order("created_at", { ascending: false })
     .limit(200);
@@ -366,7 +574,7 @@ export async function getCustomerOrder(orderId: string): Promise<CustomerOrderRo
   const { data } = await supabase
     .from("orders")
     .select(
-      "id, restaurant_id, customer_name, customer_phone, delivery_address, delivery_lat, delivery_lng, items, notes, payment_note, total_usd, delivery_fee_usd, delivery_speed, status, whatsapp_sent, created_at, updated_at, restaurants(name, slug, is_active)",
+      "id, restaurant_id, customer_id, customer_name, customer_phone, delivery_address, delivery_lat, delivery_lng, items, notes, payment_note, expected_delivery_time, expected_delivery_time_set_at, total_usd, delivery_fee_usd, delivery_speed, scheduled_for, coupon_code, coupon_discount_usd, status, whatsapp_sent, created_at, updated_at, restaurants(name, slug, is_active)",
     )
     .eq("id", orderId)
     .eq("customer_id", user.id)
@@ -411,7 +619,7 @@ export async function getCustomerOrders(): Promise<CustomerOrderRow[]> {
   const { data } = await supabase
     .from("orders")
     .select(
-      "id, restaurant_id, customer_name, customer_phone, delivery_address, delivery_lat, delivery_lng, items, notes, payment_note, total_usd, delivery_fee_usd, delivery_speed, status, whatsapp_sent, created_at, updated_at, restaurants(name, slug, is_active)",
+      "id, restaurant_id, customer_id, customer_name, customer_phone, delivery_address, delivery_lat, delivery_lng, items, notes, payment_note, expected_delivery_time, expected_delivery_time_set_at, total_usd, delivery_fee_usd, delivery_speed, scheduled_for, coupon_code, coupon_discount_usd, status, whatsapp_sent, created_at, updated_at, restaurants(name, slug, is_active)",
     )
     .eq("customer_id", user.id)
     .order("created_at", { ascending: false })

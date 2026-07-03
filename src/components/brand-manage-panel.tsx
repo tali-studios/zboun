@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { createBrandAction } from "@/app-actions/restaurant";
 import { BrandManageRow } from "@/components/brand-manage-row";
 import { ImageUploadField } from "@/components/image-upload-field";
@@ -41,21 +41,12 @@ export function BrandManagePanel({ brands }: Props) {
   const pageStart = safePage * BRANDS_ADMIN_PAGE_SIZE;
   const pagedBrands = filteredBrands.slice(pageStart, pageStart + BRANDS_ADMIN_PAGE_SIZE);
 
-  useEffect(() => {
-    setPage(0);
-  }, [query, sort]);
-
-  useEffect(() => {
-    if (page > totalPages - 1) {
-      setPage(Math.max(0, totalPages - 1));
-    }
-  }, [page, totalPages]);
-
   const rangeStart = filteredBrands.length === 0 ? 0 : pageStart + 1;
   const rangeEnd = Math.min(pageStart + BRANDS_ADMIN_PAGE_SIZE, filteredBrands.length);
 
   function toggleNameSort() {
     setSort((prev) => (prev === "name-asc" ? "name-desc" : "name-asc"));
+    setPage(0);
   }
 
   return (
@@ -71,10 +62,10 @@ export function BrandManagePanel({ brands }: Props) {
         {BRANDS_ADMIN_PAGE_SIZE} at a time so the page stays fast — use search to find others.
       </p>
 
-      <form action={createBrandAction} className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 sm:p-5">
+      <form action={createBrandAction} className="mt-4 space-y-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 sm:p-5">
         <h3 className="text-sm font-bold text-slate-900">Add brand</h3>
-        <div className="mt-3 grid gap-4 lg:grid-cols-2">
-          <div className="space-y-3">
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="space-y-1">
             <label className="block space-y-1">
               <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Brand name</span>
               <input name="name" required placeholder="Brand name" className="ui-input" />
@@ -82,12 +73,19 @@ export function BrandManagePanel({ brands }: Props) {
             <p className="text-xs text-slate-500">
               Examples: Häagen-Dazs, Nestlé, Cadbury. Use brands to group packaged grocery items.
             </p>
-            <button type="submit" className="btn btn-success w-full rounded-xl sm:w-auto sm:min-w-[10rem]">
-              Add brand
-            </button>
           </div>
-          <ImageUploadField name="logo_file" label="Brand logo" optional />
+          <ImageUploadField name="logo_file" label="Brand logo" optional inline />
         </div>
+        <button
+          type="submit"
+          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-violet-500/25 transition hover:brightness-105 active:scale-[0.99]"
+        >
+          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+          Add brand
+        </button>
       </form>
 
       {brands.length > 0 ? (
@@ -100,7 +98,10 @@ export function BrandManagePanel({ brands }: Props) {
               id="brand-search"
               type="search"
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setPage(0);
+              }}
               placeholder="Search by brand name…"
               className="ui-input w-full max-w-full"
             />

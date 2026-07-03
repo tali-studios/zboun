@@ -53,6 +53,7 @@ function formatDateRange(promotion: MenuPromotion) {
 
 export function MenuPromotionsPanel({ promotions, sections, brands, menuItems }: Props) {
   const [scopeType, setScopeType] = useState<PromotionScope>("store");
+  const [activeNow, setActiveNow] = useState(true);
 
   const sectionById = useMemo(() => new Map(sections.map((s) => [s.id, s.name])), [sections]);
   const brandById = useMemo(() => new Map(brands.map((b) => [b.id, b.name])), [brands]);
@@ -148,18 +149,52 @@ export function MenuPromotionsPanel({ promotions, sections, brands, menuItems }:
           </label>
 
           <label className="block space-y-1">
-            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Priority</span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Priority <span className="font-normal normal-case">(higher wins when multiple sales overlap)</span>
+            </span>
             <input name="priority" type="number" defaultValue={0} className="ui-input" />
-            <span className="text-[11px] text-slate-500">Higher wins when multiple sales overlap.</span>
           </label>
 
-          <label className="flex items-center gap-2 self-end pb-2 text-sm font-medium text-slate-700">
-            <input type="checkbox" name="is_active" value="true" defaultChecked className="h-4 w-4 rounded" />
-            Active now
-          </label>
+          <div
+            className={`flex items-center justify-between gap-4 rounded-xl border px-4 py-3 md:col-span-2 transition ${
+              activeNow ? "border-emerald-300 bg-emerald-50/80" : "border-slate-200 bg-white"
+            }`}
+          >
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Status</p>
+              <p className="text-sm font-semibold text-slate-900">Active now</p>
+              <p className="text-xs text-slate-500">
+                {activeNow
+                  ? "Sale applies immediately after you create it."
+                  : "Saved as paused — you can enable it later from the list."}
+              </p>
+            </div>
+            <span className="inline-flex shrink-0 items-center">
+              <button
+                type="button"
+                role="switch"
+                aria-checked={activeNow}
+                onClick={() => setActiveNow((value) => !value)}
+                className={`inline-flex h-6 w-10 items-center rounded-full border-0 p-0 transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 ${
+                  activeNow ? "bg-emerald-500" : "bg-slate-300"
+                }`}
+              >
+                <span className="sr-only">{activeNow ? "Active" : "Paused"}</span>
+                <span
+                  className={`block h-5 w-5 rounded-full bg-white shadow transition-transform duration-200 ${
+                    activeNow ? "translate-x-[18px]" : "translate-x-0.5"
+                  }`}
+                />
+              </button>
+            </span>
+            <input type="hidden" name="is_active" value={activeNow ? "true" : "false"} />
+          </div>
         </div>
 
-        <button type="submit" className="btn btn-success mt-4 rounded-xl">
+        <button
+          type="submit"
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-violet-500/25 transition hover:brightness-105 active:scale-[0.99]"
+        >
           Create sale
         </button>
       </form>
@@ -196,17 +231,23 @@ export function MenuPromotionsPanel({ promotions, sections, brands, menuItems }:
                     <p className="mt-1 text-xs text-slate-400">{formatDateRange(promotion)}</p>
                   </div>
 
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex shrink-0 flex-wrap gap-2">
                     <form action={toggleMenuPromotionAction}>
                       <input type="hidden" name="id" value={promotion.id} />
                       <input type="hidden" name="is_active" value={promotion.is_active ? "false" : "true"} />
-                      <button type="submit" className="btn btn-secondary rounded-xl text-xs">
+                      <button
+                        type="submit"
+                        className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                      >
                         {promotion.is_active ? "Pause" : "Activate"}
                       </button>
                     </form>
                     <form action={deleteMenuPromotionAction}>
                       <input type="hidden" name="id" value={promotion.id} />
-                      <button type="submit" className="btn btn-secondary rounded-xl text-xs text-rose-700">
+                      <button
+                        type="submit"
+                        className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50"
+                      >
                         Delete
                       </button>
                     </form>

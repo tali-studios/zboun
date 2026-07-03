@@ -11,6 +11,8 @@ type Props = {
   optional?: boolean;
   /** Tighter layout for inline brand rows in admin tables. */
   compact?: boolean;
+  /** Form-field layout that visually matches text inputs. */
+  inline?: boolean;
   /** Associate file input with a form elsewhere (e.g. table row). */
   formId?: string;
   /** Accessible name when label is hidden. */
@@ -23,6 +25,7 @@ export function ImageUploadField({
   initialImageUrl = null,
   optional = false,
   compact = false,
+  inline = false,
   formId,
   uploadAriaLabel,
 }: Props) {
@@ -57,7 +60,7 @@ export function ImageUploadField({
   }
 
   return (
-    <div className={compact ? "space-y-1.5" : "space-y-2"}>
+    <div className={compact ? "space-y-1.5" : inline ? "space-y-1" : "space-y-2"}>
       {label ? (
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           {label}
@@ -78,6 +81,10 @@ export function ImageUploadField({
             ? `flex-col items-center gap-2 rounded-xl border border-dashed p-2.5 text-center ${
                 isDragging ? "border-violet-500 bg-violet-50" : "border-slate-200 bg-slate-50/80"
               }`
+            : inline
+              ? `min-h-[3rem] items-center gap-3 rounded-xl border px-3 py-2 shadow-sm ${
+                  isDragging ? "border-violet-400 bg-violet-50 ring-2 ring-violet-100" : "border-slate-200 bg-white"
+                }`
             : `items-center gap-3 rounded-xl border-2 border-dashed p-3 ${
                 isDragging ? "border-violet-500 bg-violet-50" : "border-slate-300 bg-white"
               }`
@@ -92,6 +99,8 @@ export function ImageUploadField({
             className={
               compact
                 ? "h-14 w-full max-w-[7rem] rounded-lg object-contain"
+                : inline
+                  ? "h-10 w-10 rounded-lg object-cover ring-1 ring-slate-200"
                 : "h-16 w-16 rounded-lg object-cover"
             }
             unoptimized
@@ -101,21 +110,33 @@ export function ImageUploadField({
             className={
               compact
                 ? "flex h-14 w-full max-w-[7rem] items-center justify-center rounded-lg bg-white text-[10px] text-slate-400 ring-1 ring-slate-200"
+                : inline
+                  ? "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-[10px] font-medium text-slate-400 ring-1 ring-slate-200"
                 : "flex h-16 w-16 items-center justify-center rounded-lg bg-slate-100 text-xs text-slate-500"
             }
           >
-            {compact ? "No logo" : "No image"}
+            {compact || inline ? "No logo" : "No image"}
           </div>
         )}
 
-        <div className={compact ? "min-w-0 px-1" : "min-w-0"}>
-          <p className={compact ? "text-[11px] font-semibold text-slate-700" : "text-sm font-semibold text-slate-800"}>
-            {compact ? "Click to change logo" : "Drag & drop or click to upload"}
+        <div className={compact ? "min-w-0 px-1" : "min-w-0 flex-1"}>
+          <p
+            className={
+              compact
+                ? "text-[11px] font-semibold text-slate-700"
+                : inline
+                  ? "truncate text-sm font-semibold text-slate-700"
+                  : "text-sm font-semibold text-slate-800"
+            }
+          >
+            {compact ? "Click to change logo" : inline ? "Click to upload brand logo" : "Drag & drop or click to upload"}
           </p>
-          {!compact ? (
+          {!compact && !inline ? (
             <p className="text-xs text-slate-500">PNG/JPG/WebP, max 5MB</p>
           ) : (
-            <p className="text-[10px] text-slate-400">PNG/JPG · 5MB max</p>
+            <p className={inline ? "text-xs text-slate-500" : "text-[10px] text-slate-400"}>
+              PNG/JPG/WebP · 5MB max
+            </p>
           )}
           {file ? (
             <p className={`mt-0.5 truncate text-violet-700 ${compact ? "text-[10px]" : "text-xs"}`}>{file.name}</p>

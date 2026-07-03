@@ -245,7 +245,10 @@ export function RestaurantHoursPanel({ openingHours, isTemporarilyClosed }: Prop
           </table>
         </div>
 
-        <button type="submit" className="btn btn-primary w-full rounded-full sm:w-auto">
+        <button
+          type="submit"
+          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-violet-500/25 transition hover:brightness-105 active:scale-[0.99]"
+        >
           Save opening hours
         </button>
       </form>

@@ -741,7 +741,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
           </div>
 
           <div className="bg-slate-50/60 p-5">
-            <StoreSettingsSubmitButton className="btn btn-primary w-full rounded-xl sm:w-auto">
+            <StoreSettingsSubmitButton className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-violet-500/25 transition hover:brightness-105 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70">
               Save store &amp; delivery settings
             </StoreSettingsSubmitButton>
           </div>
@@ -854,7 +854,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                 Add {itemProfile.isFoodLike ? "menu item" : "store item"}
               </h2>
               <p className="mt-0.5 text-xs text-slate-500">
-                Fill in the essentials, then expand optional sections for more detail — fields below match your store's categories.
+                Fill in the essentials, then expand optional sections for more detail — fields below match your store&apos;s categories.
               </p>
             </div>
             <div className="flex shrink-0 flex-wrap justify-end gap-1.5">

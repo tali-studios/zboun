@@ -28,27 +28,24 @@ function ToggleSwitch({
   activeClass: string;
 }) {
   return (
-    <span className="relative inline-flex shrink-0 items-center">
-      <input
-        type="checkbox"
-        name={name}
-        value="true"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        className="peer sr-only"
-      />
-      <span
-        className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors ${
+    <span className="inline-flex shrink-0 items-center">
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        onClick={() => onChange(!checked)}
+        className={`inline-flex h-6 w-10 items-center rounded-full border-0 p-0 transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 ${
           checked ? activeClass : "bg-slate-200"
         }`}
-        aria-hidden
       >
+        <span className="sr-only">{checked ? "On" : "Off"}</span>
         <span
-          className={`block h-5 w-5 rounded-full bg-white shadow transition-transform ${
+          className={`block h-5 w-5 rounded-full bg-white shadow transition-transform duration-200 ${
             checked ? "translate-x-[18px]" : "translate-x-0.5"
           }`}
         />
-      </span>
+      </button>
+      {checked ? <input type="hidden" name={name} value="true" /> : null}
     </span>
   );
 }

@@ -105,7 +105,7 @@ export function MenuCouponCodesPanel({ coupons }: Props) {
         <input type="hidden" name="is_active" value="true" />
         <button
           type="submit"
-          className="rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700"
+          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-violet-500/25 transition hover:brightness-105 active:scale-[0.99]"
         >
           Create coupon
         </button>
