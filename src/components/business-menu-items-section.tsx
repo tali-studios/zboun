@@ -401,17 +401,19 @@ export function BusinessMenuItemsSection({
                                 <div className="md:col-span-2">
                                   <ImageUploadField name="image_file" initialImageUrl={item.image_url} label="Update image" optional />
                                 </div>
-                                <div className="md:col-span-2 border-t border-slate-100 pt-1">
+                                <div className="md:col-span-2 space-y-2 border-t border-slate-100 pt-3">
                                   <button type="submit" className="btn btn-primary w-full rounded-xl py-3">
                                     Save changes
                                   </button>
+                                  <label
+                                    htmlFor={`edit-${item.id}`}
+                                    title="Close"
+                                    className="btn btn-danger w-full cursor-pointer"
+                                  >
+                                    Close
+                                  </label>
                                 </div>
                               </form>
-                              <div className="mt-3 flex justify-end border-t border-slate-100 pt-3">
-                                <label htmlFor={`edit-${item.id}`} title="Close" className="inline-flex cursor-pointer rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-                                  Close
-                                </label>
-                              </div>
                             </div>
                           </div>
                         </div>

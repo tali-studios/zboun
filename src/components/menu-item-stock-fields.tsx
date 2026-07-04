@@ -62,16 +62,12 @@ export function MenuItemStockFields({
           type="button"
           onClick={() => setTrackStock((v) => !v)}
           aria-pressed={trackStock}
-          className={`relative h-6 w-11 shrink-0 rounded-full transition-colors duration-200 focus:outline-none ${
-            trackStock ? "bg-violet-600" : "bg-slate-300"
+          className={`relative inline-flex h-7 w-12 shrink-0 items-center overflow-hidden rounded-full p-0.5 transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2 ${
+            trackStock ? "bg-violet-600 justify-end" : "bg-slate-300 justify-start"
           }`}
         >
           <span className="sr-only">{trackStock ? "Disable" : "Enable"} stock tracking</span>
-          <span
-            className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-200 ${
-              trackStock ? "translate-x-[22px]" : "translate-x-0.5"
-            }`}
-          />
+          <span className="pointer-events-none h-6 w-6 shrink-0 rounded-full bg-white shadow" />
         </button>
       </div>
 

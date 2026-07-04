@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { getStorefrontActionLabels } from "@/lib/browse-sections";
 import { MenuFlyerCard } from "@/components/menu-flyer-card";
 import { StoreAdminHeader } from "@/components/store-admin-header";
 import { getCurrentUserRole } from "@/lib/data";
@@ -22,8 +21,6 @@ export default async function RestaurantFlyerPage() {
     .eq("id", appUser.restaurant_id)
     .single();
 
-  const storefrontLabels = getStorefrontActionLabels(header.browseSections);
-
   return (
     <main className="flyer-print-page min-h-screen overflow-x-hidden bg-[#f8f8ff] px-3 py-4 sm:p-8">
       <div className="flyer-print-wrap mx-auto w-full min-w-0 max-w-7xl space-y-5">
@@ -45,7 +42,6 @@ export default async function RestaurantFlyerPage() {
           menuUrl={header.menuUrl}
           restaurantName={header.restaurantName}
           logoUrl={restaurant?.logo_url ?? null}
-          openLinkLabel={storefrontLabels.open}
           themeColor={restaurant?.menu_theme_color ?? null}
         />
       </div>

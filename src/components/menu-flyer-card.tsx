@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { toPng } from "html-to-image";
 import { jsPDF } from "jspdf";
+import { Download, FileDown, Printer } from "lucide-react";
 import QRCode from "qrcode";
 import { resolveMenuTheme, type MenuTheme } from "@/lib/menu-theme";
 
@@ -10,7 +11,6 @@ type Props = {
   menuUrl: string;
   restaurantName: string;
   logoUrl: string | null;
-  openLinkLabel?: string;
   themeColor?: string | null;
 };
 
@@ -353,7 +353,7 @@ function FlyerDesign({ restaurantName, logoUrl, menuUrl, qrDataUrl, isLoading, t
 
 // ─── Main exported card ───────────────────────────────────────────────────────
 
-export function MenuFlyerCard({ menuUrl, restaurantName, logoUrl, openLinkLabel = "Open store", themeColor }: Props) {
+export function MenuFlyerCard({ menuUrl, restaurantName, logoUrl, themeColor }: Props) {
   const theme = resolveMenuTheme(themeColor);
   const [qrDataUrl, setQrDataUrl] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -410,29 +410,33 @@ export function MenuFlyerCard({ menuUrl, restaurantName, logoUrl, openLinkLabel 
     <>
       {/* ── Toolbar ─────────────────────────────────────────────────────────── */}
       <div className="mx-auto mb-4 w-full max-w-full print:hidden lg:w-[210mm]">
-        <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1 lg:overflow-visible lg:pb-0">
-          <button type="button" className="btn btn-primary shrink-0" onClick={() => window.print()}>
-          Print A4 flyer
-        </button>
-        <button
-          type="button"
-          className="btn btn-primary shrink-0 disabled:opacity-60"
-          onClick={downloadFlyerAsPng}
-          disabled={isLoading || isExporting}
-        >
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3">
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-violet-600 px-4 py-3 text-sm font-semibold text-white shadow-sm shadow-violet-400/25 transition hover:bg-violet-700"
+          >
+            <Printer className="h-4 w-4 shrink-0" aria-hidden />
+            Print A4 flyer
+          </button>
+          <button
+            type="button"
+            onClick={downloadFlyerAsPng}
+            disabled={isLoading || isExporting}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-sm shadow-emerald-400/25 transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <Download className="h-4 w-4 shrink-0" aria-hidden />
             {isExporting ? "Preparing…" : "Download PNG"}
-        </button>
-        <button
-          type="button"
-          className="btn btn-primary shrink-0 disabled:opacity-60"
-          onClick={downloadFlyerAsPdf}
-          disabled={isLoading || isExporting}
-        >
+          </button>
+          <button
+            type="button"
+            onClick={downloadFlyerAsPdf}
+            disabled={isLoading || isExporting}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-3 text-sm font-semibold text-white shadow-sm shadow-amber-400/25 transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <FileDown className="h-4 w-4 shrink-0" aria-hidden />
             {isExporting ? "Preparing…" : "Download PDF"}
-        </button>
-        <a href={menuUrl} target="_blank" rel="noreferrer" className="btn btn-primary shrink-0">
-            {openLinkLabel}
-          </a>
+          </button>
         </div>
       </div>
 

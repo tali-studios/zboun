@@ -3,7 +3,6 @@ import {
   formatNextDueLine,
   formatSubscriptionStatus,
   isSubscriptionPastDue,
-  subscriptionStatusBadgeClass,
 } from "@/lib/subscription-display";
 import { hasComplimentaryAccess } from "@/lib/complimentary-billing";
 import {
@@ -69,56 +68,64 @@ export function BusinessBillingPanel({
 
   return (
     <div className="space-y-6">
-      <section className="panel rounded-2xl p-5">
-        <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">Billing overview</h2>
-        <p className="mt-2 text-sm text-slate-600">
-          {billingExempt
-            ? "Your Zboun account is on a complimentary lifetime plan."
-            : timedComplimentary
-              ? "Your Zboun account is on a complimentary plan for a limited time."
-              : "Subscription and invoices for your Zboun account. Contact us to renew or update your plan."}
-        </p>
-      </section>
-
       <ZbounContactOptions variant="billing" restaurantName={restaurantName} />
 
-      <section className="panel rounded-2xl p-5">
-        <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">Service agreement</h2>
-        <p className="mt-2 text-sm text-slate-600">
-          Download your Zboun Restaurant Platform Service Agreement, sign it, and return a copy to us
-          to keep on file.
-        </p>
-        <a
-          href="/api/contract"
-          className="mt-4 inline-flex items-center justify-center rounded-full border border-violet-200 bg-violet-50 px-5 py-2.5 text-sm font-bold text-violet-800 transition hover:border-violet-400 hover:bg-violet-100"
-        >
-          Download contract (PDF)
-        </a>
-      </section>
-
-      <section className="panel rounded-2xl p-5">
+      <section className="panel rounded-2xl p-5 sm:p-6">
         <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">Account status</h2>
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          <span
-            className={`rounded-full px-3 py-1 text-xs font-semibold ${
-              isActive ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"
+        <div className={`mt-4 grid gap-3 ${subscription ? "sm:grid-cols-2" : "grid-cols-1"}`}>
+          <div
+            className={`rounded-2xl border px-5 py-4 ${
+              isActive
+                ? "border-emerald-200 bg-emerald-50"
+                : "border-red-200 bg-red-50"
             }`}
           >
-            {isActive ? "Active" : "Deactivated"}
-          </span>
-          {subscription ? (
-            <span
-              className={`rounded-full px-3 py-1 text-xs font-semibold ${subscriptionStatusBadgeClass(
-                subscription.status,
-                pastDue,
-              )}`}
+            <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Store</p>
+            <p
+              className={`mt-1.5 text-lg font-bold sm:text-xl ${
+                isActive ? "text-emerald-800" : "text-red-800"
+              }`}
             >
-              {billingExempt
-                ? "Lifetime free"
-                : timedComplimentary
-                  ? "Complimentary"
-                  : formatSubscriptionStatus(subscription.status)}
-            </span>
+              {isActive ? "Active" : "Deactivated"}
+            </p>
+          </div>
+          {subscription ? (
+            <div
+              className={`rounded-2xl border px-5 py-4 ${
+                pastDue || subscription.status === "overdue"
+                  ? "border-red-200 bg-red-50"
+                  : subscription.status === "active" ||
+                      subscription.status === "trial" ||
+                      billingExempt ||
+                      timedComplimentary
+                    ? "border-emerald-200 bg-emerald-50"
+                    : subscription.status === "paused"
+                      ? "border-amber-200 bg-amber-50"
+                      : "border-slate-200 bg-slate-50"
+              }`}
+            >
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Plan</p>
+              <p
+                className={`mt-1.5 text-lg font-bold sm:text-xl ${
+                  pastDue || subscription.status === "overdue"
+                    ? "text-red-800"
+                    : subscription.status === "active" ||
+                        subscription.status === "trial" ||
+                        billingExempt ||
+                        timedComplimentary
+                      ? "text-emerald-800"
+                      : subscription.status === "paused"
+                        ? "text-amber-800"
+                        : "text-slate-700"
+                }`}
+              >
+                {billingExempt
+                  ? "Lifetime free"
+                  : timedComplimentary
+                    ? "Complimentary"
+                    : formatSubscriptionStatus(subscription.status)}
+              </p>
+            </div>
           ) : null}
         </div>
         {!isActive && !billingExempt ? (
