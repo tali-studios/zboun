@@ -285,13 +285,13 @@ export function RestaurantDriversPanel({
         </div>
       ) : null}
 
-      <section className="rounded-2xl border border-violet-100 bg-violet-50/40 p-4 sm:p-5">
+      <section className="rounded-2xl border border-violet-100 bg-white p-4 sm:p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="text-sm font-bold text-slate-900">Driver performance</h2>
             <p className="mt-1 text-xs text-slate-500">{range.label} from the latest loaded menu orders.</p>
           </div>
-          <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600">
+          <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600">
             {unassignedOrders} unassigned
           </span>
         </div>
