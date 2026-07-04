@@ -286,7 +286,7 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
       coupon_code_id: couponCodeId,
   };
 
-  const { data: order, error: insertError } = await insertClient.from("orders").insert(orderInsert).select("id").single();
+  const { data: order, error: insertError } = await insertClient.from("orders").insert(orderInsert).select("id, created_at").single();
 
   if (!insertError && couponCodeId && serviceClient) {
     const { data: redeemed, error: redeemError } = await serviceClient.rpc("increment_menu_coupon_usage", {
@@ -343,6 +343,7 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
     paymentNote: input.paymentNote?.trim() || null,
     couponCode: couponCodeStored,
     couponDiscountUsd: couponDiscountUsd > 0 ? couponDiscountUsd : null,
+    placedAt: order.created_at,
   };
 
   // Fire-and-forget email notification

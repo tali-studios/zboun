@@ -1,4 +1,5 @@
 import { sendMail, isSmtpConfigured } from "@/lib/mail";
+import { RESTAURANT_TIMEZONE } from "@/lib/opening-hours";
 
 export type OrderNotificationItem = {
   menuItemId?: string | null;
@@ -31,7 +32,24 @@ export type OrderNotificationParams = {
   paymentNote?: string | null;
   couponCode?: string | null;
   couponDiscountUsd?: number | null;
+  placedAt?: string | Date | null;
 };
+
+function formatOrderPlacedAt(placedAt?: string | Date | null): string {
+  const date = placedAt ? new Date(placedAt) : new Date();
+  return date.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: RESTAURANT_TIMEZONE,
+  });
+}
+
+function formatOrderPlacedAtLong(placedAt?: string | Date | null): string {
+  const date = placedAt ? new Date(placedAt) : new Date();
+  return date.toLocaleString("en-US", {
+    timeZone: RESTAURANT_TIMEZONE,
+  });
+}
 
 function formatQty(unit: "each" | "kg", qty: number): string {
   if (unit === "kg") {
@@ -81,7 +99,7 @@ export function buildOrderPlainText(p: OrderNotificationParams): string {
     ...(p.paymentNote ? [`💵 Payment: ${p.paymentNote}`] : []),
     ...(p.notes ? [`📝 Notes: ${p.notes}`] : []),
     ``,
-    `⏰ Placed at: ${new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`,
+    `⏰ Placed at: ${formatOrderPlacedAt(p.placedAt)}`,
   ];
   return lines.join("\n");
 }
@@ -154,7 +172,7 @@ function buildOrderEmailHtml(p: OrderNotificationParams): string {
     ${p.notes ? `<p style="margin:16px 0 0"><strong>📝 Notes:</strong> ${p.notes}</p>` : ""}
   </td></tr>
   <tr><td style="padding:0 28px 24px;color:#71717a;font-size:13px">
-    Order placed at ${new Date().toLocaleString("en-US")} &bull; Zboun
+    Order placed at ${formatOrderPlacedAtLong(p.placedAt)} &bull; Zboun
   </td></tr>
 </table>
 </td></tr>
