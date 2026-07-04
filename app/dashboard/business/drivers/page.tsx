@@ -1,26 +1,30 @@
 import { redirect } from "next/navigation";
 import { getRestaurantDrivers } from "@/app-actions/drivers";
-import { getCurrentUserRole, getRestaurantMenu } from "@/lib/data";
-import { getRestaurantOrderDefaultEtaLabel, getRestaurantOrders } from "@/app-actions/orders";
-import { RestaurantOrdersPanel } from "@/components/restaurant-orders-panel";
+import { getRestaurantOrders } from "@/app-actions/orders";
+import { RestaurantDriversPanel } from "@/components/restaurant-drivers-panel";
 import { StoreAdminHeader } from "@/components/store-admin-header";
+import { getCurrentUserRole } from "@/lib/data";
 import { loadStoreAdminHeaderContext } from "@/lib/store-admin-header-context";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-export default async function RestaurantOrdersPage() {
+type Props = {
+  searchParams: Promise<{ error?: string }>;
+};
+
+export default async function RestaurantDriversPage({ searchParams }: Props) {
   const appUser = await getCurrentUserRole();
   if (!appUser || appUser.role !== "restaurant_admin" || !appUser.restaurant_id) {
     redirect("/dashboard/login");
   }
 
+  const { error } = await searchParams;
+
   const supabase = await createServerSupabaseClient();
-  const [orders, defaultDeliveryTimeLabel, menuCategories, drivers, header] = await Promise.all([
-    getRestaurantOrders(appUser.restaurant_id),
-    getRestaurantOrderDefaultEtaLabel(appUser.restaurant_id),
-    getRestaurantMenu(appUser.restaurant_id),
+  const [drivers, orders, header] = await Promise.all([
     getRestaurantDrivers(appUser.restaurant_id),
+    getRestaurantOrders(appUser.restaurant_id),
     loadStoreAdminHeaderContext(supabase, appUser.restaurant_id),
   ]);
 
@@ -34,21 +38,17 @@ export default async function RestaurantOrdersPage() {
           browseSections={header.browseSections}
           menuUrl={header.menuUrl}
           driverManagementEnabled={header.driverManagementEnabled}
-          currentPage="orders"
-          title="Orders"
-          subtitle="Real-time order management"
+          currentPage="drivers"
+          title="Drivers"
+          subtitle={`Create drivers, assign orders, and track delivery counts for ${header.restaurantName}.`}
         />
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <RestaurantOrdersPanel
-            initialOrders={orders}
-            restaurantId={appUser.restaurant_id}
-            defaultDeliveryTimeLabel={defaultDeliveryTimeLabel}
-            menuCategories={menuCategories}
-            drivers={drivers}
-            driverManagementEnabled={header.driverManagementEnabled}
-          />
-        </div>
+        <RestaurantDriversPanel
+          drivers={drivers}
+          orders={orders}
+          driverManagementEnabled={header.driverManagementEnabled}
+          errorCode={error ?? null}
+        />
       </div>
     </main>
   );

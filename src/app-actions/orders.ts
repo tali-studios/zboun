@@ -81,6 +81,11 @@ export type OrderExpectedDeliveryTimeUpdate = {
   expectedDeliveryTime: string;
 };
 
+export type OrderDriverAssignmentUpdate = {
+  orderId: string;
+  driverId: string | null;
+};
+
 export type OrderRow = {
   id: string;
   customer_id: string | null;
@@ -100,6 +105,8 @@ export type OrderRow = {
   scheduled_for: string | null;
   coupon_code: string | null;
   coupon_discount_usd: number;
+  driver_id: string | null;
+  driver_assigned_at: string | null;
   status: string;
   whatsapp_sent: boolean;
   created_at: string;
@@ -361,6 +368,36 @@ export async function updateOrderStatusAction(input: OrderStatusUpdate): Promise
     updatePayload.expected_delivery_time_set_at = new Date().toISOString();
   }
 
+  if (input.status === "confirmed") {
+    const { data: order } = await supabase
+      .from("orders")
+      .select("restaurant_id, driver_id")
+      .eq("id", input.orderId)
+      .maybeSingle();
+
+    if (order && !order.driver_id) {
+      const { data: restaurant } = await supabase
+        .from("restaurants")
+        .select("driver_management_enabled")
+        .eq("id", order.restaurant_id)
+        .maybeSingle();
+
+      if (restaurant?.driver_management_enabled) {
+        const { data: activeDrivers } = await supabase
+          .from("restaurant_drivers")
+          .select("id")
+          .eq("restaurant_id", order.restaurant_id)
+          .eq("is_active", true)
+          .limit(2);
+
+        if ((activeDrivers ?? []).length === 1) {
+          updatePayload.driver_id = activeDrivers?.[0]?.id;
+          updatePayload.driver_assigned_at = new Date().toISOString();
+        }
+      }
+    }
+  }
+
   const { error } = await supabase
     .from("orders")
     .update(updatePayload)
@@ -372,8 +409,60 @@ export async function updateOrderStatusAction(input: OrderStatusUpdate): Promise
   return { ok: true };
 }
 
+export async function assignRestaurantOrderDriverAction(
+  input: OrderDriverAssignmentUpdate,
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createServerSupabaseClient();
+  const { data: order, error: orderError } = await supabase
+    .from("orders")
+    .select("restaurant_id")
+    .eq("id", input.orderId)
+    .maybeSingle();
+
+  if (orderError) return { ok: false, error: orderError.message };
+  if (!order) return { ok: false, error: "Order not found or not allowed." };
+
+  const { data: restaurant } = await supabase
+    .from("restaurants")
+    .select("driver_management_enabled")
+    .eq("id", order.restaurant_id)
+    .maybeSingle();
+
+  if (!restaurant?.driver_management_enabled) {
+    return { ok: false, error: "Driver management is disabled for this store." };
+  }
+
+  const driverId = input.driverId?.trim() || null;
+  if (driverId) {
+    const { data: driver, error: driverError } = await supabase
+      .from("restaurant_drivers")
+      .select("id")
+      .eq("id", driverId)
+      .eq("restaurant_id", order.restaurant_id)
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (driverError) return { ok: false, error: driverError.message };
+    if (!driver) return { ok: false, error: "Choose an active driver for this store." };
+  }
+
+  const { error } = await supabase
+    .from("orders")
+    .update({
+      driver_id: driverId,
+      driver_assigned_at: driverId ? new Date().toISOString() : null,
+    })
+    .eq("id", input.orderId);
+
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/dashboard/business/orders");
+  revalidatePath("/dashboard/business/drivers");
+  return { ok: true };
+}
+
 const RESTAURANT_ORDER_SELECT =
-  "id, customer_id, customer_name, customer_phone, delivery_address, delivery_lat, delivery_lng, items, notes, payment_note, expected_delivery_time, expected_delivery_time_set_at, total_usd, delivery_fee_usd, delivery_speed, scheduled_for, coupon_code, coupon_discount_usd, status, whatsapp_sent, created_at, updated_at";
+  "id, customer_id, customer_name, customer_phone, delivery_address, delivery_lat, delivery_lng, items, notes, payment_note, expected_delivery_time, expected_delivery_time_set_at, total_usd, delivery_fee_usd, delivery_speed, scheduled_for, coupon_code, coupon_discount_usd, driver_id, driver_assigned_at, status, whatsapp_sent, created_at, updated_at";
 
 export async function getRestaurantOrderDefaultEtaLabel(restaurantId: string): Promise<string | null> {
   const supabase = await createServerSupabaseClient();
@@ -574,7 +663,7 @@ export async function getCustomerOrder(orderId: string): Promise<CustomerOrderRo
   const { data } = await supabase
     .from("orders")
     .select(
-      "id, restaurant_id, customer_id, customer_name, customer_phone, delivery_address, delivery_lat, delivery_lng, items, notes, payment_note, expected_delivery_time, expected_delivery_time_set_at, total_usd, delivery_fee_usd, delivery_speed, scheduled_for, coupon_code, coupon_discount_usd, status, whatsapp_sent, created_at, updated_at, restaurants(name, slug, is_active)",
+      "id, restaurant_id, customer_id, customer_name, customer_phone, delivery_address, delivery_lat, delivery_lng, items, notes, payment_note, expected_delivery_time, expected_delivery_time_set_at, total_usd, delivery_fee_usd, delivery_speed, scheduled_for, coupon_code, coupon_discount_usd, driver_id, driver_assigned_at, status, whatsapp_sent, created_at, updated_at, restaurants(name, slug, is_active)",
     )
     .eq("id", orderId)
     .eq("customer_id", user.id)

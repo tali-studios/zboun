@@ -24,9 +24,13 @@ export function CopyMenuLinkButton({ url, label = "Copy menu link" }: Props) {
     <button
       type="button"
       onClick={onCopy}
-      className="btn border border-white/50 text-white"
+      className={`btn rounded-full border shadow-sm transition ${
+        copied
+          ? "border-emerald-300/60 bg-emerald-500 text-white hover:bg-emerald-400"
+          : "border-sky-300/60 bg-sky-500 text-white hover:bg-sky-400"
+      }`}
     >
-      {copied ? "Copied" : label}
+      {copied ? "Copied!" : label}
     </button>
   );
 }

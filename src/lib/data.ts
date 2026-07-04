@@ -139,15 +139,16 @@ type RestaurantRowCore = {
   longitude?: number | null;
   menu_theme_color?: string | null;
   allow_guest_checkout?: boolean;
+  driver_management_enabled?: boolean;
 };
 
 export async function getRestaurantBySlug(slug: string): Promise<RestaurantForMenuPage | null> {
   const supabase = await createServerSupabaseClient();
   const fullSelect =
-    "id, name, slug, phone, logo_url, banner_url, description, lbp_rate, is_active, browse_sections, location, eta_label, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd, delivery_radius_km, latitude, longitude, menu_theme_color, allow_guest_checkout";
+    "id, name, slug, phone, logo_url, banner_url, description, lbp_rate, is_active, browse_sections, location, eta_label, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd, delivery_radius_km, latitude, longitude, menu_theme_color, allow_guest_checkout, driver_management_enabled";
   let { data, error } = await supabase.from("restaurants").select(fullSelect).eq("slug", slug).single();
 
-  if (error && /allow_guest_checkout/i.test(error.message ?? "")) {
+  if (error && /(allow_guest_checkout|driver_management_enabled)/i.test(error.message ?? "")) {
     const retry = await supabase
       .from("restaurants")
       .select(
@@ -155,7 +156,7 @@ export async function getRestaurantBySlug(slug: string): Promise<RestaurantForMe
       )
       .eq("slug", slug)
       .single();
-    data = retry.data ? { ...retry.data, allow_guest_checkout: false } : null;
+    data = retry.data ? { ...retry.data, allow_guest_checkout: false, driver_management_enabled: false } : null;
     error = retry.error;
   }
 

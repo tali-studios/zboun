@@ -1,8 +1,9 @@
-import Link from "next/link";
-import { getStorefrontActionLabels, STORE_ADMIN_LABEL } from "@/lib/browse-sections";
 import { redirect } from "next/navigation";
+import { getStorefrontActionLabels } from "@/lib/browse-sections";
 import { MenuFlyerCard } from "@/components/menu-flyer-card";
+import { StoreAdminHeader } from "@/components/store-admin-header";
 import { getCurrentUserRole } from "@/lib/data";
+import { loadStoreAdminHeaderContext } from "@/lib/store-admin-header-context";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -14,32 +15,35 @@ export default async function RestaurantFlyerPage() {
   }
 
   const supabase = await createServerSupabaseClient();
+  const header = await loadStoreAdminHeaderContext(supabase, appUser.restaurant_id);
   const { data: restaurant } = await supabase
     .from("restaurants")
-    .select("name, slug, logo_url, browse_sections, menu_theme_color")
+    .select("logo_url, menu_theme_color")
     .eq("id", appUser.restaurant_id)
     .single();
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  const menuUrl = `${appUrl.replace(/\/+$/, "")}/${restaurant?.slug ?? ""}`;
-  const storefrontLabels = getStorefrontActionLabels(restaurant?.browse_sections);
+  const storefrontLabels = getStorefrontActionLabels(header.browseSections);
 
   return (
     <main className="flyer-print-page min-h-screen overflow-x-hidden bg-[#f8f8ff] px-3 py-4 sm:p-8">
       <div className="flyer-print-wrap mx-auto w-full min-w-0 max-w-6xl space-y-6">
-        <header className="panel flex flex-wrap items-center justify-between gap-3 rounded-2xl p-5 print:hidden">
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-widest text-violet-600">{STORE_ADMIN_LABEL}</p>
-            <h1 className="mt-1 text-2xl font-bold text-slate-900">Print flyer (A4)</h1>
-          </div>
-          <Link href="/dashboard/business" className="btn btn-secondary">
-            ← Dashboard
-          </Link>
-        </header>
+        <div className="print:hidden">
+          <StoreAdminHeader
+            restaurantName={header.restaurantName}
+            categoryLabel={header.categoryLabel}
+            slug={header.slug}
+            browseSections={header.browseSections}
+            menuUrl={header.menuUrl}
+            driverManagementEnabled={header.driverManagementEnabled}
+            currentPage="flyer"
+            title="Print flyer (A4)"
+            subtitle="Download or print a flyer with your store QR code."
+          />
+        </div>
 
         <MenuFlyerCard
-          menuUrl={menuUrl}
-          restaurantName={restaurant?.name ?? "Store"}
+          menuUrl={header.menuUrl}
+          restaurantName={header.restaurantName}
           logoUrl={restaurant?.logo_url ?? null}
           openLinkLabel={storefrontLabels.open}
           themeColor={restaurant?.menu_theme_color ?? null}

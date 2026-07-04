@@ -4,12 +4,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient as createBrowserSupabaseClient } from "@/lib/supabase/client";
 import {
+  assignRestaurantOrderDriverAction,
   deleteRestaurantOrderAction,
   updateOrderExpectedDeliveryTimeAction,
   updateOrderStatusAction,
   updateRestaurantOrderAction,
   type OrderRow,
 } from "@/app-actions/orders";
+import type { RestaurantDriver } from "@/app-actions/drivers";
 import type { CategoryWithItems } from "@/lib/data";
 
 const STATUS_META: Record<
@@ -332,6 +334,8 @@ type Props = {
   restaurantId: string;
   defaultDeliveryTimeLabel: string | null;
   menuCategories: CategoryWithItems[];
+  drivers?: RestaurantDriver[];
+  driverManagementEnabled?: boolean;
 };
 
 type EditOrderForm = {
@@ -390,8 +394,12 @@ export function RestaurantOrdersPanel({
   restaurantId,
   defaultDeliveryTimeLabel,
   menuCategories,
+  drivers = [],
+  driverManagementEnabled = false,
 }: Props) {
   const router = useRouter();
+  const driverById = useMemo(() => new Map(drivers.map((driver) => [driver.id, driver])), [drivers]);
+  const activeDrivers = useMemo(() => drivers.filter((driver) => driver.is_active), [drivers]);
   const initiallySelected =
     initialOrders.find((o) => o.status === "pending") ?? initialOrders[0] ?? null;
   const [orders, setOrders] = useState<OrderRow[]>(initialOrders);
@@ -545,6 +553,35 @@ export function RestaurantOrdersPanel({
     setUpdatingKey(null);
   }
 
+  async function handleAssignDriver(order: OrderRow, driverId: string | null) {
+    const key = `${order.id}:driver`;
+    setOrderActionKey(key);
+    setOrderActionError(null);
+
+    const snapshot = ordersRef.current;
+    const updated = snapshot.map((current) =>
+      current.id === order.id
+        ? {
+            ...current,
+            driver_id: driverId,
+            driver_assigned_at: driverId ? new Date().toISOString() : null,
+          }
+        : current,
+    );
+    ordersRef.current = updated;
+    setOrders(updated);
+
+    const result = await assignRestaurantOrderDriverAction({ orderId: order.id, driverId });
+    if (!result.ok) {
+      ordersRef.current = snapshot;
+      setOrders(snapshot);
+      setOrderActionError(result.error ?? "Failed to assign driver");
+    } else {
+      router.refresh();
+    }
+    setOrderActionKey(null);
+  }
+
   async function handleSaveDeliveryEta(order: OrderRow) {
     const expectedDeliveryTime = deliveryEtaText.trim();
     if (!expectedDeliveryTime) {
@@ -696,6 +733,7 @@ export function RestaurantOrdersPanel({
   const filteredOrders = useMemo(
     () =>
       periodOrders.filter((o) => {
+        if (statusFilter === "all") return true;
         if (statusFilter === "active") {
           return !["delivered", "cancelled"].includes(o.status);
         }
@@ -849,6 +887,7 @@ export function RestaurantOrdersPanel({
         </div>
         <div className="flex flex-wrap gap-1">
           {[
+            { key: "all", label: "All" },
             { key: "active", label: "Active" },
             { key: "pending", label: "Pending" },
             { key: "preparing", label: "Preparing" },
@@ -1133,6 +1172,11 @@ export function RestaurantOrdersPanel({
                             ETA {order.expected_delivery_time}
                           </span>
                         ) : null}
+                        {driverManagementEnabled && order.driver_id ? (
+                          <span className="ml-1.5 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">
+                            {driverById.get(order.driver_id)?.full_name ?? "Driver"}
+                          </span>
+                        ) : null}
                       </p>
                     </div>
                     <div className="shrink-0 text-right">
@@ -1210,6 +1254,41 @@ export function RestaurantOrdersPanel({
                 </a>
               ) : null}
             </div>
+
+            {driverManagementEnabled ? (
+              <div className="mb-5 rounded-xl border border-emerald-100 bg-emerald-50/60 p-4">
+                <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Assigned driver</p>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <select
+                    value={selected.driver_id ?? ""}
+                    disabled={orderActionKey === `${selected.id}:driver` || ["delivered", "cancelled"].includes(selected.status)}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      void handleAssignDriver(selected, value || null);
+                    }}
+                    className="ui-select min-w-[12rem] flex-1"
+                  >
+                    <option value="">Unassigned</option>
+                    {activeDrivers.map((driver) => (
+                      <option key={driver.id} value={driver.id}>
+                        {driver.full_name}
+                        {driver.phone ? ` · ${driver.phone}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                  {selected.driver_assigned_at ? (
+                    <span className="text-xs text-emerald-800">
+                      Assigned {formatDate(selected.driver_assigned_at)} {formatTime(selected.driver_assigned_at)}
+                    </span>
+                  ) : null}
+                </div>
+                {activeDrivers.length === 0 ? (
+                  <p className="mt-2 text-xs text-emerald-800">
+                    Add an active driver from the Drivers page to assign deliveries.
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
 
             {/* Delivery */}
             {selected.delivery_speed === "fast" ? (

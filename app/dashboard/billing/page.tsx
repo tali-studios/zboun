@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
 import { BusinessBillingPanel } from "@/components/business-billing-panel";
+import { StoreAdminHeader } from "@/components/store-admin-header";
 import { getCurrentUserRole } from "@/lib/data";
 import { getOpsEmail } from "@/lib/mail";
 import { enforceSubscriptionExpiryForRestaurant } from "@/lib/subscription-lifecycle";
+import { loadStoreAdminHeaderContext } from "@/lib/store-admin-header-context";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +21,7 @@ export default async function RestaurantBillingPage() {
 
   const supabase = await createServerSupabaseClient();
 
-  const [{ data: restaurant }, { data: subscription }, { data: invoices }] = await Promise.all([
+  const [{ data: restaurant }, { data: subscription }, { data: invoices }, header] = await Promise.all([
     supabase.from("restaurants").select("name, is_active, billing_exempt").eq("id", restaurantId).single(),
     supabase
       .from("restaurant_subscriptions")
@@ -38,11 +40,23 @@ export default async function RestaurantBillingPage() {
       .eq("restaurant_id", restaurantId)
       .order("created_at", { ascending: false })
       .limit(24),
+    loadStoreAdminHeaderContext(supabase, restaurantId),
   ]);
 
   return (
     <main className="min-h-screen bg-[#f8f8ff] px-3 py-4 sm:p-8">
-      <div className="mx-auto max-w-4xl">
+      <div className="mx-auto max-w-4xl space-y-5">
+        <StoreAdminHeader
+          restaurantName={header.restaurantName}
+          categoryLabel={header.categoryLabel}
+          slug={header.slug}
+          browseSections={header.browseSections}
+          menuUrl={header.menuUrl}
+          driverManagementEnabled={header.driverManagementEnabled}
+          currentPage="billing"
+          title="Billing"
+          subtitle="Subscription and invoices for your Zboun account."
+        />
         <BusinessBillingPanel
           restaurantName={restaurant?.name ?? "Your business"}
           isActive={restaurant?.is_active ?? false}

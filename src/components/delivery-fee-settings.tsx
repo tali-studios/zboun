@@ -1,6 +1,6 @@
 "use client";
 
-import { Bike, MapPin, Zap } from "lucide-react";
+import { Bike, MapPin, Users, Zap } from "lucide-react";
 import { useState } from "react";
 import {
   MAX_RESTAURANT_DELIVERY_RADIUS_KM,
@@ -14,6 +14,7 @@ type Props = {
   fastDeliveryEnabledDefault?: boolean;
   fastDeliveryFeeDefault?: number;
   deliveryRadiusDefault?: number | null;
+  driverManagementEnabledDefault?: boolean;
 };
 
 function ToggleSwitch({
@@ -56,9 +57,11 @@ export function DeliveryFeeSettings({
   fastDeliveryEnabledDefault = false,
   fastDeliveryFeeDefault = 0,
   deliveryRadiusDefault = null,
+  driverManagementEnabledDefault = false,
 }: Props) {
   const [freeDelivery, setFreeDelivery] = useState(freeDeliveryDefault);
   const [fastDeliveryEnabled, setFastDeliveryEnabled] = useState(fastDeliveryEnabledDefault);
+  const [driverManagementEnabled, setDriverManagementEnabled] = useState(driverManagementEnabledDefault);
 
   return (
     <div>
@@ -186,6 +189,30 @@ export function DeliveryFeeSettings({
               activeClass="bg-amber-500"
             />
           </div>
+        </div>
+
+        <div
+          className={`flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border px-3 py-2 transition ${
+            driverManagementEnabled
+              ? "border-violet-300 bg-violet-50/80"
+              : "border-slate-200 bg-white"
+          }`}
+        >
+          <div className="min-w-[11rem] flex-1">
+            <p className="flex items-center gap-1.5 text-sm font-semibold text-slate-900">
+              <Users className="h-3.5 w-3.5 text-violet-500" strokeWidth={2} aria-hidden />
+              Driver management
+            </p>
+            <p className="text-xs leading-snug text-slate-500">
+              Create store drivers, assign orders, and track delivery counts.
+            </p>
+          </div>
+          <ToggleSwitch
+            name="driver_management_enabled"
+            checked={driverManagementEnabled}
+            onChange={setDriverManagementEnabled}
+            activeClass="bg-violet-600"
+          />
         </div>
       </div>
     </div>

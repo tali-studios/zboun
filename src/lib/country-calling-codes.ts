@@ -9,11 +9,14 @@ export type CountryCallingCode = {
 export const DEFAULT_COUNTRY_DIAL = "+961";
 export const DEFAULT_COUNTRY_ISO = "LB";
 
-export const COUNTRY_CALLING_CODES: CountryCallingCode[] = (
-  codesData as CountryCallingCode[]
-)
-  .slice()
-  .sort((a, b) => a.name.localeCompare(b.name, "en"));
+export const COUNTRY_CALLING_CODES: CountryCallingCode[] = (() => {
+  const sorted = (codesData as CountryCallingCode[])
+    .slice()
+    .sort((a, b) => a.name.localeCompare(b.name, "en", { sensitivity: "base" }));
+  const lebanon = sorted.find((country) => country.iso2 === "LB");
+  const rest = sorted.filter((country) => country.iso2 !== "LB");
+  return lebanon ? [lebanon, ...rest] : sorted;
+})();
 
 /** e.g. Lebanon (+961) */
 export function formatCountryOptionLabel(country: CountryCallingCode): string {

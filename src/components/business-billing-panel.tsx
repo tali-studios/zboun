@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { ZbounContactOptions } from "@/components/zboun-contact-options";
 import {
   formatNextDueLine,
@@ -70,22 +69,16 @@ export function BusinessBillingPanel({
 
   return (
     <div className="space-y-6">
-      <header className="panel rounded-2xl bg-gradient-to-br from-violet-700 via-violet-600 to-fuchsia-600 p-6 text-white">
-        <p className="text-[11px] font-bold uppercase tracking-widest text-violet-200">Billing</p>
-        <h1 className="mt-1 text-2xl font-bold">{restaurantName}</h1>
-        <p className="mt-2 text-sm text-violet-100">
+      <section className="panel rounded-2xl p-5">
+        <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">Billing overview</h2>
+        <p className="mt-2 text-sm text-slate-600">
           {billingExempt
             ? "Your Zboun account is on a complimentary lifetime plan."
             : timedComplimentary
               ? "Your Zboun account is on a complimentary plan for a limited time."
               : "Subscription and invoices for your Zboun account. Contact us to renew or update your plan."}
         </p>
-        <div className="mt-4">
-          <Link href="/dashboard/business" className="btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20">
-            ← Dashboard
-          </Link>
-        </div>
-      </header>
+      </section>
 
       <ZbounContactOptions variant="billing" restaurantName={restaurantName} />
 

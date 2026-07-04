@@ -18,6 +18,12 @@ import {
   normalizeRestaurantDeliveryRadiusKm,
 } from "@/lib/delivery-radius";
 import { deriveLocationLabelFromBranch } from "@/lib/restaurant-profile";
+import { MENU_ITEMS_ADMIN_PATH } from "@/lib/menu-items-admin-data";
+
+function revalidateMenuAdminPaths() {
+  revalidatePath("/dashboard/business");
+  revalidatePath(MENU_ITEMS_ADMIN_PATH);
+}
 import { parseDisplayQuantityFromForm } from "@/lib/display-quantity";
 import {
   DEFAULT_STOCK_ALERT_CRITICAL,
@@ -440,21 +446,21 @@ export async function createMenuItemAction(formData: FormData) {
       );
 
   if (!categoryId || !name) {
-    redirect("/dashboard/business?toast=item_create_invalid");
+    redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_create_invalid`);
   }
   if (!Number.isFinite(price) || price < 0) {
-    redirect("/dashboard/business?toast=item_create_invalid");
+    redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_create_invalid`);
   }
   if (soldByWeight) {
     if (pricePerKg === null || !Number.isFinite(pricePerKg) || pricePerKg < 0) {
-      redirect("/dashboard/business?toast=item_create_invalid");
+      redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_create_invalid`);
     }
     if (!Number.isFinite(weightStepKg) || weightStepKg < 0.01) {
-      redirect("/dashboard/business?toast=item_create_invalid");
+      redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_create_invalid`);
     }
   }
   if (displayQty.display_quantity != null && displayQty.display_quantity < 0) {
-    redirect("/dashboard/business?toast=item_create_invalid");
+    redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_create_invalid`);
   }
 
   const imageFile = formData.get("image_file");
@@ -477,7 +483,7 @@ export async function createMenuItemAction(formData: FormData) {
   }));
   const stock = buildMenuItemStockPayload(formData);
   if ("error" in stock) {
-    redirect("/dashboard/business?toast=item_stock_alerts_invalid");
+    redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_stock_alerts_invalid`);
   }
 
   const description = String(formData.get("description") ?? "").trim() || null;
@@ -547,7 +553,7 @@ export async function createMenuItemAction(formData: FormData) {
       .single();
     if (!retryError && retryItem?.id) {
       revalidatePath("/dashboard/business");
-      redirect("/dashboard/business?toast=item_create_stock_alerts_migration");
+      redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_create_stock_alerts_migration`);
     }
   }
 
@@ -576,28 +582,28 @@ export async function createMenuItemAction(formData: FormData) {
     });
     if (!retryError) {
       revalidatePath("/dashboard/business");
-      redirect("/dashboard/business?toast=item_create_nutrition_migration");
+      redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_create_nutrition_migration`);
     }
   }
 
   if (error) {
     console.error("[createMenuItemAction]", error.message, error.code, error.details);
-    redirect("/dashboard/business?toast=item_create_failed");
+    redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_create_failed`);
   }
 
   if (createdItem?.id) {
     void notifyStockAlertsForMenuItem(supabase, createdItem.id, user.restaurant_id);
   }
 
-  revalidatePath("/dashboard/business");
-  redirect(`/dashboard/business?toast=item_created&item_name=${encodeURIComponent(name)}`);
+  revalidateMenuAdminPaths();
+  redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_created&item_name=${encodeURIComponent(name)}`);
 }
 
 export async function updateMenuItemAction(formData: FormData) {
   const user = await requireRestaurantAdmin();
   const id = String(formData.get("id") ?? "");
   if (!id) {
-    redirect("/dashboard/business?toast=item_update_invalid");
+    redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_update_invalid`);
   }
 
   const name = String(formData.get("name") ?? "").trim();
@@ -632,22 +638,22 @@ export async function updateMenuItemAction(formData: FormData) {
   }));
   const stock = buildMenuItemStockPayload(formData);
   if ("error" in stock) {
-    redirect("/dashboard/business?toast=item_stock_alerts_invalid");
+    redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_stock_alerts_invalid`);
   }
 
   if (!name || !categoryId) {
-    redirect("/dashboard/business?toast=item_update_invalid");
+    redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_update_invalid`);
   }
 
   if (soldByWeight) {
     if (pricePerKg === null || !Number.isFinite(pricePerKg) || pricePerKg < 0) {
-      redirect("/dashboard/business?toast=item_update_invalid");
+      redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_update_invalid`);
     }
     if (!Number.isFinite(weightStepKg) || weightStepKg < 0.01) {
-      redirect("/dashboard/business?toast=item_update_invalid");
+      redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_update_invalid`);
     }
   } else if (!Number.isFinite(price) || price < 0) {
-    redirect("/dashboard/business?toast=item_update_invalid");
+    redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_update_invalid`);
   }
 
   let uploadedImageUrl: string | null = null;
@@ -656,7 +662,7 @@ export async function updateMenuItemAction(formData: FormData) {
       uploadedImageUrl = await uploadMenuItemImage(imageFile, user.restaurant_id);
     } catch (error) {
       console.error("[updateMenuItemAction] image upload", error);
-      redirect("/dashboard/business?toast=item_update_failed");
+      redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_update_failed`);
     }
   }
 
@@ -709,7 +715,7 @@ export async function updateMenuItemAction(formData: FormData) {
     if (!retry.error) {
       void notifyStockAlertsForMenuItem(supabase, id, user.restaurant_id);
       revalidatePath("/dashboard/business");
-      redirect("/dashboard/business?toast=item_update_stock_alerts_migration");
+      redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_update_stock_alerts_migration`);
     }
     error = retry.error;
   }
@@ -723,7 +729,7 @@ export async function updateMenuItemAction(formData: FormData) {
       .eq("restaurant_id", user.restaurant_id);
     if (!retry.error) {
       revalidatePath("/dashboard/business");
-      redirect("/dashboard/business?toast=item_update_nutrition_migration");
+      redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_update_nutrition_migration`);
     }
     error = retry.error;
   }
@@ -731,15 +737,15 @@ export async function updateMenuItemAction(formData: FormData) {
   if (error) {
     console.error("[updateMenuItemAction]", error.message, error.code, error.details);
     if (/brand_id|brand_name|menu_brands/i.test(error.message ?? "")) {
-      redirect("/dashboard/business?toast=item_update_brand_migration");
+      redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_update_brand_migration`);
     }
-    redirect("/dashboard/business?toast=item_update_failed");
+    redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_update_failed`);
   }
 
   void notifyStockAlertsForMenuItem(supabase, id, user.restaurant_id);
 
-  revalidatePath("/dashboard/business");
-  redirect(`/dashboard/business?toast=item_updated&item_name=${encodeURIComponent(name)}`);
+  revalidateMenuAdminPaths();
+  redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_updated&item_name=${encodeURIComponent(name)}`);
 }
 
 export async function toggleMenuItemAvailabilityAction(formData: FormData) {
@@ -769,7 +775,7 @@ export async function toggleMenuItemAvailabilityAction(formData: FormData) {
   if (item?.track_stock) {
     void notifyStockAlertsForMenuItem(supabase, id, user.restaurant_id);
   }
-  revalidatePath("/dashboard/business");
+  revalidateMenuAdminPaths();
 }
 
 export async function updateMenuItemStockQuickAction(
@@ -840,7 +846,7 @@ export async function updateMenuItemStockQuickAction(
   if (error) return { ok: false, error: error.message };
 
   void notifyStockAlertsForMenuItem(supabase, id, user.restaurant_id);
-  revalidatePath("/dashboard/business");
+  revalidateMenuAdminPaths();
   return { ok: true };
 }
 
@@ -851,7 +857,7 @@ export async function deleteMenuItemAction(formData: FormData) {
 
   const supabase = await createServerSupabaseClient();
   await supabase.from("menu_items").delete().eq("id", id).eq("restaurant_id", user.restaurant_id);
-  revalidatePath("/dashboard/business");
+  revalidateMenuAdminPaths();
 }
 
 export type UpdateRestaurantSettingsResult =
@@ -925,6 +931,9 @@ export async function updateRestaurantSettingsAction(
   const freeDelivery = formData.get("free_delivery") === "true" || formData.get("free_delivery") === "on";
   const allowGuestCheckout =
     formData.get("allow_guest_checkout") === "true" || formData.get("allow_guest_checkout") === "on";
+  const driverManagementEnabled =
+    formData.get("driver_management_enabled") === "true" ||
+    formData.get("driver_management_enabled") === "on";
 
   const supabase = await createServerSupabaseClient();
   const menuThemeColor = parseMenuThemeColor(formData.get("menu_theme_color"));
@@ -955,6 +964,7 @@ export async function updateRestaurantSettingsAction(
       delivery_radius_km: deliveryRadiusKm,
       menu_theme_color: menuThemeColor,
       allow_guest_checkout: allowGuestCheckout,
+      driver_management_enabled: driverManagementEnabled,
     })
     .eq("id", user.restaurant_id)
     .select("slug")

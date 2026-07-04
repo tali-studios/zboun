@@ -15,6 +15,8 @@ create table if not exists public.orders (
   notes             text,
   expected_delivery_time text,
   expected_delivery_time_set_at timestamptz,
+  driver_id         uuid,
+  driver_assigned_at timestamptz,
   total_usd         numeric(10,2) not null default 0,
   status            text        not null default 'pending'
                     check (status in ('pending','confirmed','preparing','ready','out_for_delivery','delivered','cancelled')),
@@ -25,12 +27,15 @@ create table if not exists public.orders (
 
 alter table public.orders
   add column if not exists expected_delivery_time text,
-  add column if not exists expected_delivery_time_set_at timestamptz;
+  add column if not exists expected_delivery_time_set_at timestamptz,
+  add column if not exists driver_id uuid,
+  add column if not exists driver_assigned_at timestamptz;
 
 create index if not exists idx_orders_restaurant_id   on public.orders (restaurant_id);
 create index if not exists idx_orders_customer_id     on public.orders (customer_id);
 create index if not exists idx_orders_status          on public.orders (status);
 create index if not exists idx_orders_created_at      on public.orders (created_at desc);
+create index if not exists idx_orders_driver_id       on public.orders (restaurant_id, driver_id);
 
 alter table public.orders enable row level security;
 

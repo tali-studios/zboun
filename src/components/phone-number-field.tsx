@@ -7,6 +7,7 @@ import {
   DEFAULT_COUNTRY_DIAL,
   dialToSelectIso,
   findCountryByIso,
+  formatCountryOptionLabel,
   type CountryCallingCode,
 } from "@/lib/country-calling-codes";
 
@@ -26,8 +27,14 @@ type Props = {
   defaultCountryCode?: string;
   onCountryCodeChange?: (dial: string) => void;
   className?: string;
+  labelClassName?: string;
+  showLabel?: boolean;
+  form?: string;
   required?: boolean;
 };
+
+const DEFAULT_LABEL_CLASS =
+  "block text-xs font-semibold text-slate-600";
 
 function digitsOnly(value: string) {
   return value.replace(/\D/g, "");
@@ -46,6 +53,9 @@ export function PhoneNumberField({
   defaultCountryCode = DEFAULT_COUNTRY_DIAL,
   onCountryCodeChange,
   className = "",
+  labelClassName = DEFAULT_LABEL_CLASS,
+  showLabel = true,
+  form,
   required = false,
 }: Props) {
   const resolvedPhoneProp = phoneProp ?? value;
@@ -84,21 +94,23 @@ export function PhoneNumberField({
       : { defaultValue: digitsOnly(resolvedDefaultPhone), onChange: handlePhoneChange };
 
   return (
-    <div className={className}>
-      <label htmlFor={`${name}-input`} className="mb-1.5 block text-xs font-semibold text-slate-600">
-        Phone Number{required ? " *" : ""}
-      </label>
+    <div className={`space-y-1 ${className}`.trim()}>
+      {showLabel ? (
+        <label htmlFor={`${name}-input`} className={labelClassName}>
+          Phone number{required ? " *" : ""}
+        </label>
+      ) : null}
       <div className="flex h-11 overflow-hidden rounded-md border border-slate-200 bg-white focus-within:border-violet-400 focus-within:ring-2 focus-within:ring-violet-100">
         <div className="relative shrink-0 border-r border-slate-200 bg-slate-50">
           <select
             value={selectedIso}
             onChange={(e) => handleCountryChange(e.target.value)}
-            className="h-full min-w-[7.5rem] max-w-[9.5rem] cursor-pointer appearance-none border-0 bg-transparent py-0 pl-3 pr-8 text-sm font-medium text-slate-800 outline-none"
+            className="h-full min-w-[11rem] max-w-[14rem] cursor-pointer appearance-none border-0 bg-transparent py-0 pl-3 pr-8 text-sm font-medium text-slate-800 outline-none"
             aria-label="Country code"
           >
             {COUNTRY_CALLING_CODES.map((country: CountryCallingCode) => (
               <option key={country.iso2} value={country.iso2}>
-                {country.dial}
+                {formatCountryOptionLabel(country)}
               </option>
             ))}
           </select>
@@ -110,6 +122,7 @@ export function PhoneNumberField({
         <input
           id={`${name}-input`}
           name={name}
+          form={form}
           type="text"
           inputMode="numeric"
           pattern="[0-9]*"
@@ -120,7 +133,7 @@ export function PhoneNumberField({
           {...phoneInputProps}
         />
       </div>
-      <input type="hidden" name={countryCodeName} value={countryCode} readOnly />
+      <input type="hidden" name={countryCodeName} form={form} value={countryCode} readOnly />
     </div>
   );
 }
