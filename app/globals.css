@@ -288,119 +288,69 @@ select.ui-select {
 
 /* ── Responsive helpers for the inner FlyerDesign (screen mode) ─────────────── */
 .flyer-outer {
-  padding: 8vw 5vw;
-  gap: 5vw;
+  padding: 10vw 8vw;
+  gap: 1.25rem;
 }
-.flyer-identity {
-  gap: 1rem;
+.flyer-top {
+  gap: 0.35rem;
 }
-.flyer-logo-box {
-  width: 18vw;
-  height: 18vw;
-  max-width: 6rem;
-  max-height: 6rem;
-  border-radius: 1.25rem;
+.flyer-logo-small {
+  height: clamp(4.5rem, 18vw, 6rem);
+  max-width: min(80vw, 16rem);
+  margin-bottom: 0.35rem;
 }
-.flyer-logo-initials {
-  font-size: 6vw;
-  max-font-size: 2rem;
+.flyer-title {
+  font-size: clamp(1.6rem, 7vw, 2.75rem);
 }
-.flyer-store-name {
-  font-size: clamp(1.4rem, 6vw, 2.5rem);
+.flyer-scan-row {
+  gap: 0.65rem;
+  margin-top: 0.4rem;
 }
-.flyer-tag {
-  padding: 0.3rem 0.9rem;
-  gap: 0.4rem;
-  border-radius: 999px;
+.flyer-scan-text {
+  font-size: clamp(0.62rem, 2.4vw, 0.82rem);
 }
-.flyer-tag-text {
-  font-size: clamp(0.7rem, 2.5vw, 0.875rem);
+.flyer-qr-frame {
+  border-radius: 1rem;
+  padding: 0.85rem;
 }
-.flyer-deco-ring {
-  top: -5vw;
-  right: -5vw;
-  width: min(45vw, 200px);
-  height: min(45vw, 200px);
-}
-.flyer-deco-blob {
-  bottom: 16vw;
-  left: -6vw;
-  width: min(30vw, 140px);
-  height: min(30vw, 140px);
-}
-.flyer-deco-dots {
-  top: 5vw;
-  left: 5vw;
-  width: min(15vw, 60px);
-  height: min(15vw, 60px);
-}
-.flyer-card {
-  border-radius: 1.25rem;
-  max-width: min(88vw, 26rem);
-}
-.flyer-card-body {
-  padding: clamp(1rem, 5vw, 2rem);
-  padding-top: clamp(0.75rem, 3vw, 1.5rem);
-  padding-bottom: clamp(0.75rem, 3vw, 1.5rem);
-}
-.flyer-qr-img {
-  width: clamp(10rem, 60vw, 18rem);
-  height: clamp(10rem, 60vw, 18rem);
-}
+.flyer-qr-img,
 .flyer-qr-placeholder {
-  width: clamp(10rem, 60vw, 18rem);
-  height: clamp(10rem, 60vw, 18rem);
+  width: clamp(11rem, 62vw, 19rem);
+  height: clamp(11rem, 62vw, 19rem);
 }
-.flyer-card-divider {
-  margin-top: 1rem;
-  margin-bottom: 1rem;
+.flyer-bottom {
+  gap: 0.85rem;
 }
-.flyer-inst {
-  font-size: clamp(0.7rem, 2.8vw, 0.875rem);
+.flyer-thanks {
+  font-size: clamp(1.8rem, 8vw, 2.6rem);
 }
-.flyer-url {
-  margin-top: 0.3rem;
-  font-size: clamp(0.6rem, 2vw, 0.75rem);
+.flyer-heart-row {
+  gap: 0.75rem;
+  width: min(72vw, 14rem);
 }
-.flyer-brand {
-  gap: 0.3rem;
-  margin-top: 1vw;
+.flyer-brand-minimal {
+  font-size: clamp(0.55rem, 2vw, 0.65rem);
+  margin-top: 0.35rem;
 }
-.flyer-brand-pill {
-  padding: 0.3rem 0.9rem;
-  gap: 0.4rem;
-  border-radius: 999px;
-}
-.flyer-brand-logo {
-  height: clamp(1.2rem, 4.5vw, 1.75rem);
-}
-.flyer-brand-text {
-  font-size: clamp(0.55rem, 2vw, 0.7rem);
+.flyer-url-minimal {
+  font-size: clamp(0.55rem, 1.8vw, 0.62rem);
+  max-width: min(88vw, 22rem);
 }
 
 /* Desktop tweaks */
 @media screen and (min-width: 1024px) {
-  .flyer-outer        { padding: 44px 52px; gap: 24px; }
-  .flyer-identity     { gap: 14px; }
-  .flyer-logo-box     { width: 100px; height: 100px; border-radius: 20px; }
-  .flyer-logo-initials{ font-size: 36px; }
-  .flyer-store-name   { font-size: 2.4rem; }
-  .flyer-tag          { padding: 6px 18px; gap: 7px; }
-  .flyer-tag-text     { font-size: 0.85rem; }
-  .flyer-deco-ring    { top: -70px; right: -70px; width: 300px; height: 300px; }
-  .flyer-deco-blob    { bottom: 120px; left: -50px; width: 180px; height: 180px; }
-  .flyer-deco-dots    { top: 58px; left: 58px; width: 65px; height: 65px; }
-  .flyer-card         { border-radius: 24px; max-width: 460px; }
-  .flyer-card-body    { padding: 32px; padding-top: 26px; padding-bottom: 24px; }
-  .flyer-qr-img       { width: 290px; height: 290px; }
-  .flyer-qr-placeholder{ width: 290px; height: 290px; }
-  .flyer-card-divider { margin-top: 20px; margin-bottom: 20px; }
-  .flyer-inst         { font-size: 0.9rem; }
-  .flyer-url          { font-size: 0.7rem; margin-top: 6px; }
-  .flyer-brand        { gap: 4px; margin-top: 12px; }
-  .flyer-brand-pill   { padding: 5px 16px; gap: 7px; }
-  .flyer-brand-logo   { height: 24px; }
-  .flyer-brand-text   { font-size: 0.65rem; }
+  .flyer-outer        { padding: 56px 64px; gap: 20px; }
+  .flyer-logo-small   { height: 96px; max-width: 280px; margin-bottom: 6px; }
+  .flyer-title        { font-size: 2.75rem; }
+  .flyer-scan-row     { gap: 12px; margin-top: 8px; }
+  .flyer-scan-text    { font-size: 0.82rem; }
+  .flyer-qr-frame     { border-radius: 16px; padding: 16px; }
+  .flyer-qr-img,
+  .flyer-qr-placeholder { width: 290px; height: 290px; }
+  .flyer-thanks       { font-size: 2.5rem; }
+  .flyer-heart-row    { width: 220px; gap: 14px; }
+  .flyer-brand-minimal{ font-size: 0.62rem; margin-top: 6px; }
+  .flyer-url-minimal  { font-size: 0.58rem; max-width: 420px; }
 }
 
 /* ── Print ───────────────────────────────────────────────────────────────────── */
@@ -452,27 +402,18 @@ select.ui-select {
   }
 
   /* Override responsive helpers with print-specific mm values */
-  .flyer-outer        { padding: 14mm 16mm !important; gap: 9mm !important; }
-  .flyer-identity     { gap: 5mm !important; }
-  .flyer-logo-box     { width: 28mm !important; height: 28mm !important; border-radius: 5mm !important; max-width: none !important; max-height: none !important; }
-  .flyer-logo-initials{ font-size: 12mm !important; }
-  .flyer-store-name   { font-size: 14mm !important; }
-  .flyer-tag          { padding: 1.5mm 5mm !important; }
-  .flyer-tag-text     { font-size: 3.5mm !important; }
-  .flyer-deco-ring    { top: -20mm !important; right: -20mm !important; width: 85mm !important; height: 85mm !important; }
-  .flyer-deco-blob    { bottom: 32mm !important; left: -12mm !important; width: 50mm !important; height: 50mm !important; }
-  .flyer-deco-dots    { top: 15mm !important; left: 15mm !important; width: 18mm !important; height: 18mm !important; }
-  .flyer-card         { border-radius: 7mm !important; max-width: 130mm !important; }
-  .flyer-card-body    { padding: 8mm !important; padding-top: 6mm !important; padding-bottom: 6mm !important; }
-  .flyer-qr-img       { width: 80mm !important; height: 80mm !important; }
-  .flyer-qr-placeholder{ width: 80mm !important; height: 80mm !important; }
-  .flyer-card-divider { margin-top: 5mm !important; margin-bottom: 5mm !important; }
-  .flyer-inst         { font-size: 3.8mm !important; }
-  .flyer-url          { font-size: 2.8mm !important; margin-top: 2mm !important; }
-  .flyer-brand        { gap: 1.5mm !important; margin-top: 4mm !important; }
-  .flyer-brand-pill   { padding: 1.5mm 5mm !important; gap: 2mm !important; }
-  .flyer-brand-logo   { height: 6mm !important; }
-  .flyer-brand-text   { font-size: 2.5mm !important; }
+  .flyer-outer        { padding: 18mm 16mm !important; gap: 6mm !important; }
+  .flyer-logo-small   { height: 26mm !important; max-width: 80mm !important; margin-bottom: 2mm !important; }
+  .flyer-title        { font-size: 12mm !important; }
+  .flyer-scan-row     { gap: 3mm !important; margin-top: 2mm !important; }
+  .flyer-scan-text    { font-size: 3.2mm !important; }
+  .flyer-qr-frame     { border-radius: 4mm !important; padding: 4mm !important; }
+  .flyer-qr-img,
+  .flyer-qr-placeholder { width: 82mm !important; height: 82mm !important; }
+  .flyer-thanks       { font-size: 11mm !important; }
+  .flyer-heart-row    { width: 55mm !important; gap: 3mm !important; }
+  .flyer-brand-minimal{ font-size: 2.4mm !important; margin-top: 2mm !important; }
+  .flyer-url-minimal  { font-size: 2.2mm !important; max-width: 120mm !important; }
 
   .flyer-print-page {
     padding: 0 !important;
