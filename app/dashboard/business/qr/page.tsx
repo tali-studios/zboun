@@ -24,7 +24,7 @@ export default async function RestaurantQrPage() {
 
   return (
     <main className="min-h-screen bg-[#f8f8ff] p-4 md:p-8">
-      <div className="mx-auto max-w-5xl space-y-6">
+      <div className="mx-auto max-w-7xl space-y-5">
         <StoreAdminHeader
           restaurantName={header.restaurantName}
           categoryLabel={header.categoryLabel}

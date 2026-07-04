@@ -26,7 +26,7 @@ export default async function RestaurantFlyerPage() {
 
   return (
     <main className="flyer-print-page min-h-screen overflow-x-hidden bg-[#f8f8ff] px-3 py-4 sm:p-8">
-      <div className="flyer-print-wrap mx-auto w-full min-w-0 max-w-6xl space-y-6">
+      <div className="flyer-print-wrap mx-auto w-full min-w-0 max-w-7xl space-y-5">
         <div className="print:hidden">
           <StoreAdminHeader
             restaurantName={header.restaurantName}

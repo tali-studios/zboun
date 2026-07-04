@@ -45,7 +45,7 @@ export default async function RestaurantBillingPage() {
 
   return (
     <main className="min-h-screen bg-[#f8f8ff] px-3 py-4 sm:p-8">
-      <div className="mx-auto max-w-4xl space-y-5">
+      <div className="mx-auto max-w-7xl space-y-5">
         <StoreAdminHeader
           restaurantName={header.restaurantName}
           categoryLabel={header.categoryLabel}

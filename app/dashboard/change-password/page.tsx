@@ -44,7 +44,7 @@ export default async function ChangePasswordPage({ searchParams }: Props) {
 
   return (
     <main className="min-h-screen bg-[#f8f8ff] px-3 py-4 sm:p-8">
-      <div className={`mx-auto space-y-5 ${isRestaurantAdmin ? "max-w-4xl" : "max-w-md"}`}>
+      <div className={`mx-auto space-y-5 ${isRestaurantAdmin ? "max-w-7xl" : "max-w-md"}`}>
         {isRestaurantAdmin && header ? (
           <StoreAdminHeader
             restaurantName={header.restaurantName}
