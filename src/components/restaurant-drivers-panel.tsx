@@ -272,7 +272,7 @@ export function RestaurantDriversPanel({
   const editingDriver = editingId ? drivers.find((driver) => driver.id === editingId) : null;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 pb-10 sm:pb-0">
       {!driverManagementEnabled ? (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           Driver management is currently disabled. Enable it in Store settings to assign drivers to orders.
@@ -410,7 +410,7 @@ export function RestaurantDriversPanel({
               <span>Status</span>
               <span className="text-right">Actions</span>
             </div>
-            <ul className="divide-y divide-slate-100">
+            <ul className="divide-y divide-slate-100 pb-4 sm:pb-1">
               {drivers.map((driver) => (
                 <DriverListItem
                   key={driver.id}
