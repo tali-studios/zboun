@@ -128,89 +128,108 @@ function DriverStatusBadge({ active }: { active: boolean }) {
 
 const DRIVER_EDIT_FORM_ID = "driver-edit-form";
 
-type DriverTableRowProps = {
+type DriverRowProps = {
   driver: RestaurantDriver;
   isEditing: boolean;
   onEdit: () => void;
   onCancel: () => void;
 };
 
-function DriverTableRow({ driver, isEditing, onEdit, onCancel }: DriverTableRowProps) {
+function DriverEditActions({ onCancel }: { onCancel: () => void }) {
+  return (
+    <div className="flex flex-nowrap items-center gap-1.5">
+      <button type="submit" form={DRIVER_EDIT_FORM_ID} className={ICON_SAVE_CLASS} title="Save" aria-label="Save">
+        <Check className="h-4 w-4" strokeWidth={2.5} />
+      </button>
+      <button type="button" onClick={onCancel} className={ICON_CANCEL_CLASS} title="Cancel" aria-label="Cancel">
+        <X className="h-4 w-4" strokeWidth={2.5} />
+      </button>
+    </div>
+  );
+}
+
+function DriverViewActions({ driver, onEdit }: { driver: RestaurantDriver; onEdit: () => void }) {
+  return (
+    <div className="flex flex-nowrap items-center gap-1.5">
+      <button type="button" onClick={onEdit} className={ICON_EDIT_CLASS} title="Edit" aria-label="Edit">
+        <Pencil className="h-4 w-4" />
+      </button>
+      <form action={toggleRestaurantDriverAction} className="inline">
+        <input type="hidden" name="id" value={driver.id} />
+        <input type="hidden" name="is_active" value={driver.is_active ? "false" : "true"} />
+        <button
+          type="submit"
+          className={driver.is_active ? ICON_DISABLE_CLASS : ICON_ENABLE_CLASS}
+          title={driver.is_active ? "Disable" : "Enable"}
+          aria-label={driver.is_active ? "Disable" : "Enable"}
+        >
+          {driver.is_active ? <PowerOff className="h-4 w-4" /> : <Power className="h-4 w-4" />}
+        </button>
+      </form>
+      <form action={deleteRestaurantDriverAction} className="inline">
+        <input type="hidden" name="id" value={driver.id} />
+        <button type="submit" className={ICON_DELETE_CLASS} title="Delete" aria-label="Delete">
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </form>
+    </div>
+  );
+}
+
+function DriverListItem({ driver, isEditing, onEdit, onCancel }: DriverRowProps) {
   const storedPhone = parseStoredPhone(driver.phone);
 
   if (isEditing) {
     return (
-      <tr className="bg-violet-50/50">
-        <td className="px-3 py-2.5">
-          <input
-            form={DRIVER_EDIT_FORM_ID}
-            name="full_name"
-            required
-            defaultValue={driver.full_name}
-            className="ui-input min-w-[8rem] py-1.5 text-sm"
-            aria-label="Driver name"
-          />
-        </td>
-        <td className="px-3 py-2.5">
-          <PhoneNumberField
-            name="phone"
-            form={DRIVER_EDIT_FORM_ID}
-            defaultPhone={storedPhone.localPhone}
-            defaultCountryCode={storedPhone.countryCode}
-            showLabel={false}
-            className="min-w-[12rem]"
-          />
-        </td>
-        <td className="px-3 py-2.5">
+      <li className="space-y-2.5 bg-violet-50/60 px-3 py-3 sm:grid sm:grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)_auto_auto] sm:items-center sm:gap-3 sm:space-y-0 sm:px-4">
+        <input
+          form={DRIVER_EDIT_FORM_ID}
+          name="full_name"
+          required
+          defaultValue={driver.full_name}
+          className="ui-input w-full py-2 text-sm sm:py-1.5"
+          aria-label="Driver name"
+          placeholder="Driver name"
+        />
+        <PhoneNumberField
+          name="phone"
+          form={DRIVER_EDIT_FORM_ID}
+          defaultPhone={storedPhone.localPhone}
+          defaultCountryCode={storedPhone.countryCode}
+          showLabel={false}
+          compact
+          className="w-full min-w-0"
+        />
+        <div className="flex items-center justify-between gap-2 sm:contents">
           <DriverStatusBadge active={driver.is_active} />
-        </td>
-        <td className="px-3 py-2.5">
-          <div className="flex flex-nowrap items-center justify-end gap-1.5">
-            <button type="submit" form={DRIVER_EDIT_FORM_ID} className={ICON_SAVE_CLASS} title="Save" aria-label="Save">
-              <Check className="h-4 w-4" strokeWidth={2.5} />
-            </button>
-            <button type="button" onClick={onCancel} className={ICON_CANCEL_CLASS} title="Cancel" aria-label="Cancel">
-              <X className="h-4 w-4" strokeWidth={2.5} />
-            </button>
+          <div className="sm:justify-self-end">
+            <DriverEditActions onCancel={onCancel} />
           </div>
-        </td>
-      </tr>
+        </div>
+      </li>
     );
   }
 
   return (
-    <tr className="hover:bg-slate-50/60">
-      <td className="px-3 py-2.5 font-medium text-slate-900">{driver.full_name}</td>
-      <td className="px-3 py-2.5 text-slate-600">{driver.phone || "—"}</td>
-      <td className="px-3 py-2.5">
-        <DriverStatusBadge active={driver.is_active} />
-      </td>
-      <td className="px-3 py-2.5">
-        <div className="flex flex-nowrap items-center justify-end gap-1.5">
-          <button type="button" onClick={onEdit} className={ICON_EDIT_CLASS} title="Edit" aria-label="Edit">
-            <Pencil className="h-4 w-4" />
-          </button>
-          <form action={toggleRestaurantDriverAction} className="inline">
-            <input type="hidden" name="id" value={driver.id} />
-            <input type="hidden" name="is_active" value={driver.is_active ? "false" : "true"} />
-            <button
-              type="submit"
-              className={driver.is_active ? ICON_DISABLE_CLASS : ICON_ENABLE_CLASS}
-              title={driver.is_active ? "Disable" : "Enable"}
-              aria-label={driver.is_active ? "Disable" : "Enable"}
-            >
-              {driver.is_active ? <PowerOff className="h-4 w-4" /> : <Power className="h-4 w-4" />}
-            </button>
-          </form>
-          <form action={deleteRestaurantDriverAction} className="inline">
-            <input type="hidden" name="id" value={driver.id} />
-            <button type="submit" className={ICON_DELETE_CLASS} title="Delete" aria-label="Delete">
-              <Trash2 className="h-4 w-4" />
-            </button>
-          </form>
+    <li className="flex items-center gap-3 px-3 py-3 sm:grid sm:grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)_auto_auto] sm:gap-3 sm:px-4">
+      <div className="min-w-0 flex-1 sm:contents">
+        <div className="flex flex-wrap items-center gap-2 sm:block">
+          <p className="truncate text-sm font-semibold text-slate-900">{driver.full_name}</p>
+          <span className="sm:hidden">
+            <DriverStatusBadge active={driver.is_active} />
+          </span>
         </div>
-      </td>
-    </tr>
+        <p className="mt-0.5 truncate text-xs text-slate-500 sm:mt-0 sm:text-sm sm:text-slate-600">
+          {driver.phone || "No phone"}
+        </p>
+      </div>
+      <div className="hidden sm:block">
+        <DriverStatusBadge active={driver.is_active} />
+      </div>
+      <div className="shrink-0 sm:justify-self-end">
+        <DriverViewActions driver={driver} onEdit={onEdit} />
+      </div>
+    </li>
   );
 }
 
@@ -364,7 +383,7 @@ export function RestaurantDriversPanel({
 
         <form
           action={createRestaurantDriverAction}
-          className="flex flex-col gap-2 border-b border-slate-100 px-4 py-3 sm:flex-row sm:items-end sm:gap-3 sm:px-5"
+          className="flex flex-col gap-2.5 border-b border-slate-100 px-3 py-3 sm:flex-row sm:items-end sm:gap-3 sm:px-5"
         >
           <label className="block min-w-0 flex-1 space-y-1">
             <span className={FIELD_LABEL_CLASS}>Driver name</span>
@@ -372,34 +391,28 @@ export function RestaurantDriversPanel({
           </label>
           <div className="min-w-0 flex-1">
             <span className={FIELD_LABEL_CLASS}>Phone number</span>
-            <PhoneNumberField name="phone" showLabel={false} className="mt-1" />
+            <PhoneNumberField name="phone" showLabel={false} compact className="mt-1" />
           </div>
           <button type="submit" className={`${PRIMARY_BUTTON_CLASS} w-full sm:w-auto`}>
             Add driver
           </button>
         </form>
 
-        <div className="overflow-x-auto">
-          <table className="min-w-[520px] w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50/80 text-left">
-                <th className="px-3 py-2.5 text-[11px] font-bold uppercase tracking-widest text-slate-400">
-                  Driver name
-                </th>
-                <th className="px-3 py-2.5 text-[11px] font-bold uppercase tracking-widest text-slate-400">
-                  Phone
-                </th>
-                <th className="px-3 py-2.5 text-[11px] font-bold uppercase tracking-widest text-slate-400">
-                  Status
-                </th>
-                <th className="w-[1%] whitespace-nowrap px-3 py-2.5 text-right text-[11px] font-bold uppercase tracking-widest text-slate-400">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
+        {drivers.length === 0 ? (
+          <p className="px-4 py-6 text-center text-sm text-slate-500 sm:px-5">
+            No drivers yet. Add your first driver above.
+          </p>
+        ) : (
+          <div>
+            <div className="hidden border-b border-slate-200 bg-slate-50/80 px-4 py-2.5 text-[11px] font-bold uppercase tracking-widest text-slate-400 sm:grid sm:grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)_auto_auto] sm:gap-3">
+              <span>Driver name</span>
+              <span>Phone</span>
+              <span>Status</span>
+              <span className="text-right">Actions</span>
+            </div>
+            <ul className="divide-y divide-slate-100">
               {drivers.map((driver) => (
-                <DriverTableRow
+                <DriverListItem
                   key={driver.id}
                   driver={driver}
                   isEditing={editingId === driver.id}
@@ -407,14 +420,9 @@ export function RestaurantDriversPanel({
                   onCancel={() => setEditingId(null)}
                 />
               ))}
-            </tbody>
-          </table>
-          {drivers.length === 0 ? (
-            <p className="px-4 py-6 text-center text-sm text-slate-500 sm:px-5">
-              No drivers yet. Add your first driver above.
-            </p>
-          ) : null}
-        </div>
+            </ul>
+          </div>
+        )}
 
         {editingDriver ? (
           <form id={DRIVER_EDIT_FORM_ID} action={saveDriverAction} className="hidden">

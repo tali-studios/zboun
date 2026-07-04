@@ -30,6 +30,8 @@ type Props = {
   labelClassName?: string;
   showLabel?: boolean;
   form?: string;
+  /** Narrower country select (dial code only) — better on small screens. */
+  compact?: boolean;
   required?: boolean;
 };
 
@@ -56,6 +58,7 @@ export function PhoneNumberField({
   labelClassName = DEFAULT_LABEL_CLASS,
   showLabel = true,
   form,
+  compact = false,
   required = false,
 }: Props) {
   const resolvedPhoneProp = phoneProp ?? value;
@@ -100,22 +103,33 @@ export function PhoneNumberField({
           Phone number{required ? " *" : ""}
         </label>
       ) : null}
-      <div className="flex h-11 overflow-hidden rounded-md border border-slate-200 bg-white focus-within:border-violet-400 focus-within:ring-2 focus-within:ring-violet-100">
+      <div
+        className={`flex overflow-hidden rounded-md border border-slate-200 bg-white focus-within:border-violet-400 focus-within:ring-2 focus-within:ring-violet-100 ${
+          compact ? "h-10" : "h-11"
+        }`}
+      >
         <div className="relative shrink-0 border-r border-slate-200 bg-slate-50">
           <select
             value={selectedIso}
             onChange={(e) => handleCountryChange(e.target.value)}
-            className="h-full min-w-[11rem] max-w-[14rem] cursor-pointer appearance-none border-0 bg-transparent py-0 pl-3 pr-8 text-sm font-medium text-slate-800 outline-none"
+            className={`h-full cursor-pointer appearance-none border-0 bg-transparent py-0 text-sm font-medium text-slate-800 outline-none ${
+              compact
+                ? "min-w-[4.75rem] max-w-[5.5rem] pl-2 pr-6"
+                : "min-w-[11rem] max-w-[14rem] pl-3 pr-8"
+            }`}
             aria-label="Country code"
+            title={findCountryByIso(selectedIso)?.name}
           >
             {COUNTRY_CALLING_CODES.map((country: CountryCallingCode) => (
-              <option key={country.iso2} value={country.iso2}>
-                {formatCountryOptionLabel(country)}
+              <option key={country.iso2} value={country.iso2} title={country.name}>
+                {compact ? country.dial : formatCountryOptionLabel(country)}
               </option>
             ))}
           </select>
           <ChevronDown
-            className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+            className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-slate-400 ${
+              compact ? "right-1 h-3.5 w-3.5" : "right-2 h-4 w-4"
+            }`}
             aria-hidden
           />
         </div>
@@ -129,7 +143,9 @@ export function PhoneNumberField({
           autoComplete="tel-national"
           placeholder={phonePlaceholder}
           required={required}
-          className="min-w-0 flex-1 border-0 bg-transparent px-3 text-sm text-slate-900 outline-none placeholder:text-slate-400"
+          className={`min-w-0 flex-1 border-0 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400 ${
+            compact ? "px-2" : "px-3"
+          }`}
           {...phoneInputProps}
         />
       </div>
