@@ -1,6 +1,6 @@
 "use client";
 
-import { Bike, MapPin, Users, Zap } from "lucide-react";
+import { Bike, Gift, MapPin, Users, Zap } from "lucide-react";
 import { useState } from "react";
 import {
   MAX_RESTAURANT_DELIVERY_RADIUS_KM,
@@ -103,20 +103,21 @@ export function DeliveryFeeSettings({
         </div>
 
         <div
-          className={`flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border px-3 py-2 transition ${
+          className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 transition ${
             freeDelivery
               ? "border-emerald-300 bg-emerald-50/80"
               : "border-slate-200 bg-white"
           }`}
         >
-          <div className="min-w-[11rem] flex-1">
-            <p className="text-sm font-semibold text-slate-900">Free delivery</p>
+          <div className="min-w-0 flex-1">
+            <p className="flex items-center gap-1.5 text-sm font-semibold text-slate-900">
+              <Gift className="h-3.5 w-3.5 text-emerald-500" strokeWidth={2} aria-hidden />
+              Free delivery
+            </p>
             <p className="text-xs leading-snug text-slate-500">
               Shows a <span className="font-semibold text-[#E23744]">FREE DELIVERY</span> badge on the home page.
             </p>
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
-            <div className="relative w-24">
+            <div className="relative mt-2 w-24">
               <span
                 className="pointer-events-none absolute left-3 top-1/2 z-[1] -translate-y-1/2 text-sm font-medium text-slate-400"
                 aria-hidden
@@ -136,23 +137,23 @@ export function DeliveryFeeSettings({
                 className="ui-input ui-input-currency h-9 w-full py-1.5"
               />
             </div>
-            <ToggleSwitch
-              name="free_delivery"
-              checked={freeDelivery}
-              onChange={setFreeDelivery}
-              activeClass="bg-emerald-500"
-            />
           </div>
+          <ToggleSwitch
+            name="free_delivery"
+            checked={freeDelivery}
+            onChange={setFreeDelivery}
+            activeClass="bg-emerald-500"
+          />
         </div>
 
         <div
-          className={`flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border px-3 py-2 transition ${
+          className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 transition ${
             fastDeliveryEnabled
               ? "border-amber-300 bg-amber-50/80"
               : "border-slate-200 bg-white"
           }`}
         >
-          <div className="min-w-[11rem] flex-1">
+          <div className="min-w-0 flex-1">
             <p className="flex items-center gap-1.5 text-sm font-semibold text-slate-900">
               <Zap className="h-3.5 w-3.5 text-amber-500" strokeWidth={2} aria-hidden />
               Fast delivery
@@ -160,9 +161,7 @@ export function DeliveryFeeSettings({
             <p className="text-xs leading-snug text-slate-500">
               Priority option with a <span className="font-semibold text-amber-600">FAST DELIVERY</span> badge.
             </p>
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
-            <div className="relative w-24">
+            <div className="relative mt-2 w-24">
               <span
                 className="pointer-events-none absolute left-3 top-1/2 z-[1] -translate-y-1/2 text-sm font-medium text-slate-400"
                 aria-hidden
@@ -182,23 +181,23 @@ export function DeliveryFeeSettings({
                 className="ui-input ui-input-currency h-9 w-full py-1.5"
               />
             </div>
-            <ToggleSwitch
-              name="fast_delivery_enabled"
-              checked={fastDeliveryEnabled}
-              onChange={setFastDeliveryEnabled}
-              activeClass="bg-amber-500"
-            />
           </div>
+          <ToggleSwitch
+            name="fast_delivery_enabled"
+            checked={fastDeliveryEnabled}
+            onChange={setFastDeliveryEnabled}
+            activeClass="bg-amber-500"
+          />
         </div>
 
         <div
-          className={`flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border px-3 py-2 transition ${
+          className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 transition ${
             driverManagementEnabled
               ? "border-violet-300 bg-violet-50/80"
               : "border-slate-200 bg-white"
           }`}
         >
-          <div className="min-w-[11rem] flex-1">
+          <div className="min-w-0 flex-1">
             <p className="flex items-center gap-1.5 text-sm font-semibold text-slate-900">
               <Users className="h-3.5 w-3.5 text-violet-500" strokeWidth={2} aria-hidden />
               Driver management
