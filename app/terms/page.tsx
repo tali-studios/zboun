@@ -29,11 +29,11 @@ export default function TermsPage() {
   return (
     <div className="flex min-h-screen flex-col bg-[#f8f8ff]">
       {/* Header */}
-      <header className="sticky top-0 z-30 border-b border-slate-200/60 bg-white/95 backdrop-blur-md shadow-sm">
-        <div className="container flex h-16 items-center justify-between gap-4 px-4 sm:px-6">
+      <header className="sticky top-0 z-30 border-b border-slate-100 bg-white/95 backdrop-blur-md shadow-sm">
+        <div className="container flex h-16 items-center justify-between gap-6">
           <div className="flex items-center gap-3">
-            <Link href="/" className="shrink-0 outline-none transition-opacity hover:opacity-80" aria-label="Zboun home">
-              <Image src="/Logo.svg?v=3" alt="Zboun" width={120} height={34} className="h-8 w-auto" unoptimized priority />
+            <Link href="/" className="shrink-0 outline-none transition-opacity hover:opacity-85 focus-visible:opacity-85" aria-label="Zboun home">
+              <Image src="/Logo.svg?v=3" alt="Zboun" width={120} height={34} className="h-9 w-auto object-contain" unoptimized priority />
             </Link>
             <span className="text-slate-300" aria-hidden>/</span>
             <p className="text-sm font-semibold text-slate-600">Terms of Service</p>

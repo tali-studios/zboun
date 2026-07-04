@@ -126,16 +126,16 @@ const steps = [
 export default function AboutPage() {
   return (
     <div className="flex min-h-screen flex-col bg-[#f8f8ff]">
-      <header className="sticky top-0 z-30 border-b border-slate-200/60 bg-white/95 backdrop-blur-md shadow-sm">
-        <div className="container flex h-16 items-center justify-between gap-4 px-4 sm:px-6">
+      <header className="sticky top-0 z-30 border-b border-slate-100 bg-white/95 backdrop-blur-md shadow-sm">
+        <div className="container flex h-16 items-center justify-between gap-6">
           <div className="flex min-w-0 items-center gap-3">
-            <Link href="/" className="shrink-0 outline-none transition-opacity hover:opacity-80" aria-label="Zboun home">
+            <Link href="/" className="shrink-0 outline-none transition-opacity hover:opacity-85 focus-visible:opacity-85" aria-label="Zboun home">
               <Image
                 src="/Logo.svg?v=3"
                 alt="Zboun"
                 width={120}
                 height={34}
-                className="h-8 w-auto"
+                className="h-9 w-auto object-contain"
                 unoptimized
                 priority
               />
@@ -149,7 +149,7 @@ export default function AboutPage() {
           <div className="flex shrink-0 items-center gap-2">
             <BackButton
               fallbackHref="/"
-              className="hidden rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-500 transition hover:border-violet-300 hover:text-violet-700 sm:inline-flex"
+              className="hidden rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:border-slate-300 sm:inline-flex"
             >
               ← Back
             </BackButton>

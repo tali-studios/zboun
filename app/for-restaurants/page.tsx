@@ -2,7 +2,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { SiteFooter } from "@/components/site-footer";
 import { BackToTopButton } from "@/components/back-to-top-button";
-import { BackButton } from "@/components/back-button";
 import { ZBOUN_PRICING, formatPricingSummary, yearlySavings } from "@/lib/pricing";
 
 const steps = [
@@ -44,45 +43,22 @@ export default function ForRestaurantsPage() {
     <div className="flex min-h-screen flex-col bg-[#f8f8ff]">
 
       {/* ── Header ── */}
-      <header className="sticky top-0 z-30 border-b border-slate-200/60 bg-white/95 backdrop-blur-md shadow-sm">
-        <div className="container flex h-16 items-center justify-between gap-4 px-4 sm:px-6">
-          {/* Left: logo + breadcrumb */}
+      <header className="sticky top-0 z-30 border-b border-slate-100 bg-white/95 backdrop-blur-md shadow-sm">
+        <div className="container flex h-16 items-center gap-6">
           <div className="flex items-center gap-3">
-            <Link href="/" className="shrink-0 outline-none transition-opacity hover:opacity-80" aria-label="Zboun home">
+            <Link href="/" className="shrink-0 outline-none transition-opacity hover:opacity-85 focus-visible:opacity-85" aria-label="Zboun home">
               <Image
                 src="/Logo.svg?v=3"
                 alt="Zboun"
                 width={120}
                 height={34}
-                className="h-8 w-auto"
+                className="h-9 w-auto object-contain"
                 unoptimized
                 priority
               />
             </Link>
             <span className="text-slate-300" aria-hidden>/</span>
             <p className="text-sm font-semibold text-slate-600">Plans &amp; Pricing</p>
-          </div>
-
-          {/* Right: back + CTA */}
-          <div className="flex items-center gap-2">
-            <BackButton
-              fallbackHref="/"
-              className="hidden rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-500 transition hover:border-violet-300 hover:text-violet-700 sm:inline-flex"
-            >
-              ← Back
-            </BackButton>
-            <Link
-              href="/about"
-              className="hidden rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-500 transition hover:border-violet-300 hover:text-violet-700 md:inline-flex"
-            >
-              About Zboun
-            </Link>
-            <Link
-              href="/contact"
-              className="inline-flex items-center gap-1.5 rounded-full bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-violet-400/30 transition hover:bg-violet-700"
-            >
-              Get started
-            </Link>
           </div>
         </div>
       </header>
@@ -164,24 +140,20 @@ export default function ForRestaurantsPage() {
             </article>
           </div>
 
-          <div className="mx-auto mt-8 max-w-md">
-            <article className="overflow-hidden rounded-3xl border border-violet-100 bg-white p-7 shadow-sm md:p-8">
-              <div className="mt-5 rounded-2xl border border-violet-100 bg-violet-50/60 p-4">
-                <p className="text-[11px] font-bold uppercase tracking-widest text-violet-700">Optional add-on</p>
-                <p className="mt-1.5 text-sm font-semibold text-slate-800">
-                  One-time data entry: {ZBOUN_PRICING.symbol}{ZBOUN_PRICING.oneTimeDataEntry}
-                </p>
-                <p className="mt-1 text-xs text-slate-500">We set up your full catalog if you provide:</p>
-                <ul className="mt-2 space-y-1 text-xs text-slate-600">
-                  {onboardingRequirements.map((item) => (
-                    <li key={item} className="flex items-start gap-1.5">
-                      <span className="text-violet-400">·</span>
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </article>
+          <div className="mx-auto mt-8 max-w-3xl rounded-2xl border border-violet-100 bg-violet-50/60 p-5 md:p-6">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-violet-700">Optional add-on</p>
+            <p className="mt-1.5 text-sm font-semibold text-slate-800">
+              One-time data entry: {ZBOUN_PRICING.symbol}{ZBOUN_PRICING.oneTimeDataEntry}
+            </p>
+            <p className="mt-1 text-xs text-slate-500">We set up your full catalog if you provide:</p>
+            <ul className="mt-2 space-y-1 text-xs text-slate-600">
+              {onboardingRequirements.map((item) => (
+                <li key={item} className="flex items-start gap-1.5">
+                  <span className="text-violet-400">·</span>
+                  {item}
+                </li>
+              ))}
+            </ul>
           </div>
 
           <p className="mx-auto mt-6 max-w-lg text-center text-xs text-slate-500">

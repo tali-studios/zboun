@@ -10,13 +10,13 @@ type Props = {
 
 export function CustomerDesktopNav({ title, backHref }: Props) {
   return (
-    <header className="sticky top-0 z-30 hidden border-b border-slate-200/60 bg-white/95 backdrop-blur-md shadow-sm md:block">
-      <div className="container flex h-16 items-center justify-between gap-4 px-6">
+    <header className="sticky top-0 z-30 hidden border-b border-slate-100 bg-white/95 backdrop-blur-md shadow-sm md:block">
+      <div className="container flex h-16 items-center justify-between gap-6">
         {/* Left: logo + breadcrumb */}
         <div className="flex items-center gap-3">
           <Link
             href="/"
-            className="shrink-0 outline-none transition-opacity hover:opacity-80"
+            className="shrink-0 outline-none transition-opacity hover:opacity-85 focus-visible:opacity-85"
             aria-label="Zboun home"
           >
             <Image
@@ -24,7 +24,7 @@ export function CustomerDesktopNav({ title, backHref }: Props) {
               alt="Zboun"
               width={120}
               height={34}
-              className="h-8 w-auto"
+              className="h-9 w-auto object-contain"
               unoptimized
             />
           </Link>

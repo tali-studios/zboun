@@ -24,7 +24,7 @@ export function ContactWhatsAppForm() {
     (e: React.FormEvent) => {
       e.preventDefault();
       if (!name.trim() || !message.trim()) {
-        window.alert("Please fill Name and Message.");
+        window.alert("Please fill in your name and message.");
         return;
       }
       const text = buildMessage(name, message);
@@ -39,7 +39,7 @@ export function ContactWhatsAppForm() {
       <input
         type="text"
         name="name"
-        placeholder="Name"
+        placeholder="Your name"
         className="ui-input"
         value={name}
         onChange={(ev) => setName(ev.target.value)}
@@ -48,7 +48,7 @@ export function ContactWhatsAppForm() {
       />
       <textarea
         name="message"
-        placeholder="Message"
+        placeholder="How can we help?"
         rows={4}
         className="ui-textarea"
         value={message}

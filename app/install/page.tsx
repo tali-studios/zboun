@@ -11,11 +11,29 @@ export default function InstallAppPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-[#f8f8ff]">
-      <header className="border-b border-slate-200/70 bg-white/95 backdrop-blur-md">
-        <div className="container flex h-14 items-center">
-          <Link href="/" className="shrink-0" aria-label="Zboun home">
-            <Image src="/Logo.svg?v=3" alt="Zboun" width={100} height={28} className="h-7 w-auto" unoptimized />
-          </Link>
+      <header className="sticky top-0 z-30 border-b border-slate-100 bg-white/95 backdrop-blur-md shadow-sm">
+        <div className="container flex h-16 items-center justify-between gap-6">
+          <div className="flex min-w-0 items-center gap-3">
+            <Link
+              href="/"
+              className="shrink-0 outline-none transition-opacity hover:opacity-85 focus-visible:opacity-85"
+              aria-label="Zboun home"
+            >
+              <Image
+                src="/Logo.svg?v=3"
+                alt="Zboun"
+                width={120}
+                height={34}
+                className="h-9 w-auto object-contain"
+                unoptimized
+                priority
+              />
+            </Link>
+            <span className="text-slate-300" aria-hidden>
+              /
+            </span>
+            <p className="truncate text-sm font-semibold text-slate-600">Add to home screen</p>
+          </div>
         </div>
       </header>
 
