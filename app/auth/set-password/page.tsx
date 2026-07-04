@@ -13,7 +13,7 @@ export default function SetPasswordPage() {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDone, setIsDone] = useState(false);
-  const dashboardUrl = "/dashboard/login";
+  const dashboardUrl = "/login";
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -94,14 +94,14 @@ export default function SetPasswordPage() {
               Password set successfully. You can now sign in to your dashboard.
             </p>
             <button
-              onClick={() => router.push("/dashboard/login")}
+              onClick={() => router.push("/login")}
               className="flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 py-3.5 text-sm font-bold text-white shadow-md shadow-violet-400/30 transition hover:brightness-110"
             >
-              Go to dashboard login
+              Go to sign in
             </button>
             <p className="text-center text-xs text-slate-400">
-              Dashboard URL:{" "}
-              <Link href="/dashboard/login" className="text-violet-600 underline-offset-2 hover:underline">
+              Sign in:{" "}
+              <Link href="/login" className="text-violet-600 underline-offset-2 hover:underline">
                 {dashboardUrl}
               </Link>
             </p>

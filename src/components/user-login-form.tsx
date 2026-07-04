@@ -2,7 +2,7 @@
 
 import { useFormStatus } from "react-dom";
 import { PasswordInput } from "@/components/password-input";
-import { customerSignInAction } from "@/app-actions/customer-auth";
+import { signInAction } from "@/app-actions/auth";
 
 function SignInButton() {
   const { pending } = useFormStatus();
@@ -24,7 +24,7 @@ type Props = {
 
 export function UserLoginForm({ next }: Props) {
   return (
-    <form action={customerSignInAction} className="space-y-3">
+    <form action={signInAction} className="space-y-3">
       <input type="hidden" name="next" value={next} />
       <div>
         <label htmlFor="email" className="mb-1.5 block text-xs font-semibold text-slate-600">

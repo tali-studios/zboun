@@ -2,9 +2,11 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
+import { getSafeRedirectPath } from "@/lib/auth-redirect";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getCurrentUserRole } from "@/lib/data";
 import { env } from "@/lib/env";
+
 function getAdminClient() {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!env.supabaseUrl || !serviceRoleKey) {
@@ -15,75 +17,136 @@ function getAdminClient() {
   });
 }
 
+function loginErrorRedirect(error: string, next?: string): never {
+  const params = new URLSearchParams({ error });
+  if (next && next !== "/") params.set("next", next);
+  redirect(`/login?${params.toString()}`);
+}
+
+type AppUserProfile = {
+  id: string;
+  role: string | null;
+  restaurant_id: string | null;
+  name: string | null;
+  email: string | null;
+};
+
+async function loadAppUserProfile(
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+  userId: string,
+): Promise<AppUserProfile | null> {
+  const { data: profileByUserClient, error: profileError } = await supabase
+    .from("users")
+    .select("id, role, restaurant_id, name, email")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (!profileError && profileByUserClient) {
+    return profileByUserClient as AppUserProfile;
+  }
+
+  // RLS can block this read in some policy configurations; fallback to service role lookup.
+  const adminClient = getAdminClient();
+  if (!adminClient) return (profileByUserClient as AppUserProfile | null) ?? null;
+
+  const { data: profileByAdmin } = await adminClient
+    .from("users")
+    .select("id, role, restaurant_id, name, email")
+    .eq("id", userId)
+    .maybeSingle();
+
+  return (profileByAdmin as AppUserProfile | null) ?? null;
+}
+
+function normalizeRole(role: string | null | undefined) {
+  return String(role ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[_\s-]+/g, "");
+}
+
+/** Single login for customers, store admins, and super admins. */
 export async function signInAction(formData: FormData) {
   const email = String(formData.get("email") ?? "")
     .trim()
     .toLowerCase();
   const password = String(formData.get("password") ?? "");
-  const supabase = await createServerSupabaseClient();
+  const next = getSafeRedirectPath(formData.get("next"), "/");
 
+  if (!email || !password) {
+    loginErrorRedirect("missing_fields", next);
+  }
+
+  const supabase = await createServerSupabaseClient();
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
-    redirect("/dashboard/login?error=invalid_credentials");
+    const msg = error.message.toLowerCase();
+    if (msg.includes("email not confirmed")) {
+      loginErrorRedirect("email_not_verified", next);
+    }
+    loginErrorRedirect("invalid_credentials", next);
   }
 
   const user = data.user;
   if (!user) {
-    redirect("/dashboard/login?error=invalid_credentials");
+    loginErrorRedirect("invalid_credentials", next);
   }
 
-  const { data: profileByUserClient, error: profileError } = await supabase
-    .from("users")
-    .select("id, role, restaurant_id, name, email")
+  const profile = await loadAppUserProfile(supabase, user.id);
+  if (profile) {
+    const normalizedRole = normalizeRole(profile.role);
+    if (normalizedRole === "superadmin") {
+      redirect("/dashboard/super-admin");
+    }
+    if (normalizedRole === "restaurantadmin") {
+      if (!profile.restaurant_id) {
+        loginErrorRedirect("missing_restaurant_link", next);
+      }
+      redirect("/dashboard/business");
+    }
+  }
+
+  const { data: customerProfile } = await supabase
+    .from("customer_profiles")
+    .select("id")
     .eq("id", user.id)
     .maybeSingle();
 
-  let profile = profileByUserClient;
-  if (profileError || !profile) {
-    // RLS can block this read in some policy configurations; fallback to service role lookup.
-    const adminClient = getAdminClient();
-    if (adminClient) {
-      const { data: profileByAdmin } = await adminClient
-        .from("users")
-        .select("id, role, restaurant_id, name, email")
-        .eq("id", user.id)
-        .maybeSingle();
-      profile = profileByAdmin ?? null;
-    }
+  if (customerProfile) {
+    redirect(next);
   }
 
-  if (!profile) {
-    redirect("/dashboard/login?error=missing_profile");
+  // Self-heal legacy customer rows only — never for dashboard staff accounts.
+  if (profile) {
+    loginErrorRedirect("missing_profile", next);
   }
-  const normalizedRole = String(profile.role ?? "")
-    .trim()
-    .toLowerCase()
-    .replace(/[_\s-]+/g, "");
-  if (normalizedRole === "superadmin") {
-    redirect("/dashboard/super-admin");
+
+  const fallbackName =
+    String(user.user_metadata?.name ?? "").trim() || email.split("@")[0] || "Customer";
+  const { error: ensureProfileError } = await supabase.from("customer_profiles").upsert(
+    { id: user.id, name: fallbackName, email },
+    { onConflict: "id" },
+  );
+  if (!ensureProfileError) {
+    redirect(next);
   }
-  if (normalizedRole === "restaurantadmin") {
-    if (!profile.restaurant_id) {
-      redirect("/dashboard/login?error=missing_restaurant_link");
-    }
-    redirect("/dashboard/business");
-  }
-  redirect("/dashboard/login?error=missing_profile");
+
+  loginErrorRedirect("account_not_found", next);
 }
 
 export async function signOutAction() {
   const supabase = await createServerSupabaseClient();
   await supabase.auth.signOut();
-  redirect("/dashboard/login");
+  redirect("/login");
 }
 
 export async function changeDashboardPasswordAction(formData: FormData) {
   const appUser = await getCurrentUserRole();
   if (!appUser) {
-    redirect("/dashboard/login");
+    redirect("/login");
   }
   if (appUser.role !== "restaurant_admin" && appUser.role !== "superadmin") {
-    redirect("/dashboard/login");
+    redirect("/login");
   }
 
   const currentPassword = String(formData.get("current_password") ?? "");

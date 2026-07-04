@@ -267,49 +267,8 @@ export async function verifyCustomerSignupOtpAction(formData: FormData) {
 }
 
 export async function customerSignInAction(formData: FormData) {
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  const password = String(formData.get("password") ?? "");
-  const next = getSafeRedirectPath(formData.get("next"), "/");
-  const nextQuery = encodeURIComponent(next);
-
-  if (!email || !password)
-    redirect(`/login?error=missing_fields&next=${nextQuery}`);
-
-  const supabase = await createServerSupabaseClient();
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) {
-    const msg = error.message.toLowerCase();
-    if (msg.includes("email not confirmed")) {
-      redirect(`/login?error=email_not_verified&next=${nextQuery}`);
-    }
-    redirect(`/login?error=invalid_credentials&next=${nextQuery}`);
-  }
-
-  const userId = data.user?.id;
-  if (!userId)
-    redirect(`/login?error=invalid_credentials&next=${nextQuery}`);
-
-  const [{ data: profile }, { data: adminProfile }] = await Promise.all([
-    supabase.from("customer_profiles").select("id").eq("id", userId).maybeSingle(),
-    supabase.from("users").select("role").eq("id", userId).maybeSingle(),
-  ]);
-
-  if (profile) redirect(next);
-
-  if (adminProfile) redirect("/login?error=use_dashboard_login");
-
-  // Self-heal legacy/customer rows if profile wasn't created at signup time.
-  const fallbackName =
-    String(data.user?.user_metadata?.name ?? "").trim() ||
-    email.split("@")[0] ||
-    "Customer";
-  const { error: ensureProfileError } = await supabase.from("customer_profiles").upsert(
-    { id: userId, name: fallbackName, email },
-    { onConflict: "id" },
-  );
-  if (!ensureProfileError) redirect(next);
-
-  redirect(`/login?error=account_not_found&next=${nextQuery}`);
+  const { signInAction } = await import("@/app-actions/auth");
+  return signInAction(formData);
 }
 
 export async function customerSignOutAction() {

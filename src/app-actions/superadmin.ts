@@ -213,7 +213,7 @@ export async function createRestaurantAction(formData: FormData) {
         businessName: name,
         businessTypeLabel: categoryLabel,
         publicUrl: hasCatalogDashboard(businessType) ? `${appUrl}/${slug}` : null,
-        dashboardUrl: `${appUrl}/dashboard/login`,
+        dashboardUrl: `${appUrl}/login`,
         initialPassword,
         subscriptionEndsAt: subscription.periodEnd,
         monthlyPrice: subscription.billingPrice,
