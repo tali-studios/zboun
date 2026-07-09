@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Check, Search } from "lucide-react";
 import {
   createMenuPromotionAction,
   deleteMenuPromotionAction,
@@ -54,6 +55,8 @@ function formatDateRange(promotion: MenuPromotion) {
 export function MenuPromotionsPanel({ promotions, sections, brands, menuItems }: Props) {
   const [scopeType, setScopeType] = useState<PromotionScope>("store");
   const [activeNow, setActiveNow] = useState(true);
+  const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
+  const [itemSearch, setItemSearch] = useState("");
 
   const sectionById = useMemo(() => new Map(sections.map((s) => [s.id, s.name])), [sections]);
   const brandById = useMemo(() => new Map(brands.map((b) => [b.id, b.name])), [brands]);
@@ -62,9 +65,21 @@ export function MenuPromotionsPanel({ promotions, sections, brands, menuItems }:
   const scopeOptions = useMemo(() => {
     if (scopeType === "category") return sections;
     if (scopeType === "brand") return brands;
-    if (scopeType === "item") return menuItems.map((item) => ({ id: item.id, name: item.name }));
     return [];
-  }, [scopeType, sections, brands, menuItems]);
+  }, [scopeType, sections, brands]);
+
+  const filteredMenuItems = useMemo(() => {
+    const query = itemSearch.trim().toLowerCase();
+    const sorted = [...menuItems].sort((a, b) => a.name.localeCompare(b.name));
+    if (!query) return sorted;
+    return sorted.filter((item) => item.name.toLowerCase().includes(query));
+  }, [itemSearch, menuItems]);
+
+  function toggleItemSelection(itemId: string) {
+    setSelectedItemIds((current) =>
+      current.includes(itemId) ? current.filter((id) => id !== itemId) : [...current, itemId],
+    );
+  }
 
   return (
     <section id="promotions" className="panel overflow-x-hidden p-5">
@@ -75,8 +90,8 @@ export function MenuPromotionsPanel({ promotions, sections, brands, menuItems }:
         </span>
       </div>
       <p className="mt-1 text-sm text-slate-600">
-        Run percentage-off sales on your whole store, a section, a brand, or a single item. Customers see the sale
-        price on your store page; original prices stay in your admin for when the sale ends.
+        Run percentage-off sales on your whole store, a section, a brand, or one or more items. Customers see
+        the sale price on your store page; original prices stay in your admin for when the sale ends.
       </p>
 
       <form
@@ -85,28 +100,131 @@ export function MenuPromotionsPanel({ promotions, sections, brands, menuItems }:
       >
         <h3 className="text-sm font-bold text-slate-900">Create sale</h3>
         <div className="mt-3 grid gap-3 md:grid-cols-2">
-          <label className="block space-y-1">
+          <label
+            className={`block space-y-1 ${scopeType === "item" ? "md:col-span-2" : ""}`}
+          >
             <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Applies to</span>
             <select
               name="scope_type"
-              className="ui-select"
+              className="ui-select w-full"
               value={scopeType}
-              onChange={(e) => setScopeType(e.target.value as PromotionScope)}
+              onChange={(e) => {
+                setScopeType(e.target.value as PromotionScope);
+                setSelectedItemIds([]);
+                setItemSearch("");
+              }}
               required
             >
               <option value="store">Whole store</option>
               <option value="category">Whole section</option>
               <option value="brand">Whole brand</option>
-              <option value="item">Single item</option>
+              <option value="item">Specific items</option>
             </select>
           </label>
 
-          {scopeType !== "store" ? (
+          {scopeType === "item" ? (
+            <div className="space-y-2 md:col-span-2">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Items</span>
+                {selectedItemIds.length > 0 ? (
+                  <span className="rounded-full bg-violet-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-violet-700">
+                    {selectedItemIds.length} selected
+                  </span>
+                ) : null}
+              </div>
+
+              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                <div className="border-b border-slate-100 bg-slate-50/80 p-3">
+                  <div className="relative">
+                    <Search
+                      className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                      aria-hidden
+                    />
+                    <input
+                      id="promotion-item-search"
+                      type="search"
+                      value={itemSearch}
+                      onChange={(event) => setItemSearch(event.target.value)}
+                      placeholder="Search items…"
+                      className="ui-input ui-input-search h-10 w-full !min-h-0 rounded-lg border-slate-200 bg-white text-sm shadow-none"
+                    />
+                  </div>
+                </div>
+
+                {selectedItemIds.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5 border-b border-violet-100 bg-violet-50/50 px-3 py-2">
+                    {selectedItemIds.map((itemId) => (
+                      <button
+                        key={itemId}
+                        type="button"
+                        onClick={() => toggleItemSelection(itemId)}
+                        className="inline-flex max-w-full items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs font-medium text-violet-800 shadow-sm ring-1 ring-violet-200 transition hover:bg-violet-100"
+                      >
+                        <span className="truncate">{itemById.get(itemId) ?? "Item"}</span>
+                        <span aria-hidden className="text-violet-400">
+                          ×
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+
+                <ul className="max-h-60 divide-y divide-slate-100 overflow-y-auto">
+                  {filteredMenuItems.length ? (
+                    filteredMenuItems.map((item) => {
+                      const checked = selectedItemIds.includes(item.id);
+                      const sectionName = item.category_id
+                        ? sectionById.get(item.category_id)
+                        : null;
+                      return (
+                        <li key={item.id}>
+                          <label
+                            className={`flex cursor-pointer items-center gap-3 px-3 py-3 transition ${
+                              checked ? "bg-violet-50/70" : "hover:bg-slate-50"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              name="scope_id"
+                              value={item.id}
+                              checked={checked}
+                              onChange={() => toggleItemSelection(item.id)}
+                              className="sr-only"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-medium text-slate-900">{item.name}</p>
+                              {sectionName ? (
+                                <p className="truncate text-xs text-slate-400">{sectionName}</p>
+                              ) : null}
+                            </div>
+                            <span
+                              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition ${
+                                checked
+                                  ? "border-violet-600 bg-violet-600 text-white"
+                                  : "border-slate-300 bg-white"
+                              }`}
+                              aria-hidden
+                            >
+                              {checked ? <Check className="h-3 w-3" strokeWidth={3} /> : null}
+                            </span>
+                          </label>
+                        </li>
+                      );
+                    })
+                  ) : (
+                    <li className="px-4 py-10 text-center text-sm text-slate-400">
+                      No items match this search.
+                    </li>
+                  )}
+                </ul>
+              </div>
+            </div>
+          ) : scopeType !== "store" ? (
             <label className="block space-y-1">
               <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                {scopeType === "category" ? "Section" : scopeType === "brand" ? "Brand" : "Item"}
+                {scopeType === "category" ? "Section" : "Brand"}
               </span>
-              <select name="scope_id" className="ui-select" required>
+              <select name="scope_id" className="ui-select w-full" required>
                 <option value="">Select…</option>
                 {scopeOptions.map((option) => (
                   <option key={option.id} value={option.id}>
@@ -148,13 +266,6 @@ export function MenuPromotionsPanel({ promotions, sections, brands, menuItems }:
             <input name="ends_at" type="datetime-local" className="ui-input" />
           </label>
 
-          <label className="block space-y-1">
-            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Priority <span className="font-normal normal-case">(higher wins when multiple sales overlap)</span>
-            </span>
-            <input name="priority" type="number" defaultValue={0} className="ui-input" />
-          </label>
-
           <div
             className={`flex items-center justify-between gap-4 rounded-xl border px-4 py-3 md:col-span-2 transition ${
               activeNow ? "border-emerald-300 bg-emerald-50/80" : "border-slate-200 bg-white"
@@ -193,9 +304,10 @@ export function MenuPromotionsPanel({ promotions, sections, brands, menuItems }:
 
         <button
           type="submit"
-          className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-violet-500/25 transition hover:brightness-105 active:scale-[0.99]"
+          disabled={scopeType === "item" && selectedItemIds.length === 0}
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-violet-500/25 transition hover:brightness-105 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Create sale
+          Create sale{scopeType === "item" && selectedItemIds.length > 1 ? ` (${selectedItemIds.length} items)` : ""}
         </button>
       </form>
 

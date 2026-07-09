@@ -55,7 +55,6 @@ export async function createMenuPromotionAction(formData: FormData) {
   const label = String(formData.get("label") ?? "").trim() || null;
   const startsAt = parseOptionalDate(formData.get("starts_at"));
   const endsAt = parseOptionalDate(formData.get("ends_at"));
-  const priority = Number(String(formData.get("priority") ?? "0").trim());
   const isActive = String(formData.get("is_active") ?? "true") !== "false";
 
   if (!scopeType || percentOff == null) {
@@ -63,21 +62,50 @@ export async function createMenuPromotionAction(formData: FormData) {
   }
 
   const scopeId = scopeType === "store" ? null : scopeIdRaw || null;
-  if (scopeType !== "store" && !scopeId) {
+  const scopeIds =
+    scopeType === "item"
+      ? formData
+          .getAll("scope_id")
+          .map((value) => String(value).trim())
+          .filter(Boolean)
+      : scopeId
+        ? [scopeId]
+        : [];
+
+  if (scopeType !== "store" && scopeIds.length === 0) {
     redirect("/dashboard/business?error=invalid_promotion_scope");
   }
 
-  const { error } = await supabase.from("menu_promotions").insert({
+  const promotionRows = scopeIds.map((id) => ({
     restaurant_id: user.restaurant_id,
     scope_type: scopeType,
-    scope_id: scopeId,
+    scope_id: id,
     percent_off: percentOff,
     label,
     starts_at: startsAt,
     ends_at: endsAt,
-    priority: Number.isFinite(priority) ? Math.floor(priority) : 0,
+    priority: 0,
     is_active: isActive,
-  });
+  }));
+
+  const insertPayload =
+    scopeType === "store"
+      ? [
+          {
+            restaurant_id: user.restaurant_id,
+            scope_type: scopeType,
+            scope_id: null,
+            percent_off: percentOff,
+            label,
+            starts_at: startsAt,
+            ends_at: endsAt,
+            priority: 0,
+            is_active: isActive,
+          },
+        ]
+      : promotionRows;
+
+  const { error } = await supabase.from("menu_promotions").insert(insertPayload);
 
   if (error) {
     redirect("/dashboard/business?error=promotion_save_failed");

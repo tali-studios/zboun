@@ -264,5 +264,5 @@ export const PROMOTION_SCOPE_LABELS: Record<PromotionScope, string> = {
   store: "Whole store",
   category: "Section",
   brand: "Brand",
-  item: "Single item",
+  item: "Item",
 };
