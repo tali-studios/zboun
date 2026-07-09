@@ -334,7 +334,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                   value={restaurant?.name ?? ""}
                   readOnly
                   disabled
-                  className="ui-input cursor-not-allowed border-slate-200 bg-slate-200 text-slate-500 opacity-100"
+                  className="ui-input cursor-not-allowed border-slate-200 bg-slate-50 text-slate-600 opacity-100"
                 />
                 <p className="text-xs text-slate-500">
                   Set by Zboun — contact support if you need this changed.
