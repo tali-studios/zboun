@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
+import { toAbsoluteStoreUrl } from "@/lib/restaurant-menu-urls";
 
 type Props = {
   menuUrl: string;
@@ -14,15 +15,6 @@ type Props = {
   badgeLabel?: string;
   openLinkLabel?: string;
 };
-
-function menuPathFromUrl(menuUrl: string): string {
-  try {
-    const parsed = new URL(menuUrl);
-    return `${parsed.pathname}${parsed.search}`;
-  } catch {
-    return menuUrl.startsWith("/") ? menuUrl : `/${menuUrl}`;
-  }
-}
 
 export function MenuQrCard({
   menuUrl,
@@ -40,15 +32,14 @@ export function MenuQrCard({
 
   const isInStore = variant === "in-store";
   const badge = badgeLabel ?? (isInStore ? "In-store" : "Online order");
-  // Same-origin path so "Open store" works while developing against a local server
-  // even when NEXT_PUBLIC_APP_URL points at production. Printed QR still uses menuUrl.
-  const openHref = menuPathFromUrl(menuUrl);
+  const absoluteUrl = toAbsoluteStoreUrl(menuUrl);
+  const displayUrl = menuUrl.replace(/^https?:\/\//i, "");
 
   async function generateQr() {
     try {
       setIsLoading(true);
       setError("");
-      const value = await QRCode.toDataURL(menuUrl, {
+      const value = await QRCode.toDataURL(absoluteUrl, {
         width: 1024,
         margin: 2,
         color: {
@@ -67,7 +58,7 @@ export function MenuQrCard({
   useEffect(() => {
     generateQr();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [menuUrl]);
+  }, [absoluteUrl]);
 
   function downloadQr() {
     if (!qrDataUrl) return;
@@ -116,7 +107,7 @@ export function MenuQrCard({
       </div>
 
       <div className="mt-5 space-y-2">
-        <p className="rounded-xl bg-slate-50 p-3 text-xs text-slate-700 break-all">{menuUrl}</p>
+        <p className="rounded-xl bg-slate-50 p-3 text-xs text-slate-700 break-all">{displayUrl}</p>
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
@@ -126,7 +117,7 @@ export function MenuQrCard({
           >
             Download QR
           </button>
-          <a href={openHref} target="_blank" rel="noreferrer" className="btn btn-primary">
+          <a href={absoluteUrl} target="_blank" rel="noreferrer" className="btn btn-primary">
             {openLinkLabel}
           </a>
         </div>

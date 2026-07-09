@@ -3,7 +3,7 @@ import { MenuQrCard } from "@/components/menu-qr-card";
 import { StoreAdminHeader } from "@/components/store-admin-header";
 import { getStorefrontQrLabels } from "@/lib/browse-sections";
 import { getCurrentUserRole } from "@/lib/data";
-import { getRestaurantMenuUrls } from "@/lib/restaurant-menu-urls";
+import { getRestaurantSubdomainMenuUrls } from "@/lib/restaurant-menu-urls";
 import { loadStoreAdminHeaderContext } from "@/lib/store-admin-header-context";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -19,7 +19,7 @@ export default async function RestaurantQrPage() {
   const header = await loadStoreAdminHeaderContext(supabase, appUser.restaurant_id);
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const slug = header.slug ?? "";
-  const { order: orderMenuUrl, inStore: inStoreMenuUrl } = getRestaurantMenuUrls(appUrl, slug);
+  const { order: orderMenuUrl, inStore: inStoreMenuUrl } = getRestaurantSubdomainMenuUrls(appUrl, slug);
   const qrLabels = getStorefrontQrLabels(header.browseSections);
 
   return (

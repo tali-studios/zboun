@@ -31,3 +31,21 @@ export function getRestaurantSubdomainStoreUrl(appUrl: string, slug: string): st
     return `${base}/${cleanSlug}`;
   }
 }
+
+/** QR / share hosts: `{slug}.zboun.net` and `{slug}.zboun.net/menu` (no protocol). */
+export function getRestaurantSubdomainMenuUrls(appUrl: string, slug: string) {
+  const storeHost = getRestaurantSubdomainStoreUrl(appUrl, slug);
+  return {
+    order: storeHost,
+    inStore: `${storeHost}/menu`,
+  };
+}
+
+/** Absolute https URL for QR encoding / opening from a host-only store link. */
+export function toAbsoluteStoreUrl(hostOrUrl: string): string {
+  const value = String(hostOrUrl ?? "").trim();
+  if (!value) return value;
+  if (/^https?:\/\//i.test(value)) return value;
+  if (value.startsWith("/")) return value;
+  return `https://${value.replace(/^\/+/, "")}`;
+}
