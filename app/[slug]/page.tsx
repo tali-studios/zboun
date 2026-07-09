@@ -13,6 +13,7 @@ import { getCustomerOrderContext } from "@/lib/customer-order-context";
 import { getSiteUrl } from "@/lib/site";
 import { publicPageRobots } from "@/lib/seo";
 import { RestaurantJsonLd } from "@/components/restaurant-json-ld";
+import { storeIconUrl, storePwaMetadata } from "@/lib/store-pwa";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -31,30 +32,40 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const description =
     restaurant.description?.trim() ||
     `View the ${restaurant.name} menu and send your order on WhatsApp with Zboun.`;
+  const shareImage = restaurant.logo_url || restaurant.banner_url;
   return {
     title,
     description,
     alternates: { canonical: path },
+    ...storePwaMetadata(restaurant),
     openGraph: {
       title: `${restaurant.name} menu`,
       description,
       url: `${base}${path}`,
       type: "website",
-      ...(restaurant.banner_url || restaurant.logo_url
+      siteName: restaurant.name,
+      ...(shareImage
         ? {
             images: [
               {
-                url: restaurant.banner_url || restaurant.logo_url!,
-                alt: `${restaurant.name} cover`,
+                url: restaurant.logo_url
+                  ? storeIconUrl(restaurant.slug, 512)
+                  : shareImage,
+                alt: `${restaurant.name} logo`,
               },
             ],
           }
         : {}),
     },
     twitter: {
-      card: restaurant.banner_url || restaurant.logo_url ? "summary_large_image" : "summary",
+      card: shareImage ? "summary" : "summary",
       title: `${restaurant.name} menu`,
       description,
+      ...(restaurant.logo_url
+        ? { images: [storeIconUrl(restaurant.slug, 512)] }
+        : shareImage
+          ? { images: [shareImage] }
+          : {}),
     },
     robots: publicPageRobots,
   };

@@ -110,13 +110,6 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <head>
-        <link rel="icon" href="/icon.svg?v=10" type="image/svg+xml" />
-        <link rel="icon" href="/icon-192.png?v=10" type="image/png" sizes="192x192" />
-        <link rel="shortcut icon" href="/icon-192.png?v=10" type="image/png" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=9" />
-        <link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png?v=9" />
-      </head>
       <body className="flex min-h-full flex-col">
         <PwaRegister />
         <NextTopLoader color="#7c3aed" showSpinner={false} />

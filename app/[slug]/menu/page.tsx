@@ -6,6 +6,7 @@ import { RestaurantMenuHero } from "@/components/restaurant-menu-hero";
 import { getRestaurantBySlug, getRestaurantMenu } from "@/lib/data";
 import { getStorefrontQrLabels, isFoodMenuBusiness } from "@/lib/browse-sections";
 import { getSiteUrl } from "@/lib/site";
+import { storeIconUrl, storePwaMetadata } from "@/lib/store-pwa";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -26,26 +27,41 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     (food
       ? `Browse the ${restaurant.name} menu — items and prices for in-restaurant reference.`
       : `Browse ${restaurant.name} — products and prices for in-store reference.`);
+  const shareImage = restaurant.logo_url || restaurant.banner_url;
   return {
     title,
     description,
     alternates: { canonical: path },
     robots: { index: true, follow: true },
+    ...storePwaMetadata(restaurant),
     openGraph: {
       title: food ? `${restaurant.name} menu` : `${restaurant.name} store`,
       description,
       url: `${base}${path}`,
       type: "website",
-      ...(restaurant.banner_url || restaurant.logo_url
+      siteName: restaurant.name,
+      ...(shareImage
         ? {
             images: [
               {
-                url: restaurant.banner_url || restaurant.logo_url!,
-                alt: `${restaurant.name} cover`,
+                url: restaurant.logo_url
+                  ? storeIconUrl(restaurant.slug, 512)
+                  : shareImage,
+                alt: `${restaurant.name} logo`,
               },
             ],
           }
         : {}),
+    },
+    twitter: {
+      card: "summary",
+      title: food ? `${restaurant.name} menu` : `${restaurant.name} store`,
+      description,
+      ...(restaurant.logo_url
+        ? { images: [storeIconUrl(restaurant.slug, 512)] }
+        : shareImage
+          ? { images: [shareImage] }
+          : {}),
     },
   };
 }
