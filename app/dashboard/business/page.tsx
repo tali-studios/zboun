@@ -330,8 +330,15 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
               <input type="hidden" name="current_banner_url" value={restaurant?.banner_url ?? ""} />
               <label className="space-y-1">
                 <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Store Name</span>
-                <input name="name" defaultValue={restaurant?.name} placeholder="Store name" className="ui-input" />
-                <p className="text-xs text-slate-500">Public name shown at the top of your menu.</p>
+                <input
+                  value={restaurant?.name ?? ""}
+                  readOnly
+                  disabled
+                  className="ui-input cursor-not-allowed bg-slate-50 text-slate-600"
+                />
+                <p className="text-xs text-slate-500">
+                  Set by Zboun — contact support if you need this changed.
+                </p>
               </label>
               <label className="space-y-1">
                 <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Phone Number</span>

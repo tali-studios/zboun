@@ -945,7 +945,7 @@ export async function updateRestaurantSettingsAction(
   const { data: restaurantRow, error: updateError } = await supabase
     .from("restaurants")
     .update({
-      name: String(formData.get("name")),
+      // Store name is managed by platform admins only — ignore any submitted name.
       description: String(formData.get("description") ?? "").trim() || null,
       phone: String(formData.get("phone")),
       lbp_rate: Math.round(lbpRate * 100) / 100,
