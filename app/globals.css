@@ -121,6 +121,17 @@ body {
   min-height: 2.75rem;
 }
 
+/* Read-only fields (e.g. locked store name) — must beat .ui-input background */
+.ui-input.ui-input-locked,
+.ui-input.ui-input-locked:disabled,
+.ui-input.ui-input-locked[readonly] {
+  background: #f8fafc;
+  color: #475569;
+  border-color: #e2e8f0;
+  cursor: not-allowed;
+  opacity: 1;
+}
+
 .ui-input::placeholder,
 .ui-select::placeholder,
 .ui-textarea::placeholder {

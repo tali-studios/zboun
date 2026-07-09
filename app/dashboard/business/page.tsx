@@ -334,7 +334,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                   value={restaurant?.name ?? ""}
                   readOnly
                   disabled
-                  className="ui-input cursor-not-allowed border-slate-200 bg-slate-50 text-slate-600 opacity-100"
+                  className="ui-input ui-input-locked"
                 />
                 <p className="text-xs text-slate-500">
                   Set by Zboun — contact support if you need this changed.
@@ -506,7 +506,15 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
               ))}
               <label className="space-y-1">
                 <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Business Name</span>
-                <input name="name" defaultValue={restaurant?.name} placeholder="Business name" className="ui-input" />
+                <input
+                  value={restaurant?.name ?? ""}
+                  readOnly
+                  disabled
+                  className="ui-input ui-input-locked"
+                />
+                <p className="text-xs text-slate-500">
+                  Set by Zboun — contact support if you need this changed.
+                </p>
               </label>
               <label className="space-y-1">
                 <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Phone Number</span>
