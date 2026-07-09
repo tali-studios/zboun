@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { formatBrowseSectionsLabel } from "@/lib/browse-sections";
+import { getRestaurantSubdomainStoreUrl } from "@/lib/restaurant-menu-urls";
 import { loadRestaurantForAdminDashboard } from "@/lib/restaurant-profile";
 
 export async function loadStoreAdminHeaderContext(
@@ -8,7 +9,7 @@ export async function loadStoreAdminHeaderContext(
 ) {
   const restaurant = await loadRestaurantForAdminDashboard(supabase, restaurantId);
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  const menuUrl = `${appUrl.replace(/\/+$/, "")}/${restaurant?.slug ?? ""}`;
+  const menuUrl = getRestaurantSubdomainStoreUrl(appUrl, restaurant?.slug ?? "");
 
   return {
     restaurant,

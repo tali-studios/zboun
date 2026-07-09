@@ -25,6 +25,7 @@ import {
   resolveRestaurantLocationLabel,
   syncRestaurantProfileFromMainBranch,
 } from "@/lib/restaurant-profile";
+import { getRestaurantSubdomainStoreUrl } from "@/lib/restaurant-menu-urls";
 
 export const dynamic = "force-dynamic";
 
@@ -259,7 +260,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
   const storeLocationLabel = resolveRestaurantLocationLabel(restaurant?.location, restaurantLocations);
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  const menuUrl = `${appUrl.replace(/\/+$/, "")}/${restaurant?.slug ?? ""}`;
+  const menuUrl = getRestaurantSubdomainStoreUrl(appUrl, restaurant?.slug ?? "");
   const businessType = parseBusinessType(restaurant?.business_type ?? "retail_store");
   const categoryLabel = formatBrowseSectionsLabel(restaurant?.browse_sections);
   const isMenuBusiness = hasCatalogDashboard(businessType);
