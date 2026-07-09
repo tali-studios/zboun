@@ -32,14 +32,15 @@ export function MenuQrCard({
 
   const isInStore = variant === "in-store";
   const badge = badgeLabel ?? (isInStore ? "In-store" : "Online order");
-  const absoluteUrl = toAbsoluteStoreUrl(menuUrl);
   const displayUrl = menuUrl.replace(/^https?:\/\//i, "");
+  const openHref = toAbsoluteStoreUrl(menuUrl);
 
   async function generateQr() {
     try {
       setIsLoading(true);
       setError("");
-      const value = await QRCode.toDataURL(absoluteUrl, {
+      // Encode the same host-only link shown under the QR (no https://).
+      const value = await QRCode.toDataURL(displayUrl, {
         width: 1024,
         margin: 2,
         color: {
@@ -58,7 +59,7 @@ export function MenuQrCard({
   useEffect(() => {
     generateQr();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [absoluteUrl]);
+  }, [displayUrl]);
 
   function downloadQr() {
     if (!qrDataUrl) return;
@@ -117,7 +118,7 @@ export function MenuQrCard({
           >
             Download QR
           </button>
-          <a href={absoluteUrl} target="_blank" rel="noreferrer" className="btn btn-primary">
+          <a href={openHref} target="_blank" rel="noreferrer" className="btn btn-primary">
             {openLinkLabel}
           </a>
         </div>

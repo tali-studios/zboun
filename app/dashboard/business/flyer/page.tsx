@@ -39,7 +39,7 @@ export default async function RestaurantFlyerPage() {
         </div>
 
         <MenuFlyerCard
-          menuUrl={header.orderMenuUrl}
+          menuUrl={header.menuUrl}
           restaurantName={header.restaurantName}
           logoUrl={restaurant?.logo_url ?? null}
           themeColor={restaurant?.menu_theme_color ?? null}
