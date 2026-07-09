@@ -59,9 +59,42 @@ export function getRestaurantSubdomainRedirectUrl(
   if (!slug) return null;
 
   // Keep path so e.g. {slug}.zboun.net/menu → zboun.net/{slug}/menu
-  const path = request.nextUrl.pathname;
+  const path = resolveSubdomainRequestPath(request);
   const suffix = path === "/" ? "" : path;
   const redirectUrl = new URL(`/${slug}${suffix}`, `${appUrl.replace(/\/+$/, "")}/`);
   redirectUrl.search = request.nextUrl.search;
   return redirectUrl;
+}
+
+function resolveSubdomainRequestPath(request: NextRequest): string {
+  const candidates = [
+    request.nextUrl.pathname,
+    safeUrlPathname(request.url),
+    request.headers.get("x-forwarded-uri"),
+    request.headers.get("x-invoke-path"),
+    request.headers.get("x-vercel-forwarded-path"),
+  ];
+
+  for (const candidate of candidates) {
+    const path = normalizePathname(candidate);
+    if (path) return path;
+  }
+  return "/";
+}
+
+function safeUrlPathname(value: string | null | undefined): string | null {
+  if (!value) return null;
+  try {
+    return new URL(value, "https://zboun.net").pathname;
+  } catch {
+    return null;
+  }
+}
+
+function normalizePathname(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const pathOnly = value.split("?")[0]?.split("#")[0]?.trim() ?? "";
+  if (!pathOnly.startsWith("/")) return null;
+  if (pathOnly.includes("://")) return null;
+  return pathOnly.replace(/\/{2,}/g, "/") || "/";
 }

@@ -11,7 +11,12 @@ import { mergeAuthCookieOptions } from "@/lib/supabase/session";
 export async function proxy(request: NextRequest) {
   const subdomainRedirectUrl = getRestaurantSubdomainRedirectUrl(request, env.appUrl);
   if (subdomainRedirectUrl) {
-    return NextResponse.redirect(subdomainRedirectUrl, 308);
+    // 307 (not 308): avoid edge/browser caching of a permanent Location that
+    // previously dropped paths like /menu on wildcard subdomains.
+    const redirect = NextResponse.redirect(subdomainRedirectUrl, 307);
+    redirect.headers.set("Cache-Control", "no-store");
+    redirect.headers.set("X-Zboun-Subdomain-Redirect", "path-preserving");
+    return redirect;
   }
 
   let response = NextResponse.next({ request });
