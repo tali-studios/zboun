@@ -58,7 +58,10 @@ export function getRestaurantSubdomainRedirectUrl(
   const slug = getRestaurantSlugFromHost(host, rootHostname);
   if (!slug) return null;
 
-  const redirectUrl = new URL(`/${slug}`, `${appUrl.replace(/\/+$/, "")}/`);
+  // Keep path so e.g. {slug}.zboun.net/menu → zboun.net/{slug}/menu
+  const path = request.nextUrl.pathname;
+  const suffix = path === "/" ? "" : path;
+  const redirectUrl = new URL(`/${slug}${suffix}`, `${appUrl.replace(/\/+$/, "")}/`);
   redirectUrl.search = request.nextUrl.search;
   return redirectUrl;
 }
