@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { DeliveryLocationProvider } from "@/components/delivery-location-provider";
 import { MenuClient } from "@/components/menu-client";
 import { RestaurantMenuHero } from "@/components/restaurant-menu-hero";
 import { getRestaurantBySlug, getRestaurantMenu } from "@/lib/data";
@@ -63,26 +64,28 @@ export default async function RestaurantInStoreMenuPage({ params }: Props) {
   const tagline = restaurant.description?.trim() || viewLabels.inStoreViewTagline;
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#F9FAFB]">
-      <RestaurantMenuHero
-        restaurant={restaurant}
-        tagline={tagline}
-        menuThemeColor={restaurant.menu_theme_color}
-        modeBadge={viewLabels.inStoreViewBadge}
-      />
-
-      <main className="container px-3 pb-10 pt-3 sm:px-6 sm:pb-12 sm:pt-6 lg:pb-8">
-        <MenuClient
-          viewOnly
-          restaurantName={restaurant.name}
-          restaurantPhone={restaurant.phone}
-          restaurantId={restaurant.id}
-          restaurantSlug={restaurant.slug}
-          lbpRate={Number(restaurant.lbp_rate ?? 89500)}
-          categories={categories}
+    <DeliveryLocationProvider>
+      <div className="min-h-screen overflow-x-hidden bg-[#F9FAFB]">
+        <RestaurantMenuHero
+          restaurant={restaurant}
+          tagline={tagline}
           menuThemeColor={restaurant.menu_theme_color}
+          modeBadge={viewLabels.inStoreViewBadge}
         />
-      </main>
-    </div>
+
+        <main className="container px-3 pb-10 pt-3 sm:px-6 sm:pb-12 sm:pt-6 lg:pb-8">
+          <MenuClient
+            viewOnly
+            restaurantName={restaurant.name}
+            restaurantPhone={restaurant.phone}
+            restaurantId={restaurant.id}
+            restaurantSlug={restaurant.slug}
+            lbpRate={Number(restaurant.lbp_rate ?? 89500)}
+            categories={categories}
+            menuThemeColor={restaurant.menu_theme_color}
+          />
+        </main>
+      </div>
+    </DeliveryLocationProvider>
   );
 }

@@ -15,6 +15,15 @@ type Props = {
   openLinkLabel?: string;
 };
 
+function menuPathFromUrl(menuUrl: string): string {
+  try {
+    const parsed = new URL(menuUrl);
+    return `${parsed.pathname}${parsed.search}`;
+  } catch {
+    return menuUrl.startsWith("/") ? menuUrl : `/${menuUrl}`;
+  }
+}
+
 export function MenuQrCard({
   menuUrl,
   restaurantName,
@@ -31,6 +40,9 @@ export function MenuQrCard({
 
   const isInStore = variant === "in-store";
   const badge = badgeLabel ?? (isInStore ? "In-store" : "Online order");
+  // Same-origin path so "Open store" works while developing against a local server
+  // even when NEXT_PUBLIC_APP_URL points at production. Printed QR still uses menuUrl.
+  const openHref = menuPathFromUrl(menuUrl);
 
   async function generateQr() {
     try {
@@ -114,7 +126,7 @@ export function MenuQrCard({
           >
             Download QR
           </button>
-          <a href={menuUrl} target="_blank" rel="noreferrer" className="btn btn-primary">
+          <a href={openHref} target="_blank" rel="noreferrer" className="btn btn-primary">
             {openLinkLabel}
           </a>
         </div>

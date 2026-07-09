@@ -145,3 +145,8 @@ export function useDeliveryLocation(): DeliveryLocationCtx {
   if (!ctx) throw new Error("useDeliveryLocation must be used inside DeliveryLocationProvider");
   return ctx;
 }
+
+/** Safe when the provider is absent (e.g. in-store view-only menu). */
+export function useDeliveryLocationOptional(): DeliveryLocationCtx | null {
+  return useContext(Ctx);
+}

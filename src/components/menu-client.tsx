@@ -17,7 +17,7 @@ import type { SavedAddressOption } from "@/components/order-delivery-fields";
 import { formatDeliveryTimeLabel, isRestaurantOpenNow, parseOpeningHours } from "@/lib/opening-hours";
 import { resolveMenuTheme, menuThemeStyle, menuPrimaryButtonStyle } from "@/lib/menu-theme";
 import { placeOrderAction, type DeliverySpeed } from "@/app-actions/orders";
-import { useDeliveryLocation } from "@/components/delivery-location-provider";
+import { useDeliveryLocationOptional } from "@/components/delivery-location-provider";
 import { findNearbySavedAddress } from "@/lib/delivery-location";
 import {
   isWithinRestaurantDeliveryRange,
@@ -233,7 +233,11 @@ export function MenuClient({
   const [guestWhatsAppSent, setGuestWhatsAppSent] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
-  const { location } = useDeliveryLocation();
+  const delivery = useDeliveryLocationOptional();
+  if (!viewOnly && !delivery) {
+    throw new Error("useDeliveryLocation must be used inside DeliveryLocationProvider");
+  }
+  const location = delivery?.location ?? null;
   const orderTopRef = useRef<HTMLDivElement>(null);
 
   const orderCustomerPhone = useMemo(() => {
