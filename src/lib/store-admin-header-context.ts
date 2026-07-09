@@ -1,6 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { formatBrowseSectionsLabel } from "@/lib/browse-sections";
-import { getRestaurantSubdomainStoreUrl } from "@/lib/restaurant-menu-urls";
+import {
+  getRestaurantMenuUrls,
+  getRestaurantSubdomainStoreUrl,
+} from "@/lib/restaurant-menu-urls";
 import { loadRestaurantForAdminDashboard } from "@/lib/restaurant-profile";
 
 export async function loadStoreAdminHeaderContext(
@@ -9,11 +12,16 @@ export async function loadStoreAdminHeaderContext(
 ) {
   const restaurant = await loadRestaurantForAdminDashboard(supabase, restaurantId);
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  const menuUrl = getRestaurantSubdomainStoreUrl(appUrl, restaurant?.slug ?? "");
+  const slug = restaurant?.slug ?? "";
+  // Host-only for Copy store link (e.g. al-baaklini.zboun.net)
+  const menuUrl = getRestaurantSubdomainStoreUrl(appUrl, slug);
+  // Absolute path URL for QR/flyer encoding
+  const orderMenuUrl = getRestaurantMenuUrls(appUrl, slug).order;
 
   return {
     restaurant,
     menuUrl,
+    orderMenuUrl,
     categoryLabel: formatBrowseSectionsLabel(restaurant?.browse_sections),
     restaurantName: restaurant?.name ?? "Store",
     slug: restaurant?.slug,

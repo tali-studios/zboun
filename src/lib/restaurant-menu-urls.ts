@@ -9,19 +9,24 @@ export function getRestaurantMenuUrls(appUrl: string, slug: string) {
   };
 }
 
-/** Shareable storefront URL as `{slug}.zboun.net` (falls back to path on localhost). */
+/** Shareable storefront host as `{slug}.zboun.net` (no protocol; falls back to path on localhost). */
 export function getRestaurantSubdomainStoreUrl(appUrl: string, slug: string): string {
-  const base = appUrl.replace(/\/+$/, "");
-  const cleanSlug = slug.replace(/^\/+|\/+$/g, "");
+  let base = String(appUrl ?? "").trim();
+  // Strip any repeated protocol prefixes (e.g. https://https://zboun.net)
+  while (/^https?:\/\//i.test(base)) {
+    base = base.replace(/^https?:\/\//i, "");
+  }
+  base = base.replace(/\/+$/, "");
+  const cleanSlug = String(slug ?? "").replace(/^\/+|\/+$/g, "");
   if (!cleanSlug) return base;
 
   try {
-    const url = new URL(base);
-    const host = url.hostname.toLowerCase();
+    const url = new URL(`https://${base}`);
+    const host = url.hostname.toLowerCase().replace(/^www\./, "");
     if (host === "localhost" || host === "127.0.0.1" || host.endsWith(".localhost")) {
-      return `${base}/${cleanSlug}`;
+      return `${host}/${cleanSlug}`;
     }
-    return `${url.protocol}//${cleanSlug}.${host}`;
+    return `${cleanSlug}.${host}`;
   } catch {
     return `${base}/${cleanSlug}`;
   }

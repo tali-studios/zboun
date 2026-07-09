@@ -51,6 +51,8 @@ export function StoreAdminHeader({
     (categoryLabel && slug
       ? `${categoryLabel} · ${storefrontLabels.slugLabel}: /${slug}`
       : categoryLabel);
+  const openStoreHref =
+    menuUrl && !/^https?:\/\//i.test(menuUrl) ? `https://${menuUrl}` : menuUrl;
 
   return (
     <header className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-violet-700 via-violet-600 to-fuchsia-600 p-5 text-white shadow-lg shadow-violet-600/30 md:p-6">
@@ -69,14 +71,14 @@ export function StoreAdminHeader({
         <div className="flex flex-wrap gap-2">
           {isMenuBusiness && menuUrl ? (
             <>
-              <Link
-                href={menuUrl}
+              <a
+                href={openStoreHref}
                 target="_blank"
                 rel="noreferrer"
                 className="btn rounded-full border border-emerald-300/60 bg-emerald-500 text-white shadow-sm hover:bg-emerald-400"
               >
                 {storefrontLabels.open}
-              </Link>
+              </a>
               <CopyMenuLinkButton url={menuUrl} label={storefrontLabels.copyLink} />
               <Link href="/dashboard/business" className={navClass(currentPage === "dashboard")}>
                 Store settings
