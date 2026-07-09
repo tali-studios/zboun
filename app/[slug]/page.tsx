@@ -73,7 +73,7 @@ export default async function RestaurantMenuPage({ params, searchParams }: Props
 
   const tagline = restaurant.description?.trim() || "Browse the menu and send your order on WhatsApp.";
 
-  const { isLoggedIn, defaultCustomerName, savedAddresses } = await getCustomerOrderContext();
+  const { isLoggedIn, defaultCustomerName, defaultCustomerPhone, savedAddresses } = await getCustomerOrderContext();
   const openingHours = parseOpeningHours(restaurant.opening_hours);
   const orderingEnabled = !restaurant.is_temporarily_closed;
 
@@ -156,6 +156,7 @@ export default async function RestaurantMenuPage({ params, searchParams }: Props
             lbpRate={Number(restaurant.lbp_rate ?? 89500)}
             categories={categories}
             defaultCustomerName={defaultCustomerName}
+            defaultCustomerPhone={defaultCustomerPhone}
             savedAddresses={savedAddresses}
             isLoggedIn={isLoggedIn}
             openingHours={restaurant.opening_hours}

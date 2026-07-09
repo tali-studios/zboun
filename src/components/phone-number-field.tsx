@@ -100,7 +100,7 @@ export function PhoneNumberField({
     <div className={`space-y-1 ${className}`.trim()}>
       {showLabel ? (
         <label htmlFor={`${name}-input`} className={labelClassName}>
-          Phone number{required ? " *" : ""}
+          Phone number
         </label>
       ) : null}
       <div

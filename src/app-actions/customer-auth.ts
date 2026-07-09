@@ -13,6 +13,7 @@ import {
   duplicateAddressNameMessage,
   normalizeAddressNameKey,
 } from "@/lib/customer-address";
+import { parseCustomerPhoneInput, profilePhoneToE164 } from "@/lib/customer-phone";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { env } from "@/lib/env";
 
@@ -78,11 +79,16 @@ async function ensureCustomerProfile(
   userId: string,
   name: string,
   email: string,
+  phone: string,
+  countryCode: string,
   adminClient: ReturnType<typeof getAdminClient>,
   supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
 ) {
   const client = adminClient ?? supabase;
-  await client.from("customer_profiles").upsert({ id: userId, name, email }, { onConflict: "id" });
+  await client.from("customer_profiles").upsert(
+    { id: userId, name, email, phone, country_code: countryCode },
+    { onConflict: "id" },
+  );
 }
 
 export async function customerSignUpAction(formData: FormData) {
@@ -90,9 +96,14 @@ export async function customerSignUpAction(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
   const confirm = String(formData.get("confirm_password") ?? "");
+  const countryCode = String(formData.get("country_code") ?? "+961").trim() || "+961";
+  const phoneNational = String(formData.get("phone") ?? "").trim();
+  const parsedPhone = parseCustomerPhoneInput(countryCode, phoneNational);
 
   if (!name || !email || !password)
     redirect("/signup?error=missing_fields");
+  if (!parsedPhone.ok)
+    redirect("/signup?error=invalid_phone");
   if (password.length < 8)
     redirect("/signup?error=password_too_short");
   if (password !== confirm)
@@ -110,7 +121,7 @@ export async function customerSignUpAction(formData: FormData) {
     email,
     password,
     email_confirm: false,
-    user_metadata: { name },
+    user_metadata: { name, phone: parsedPhone.e164 },
   });
   if (createError) {
     redirect(`/signup?error=${encodeURIComponent(createError.message)}&next=${encodeURIComponent(next)}`);
@@ -119,7 +130,15 @@ export async function customerSignUpAction(formData: FormData) {
   const userId = created.user?.id;
   if (!userId) redirect(`/signup?error=signup_failed&next=${encodeURIComponent(next)}`);
 
-  await ensureCustomerProfile(userId, name, email, adminClient, supabase);
+  await ensureCustomerProfile(
+    userId,
+    name,
+    email,
+    parsedPhone.phone,
+    parsedPhone.country_code,
+    adminClient,
+    supabase,
+  );
 
   const otp = generateOtp();
   const otpHash = hashOtp(otp);
@@ -346,7 +365,7 @@ export const getCustomerSession = cache(async function getCustomerSession() {
 
   const [{ data: appUser }, { data: profile }] = await Promise.all([
     supabase.from("users").select("role").eq("id", user.id).maybeSingle(),
-    supabase.from("customer_profiles").select("id, name, email").eq("id", user.id).maybeSingle(),
+    supabase.from("customer_profiles").select("id, name, email, phone, country_code").eq("id", user.id).maybeSingle(),
   ]);
 
   if (appUser?.role === "restaurant_admin" || appUser?.role === "superadmin") {
@@ -361,6 +380,9 @@ export const getCustomerSession = cache(async function getCustomerSession() {
       id: profile.id,
       name: profile.name?.trim() || authName,
       email: profile.email?.trim() || authEmail,
+      phone: profile.phone?.trim() || null,
+      countryCode: profile.country_code?.trim() || "+961",
+      phoneE164: profilePhoneToE164(profile.phone, profile.country_code),
     };
   }
 
@@ -368,6 +390,9 @@ export const getCustomerSession = cache(async function getCustomerSession() {
     id: user.id,
     name: authName,
     email: authEmail,
+    phone: null,
+    countryCode: "+961",
+    phoneE164: null,
   };
 });
 

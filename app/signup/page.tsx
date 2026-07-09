@@ -2,6 +2,7 @@ import { customerSignUpAction } from "@/app-actions/customer-auth";
 import { getSafeRedirectPath } from "@/lib/auth-redirect";
 import Link from "next/link";
 import { AuthPageLogo } from "@/components/auth-page-logo";
+import { PhoneNumberField } from "@/components/phone-number-field";
 import { BackButton } from "@/components/back-button";
 import { TermsModal } from "@/components/terms-modal";
 
@@ -11,6 +12,7 @@ type Props = {
 
 const ERROR_MESSAGES: Record<string, string> = {
   missing_fields: "Please fill in all required fields.",
+  invalid_phone: "Please enter a valid phone number (WhatsApp).",
   password_too_short: "Password must be at least 8 characters.",
   password_mismatch: "Passwords do not match.",
   signup_failed: "Something went wrong. Please try again.",
@@ -52,7 +54,7 @@ export default async function CustomerSignupPage({ searchParams }: Props) {
             <p className="text-[10px] font-bold uppercase tracking-widest text-violet-600">Join Zboun</p>
             <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">Create account</h1>
             <p className="mt-1 text-sm text-slate-500">
-              Save your addresses and order faster.
+              Save your addresses, order faster, and let stores reach you on WhatsApp.
             </p>
           </div>
 
@@ -114,6 +116,7 @@ export default async function CustomerSignupPage({ searchParams }: Props) {
                 className="ui-input"
               />
             </div>
+            <PhoneNumberField required compact labelClassName="mb-1.5 block text-xs font-semibold text-slate-600" />
             <div>
               <label htmlFor="password" className="mb-1.5 block text-xs font-semibold text-slate-600">
                 Password

@@ -18,6 +18,7 @@ import { formatDeliveryTimeLabel, isRestaurantOpenNow, parseOpeningHours } from 
 import { resolveMenuTheme, menuThemeStyle, menuPrimaryButtonStyle } from "@/lib/menu-theme";
 import { placeOrderAction, type DeliverySpeed } from "@/app-actions/orders";
 import { useDeliveryLocation } from "@/components/delivery-location-provider";
+import { findNearbySavedAddress } from "@/lib/delivery-location";
 import {
   isWithinRestaurantDeliveryRange,
   normalizeRestaurantDeliveryRadiusKm,
@@ -55,6 +56,7 @@ type Props = {
   lbpRate: number;
   categories: CategoryWithItems[];
   defaultCustomerName?: string;
+  defaultCustomerPhone?: string | null;
   savedAddresses?: SavedAddressOption[];
   isLoggedIn?: boolean;
   openingHours?: unknown;
@@ -163,6 +165,7 @@ export function MenuClient({
   lbpRate,
   categories,
   defaultCustomerName = "",
+  defaultCustomerPhone = null,
   savedAddresses = [],
   isLoggedIn = false,
   openingHours: openingHoursRaw,
@@ -232,6 +235,26 @@ export function MenuClient({
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
   const { location } = useDeliveryLocation();
   const orderTopRef = useRef<HTMLDivElement>(null);
+
+  const orderCustomerPhone = useMemo(() => {
+    if (isGuestCheckout || !isLoggedIn) return null;
+    if (defaultCustomerPhone?.trim()) return defaultCustomerPhone.trim();
+    if (savedAddresses.length === 0) return null;
+    if (location?.savedAddressId) {
+      const byId = savedAddresses.find((addr) => addr.id === location.savedAddressId);
+      if (byId?.phone?.trim()) return byId.phone.trim();
+    }
+    if (location?.lat != null && location.lng != null) {
+      const nearby = findNearbySavedAddress({ lat: location.lat, lng: location.lng }, savedAddresses);
+      if (nearby) {
+        const addr = savedAddresses.find((item) => item.id === nearby.id);
+        if (addr?.phone?.trim()) return addr.phone.trim();
+      }
+    }
+    const defaultAddr = savedAddresses.find((addr) => addr.is_default && addr.phone?.trim());
+    if (defaultAddr?.phone?.trim()) return defaultAddr.phone.trim();
+    return savedAddresses.find((addr) => addr.phone?.trim())?.phone?.trim() ?? null;
+  }, [defaultCustomerPhone, isGuestCheckout, isLoggedIn, location, savedAddresses]);
 
   const items = useMemo(() => Object.values(cart), [cart]);
   const filteredCategories = useMemo(() => {
@@ -676,7 +699,7 @@ export function MenuClient({
         restaurantId,
         restaurantSlug,
         customerName: effectiveCustomerName,
-        customerPhone: null,
+        customerPhone: orderCustomerPhone,
         deliveryAddress: isGuestCheckout ? null : address.trim() || null,
         deliveryLat: isGuestCheckout ? null : location?.lat ?? null,
         deliveryLng: isGuestCheckout ? null : location?.lng ?? null,

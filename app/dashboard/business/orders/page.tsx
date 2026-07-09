@@ -43,6 +43,7 @@ export default async function RestaurantOrdersPage() {
           <RestaurantOrdersPanel
             initialOrders={orders}
             restaurantId={appUser.restaurant_id}
+            restaurantName={header.restaurantName}
             defaultDeliveryTimeLabel={defaultDeliveryTimeLabel}
             menuCategories={menuCategories}
             drivers={drivers}

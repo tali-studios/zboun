@@ -44,7 +44,7 @@ function FlyerSparkle({ size = 28, flip = false }: { size?: number; flip?: boole
 function FlyerDesign({ restaurantName, logoUrl, menuUrl, qrDataUrl, isLoading, px }: DesignProps) {
   const S = {
     outerPad: px ? 72 : undefined,
-    logoH: px ? 100 : undefined,
+    logoH: px ? 120 : undefined,
     title: px ? 44 : undefined,
     scan: px ? 13 : undefined,
     qr: px ? 340 : undefined,
@@ -84,7 +84,7 @@ function FlyerDesign({ restaurantName, logoUrl, menuUrl, qrDataUrl, isLoading, p
             style={{
               height: S.logoH,
               width: "auto",
-              maxWidth: px ? 300 : undefined,
+              maxWidth: px ? 360 : undefined,
               objectFit: "contain",
               marginBottom: px ? 8 : undefined,
             }}

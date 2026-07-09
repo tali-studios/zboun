@@ -15,16 +15,18 @@ export function resolveCustomerOrderName(
 export const getCustomerOrderContext = cache(async function getCustomerOrderContext(): Promise<{
   isLoggedIn: boolean;
   defaultCustomerName: string;
+  defaultCustomerPhone: string | null;
   savedAddresses: SavedAddressOption[];
 }> {
   const session = await getCustomerSession();
   if (!session) {
-    return { isLoggedIn: false, defaultCustomerName: "", savedAddresses: [] };
+    return { isLoggedIn: false, defaultCustomerName: "", defaultCustomerPhone: null, savedAddresses: [] };
   }
   const savedAddresses = (await getCustomerAddresses(session.id)) as SavedAddressOption[];
   return {
     isLoggedIn: true,
     defaultCustomerName: resolveCustomerOrderName(session.name, session.email),
+    defaultCustomerPhone: session.phoneE164,
     savedAddresses,
   };
 });

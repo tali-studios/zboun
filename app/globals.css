@@ -295,8 +295,8 @@ select.ui-select {
   gap: 0.35rem;
 }
 .flyer-logo-small {
-  height: clamp(4.5rem, 18vw, 6rem);
-  max-width: min(80vw, 16rem);
+  height: clamp(5rem, 21vw, 7.25rem);
+  max-width: min(88vw, 19rem);
   margin-bottom: 0.35rem;
 }
 .flyer-title {
@@ -340,7 +340,7 @@ select.ui-select {
 /* Desktop tweaks */
 @media screen and (min-width: 1024px) {
   .flyer-outer        { padding: 56px 64px; gap: 20px; }
-  .flyer-logo-small   { height: 96px; max-width: 280px; margin-bottom: 6px; }
+  .flyer-logo-small   { height: 115px; max-width: 330px; margin-bottom: 6px; }
   .flyer-title        { font-size: 2.75rem; }
   .flyer-scan-row     { gap: 12px; margin-top: 8px; }
   .flyer-scan-text    { font-size: 0.82rem; }
@@ -403,7 +403,7 @@ select.ui-select {
 
   /* Override responsive helpers with print-specific mm values */
   .flyer-outer        { padding: 18mm 16mm !important; gap: 6mm !important; }
-  .flyer-logo-small   { height: 26mm !important; max-width: 80mm !important; margin-bottom: 2mm !important; }
+  .flyer-logo-small   { height: 31mm !important; max-width: 92mm !important; margin-bottom: 2mm !important; }
   .flyer-title        { font-size: 12mm !important; }
   .flyer-scan-row     { gap: 3mm !important; margin-top: 2mm !important; }
   .flyer-scan-text    { font-size: 3.2mm !important; }

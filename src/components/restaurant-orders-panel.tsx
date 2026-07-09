@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ChevronDown, Pencil, Trash2 } from "lucide-react";
 import { createClient as createBrowserSupabaseClient } from "@/lib/supabase/client";
 import {
   assignRestaurantOrderDriverAction,
@@ -11,8 +12,37 @@ import {
   updateRestaurantOrderAction,
   type OrderRow,
 } from "@/app-actions/orders";
+import { buildCustomerWhatsAppUrl } from "@/lib/whatsapp-url";
 import type { RestaurantDriver } from "@/app-actions/drivers";
 import type { CategoryWithItems } from "@/lib/data";
+
+function shortId(id: string) {
+  return id.slice(0, 8).toUpperCase();
+}
+
+function WhatsAppIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.435 9.884-9.884 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+    </svg>
+  );
+}
+
+function orderCustomerWhatsAppUrl(order: OrderRow, restaurantName?: string | null) {
+  if (!order.customer_phone) return null;
+  return buildCustomerWhatsAppUrl(order.customer_phone, {
+    customerName: order.customer_name,
+    orderShortId: shortId(order.id),
+    restaurantName: restaurantName ?? undefined,
+  });
+}
+
+const ORDER_ACTION_BTN =
+  "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition disabled:cursor-not-allowed";
+
+const EDIT_ICON_BUTTON_CLASS = `${ORDER_ACTION_BTN} border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100`;
+const DELETE_ICON_BUTTON_CLASS = `${ORDER_ACTION_BTN} border-red-200 bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-60`;
+const WHATSAPP_ICON_BUTTON_CLASS = `${ORDER_ACTION_BTN} border-[#25D366]/40 bg-[#25D366]/10 text-[#128C7E] hover:border-[#25D366] hover:bg-[#25D366]/20 disabled:opacity-50`;
 
 const STATUS_META: Record<
   string,
@@ -332,6 +362,7 @@ function buildAnalytics(orders: OrderRow[]): OrderAnalytics {
 type Props = {
   initialOrders: OrderRow[];
   restaurantId: string;
+  restaurantName?: string;
   defaultDeliveryTimeLabel: string | null;
   menuCategories: CategoryWithItems[];
   drivers?: RestaurantDriver[];
@@ -392,6 +423,7 @@ function getMenuPickerItems(categories: CategoryWithItems[]): MenuPickerItem[] {
 export function RestaurantOrdersPanel({
   initialOrders,
   restaurantId,
+  restaurantName,
   defaultDeliveryTimeLabel,
   menuCategories,
   drivers = [],
@@ -434,6 +466,7 @@ export function RestaurantOrdersPanel({
     getOrderEtaLabel(initiallySelected, defaultDeliveryTimeLabel),
   );
   const [newOrderIds, setNewOrderIds] = useState<Set<string>>(new Set());
+  const [deleteConfirmOrderId, setDeleteConfirmOrderId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -695,9 +728,6 @@ export function RestaurantOrdersPanel({
   }
 
   async function handleDeleteOrder(order: OrderRow) {
-    const confirmed = window.confirm(`Delete order #${shortId(order.id)}? This removes it from the store orders list.`);
-    if (!confirmed) return;
-
     const key = `${order.id}:delete`;
     setOrderActionKey(key);
     setOrderActionError(null);
@@ -710,6 +740,7 @@ export function RestaurantOrdersPanel({
     const result = await deleteRestaurantOrderAction(order.id);
     if (result.ok) {
       setEditingOrderId(null);
+      setDeleteConfirmOrderId(null);
       router.refresh();
     } else {
       ordersRef.current = snapshot;
@@ -753,6 +784,9 @@ export function RestaurantOrdersPanel({
   }, [defaultDeliveryTimeLabel, filteredOrders, selectedId]);
 
   const selected = filteredOrders.find((o) => o.id === selectedId) ?? null;
+  const deleteConfirmOrder = deleteConfirmOrderId
+    ? orders.find((order) => order.id === deleteConfirmOrderId) ?? null
+    : null;
   const pendingCount = orders.filter((o) => o.status === "pending").length;
   const menuPickerItems = useMemo(() => getMenuPickerItems(menuCategories), [menuCategories]);
   const filteredMenuPickerItems = useMemo(() => {
@@ -864,9 +898,7 @@ export function RestaurantOrdersPanel({
     return `https://www.google.com/maps?q=${lat},${lng}`;
   }
 
-  function shortId(id: string) {
-    return id.slice(0, 8).toUpperCase();
-  }
+  const selectedWhatsAppUrl = selected ? orderCustomerWhatsAppUrl(selected, restaurantName) : null;
 
   return (
     <div className="flex min-h-[70vh] flex-col gap-4">
@@ -1162,22 +1194,21 @@ export function RestaurantOrdersPanel({
                       </p>
                       <p className="mt-0.5 truncate text-xs text-slate-500">
                         #{shortId(order.id)} · {formatDate(order.created_at)} {formatTime(order.created_at)}
-                        {order.delivery_speed === "fast" ? (
-                          <span className="ml-1.5 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">
-                            FAST
-                          </span>
-                        ) : null}
-                        {order.expected_delivery_time ? (
-                          <span className="ml-1.5 rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-bold text-violet-700">
-                            ETA {order.expected_delivery_time}
-                          </span>
-                        ) : null}
-                        {driverManagementEnabled && order.driver_id ? (
-                          <span className="ml-1.5 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">
-                            {driverById.get(order.driver_id)?.full_name ?? "Driver"}
-                          </span>
-                        ) : null}
                       </p>
+                      {order.delivery_speed === "fast" || order.expected_delivery_time ? (
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {order.delivery_speed === "fast" ? (
+                            <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">
+                              FAST
+                            </span>
+                          ) : null}
+                          {order.expected_delivery_time ? (
+                            <span className="rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-bold text-violet-700">
+                              ETA {order.expected_delivery_time}
+                            </span>
+                          ) : null}
+                        </div>
+                      ) : null}
                     </div>
                     <div className="shrink-0 text-right">
                       <span
@@ -1204,40 +1235,68 @@ export function RestaurantOrdersPanel({
         {selected ? (
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
-              <div>
+              <div className="min-w-0 flex-1">
                 <p className="text-xs font-bold uppercase tracking-widest text-violet-600">Order Details</p>
                 <h3 className="mt-1 text-2xl font-bold text-slate-900">#{shortId(selected.id)}</h3>
                 <p className="text-xs text-slate-400">
                   {formatDate(selected.created_at)} at {formatTime(selected.created_at)}
                 </p>
               </div>
-              <div className="flex flex-wrap items-center justify-end gap-2">
+              <div className="flex w-full shrink-0 items-center justify-between gap-2 sm:w-auto sm:justify-end">
                 {(() => {
                   const meta = STATUS_META[selected.status] ?? STATUS_META.pending;
                   return (
                     <span
-                      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-bold ${meta.bg} ${meta.border} ${meta.color}`}
+                      className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-bold ${meta.bg} ${meta.border} ${meta.color}`}
                     >
                       <span className={`h-2 w-2 rounded-full ${meta.dot}`} />
                       {meta.label}
                     </span>
                   );
                 })()}
+                <div className="flex shrink-0 items-center gap-2">
                 <button
                   type="button"
                   onClick={() => openEditOrder(selected)}
-                  className="rounded-xl border border-violet-200 bg-white px-3 py-2 text-xs font-bold text-violet-700 transition hover:bg-violet-50"
+                  className={EDIT_ICON_BUTTON_CLASS}
+                  title="Edit order"
+                  aria-label="Edit order"
                 >
-                  Edit order
+                  <Pencil className="h-4 w-4" />
                 </button>
                 <button
                   type="button"
                   disabled={orderActionKey === `${selected.id}:delete`}
-                  onClick={() => void handleDeleteOrder(selected)}
-                  className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  onClick={() => setDeleteConfirmOrderId(selected.id)}
+                  className={DELETE_ICON_BUTTON_CLASS}
+                  title="Delete order"
+                  aria-label="Delete order"
                 >
-                  {orderActionKey === `${selected.id}:delete` ? "Deleting..." : "Delete"}
+                  <Trash2 className="h-4 w-4" />
                 </button>
+                {selectedWhatsAppUrl ? (
+                  <a
+                    href={selectedWhatsAppUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={WHATSAPP_ICON_BUTTON_CLASS}
+                    title="WhatsApp customer"
+                    aria-label="WhatsApp customer"
+                  >
+                    <WhatsAppIcon className="h-4 w-4" />
+                  </a>
+                ) : (
+                  <button
+                    type="button"
+                    disabled
+                    title="No customer phone on this order"
+                    aria-label="WhatsApp unavailable"
+                    className={WHATSAPP_ICON_BUTTON_CLASS}
+                  >
+                    <WhatsAppIcon className="h-4 w-4 opacity-50" />
+                  </button>
+                )}
+                </div>
               </div>
             </div>
 
@@ -1245,41 +1304,55 @@ export function RestaurantOrdersPanel({
             <div className="mb-5 rounded-xl bg-slate-50 p-4">
               <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Customer</p>
               <p className="mt-1 text-base font-semibold text-slate-900">{selected.customer_name}</p>
-              {selected.customer_phone ? (
-                <a
-                  href={`tel:${selected.customer_phone}`}
-                  className="mt-0.5 text-sm text-violet-600 hover:underline"
-                >
-                  {selected.customer_phone}
-                </a>
-              ) : null}
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                {selected.customer_phone ? (
+                  <a
+                    href={`tel:${selected.customer_phone}`}
+                    className="text-sm text-violet-600 hover:underline"
+                  >
+                    {selected.customer_phone}
+                  </a>
+                ) : (
+                  <p className="text-sm text-slate-400">No phone on file for this order.</p>
+                )}
+              </div>
             </div>
 
             {driverManagementEnabled ? (
               <div className="mb-5 rounded-xl border border-emerald-100 bg-emerald-50/60 p-4">
                 <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Assigned driver</p>
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <select
-                    value={selected.driver_id ?? ""}
-                    disabled={orderActionKey === `${selected.id}:driver` || ["delivered", "cancelled"].includes(selected.status)}
-                    onChange={(event) => {
-                      const value = event.target.value;
-                      void handleAssignDriver(selected, value || null);
-                    }}
-                    className="ui-select min-w-[12rem] flex-1"
-                  >
-                    <option value="">Unassigned</option>
-                    {activeDrivers.map((driver) => (
-                      <option key={driver.id} value={driver.id}>
-                        {driver.full_name}
-                        {driver.phone ? ` · ${driver.phone}` : ""}
-                      </option>
-                    ))}
-                  </select>
+                <div className="mt-3">
+                  <div className="relative">
+                    <select
+                      value={selected.driver_id ?? ""}
+                      disabled={
+                        orderActionKey === `${selected.id}:driver` ||
+                        ["delivered", "cancelled"].includes(selected.status)
+                      }
+                      onChange={(event) => {
+                        const value = event.target.value;
+                        void handleAssignDriver(selected, value || null);
+                      }}
+                      className="h-10 w-full min-w-0 appearance-none rounded-xl border border-emerald-200 bg-white px-3 pr-9 text-sm font-medium text-slate-800 shadow-sm outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:opacity-60"
+                    >
+                      <option value="">Unassigned</option>
+                      {activeDrivers.map((driver) => (
+                        <option key={driver.id} value={driver.id}>
+                          {driver.full_name}
+                          {driver.phone ? ` · ${driver.phone}` : ""}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown
+                      className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-emerald-600/70"
+                      aria-hidden
+                    />
+                  </div>
                   {selected.driver_assigned_at ? (
-                    <span className="text-xs text-emerald-800">
-                      Assigned {formatDate(selected.driver_assigned_at)} {formatTime(selected.driver_assigned_at)}
-                    </span>
+                    <p className="mt-2 text-xs font-medium text-emerald-800">
+                      Assigned {formatDate(selected.driver_assigned_at)} ·{" "}
+                      {formatTime(selected.driver_assigned_at)}
+                    </p>
                   ) : null}
                 </div>
                 {activeDrivers.length === 0 ? (
@@ -1781,6 +1854,36 @@ export function RestaurantOrdersPanel({
           </div>
         )}
       </div>
+
+      {deleteConfirmOrder ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
+            <h3 className="text-base font-bold text-slate-900">Delete this order?</h3>
+            <p className="mt-2 text-sm text-slate-500">
+              Order #{shortId(deleteConfirmOrder.id)} for {deleteConfirmOrder.customer_name} will be
+              removed from your orders list. This cannot be undone.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                disabled={orderActionKey === `${deleteConfirmOrder.id}:delete`}
+                onClick={() => setDeleteConfirmOrderId(null)}
+                className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={orderActionKey === `${deleteConfirmOrder.id}:delete`}
+                onClick={() => void handleDeleteOrder(deleteConfirmOrder)}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-50"
+              >
+                {orderActionKey === `${deleteConfirmOrder.id}:delete` ? "Deleting…" : "Delete order"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

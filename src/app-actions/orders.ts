@@ -1,6 +1,6 @@
 "use server";
 
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { profilePhoneToE164 } from "@/lib/customer-phone";
 import { createClient } from "@supabase/supabase-js";
 import { env } from "@/lib/env";
 import { revalidatePath } from "next/cache";
@@ -23,6 +23,7 @@ import { buildMenuItemPricingMap, validateOrderLinesPricing } from "@/lib/menu-p
 import { computeOrderCouponDiscount } from "@/lib/menu-coupon-codes";
 import { lookupCouponForOrder } from "@/app-actions/menu-coupon-codes";
 import { decrementMenuItemStockForOrder } from "@/lib/menu-item-stock-alerts";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export type DeliverySpeed = "standard" | "fast";
 
@@ -129,13 +130,17 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
   } = await supabase.auth.getUser();
 
   let customerId: string | null = null;
+  let profilePhoneE164: string | null = null;
   if (user) {
     const { data: profile } = await supabase
       .from("customer_profiles")
-      .select("id")
+      .select("id, phone, country_code")
       .eq("id", user.id)
       .maybeSingle();
-    if (profile) customerId = user.id;
+    if (profile) {
+      customerId = user.id;
+      profilePhoneE164 = profilePhoneToE164(profile.phone, profile.country_code);
+    }
   }
 
   const serviceClient = getServiceClient();
@@ -268,7 +273,7 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
       restaurant_id: input.restaurantId,
       customer_id: customerId,
       customer_name: customerName,
-      customer_phone: input.customerPhone?.trim() || null,
+      customer_phone: input.customerPhone?.trim() || profilePhoneE164,
       delivery_address: input.deliveryAddress?.trim() || null,
       delivery_lat: input.deliveryLat ?? null,
       delivery_lng: input.deliveryLng ?? null,
