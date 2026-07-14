@@ -61,7 +61,7 @@ export function SuperAdminCreateRestaurantForm() {
           <div className="flex items-center gap-2">
             <MapPin className="h-4 w-4 text-violet-500" />
             <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              First location / branch
+              Location / branch
             </span>
             <span className="text-xs text-slate-400">(optional)</span>
           </div>
