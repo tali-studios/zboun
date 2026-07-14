@@ -42,10 +42,6 @@ export async function sendRestaurantOnboardingEmail(params: {
   businessTypeLabel: string;
   publicUrl: string | null;
   dashboardUrl: string;
-  /** One-time set-password / recovery link (preferred). */
-  setPasswordUrl?: string | null;
-  /** @deprecated Prefer setPasswordUrl — plaintext passwords hurt inbox placement. */
-  initialPassword?: string | null;
   subscriptionEndsAt: Date;
   monthlyPrice: number;
   billingInterval?: SubscriptionInterval;
@@ -63,50 +59,6 @@ export async function sendRestaurantOnboardingEmail(params: {
       ? `Account type: Complimentary ${params.complimentaryLabel.toLowerCase()} — free until ${endLabel}.`
       : `Subscription: Your first billing period is active until ${endLabel} (${priceLabel}).`;
 
-  const setPasswordUrl = params.setPasswordUrl?.trim() || null;
-  const fallbackPassword = params.initialPassword?.trim() || null;
-
-  const accessText = setPasswordUrl
-    ? [
-        `Sign-in email: ${params.to}`,
-        `Use the "Set your password" button in this email to choose your password.`,
-        `After that, sign in at ${params.dashboardUrl}.`,
-        `If the button does not work, open ${params.dashboardUrl} and use Forgot password.`,
-      ]
-    : fallbackPassword
-      ? [
-          `Sign-in email: ${params.to}`,
-          `Temporary password: ${fallbackPassword}`,
-          ``,
-          `Sign in at ${params.dashboardUrl} and change your password right away.`,
-        ]
-      : [
-          `Sign-in email: ${params.to}`,
-          `Open ${params.dashboardUrl} and use Forgot password if you need access.`,
-        ];
-
-  const accessHtml = setPasswordUrl
-    ? `
-      <p><strong>Sign-in email:</strong> ${params.to}</p>
-      <p style="margin:20px 0;">
-        <a href="${setPasswordUrl}" style="display:inline-block;background:#4c1d95;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:8px;">
-          Set your password
-        </a>
-      </p>
-      <p>After setting your password, sign in at <a href="${params.dashboardUrl}">${params.dashboardUrl}</a>.</p>
-      <p style="color:#71717a;font-size:13px;">If the button does not work, open the dashboard and use <strong>Forgot password</strong>.</p>
-    `
-    : fallbackPassword
-      ? `
-      <p><strong>Sign-in email:</strong> ${params.to}<br>
-      <strong>Temporary password:</strong> <code style="background:#f4f4f5;padding:2px 6px;border-radius:4px;">${fallbackPassword}</code></p>
-      <p>Please sign in at <a href="${params.dashboardUrl}">${params.dashboardUrl}</a> and change your password right away.</p>
-    `
-      : `
-      <p><strong>Sign-in email:</strong> ${params.to}</p>
-      <p>Open <a href="${params.dashboardUrl}">${params.dashboardUrl}</a> and use Forgot password if you need access.</p>
-    `;
-
   const text = [
     `Hello,`,
     ``,
@@ -117,7 +69,9 @@ export async function sendRestaurantOnboardingEmail(params: {
     ...(params.publicUrl ? [`Store page: ${params.publicUrl}`] : []),
     `Dashboard: ${params.dashboardUrl}`,
     ``,
-    ...accessText,
+    `Sign-in email: ${params.to}`,
+    `Your login password was shared separately by Zboun (not included in this email).`,
+    `Sign in at ${params.dashboardUrl}. If you need to change your password later, use Forgot password on the login page.`,
     ``,
     `Your service agreement PDF is attached for your records.`,
     ``,
@@ -142,7 +96,9 @@ export async function sendRestaurantOnboardingEmail(params: {
       </p>
       ${params.publicUrl ? `<p><strong>Store page:</strong> <a href="${params.publicUrl}">${params.publicUrl}</a></p>` : ""}
       <p><strong>Dashboard:</strong> <a href="${params.dashboardUrl}">${params.dashboardUrl}</a></p>
-      ${accessHtml}
+      <p><strong>Sign-in email:</strong> ${params.to}</p>
+      <p>Your login password was shared separately by Zboun (not included in this email).</p>
+      <p>Sign in at <a href="${params.dashboardUrl}">${params.dashboardUrl}</a>. To change your password later, use <strong>Forgot password</strong> on the login page.</p>
       <p>Your <strong>service agreement (PDF)</strong> is attached for your records.</p>
     `,
   );

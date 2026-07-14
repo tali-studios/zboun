@@ -29,11 +29,7 @@ import {
 import { parseSubscriptionInterval } from "@/lib/pricing";
 import { toSlug } from "@/lib/slug";
 import { env } from "@/lib/env";
-import {
-  getPublicAppUrl,
-  getSetPasswordRedirectUrl,
-  withProductionSetPasswordRedirect,
-} from "@/lib/public-app-url";
+import { getPublicAppUrl } from "@/lib/public-app-url";
 
 async function requireSuperAdmin() {
   const user = await getCurrentUserRole();
@@ -102,8 +98,20 @@ export async function createRestaurantAction(formData: FormData) {
     ? null
     : parseSubscriptionInterval(formData.get("subscription_interval"));
 
+  const adminPassword = String(formData.get("admin_password") ?? "");
+  const adminPasswordConfirm = String(formData.get("admin_password_confirm") ?? "");
+
   if (!name || !phone || !email) {
     redirect("/dashboard/super-admin?error=missing_restaurant_fields");
+  }
+  if (!adminPassword) {
+    redirect("/dashboard/super-admin?error=missing_password");
+  }
+  if (adminPassword.length < 8) {
+    redirect("/dashboard/super-admin?error=password_too_short");
+  }
+  if (adminPassword !== adminPasswordConfirm) {
+    redirect("/dashboard/super-admin?error=password_mismatch");
   }
 
   const businessType = inferBusinessTypeFromBrowseSections(browseSections);
@@ -149,11 +157,10 @@ export async function createRestaurantAction(formData: FormData) {
 
     const inviteAdminName = `${name} Admin`;
     let userId: string | null = null;
-    const initialPassword = `Zboun@${Math.random().toString(36).slice(-8)}A1`;
 
     const { data: created, error: createError } = await adminClient.auth.admin.createUser({
       email,
-      password: initialPassword,
+      password: adminPassword,
       email_confirm: true,
     });
 
@@ -167,7 +174,7 @@ export async function createRestaurantAction(formData: FormData) {
       if (!userId) throw new Error("Could not create or locate restaurant admin user.");
 
       const { error: updateError } = await adminClient.auth.admin.updateUserById(userId, {
-        password: initialPassword,
+        password: adminPassword,
         email_confirm: true,
       });
       if (updateError) throw updateError;
@@ -197,24 +204,8 @@ export async function createRestaurantAction(formData: FormData) {
           subscriptionInterval ?? "monthly",
         );
 
-    // Prefer a one-time set-password link (no plaintext password in email → better inbox placement).
-    // Always use production redirect — Supabase Site URL is often localhost in shared projects.
-    let setPasswordUrl: string | null = null;
-    try {
-      const productionSetPassword = getSetPasswordRedirectUrl();
-      const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
-        type: "recovery",
-        email,
-        options: { redirectTo: productionSetPassword },
-      });
-      if (!linkError) {
-        const actionLink = linkData?.properties?.action_link?.trim() || null;
-        setPasswordUrl = actionLink ? withProductionSetPasswordRedirect(actionLink) : null;
-      }
-    } catch {
-      setPasswordUrl = null;
-    }
-
+    // Credentials are set by superadmin and shared out-of-band (e.g. WhatsApp).
+    // Onboarding email has no password and no magic links (those land in spam).
     let emailSent = false;
     try {
       await sendRestaurantOnboardingEmail({
@@ -223,9 +214,6 @@ export async function createRestaurantAction(formData: FormData) {
         businessTypeLabel: categoryLabel,
         publicUrl: hasCatalogDashboard(businessType) ? `${appUrl}/${slug}` : null,
         dashboardUrl: `${appUrl}/login`,
-        setPasswordUrl,
-        // Fallback only if Supabase could not generate a recovery link
-        initialPassword: setPasswordUrl ? null : initialPassword,
         subscriptionEndsAt: subscription.periodEnd,
         monthlyPrice: subscription.billingPrice,
         billingInterval: subscriptionInterval ?? undefined,
@@ -243,7 +231,7 @@ export async function createRestaurantAction(formData: FormData) {
     if (!emailSent) {
       redirect("/dashboard/super-admin?success=restaurant_created_email_failed");
     }
-    redirect("/dashboard/super-admin?success=restaurant_created_with_fallback");
+    redirect("/dashboard/super-admin?success=restaurant_created");
   } catch (error) {
     if (isRedirectError(error)) {
       throw error;
