@@ -7,6 +7,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getCurrentUserRole } from "@/lib/data";
 import { env } from "@/lib/env";
 import { requireTurnstile } from "@/lib/turnstile";
+import { getSetPasswordRedirectUrl } from "@/lib/public-app-url";
 
 function getAdminClient() {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -207,7 +208,7 @@ export async function requestPasswordResetAction(formData: FormData) {
   }
 
   const supabase = await createServerSupabaseClient();
-  const redirectTo = `${env.appUrl}/auth/set-password`;
+  const redirectTo = getSetPasswordRedirectUrl();
   const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
 
   if (error) {

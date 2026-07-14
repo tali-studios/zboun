@@ -29,6 +29,11 @@ import {
 import { parseSubscriptionInterval } from "@/lib/pricing";
 import { toSlug } from "@/lib/slug";
 import { env } from "@/lib/env";
+import {
+  getPublicAppUrl,
+  getSetPasswordRedirectUrl,
+  withProductionSetPasswordRedirect,
+} from "@/lib/public-app-url";
 
 async function requireSuperAdmin() {
   const user = await getCurrentUserRole();
@@ -74,21 +79,7 @@ async function getUniqueSlug(baseName: string) {
 }
 
 function getAppBaseUrl() {
-  const envUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  const isVercel = process.env.VERCEL === "1" || Boolean(process.env.VERCEL_URL);
-  const looksLocalhost =
-    envUrl?.includes("localhost") || envUrl?.includes("127.0.0.1");
-
-  if (envUrl && (!isVercel || !looksLocalhost)) {
-    return envUrl.replace(/\/+$/, "");
-  }
-
-  const vercelUrl = process.env.VERCEL_URL?.trim();
-  if (vercelUrl) {
-    return `https://${vercelUrl.replace(/\/+$/, "")}`;
-  }
-
-  return "http://localhost:3000";
+  return getPublicAppUrl();
 }
 
 export async function createRestaurantAction(formData: FormData) {
@@ -207,15 +198,18 @@ export async function createRestaurantAction(formData: FormData) {
         );
 
     // Prefer a one-time set-password link (no plaintext password in email → better inbox placement).
+    // Always use production redirect — Supabase Site URL is often localhost in shared projects.
     let setPasswordUrl: string | null = null;
     try {
+      const productionSetPassword = getSetPasswordRedirectUrl();
       const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
         type: "recovery",
         email,
-        options: { redirectTo: `${appUrl}/auth/set-password` },
+        options: { redirectTo: productionSetPassword },
       });
       if (!linkError) {
-        setPasswordUrl = linkData?.properties?.action_link?.trim() || null;
+        const actionLink = linkData?.properties?.action_link?.trim() || null;
+        setPasswordUrl = actionLink ? withProductionSetPasswordRedirect(actionLink) : null;
       }
     } catch {
       setPasswordUrl = null;
