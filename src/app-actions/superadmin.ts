@@ -99,7 +99,6 @@ export async function createRestaurantAction(formData: FormData) {
     : parseSubscriptionInterval(formData.get("subscription_interval"));
 
   const adminPassword = String(formData.get("admin_password") ?? "");
-  const adminPasswordConfirm = String(formData.get("admin_password_confirm") ?? "");
 
   if (!name || !phone || !email) {
     redirect("/dashboard/super-admin?error=missing_restaurant_fields");
@@ -109,9 +108,6 @@ export async function createRestaurantAction(formData: FormData) {
   }
   if (adminPassword.length < 8) {
     redirect("/dashboard/super-admin?error=password_too_short");
-  }
-  if (adminPassword !== adminPasswordConfirm) {
-    redirect("/dashboard/super-admin?error=password_mismatch");
   }
 
   const businessType = inferBusinessTypeFromBrowseSections(browseSections);

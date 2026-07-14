@@ -47,19 +47,6 @@ export function SuperAdminCreateRestaurantForm() {
         placeholder="Admin password (min 8)"
         className="ui-input"
       />
-      <input
-        name="admin_password_confirm"
-        type="password"
-        required
-        minLength={8}
-        autoComplete="new-password"
-        placeholder="Confirm password"
-        className="ui-input"
-      />
-      <p className="text-xs text-slate-500 md:col-span-2 xl:col-span-4">
-        Share this password with the store owner (e.g. WhatsApp). It is not emailed — they can
-        change it later via Forgot password on the login page.
-      </p>
 
       <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 md:col-span-2 xl:col-span-4">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Business categories</p>
