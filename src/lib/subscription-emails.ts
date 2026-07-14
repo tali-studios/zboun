@@ -69,9 +69,9 @@ export async function sendRestaurantOnboardingEmail(params: {
   const accessText = setPasswordUrl
     ? [
         `Sign-in email: ${params.to}`,
-        `Set your password (secure link): ${setPasswordUrl}`,
-        ``,
-        `This link lets you choose your own password. After that, sign in at ${params.dashboardUrl}.`,
+        `Use the "Set your password" button in this email to choose your password.`,
+        `After that, sign in at ${params.dashboardUrl}.`,
+        `If the button does not work, open ${params.dashboardUrl} and use Forgot password.`,
       ]
     : fallbackPassword
       ? [
@@ -93,8 +93,8 @@ export async function sendRestaurantOnboardingEmail(params: {
           Set your password
         </a>
       </p>
-      <p style="color:#52525b;font-size:14px;">Or open this link:<br><a href="${setPasswordUrl}">${setPasswordUrl}</a></p>
       <p>After setting your password, sign in at <a href="${params.dashboardUrl}">${params.dashboardUrl}</a>.</p>
+      <p style="color:#71717a;font-size:13px;">If the button does not work, open the dashboard and use <strong>Forgot password</strong>.</p>
     `
     : fallbackPassword
       ? `
