@@ -206,6 +206,21 @@ export async function createRestaurantAction(formData: FormData) {
           subscriptionInterval ?? "monthly",
         );
 
+    // Prefer a one-time set-password link (no plaintext password in email → better inbox placement).
+    let setPasswordUrl: string | null = null;
+    try {
+      const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
+        type: "recovery",
+        email,
+        options: { redirectTo: `${appUrl}/auth/set-password` },
+      });
+      if (!linkError) {
+        setPasswordUrl = linkData?.properties?.action_link?.trim() || null;
+      }
+    } catch {
+      setPasswordUrl = null;
+    }
+
     let emailSent = false;
     try {
       await sendRestaurantOnboardingEmail({
@@ -214,7 +229,9 @@ export async function createRestaurantAction(formData: FormData) {
         businessTypeLabel: categoryLabel,
         publicUrl: hasCatalogDashboard(businessType) ? `${appUrl}/${slug}` : null,
         dashboardUrl: `${appUrl}/login`,
-        initialPassword,
+        setPasswordUrl,
+        // Fallback only if Supabase could not generate a recovery link
+        initialPassword: setPasswordUrl ? null : initialPassword,
         subscriptionEndsAt: subscription.periodEnd,
         monthlyPrice: subscription.billingPrice,
         billingInterval: subscriptionInterval ?? undefined,

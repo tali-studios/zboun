@@ -26,6 +26,7 @@ function emailShell(title: string, bodyHtml: string) {
         </td></tr>
         <tr><td style="padding:28px;color:#27272a;font-size:15px;line-height:1.6;">${bodyHtml}</td></tr>
         <tr><td style="padding:0 28px 28px;color:#71717a;font-size:13px;line-height:1.5;">
+          This is a transactional account email from Zboun (zboun.net).<br>
           Questions? Reply to this email or contact <a href="mailto:${ZBOUN_OPS_EMAIL}" style="color:#4c1d95;">${ZBOUN_OPS_EMAIL}</a>.
         </td></tr>
       </table>
@@ -41,7 +42,10 @@ export async function sendRestaurantOnboardingEmail(params: {
   businessTypeLabel: string;
   publicUrl: string | null;
   dashboardUrl: string;
-  initialPassword: string;
+  /** One-time set-password / recovery link (preferred). */
+  setPasswordUrl?: string | null;
+  /** @deprecated Prefer setPasswordUrl — plaintext passwords hurt inbox placement. */
+  initialPassword?: string | null;
   subscriptionEndsAt: Date;
   monthlyPrice: number;
   billingInterval?: SubscriptionInterval;
@@ -51,7 +55,6 @@ export async function sendRestaurantOnboardingEmail(params: {
   if (!isSmtpConfigured()) return;
 
   const endLabel = formatDateLong(params.subscriptionEndsAt);
-  const price = params.monthlyPrice.toFixed(2);
   const interval = params.billingInterval ?? inferSubscriptionInterval(params.monthlyPrice);
   const priceLabel = billingCycleLabel(params.monthlyPrice, interval);
   const subscriptionLine = params.lifetimeFree
@@ -60,28 +63,73 @@ export async function sendRestaurantOnboardingEmail(params: {
       ? `Account type: Complimentary ${params.complimentaryLabel.toLowerCase()} — free until ${endLabel}.`
       : `Subscription: Your first billing period is active until ${endLabel} (${priceLabel}).`;
 
+  const setPasswordUrl = params.setPasswordUrl?.trim() || null;
+  const fallbackPassword = params.initialPassword?.trim() || null;
+
+  const accessText = setPasswordUrl
+    ? [
+        `Sign-in email: ${params.to}`,
+        `Set your password (secure link): ${setPasswordUrl}`,
+        ``,
+        `This link lets you choose your own password. After that, sign in at ${params.dashboardUrl}.`,
+      ]
+    : fallbackPassword
+      ? [
+          `Sign-in email: ${params.to}`,
+          `Temporary password: ${fallbackPassword}`,
+          ``,
+          `Sign in at ${params.dashboardUrl} and change your password right away.`,
+        ]
+      : [
+          `Sign-in email: ${params.to}`,
+          `Open ${params.dashboardUrl} and use Forgot password if you need access.`,
+        ];
+
+  const accessHtml = setPasswordUrl
+    ? `
+      <p><strong>Sign-in email:</strong> ${params.to}</p>
+      <p style="margin:20px 0;">
+        <a href="${setPasswordUrl}" style="display:inline-block;background:#4c1d95;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:8px;">
+          Set your password
+        </a>
+      </p>
+      <p style="color:#52525b;font-size:14px;">Or open this link:<br><a href="${setPasswordUrl}">${setPasswordUrl}</a></p>
+      <p>After setting your password, sign in at <a href="${params.dashboardUrl}">${params.dashboardUrl}</a>.</p>
+    `
+    : fallbackPassword
+      ? `
+      <p><strong>Sign-in email:</strong> ${params.to}<br>
+      <strong>Temporary password:</strong> <code style="background:#f4f4f5;padding:2px 6px;border-radius:4px;">${fallbackPassword}</code></p>
+      <p>Please sign in at <a href="${params.dashboardUrl}">${params.dashboardUrl}</a> and change your password right away.</p>
+    `
+      : `
+      <p><strong>Sign-in email:</strong> ${params.to}</p>
+      <p>Open <a href="${params.dashboardUrl}">${params.dashboardUrl}</a> and use Forgot password if you need access.</p>
+    `;
+
   const text = [
     `Hello,`,
     ``,
-    `Your ${params.businessTypeLabel} "${params.businessName}" is ready on Zboun.`,
+    `Your ${params.businessTypeLabel} "${params.businessName}" account is ready on Zboun.`,
     ``,
     subscriptionLine,
     ``,
-    ...(params.publicUrl ? [`Public URL: ${params.publicUrl}`] : []),
+    ...(params.publicUrl ? [`Store page: ${params.publicUrl}`] : []),
     `Dashboard: ${params.dashboardUrl}`,
-    `Email: ${params.to}`,
-    `Temporary password: ${params.initialPassword}`,
     ``,
-    `Sign in and change your password from the dashboard when convenient.`,
+    ...accessText,
+    ``,
+    `Your service agreement PDF is attached for your records.`,
     ``,
     `— Zboun Team`,
+    `https://zboun.net`,
   ].join("\n");
 
   const html = emailShell(
-    `Welcome, ${params.businessName}`,
+    `Your Zboun account is ready`,
     `
       <p>Hello,</p>
-      <p>Your <strong>${params.businessTypeLabel}</strong> <strong>${params.businessName}</strong> is live on Zboun.</p>
+      <p>Your <strong>${params.businessTypeLabel}</strong> <strong>${params.businessName}</strong> account is ready on Zboun.</p>
       <p style="margin:20px 0;padding:16px;background:#f4f4f5;border-radius:8px;">
         <strong>${params.lifetimeFree || (params.complimentaryLabel && params.monthlyPrice === 0) ? "Account type" : "Subscription"}</strong><br>
         ${
@@ -92,11 +140,10 @@ export async function sendRestaurantOnboardingEmail(params: {
               : `Active until <strong>${endLabel}</strong><br>Plan: ${priceLabel}`
         }
       </p>
-      ${params.publicUrl ? `<p><strong>Public menu:</strong> <a href="${params.publicUrl}">${params.publicUrl}</a></p>` : ""}
+      ${params.publicUrl ? `<p><strong>Store page:</strong> <a href="${params.publicUrl}">${params.publicUrl}</a></p>` : ""}
       <p><strong>Dashboard:</strong> <a href="${params.dashboardUrl}">${params.dashboardUrl}</a></p>
-      <p><strong>Sign-in email:</strong> ${params.to}<br>
-      <strong>Temporary password:</strong> <code style="background:#f4f4f5;padding:2px 6px;border-radius:4px;">${params.initialPassword}</code></p>
-      <p>Please sign in and update your password when you can.</p>
+      ${accessHtml}
+      <p>Your <strong>service agreement (PDF)</strong> is attached for your records.</p>
     `,
   );
 
@@ -113,17 +160,9 @@ export async function sendRestaurantOnboardingEmail(params: {
 
   await sendMail({
     to: params.to,
-    subject: `Welcome to Zboun — ${params.businessName}`,
-    text: [
-      text,
-      ``,
-      `Attached is your Restaurant Platform Service Agreement (PDF). Please review, sign, and return a copy if required by your business.`,
-    ].join("\n"),
-    html: html.replace(
-      `<p>Please sign in and update your password when you can.</p>`,
-      `<p>Please sign in and update your password when you can.</p>
-      <p>The attached <strong>Restaurant Platform Service Agreement (PDF)</strong> is provided for your records. Please review it, sign where indicated, and return a scanned copy if required.</p>`,
-    ),
+    subject: `Your Zboun store account — ${params.businessName}`,
+    text,
+    html,
     attachments: [
       {
         filename,

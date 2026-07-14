@@ -55,7 +55,9 @@ export default function SetPasswordPage() {
         </div>
 
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">Set your password</h1>
-        <p className="mt-1 text-sm text-slate-500">Complete your store admin account setup.</p>
+        <p className="mt-1 text-sm text-slate-500">
+          Choose a password for your Zboun store admin account, then sign in.
+        </p>
 
         {!isDone ? (
           <form onSubmit={onSubmit} className="mt-5 space-y-3">
