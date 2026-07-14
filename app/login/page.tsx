@@ -16,6 +16,9 @@ const ERROR_MESSAGES: Record<string, string> = {
   missing_profile: `Account exists but has no app profile. Please contact ${ZBOUN_OPS_EMAIL}.`,
   missing_restaurant_link: "No restaurant linked to your account. Please contact support.",
   account_deactivated: `Your account is deactivated. Please contact ${ZBOUN_OPS_EMAIL} to renew your subscription.`,
+  captcha_failed: "Security check failed. Please try again.",
+  captcha_missing: "Security check is still loading. Please wait a moment and try again.",
+  captcha_unavailable: "Security check is unavailable. Please try again later.",
 };
 
 export default async function LoginPage({ searchParams }: Props) {

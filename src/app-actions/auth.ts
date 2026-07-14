@@ -6,6 +6,7 @@ import { getSafeRedirectPath } from "@/lib/auth-redirect";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getCurrentUserRole } from "@/lib/data";
 import { env } from "@/lib/env";
+import { requireTurnstile } from "@/lib/turnstile";
 
 function getAdminClient() {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -72,6 +73,11 @@ export async function signInAction(formData: FormData) {
     .toLowerCase();
   const password = String(formData.get("password") ?? "");
   const next = getSafeRedirectPath(formData.get("next"), "/");
+
+  const captcha = await requireTurnstile(formData);
+  if (!captcha.ok) {
+    loginErrorRedirect(captcha.error, next);
+  }
 
   if (!email || !password) {
     loginErrorRedirect("missing_fields", next);
@@ -183,4 +189,30 @@ export async function changeDashboardPasswordAction(formData: FormData) {
   }
 
   redirect("/dashboard/change-password?success=password_changed");
+}
+
+/** Email a password-reset link (customers + store admins). Always shows success to avoid email enumeration. */
+export async function requestPasswordResetAction(formData: FormData) {
+  const captcha = await requireTurnstile(formData);
+  if (!captcha.ok) {
+    redirect(`/forgot-password?error=${captcha.error}`);
+  }
+
+  const email = String(formData.get("email") ?? "")
+    .trim()
+    .toLowerCase();
+
+  if (!email) {
+    redirect("/forgot-password?error=missing_email");
+  }
+
+  const supabase = await createServerSupabaseClient();
+  const redirectTo = `${env.appUrl}/auth/set-password`;
+  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+
+  if (error) {
+    redirect("/forgot-password?error=reset_failed");
+  }
+
+  redirect("/forgot-password?success=email_sent");
 }

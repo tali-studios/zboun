@@ -16,6 +16,7 @@ import {
 import { parseCustomerPhoneInput, profilePhoneToE164 } from "@/lib/customer-phone";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { env } from "@/lib/env";
+import { requireTurnstile } from "@/lib/turnstile";
 
 type AddressNameRow = { id: string; label: string; nickname: string | null };
 
@@ -92,6 +93,14 @@ async function ensureCustomerProfile(
 }
 
 export async function customerSignUpAction(formData: FormData) {
+  const next = getSafeRedirectPath(formData.get("next"), "/");
+  const nextQ = next === "/" ? "" : `&next=${encodeURIComponent(next)}`;
+
+  const captcha = await requireTurnstile(formData);
+  if (!captcha.ok) {
+    redirect(`/signup?error=${captcha.error}${nextQ}`);
+  }
+
   const name = String(formData.get("name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
@@ -101,17 +110,16 @@ export async function customerSignUpAction(formData: FormData) {
   const parsedPhone = parseCustomerPhoneInput(countryCode, phoneNational);
 
   if (!name || !email || !password)
-    redirect("/signup?error=missing_fields");
+    redirect(`/signup?error=missing_fields${nextQ}`);
   if (!parsedPhone.ok)
-    redirect("/signup?error=invalid_phone");
+    redirect(`/signup?error=invalid_phone${nextQ}`);
   if (password.length < 8)
-    redirect("/signup?error=password_too_short");
+    redirect(`/signup?error=password_too_short${nextQ}`);
   if (password !== confirm)
-    redirect("/signup?error=password_mismatch");
+    redirect(`/signup?error=password_mismatch${nextQ}`);
 
   const supabase = await createServerSupabaseClient();
   const adminClient = getAdminClient();
-  const next = getSafeRedirectPath(formData.get("next"), "/");
   if (!adminClient) {
     redirect(`/signup?error=signup_unavailable&next=${encodeURIComponent(next)}`);
   }

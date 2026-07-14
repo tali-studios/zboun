@@ -1,9 +1,7 @@
-import { customerSignUpAction } from "@/app-actions/customer-auth";
 import { getSafeRedirectPath } from "@/lib/auth-redirect";
 import Link from "next/link";
 import { AuthPageLogo } from "@/components/auth-page-logo";
-import { PhoneNumberField } from "@/components/phone-number-field";
-import { BackButton } from "@/components/back-button";
+import { CustomerSignupForm } from "@/components/customer-signup-form";
 import { TermsModal } from "@/components/terms-modal";
 
 type Props = {
@@ -16,6 +14,9 @@ const ERROR_MESSAGES: Record<string, string> = {
   password_too_short: "Password must be at least 8 characters.",
   password_mismatch: "Passwords do not match.",
   signup_failed: "Something went wrong. Please try again.",
+  captcha_failed: "Security check failed. Please try again.",
+  captcha_missing: "Security check is still loading. Please wait a moment and try again.",
+  captcha_unavailable: "Security check is unavailable. Please try again later.",
   smtp_failed:
     "We could not send the confirmation email and your account was not created. Ask the site admin to fix Supabase SMTP (sender email must match SMTP username + valid app password), or disable “Confirm email” in Supabase → Authentication → Providers → Email.",
 };
@@ -82,76 +83,7 @@ export default async function CustomerSignupPage({ searchParams }: Props) {
             </div>
           ) : null}
 
-          {/* Form — hide if confirmation email was just sent */}
-          <form action={customerSignUpAction} className={`space-y-3 ${success === "check_email" ? "hidden" : ""}`}>
-            <input type="hidden" name="next" value={next} />
-            <div>
-              <label htmlFor="name" className="mb-1.5 block text-xs font-semibold text-slate-600">
-                Full name
-              </label>
-              <input
-                id="name"
-                type="text"
-                name="name"
-                required
-                placeholder="Your name"
-                autoComplete="name"
-                className="ui-input"
-              />
-            </div>
-            <div>
-              <label htmlFor="email" className="mb-1.5 block text-xs font-semibold text-slate-600">
-                Email address
-              </label>
-              <input
-                id="email"
-                type="email"
-                name="email"
-                required
-                placeholder="you@example.com"
-                autoCapitalize="none"
-                autoCorrect="off"
-                spellCheck={false}
-                autoComplete="email"
-                className="ui-input"
-              />
-            </div>
-            <PhoneNumberField required compact labelClassName="mb-1.5 block text-xs font-semibold text-slate-600" />
-            <div>
-              <label htmlFor="password" className="mb-1.5 block text-xs font-semibold text-slate-600">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                name="password"
-                required
-                placeholder="Min. 8 characters"
-                autoComplete="new-password"
-                className="ui-input"
-              />
-            </div>
-            <div>
-              <label htmlFor="confirm_password" className="mb-1.5 block text-xs font-semibold text-slate-600">
-                Confirm password
-              </label>
-              <input
-                id="confirm_password"
-                type="password"
-                name="confirm_password"
-                required
-                placeholder="Repeat password"
-                autoComplete="new-password"
-                className="ui-input"
-              />
-            </div>
-            <button
-              type="submit"
-              className="mt-2 flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 py-3.5 text-sm font-bold text-white shadow-md shadow-violet-400/30 transition hover:brightness-110 active:scale-[0.98]"
-            >
-              Create account
-            </button>
-          </form>
+          {success === "check_email" ? null : <CustomerSignupForm next={next} />}
 
           {/* Divider */}
           <div className="my-5 flex items-center gap-3">

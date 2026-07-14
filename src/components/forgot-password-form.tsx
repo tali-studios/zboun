@@ -1,13 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useFormStatus } from "react-dom";
-import { PasswordInput } from "@/components/password-input";
+import { requestPasswordResetAction } from "@/app-actions/auth";
 import { TurnstileField } from "@/components/turnstile-field";
-import { signInAction } from "@/app-actions/auth";
 
-function SignInButton({ captchaReady }: { captchaReady: boolean }) {
+function SubmitButton({ captchaReady }: { captchaReady: boolean }) {
   const { pending } = useFormStatus();
   const siteKeyConfigured = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim());
   const blocked = pending || (siteKeyConfigured && !captchaReady);
@@ -18,23 +16,22 @@ function SignInButton({ captchaReady }: { captchaReady: boolean }) {
       disabled={blocked}
       className="mt-2 flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 py-3.5 text-sm font-bold text-white shadow-md shadow-violet-400/30 transition hover:brightness-110 active:scale-[0.98] disabled:cursor-wait disabled:opacity-80"
     >
-      {pending ? "Signing in…" : siteKeyConfigured && !captchaReady ? "Checking security…" : "Sign in"}
+      {pending
+        ? "Sending…"
+        : siteKeyConfigured && !captchaReady
+          ? "Checking security…"
+          : "Send reset link"}
     </button>
   );
 }
 
-type Props = {
-  next: string;
-};
-
-export function UserLoginForm({ next }: Props) {
+export function ForgotPasswordForm() {
   const [captchaReady, setCaptchaReady] = useState(
     !process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim(),
   );
 
   return (
-    <form action={signInAction} className="space-y-3">
-      <input type="hidden" name="next" value={next} />
+    <form action={requestPasswordResetAction} className="space-y-3">
       <div>
         <label htmlFor="email" className="mb-1.5 block text-xs font-semibold text-slate-600">
           Email address
@@ -52,28 +49,8 @@ export function UserLoginForm({ next }: Props) {
           className="ui-input"
         />
       </div>
-      <div>
-        <div className="mb-1.5 flex items-center justify-between gap-2">
-          <label htmlFor="password" className="block text-xs font-semibold text-slate-600">
-            Password
-          </label>
-          <Link
-            href="/forgot-password"
-            className="text-xs font-semibold text-violet-600 transition hover:text-violet-700"
-          >
-            Forgot password?
-          </Link>
-        </div>
-        <PasswordInput
-          id="password"
-          name="password"
-          required
-          placeholder="••••••••"
-          autoComplete="current-password"
-        />
-      </div>
       <TurnstileField onToken={() => setCaptchaReady(true)} />
-      <SignInButton captchaReady={captchaReady} />
+      <SubmitButton captchaReady={captchaReady} />
     </form>
   );
 }
