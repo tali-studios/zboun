@@ -399,21 +399,6 @@ export default async function SuperAdminPage({ searchParams }: Props) {
           </div>
         </section>
 
-        {(success === "restaurant_created" ||
-          success === "restaurant_created_and_invited" ||
-          success === "restaurant_created_with_fallback") && (
-          <p className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-medium text-emerald-800">
-            Business created. Share the admin email and password with the store owner (e.g.
-            WhatsApp). A confirmation email with the service agreement was sent (no password
-            inside). They can use Forgot password on the login page to reset later.
-          </p>
-        )}
-        {success === "restaurant_created_email_failed" && (
-          <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-medium text-amber-700">
-            Business and admin account were created, but the confirmation email failed. Share the
-            login email and password with the store owner manually (WhatsApp).
-          </p>
-        )}
         {success === "subscription_renewed" && (
           <p className="rounded-xl border border-violet-200 bg-violet-50 p-3 text-sm font-medium text-violet-700">
             Subscription renewed. The store received a confirmation email with the service
