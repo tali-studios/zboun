@@ -96,37 +96,33 @@ export async function sendRestaurantOnboardingEmail(params: {
       : `Plan: ${priceLabel}, active until ${endLabel}`;
 
   const name = params.businessName.trim();
+  const loginUrl = `${getPublicAppUrl()}/login`;
   const safeName = escapeHtml(name);
   const safeEmail = escapeHtml(params.to);
-  const safeDashboard = escapeHtml(params.dashboardUrl);
+  const safeLogin = escapeHtml(loginUrl);
   const safeStore = params.publicUrl ? escapeHtml(params.publicUrl) : null;
 
   const text = [
     `Hello,`,
     ``,
-    `${name} is ready on Zboun.`,
+    `${name} is now on Zboun.`,
     ``,
     planLine,
     ``,
-    `Dashboard: ${params.dashboardUrl}`,
+    `Login: ${loginUrl}`,
     ...(params.publicUrl ? [`Store: ${params.publicUrl}`] : []),
     `Email: ${params.to}`,
     ``,
-    `Your login details were shared with you separately.`,
-    ``,
-    `If you need help, reply to this email or write to ${ZBOUN_OPS_EMAIL}.`,
-    ``,
     `— Zboun`,
-    `https://zboun.net`,
   ].join("\n");
 
   const html = welcomeEmailShell(`
       <h1 style="margin:0 0 16px;font-size:22px;font-weight:600;letter-spacing:-0.02em;color:#18181b;">Welcome</h1>
-      <p style="margin:0 0 16px;"><strong>${safeName}</strong> is ready on Zboun.</p>
+      <p style="margin:0 0 16px;"><strong>${safeName}</strong> is now on Zboun.</p>
       <p style="margin:0 0 20px;color:#52525b;">${escapeHtml(planLine)}</p>
       <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
         <tr><td style="background:#18181b;border-radius:6px;">
-          <a href="${safeDashboard}" style="display:inline-block;padding:12px 20px;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;">Open dashboard</a>
+          <a href="${safeLogin}" style="display:inline-block;padding:12px 20px;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;">Login</a>
         </td></tr>
       </table>
       <p style="margin:0 0 8px;font-size:14px;color:#52525b;">
@@ -137,12 +133,11 @@ export async function sendRestaurantOnboardingEmail(params: {
           ? `<p style="margin:0 0 8px;font-size:14px;color:#52525b;"><span style="color:#18181b;">Store</span> · <a href="${safeStore}" style="color:#18181b;">${safeStore}</a></p>`
           : ""
       }
-      <p style="margin:16px 0 0;font-size:14px;color:#71717a;">Your login details were shared with you separately.</p>
   `);
 
   await sendMail({
     to: params.to,
-    subject: `${name} is ready on Zboun`,
+    subject: `Welcome to Zboun — ${name}`,
     text,
     html,
   });
