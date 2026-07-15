@@ -11,6 +11,7 @@ import {
   ZBOUN_PRICING,
 } from "@/lib/pricing";
 import { ZBOUN_OPS_EMAIL } from "@/lib/zboun-contact";
+import { getPublicAppUrl } from "@/lib/public-app-url";
 
 function emailShell(title: string, bodyHtml: string) {
   return `<!DOCTYPE html>
@@ -45,6 +46,10 @@ function escapeHtml(value: string) {
 }
 
 function welcomeEmailShell(bodyHtml: string) {
+  const siteUrl = getPublicAppUrl();
+  // PNG loads more reliably in email clients than SVG.
+  const logoUrl = `${siteUrl}/zbounlogo.png`;
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="utf-8"><title>Welcome to Zboun</title></head>
@@ -52,15 +57,13 @@ function welcomeEmailShell(bodyHtml: string) {
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;padding:40px 16px;">
     <tr><td align="center">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border:1px solid #e5e5e5;">
-        <tr><td style="padding:28px 32px 8px;">
-          <p style="margin:0;font-family:Segoe UI,Helvetica,Arial,sans-serif;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:#6b7280;">Zboun</p>
+        <tr><td style="padding:28px 32px 12px;">
+          <a href="${siteUrl}" style="text-decoration:none;">
+            <img src="${logoUrl}" alt="Zboun" width="56" height="56" style="display:block;border:0;outline:none;width:56px;height:56px;" />
+          </a>
         </td></tr>
         <tr><td style="padding:8px 32px 32px;font-family:Segoe UI,Helvetica,Arial,sans-serif;color:#18181b;font-size:15px;line-height:1.65;">
           ${bodyHtml}
-        </td></tr>
-        <tr><td style="padding:0 32px 28px;font-family:Segoe UI,Helvetica,Arial,sans-serif;color:#9ca3af;font-size:12px;line-height:1.5;border-top:1px solid #f3f4f6;">
-          <p style="margin:20px 0 0;">Zboun · <a href="https://zboun.net" style="color:#6b7280;text-decoration:none;">zboun.net</a><br>
-          ${ZBOUN_OPS_EMAIL}</p>
         </td></tr>
       </table>
     </td></tr>

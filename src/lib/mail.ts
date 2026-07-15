@@ -25,23 +25,44 @@ export function getOpsEmail() {
   return (process.env.ZBOUN_OPS_EMAIL ?? "admin@zboun.net").trim();
 }
 
-export function isSmtpConfigured() {
-  const smtpUser = process.env.SMTP_USER;
-  const smtpPass = process.env.SMTP_PASS;
-  const fromEmail = process.env.SMTP_FROM ?? smtpUser;
-  return Boolean(smtpUser && smtpPass && fromEmail);
+function isNoReplyAddress(email: string) {
+  const local = email.split("@")[0]?.toLowerCase() ?? "";
+  return local === "no-reply" || local === "noreply" || local === "donotreply" || local === "do-not-reply";
 }
 
-/** Prefer SMTP_FROM; fall back to SMTP_USER so From matches the authenticated mailbox. */
+/**
+ * From address for outbound mail.
+ * Prefer the authenticated SMTP mailbox (Zoho requires From ≈ login).
+ * Never send as no-reply — it hurts inbox placement and blocks replies.
+ */
+export function resolveFromEmail(): string {
+  const smtpUser = (process.env.SMTP_USER ?? "").trim();
+  const configured = (process.env.SMTP_FROM ?? "").trim();
+
+  if (configured && !isNoReplyAddress(configured)) {
+    return configured;
+  }
+  if (smtpUser && !isNoReplyAddress(smtpUser)) {
+    return smtpUser;
+  }
+  // Last resort if someone authenticated as no-reply — still avoid advertising it
+  const ops = getOpsEmail();
+  if (ops && !isNoReplyAddress(ops)) return ops;
+  return configured || smtpUser || ops;
+}
+
+export function isSmtpConfigured() {
+  const smtpUser = process.env.SMTP_USER?.trim();
+  const smtpPass = process.env.SMTP_PASS;
+  return Boolean(smtpUser && smtpPass && resolveFromEmail());
+}
+
+/** Prefer SMTP_FROM; fall back to SMTP_USER. Never use no-reply*. */
 export function getMailFromAddress() {
-  const fromEmail = (process.env.SMTP_FROM ?? process.env.SMTP_USER ?? "").trim();
+  const fromEmail = resolveFromEmail();
   const fromName = process.env.SMTP_FROM_NAME?.trim() || "Zboun";
   if (!fromEmail) return "";
   return `${fromName} <${fromEmail}>`;
-}
-
-function getFromEmailOnly() {
-  return (process.env.SMTP_FROM ?? process.env.SMTP_USER ?? "").trim();
 }
 
 function getTransporter() {
@@ -71,34 +92,33 @@ export async function sendMail(params: SendMailParams) {
   if (!isSmtpConfigured()) {
     throw new Error("SMTP is not configured.");
   }
+  const fromEmail = resolveFromEmail();
   const from = getMailFromAddress();
-  const fromEmail = getFromEmailOnly();
-  const replyTo = params.replyTo?.trim() || process.env.SMTP_REPLY_TO?.trim();
+  const replyTo =
+    params.replyTo?.trim() ||
+    process.env.SMTP_REPLY_TO?.trim() ||
+    (isNoReplyAddress(fromEmail) ? getOpsEmail() : fromEmail);
   const domain = mailDomainFromAddress(fromEmail);
   const messageId = `<${crypto.randomUUID()}@${domain}>`;
   const transporter = getTransporter();
 
   await transporter.sendMail({
     from,
-    ...(replyTo ? { replyTo } : {}),
+    replyTo,
     to: params.to,
     cc: params.cc,
     bcc: params.bcc,
     subject: params.subject,
     text: params.text,
     html: params.html,
-    // Align SMTP envelope with From when possible (helps some providers).
-    envelope: fromEmail
-      ? {
-          from: fromEmail,
-          to: Array.isArray(params.to) ? params.to : [params.to],
-        }
-      : undefined,
+    // Align SMTP envelope with From (helps SPF alignment / Zoho).
+    envelope: {
+      from: fromEmail,
+      to: Array.isArray(params.to) ? params.to : [params.to],
+    },
     messageId,
     headers: {
-      "Auto-Submitted": "auto-generated",
       "X-Auto-Response-Suppress": "All",
-      "X-Mailer": "Zboun",
       ...params.headers,
     },
     attachments: params.attachments?.map((file) => ({
