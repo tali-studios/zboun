@@ -36,6 +36,39 @@ function emailShell(title: string, bodyHtml: string) {
 </html>`;
 }
 
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function welcomeEmailShell(bodyHtml: string) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Welcome to Zboun</title></head>
+<body style="margin:0;padding:0;background:#fafafa;font-family:Georgia,'Times New Roman',serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;padding:40px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border:1px solid #e5e5e5;">
+        <tr><td style="padding:28px 32px 8px;">
+          <p style="margin:0;font-family:Segoe UI,Helvetica,Arial,sans-serif;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:#6b7280;">Zboun</p>
+        </td></tr>
+        <tr><td style="padding:8px 32px 32px;font-family:Segoe UI,Helvetica,Arial,sans-serif;color:#18181b;font-size:15px;line-height:1.65;">
+          ${bodyHtml}
+        </td></tr>
+        <tr><td style="padding:0 32px 28px;font-family:Segoe UI,Helvetica,Arial,sans-serif;color:#9ca3af;font-size:12px;line-height:1.5;border-top:1px solid #f3f4f6;">
+          <p style="margin:20px 0 0;">Zboun · <a href="https://zboun.net" style="color:#6b7280;text-decoration:none;">zboun.net</a><br>
+          ${ZBOUN_OPS_EMAIL}</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
 export async function sendRestaurantOnboardingEmail(params: {
   to: string;
   businessName: string;
@@ -53,56 +86,60 @@ export async function sendRestaurantOnboardingEmail(params: {
   const endLabel = formatDateLong(params.subscriptionEndsAt);
   const interval = params.billingInterval ?? inferSubscriptionInterval(params.monthlyPrice);
   const priceLabel = billingCycleLabel(params.monthlyPrice, interval);
-  const subscriptionLine = params.lifetimeFree
-    ? "Account type: Lifetime complimentary — no monthly billing."
+  const planLine = params.lifetimeFree
+    ? "Plan: complimentary (lifetime)"
     : params.complimentaryLabel && params.monthlyPrice === 0
-      ? `Account type: Complimentary ${params.complimentaryLabel.toLowerCase()} — free until ${endLabel}.`
-      : `Subscription: Your first billing period is active until ${endLabel} (${priceLabel}).`;
+      ? `Plan: complimentary until ${endLabel}`
+      : `Plan: ${priceLabel}, active until ${endLabel}`;
+
+  const name = params.businessName.trim();
+  const safeName = escapeHtml(name);
+  const safeEmail = escapeHtml(params.to);
+  const safeDashboard = escapeHtml(params.dashboardUrl);
+  const safeStore = params.publicUrl ? escapeHtml(params.publicUrl) : null;
 
   const text = [
     `Hello,`,
     ``,
-    `Your ${params.businessTypeLabel} "${params.businessName}" account is ready on Zboun.`,
+    `${name} is ready on Zboun.`,
     ``,
-    subscriptionLine,
+    planLine,
     ``,
-    ...(params.publicUrl ? [`Store page: ${params.publicUrl}`] : []),
     `Dashboard: ${params.dashboardUrl}`,
+    ...(params.publicUrl ? [`Store: ${params.publicUrl}`] : []),
+    `Email: ${params.to}`,
     ``,
-    `Sign-in email: ${params.to}`,
-    `Your login password was shared separately by Zboun (not included in this email).`,
-    `Sign in at ${params.dashboardUrl}. If you need to change your password later, use Forgot password on the login page.`,
+    `Your login details were shared with you separately.`,
     ``,
-    `— Zboun Team`,
+    `If you need help, reply to this email or write to ${ZBOUN_OPS_EMAIL}.`,
+    ``,
+    `— Zboun`,
     `https://zboun.net`,
   ].join("\n");
 
-  const html = emailShell(
-    `Your Zboun account is ready`,
-    `
-      <p>Hello,</p>
-      <p>Your <strong>${params.businessTypeLabel}</strong> <strong>${params.businessName}</strong> account is ready on Zboun.</p>
-      <p style="margin:20px 0;padding:16px;background:#f4f4f5;border-radius:8px;">
-        <strong>${params.lifetimeFree || (params.complimentaryLabel && params.monthlyPrice === 0) ? "Account type" : "Subscription"}</strong><br>
-        ${
-          params.lifetimeFree
-            ? "<strong>Lifetime complimentary</strong><br>No monthly billing or renewal required."
-            : params.complimentaryLabel && params.monthlyPrice === 0
-              ? `<strong>Complimentary ${params.complimentaryLabel}</strong><br>Free until <strong>${endLabel}</strong>.`
-              : `Active until <strong>${endLabel}</strong><br>Plan: ${priceLabel}`
-        }
+  const html = welcomeEmailShell(`
+      <h1 style="margin:0 0 16px;font-size:22px;font-weight:600;letter-spacing:-0.02em;color:#18181b;">Welcome</h1>
+      <p style="margin:0 0 16px;"><strong>${safeName}</strong> is ready on Zboun.</p>
+      <p style="margin:0 0 20px;color:#52525b;">${escapeHtml(planLine)}</p>
+      <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+        <tr><td style="background:#18181b;border-radius:6px;">
+          <a href="${safeDashboard}" style="display:inline-block;padding:12px 20px;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;">Open dashboard</a>
+        </td></tr>
+      </table>
+      <p style="margin:0 0 8px;font-size:14px;color:#52525b;">
+        <span style="color:#18181b;">Email</span> · ${safeEmail}
       </p>
-      ${params.publicUrl ? `<p><strong>Store page:</strong> <a href="${params.publicUrl}">${params.publicUrl}</a></p>` : ""}
-      <p><strong>Dashboard:</strong> <a href="${params.dashboardUrl}">${params.dashboardUrl}</a></p>
-      <p><strong>Sign-in email:</strong> ${params.to}</p>
-      <p>Your login password was shared separately by Zboun (not included in this email).</p>
-      <p>Sign in at <a href="${params.dashboardUrl}">${params.dashboardUrl}</a>. To change your password later, use <strong>Forgot password</strong> on the login page.</p>
-    `,
-  );
+      ${
+        safeStore
+          ? `<p style="margin:0 0 8px;font-size:14px;color:#52525b;"><span style="color:#18181b;">Store</span> · <a href="${safeStore}" style="color:#18181b;">${safeStore}</a></p>`
+          : ""
+      }
+      <p style="margin:16px 0 0;font-size:14px;color:#71717a;">Your login details were shared with you separately.</p>
+  `);
 
   await sendMail({
     to: params.to,
-    subject: `Your Zboun store account — ${params.businessName}`,
+    subject: `${name} is ready on Zboun`,
     text,
     html,
   });
