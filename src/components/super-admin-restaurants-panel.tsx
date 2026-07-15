@@ -349,12 +349,15 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
     const raw = getRawBrowseSectionValues(restaurant.browse_sections ?? []);
     const sections = normalizeBrowseSections(raw);
     const subTags = getBrowseSubTags(raw);
+    const singleSection = sections[0] ?? null;
     setBrowseSectionsEditor({
       open: true,
       restaurantId: restaurant.id,
       restaurantName: restaurant.name,
-      sections: sections.length > 0 ? sections : ["Food & Restaurants"],
-      subTags,
+      sections: singleSection ? [singleSection] : [],
+      subTags: singleSection
+        ? subTags.filter((tag) => getParentSectionForSubFilter(tag) === singleSection)
+        : [],
       error: null,
     });
   }
@@ -362,13 +365,19 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
   function toggleBrowseSection(section: BrowseSection) {
     setBrowseSectionsEditor((prev) => {
       const has = prev.sections.includes(section);
-      const sections = has
-        ? prev.sections.filter((value) => value !== section)
-        : [...prev.sections, section];
-      const subTags = has
-        ? prev.subTags.filter((tag) => getParentSectionForSubFilter(tag) !== section)
-        : prev.subTags;
-      return { ...prev, sections, subTags, error: null };
+      if (has) {
+        return {
+          ...prev,
+          sections: [],
+          subTags: [],
+          error: null,
+        };
+      }
+      // Superadmin: only one business category.
+      const subTags = prev.subTags.filter(
+        (tag) => getParentSectionForSubFilter(tag) === section,
+      );
+      return { ...prev, sections: [section], subTags, error: null };
     });
   }
 
@@ -382,7 +391,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
 
   function saveBrowseSections() {
     const selection = [...browseSectionsEditor.sections, ...browseSectionsEditor.subTags];
-    const validated = validateBrowseSelection(selection);
+    const validated = validateBrowseSelection(selection, { maxSections: 1 });
     if (!validated.ok) {
       setBrowseSectionsEditor((prev) => ({ ...prev, error: validated.error }));
       return;
@@ -1058,9 +1067,9 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
           <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-xl ring-1 ring-slate-200">
             <h3 className="text-lg font-bold text-slate-900">Home browse categories</h3>
             <p className="mt-1 text-sm text-slate-600">
-              Pick one or more sections where{" "}
-              <span className="font-semibold">{browseSectionsEditor.restaurantName}</span> appears on the home page.
-              Each category needs at least one tag.
+              Pick one category where{" "}
+              <span className="font-semibold">{browseSectionsEditor.restaurantName}</span> appears on the home
+              page. That category needs at least one tag.
             </p>
             <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
               {BROWSE_SECTION_OPTIONS.map((section) => (
@@ -1069,7 +1078,8 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                   className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700"
                 >
                   <input
-                    type="checkbox"
+                    type="radio"
+                    name="superadmin_browse_section"
                     checked={browseSectionsEditor.sections.includes(section)}
                     onChange={() => toggleBrowseSection(section)}
                     className="h-4 w-4 accent-violet-600"
@@ -1106,7 +1116,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
               );
             })}
             {browseSectionsEditor.sections.length === 0 ? (
-              <p className="mt-2 text-xs font-medium text-amber-700">Select at least one category.</p>
+              <p className="mt-2 text-xs font-medium text-amber-700">Select a category.</p>
             ) : null}
             <DashboardAlertModal
               open={browseSectionsEditor.error != null}

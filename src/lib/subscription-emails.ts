@@ -73,8 +73,6 @@ export async function sendRestaurantOnboardingEmail(params: {
     `Your login password was shared separately by Zboun (not included in this email).`,
     `Sign in at ${params.dashboardUrl}. If you need to change your password later, use Forgot password on the login page.`,
     ``,
-    `Your service agreement PDF is attached for your records.`,
-    ``,
     `— Zboun Team`,
     `https://zboun.net`,
   ].join("\n");
@@ -99,33 +97,14 @@ export async function sendRestaurantOnboardingEmail(params: {
       <p><strong>Sign-in email:</strong> ${params.to}</p>
       <p>Your login password was shared separately by Zboun (not included in this email).</p>
       <p>Sign in at <a href="${params.dashboardUrl}">${params.dashboardUrl}</a>. To change your password later, use <strong>Forgot password</strong> on the login page.</p>
-      <p>Your <strong>service agreement (PDF)</strong> is attached for your records.</p>
     `,
   );
-
-  const effectiveDate = new Date();
-  const pdf = await generateContractPdfBuffer({
-    restaurantName: params.businessName,
-    adminEmail: params.to,
-    effectiveDate,
-    subscriptionEndDate: params.subscriptionEndsAt,
-    monthlyPrice: params.monthlyPrice,
-    billingInterval: interval,
-  });
-  const filename = contractPdfFilename(params.businessName);
 
   await sendMail({
     to: params.to,
     subject: `Your Zboun store account — ${params.businessName}`,
     text,
     html,
-    attachments: [
-      {
-        filename,
-        content: pdf,
-        contentType: "application/pdf",
-      },
-    ],
   });
 }
 

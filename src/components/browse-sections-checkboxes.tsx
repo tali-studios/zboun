@@ -15,6 +15,8 @@ type Props = {
   selected: BrowseSection[];
   selectedSubs?: string[];
   layout?: "chips" | "grid";
+  /** When set (e.g. 1), only that many top-level categories can be selected. */
+  maxSections?: number;
 };
 
 export function BrowseSectionsCheckboxes({
@@ -23,6 +25,7 @@ export function BrowseSectionsCheckboxes({
   selected,
   selectedSubs = [],
   layout = "chips",
+  maxSections,
 }: Props) {
   const [sections, setSections] = useState<Set<BrowseSection>>(() => new Set(selected));
   const [subs, setSubs] = useState<Set<string>>(() => new Set(selectedSubs));
@@ -52,9 +55,19 @@ export function BrowseSectionsCheckboxes({
   function toggleSection(section: BrowseSection, checked: boolean) {
     setAlertMessage(null);
     setSections((prev) => {
+      if (!checked) {
+        const next = new Set(prev);
+        next.delete(section);
+        return next;
+      }
+      if (maxSections === 1) {
+        return new Set<BrowseSection>([section]);
+      }
       const next = new Set(prev);
-      if (checked) next.add(section);
-      else next.delete(section);
+      if (maxSections != null && next.size >= maxSections && !next.has(section)) {
+        return prev;
+      }
+      next.add(section);
       return next;
     });
     if (!checked) {
@@ -64,6 +77,10 @@ export function BrowseSectionsCheckboxes({
         for (const sub of sectionSubs) next.delete(sub);
         return next;
       });
+    } else if (maxSections === 1) {
+      // Drop tags from any previously selected category.
+      const keep = new Set(getSubFiltersForSection(section));
+      setSubs((prev) => new Set([...prev].filter((tag) => keep.has(tag))));
     }
   }
 
@@ -83,7 +100,9 @@ export function BrowseSectionsCheckboxes({
     if (!form) return;
 
     const onSubmit = (event: Event) => {
-      const result = validateBrowseSelection([...sections, ...subs]);
+      const result = validateBrowseSelection([...sections, ...subs], {
+        maxSections,
+      });
       if (!result.ok) {
         event.preventDefault();
         event.stopPropagation();
@@ -93,7 +112,9 @@ export function BrowseSectionsCheckboxes({
 
     form.addEventListener("submit", onSubmit, true);
     return () => form.removeEventListener("submit", onSubmit, true);
-  }, [formId, sections, subs]);
+  }, [formId, sections, subs, maxSections]);
+
+  const inputType = maxSections === 1 ? "radio" : "checkbox";
 
   return (
     <>
@@ -102,13 +123,17 @@ export function BrowseSectionsCheckboxes({
           {BROWSE_SECTION_OPTIONS.map((section) => (
             <label key={section} className={labelClass}>
               <input
-                type="checkbox"
-                name={name}
+                type={inputType}
+                name={maxSections === 1 ? `${name}_section` : name}
                 value={section}
                 checked={sections.has(section)}
                 onChange={(e) => toggleSection(section, e.target.checked)}
                 className="h-4 w-4 accent-violet-600"
               />
+              {/* Always submit real browse_sections values via hidden inputs for radio mode */}
+              {maxSections === 1 && sections.has(section) ? (
+                <input type="hidden" name={name} value={section} />
+              ) : null}
               <span>{section}</span>
             </label>
           ))}

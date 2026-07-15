@@ -7,7 +7,6 @@ import { BrowseSectionsCheckboxes } from "@/components/browse-sections-checkboxe
 import { ComplimentaryBillingFields } from "@/components/complimentary-billing-fields";
 import { SubscriptionPlanFields } from "@/components/subscription-plan-fields";
 import { createRestaurantAction } from "@/app-actions/superadmin";
-import type { BrowseSection } from "@/lib/browse-sections";
 
 const GoogleMapPicker = dynamic(
   () => import("@/components/google-map-picker").then((m) => m.GoogleMapPicker),
@@ -22,7 +21,6 @@ const GoogleMapPicker = dynamic(
 );
 
 const BEIRUT = { lat: 33.8938, lng: 35.5018 };
-const DEFAULT_CATEGORIES: BrowseSection[] = ["General Shops"];
 
 export function SuperAdminCreateRestaurantForm() {
   const [showLocationSection, setShowLocationSection] = useState(false);
@@ -49,14 +47,15 @@ export function SuperAdminCreateRestaurantForm() {
       />
 
       <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 md:col-span-2 xl:col-span-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Business categories</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Business category</p>
         <p className="mt-1 text-xs text-slate-500">
-          Pick where this business appears on the home page. Each category needs at least one tag.
+          Pick one category where this business appears on the home page. That category needs at
+          least one tag.
         </p>
         <BrowseSectionsCheckboxes
           formId="super-admin-create-restaurant-form"
-          selected={DEFAULT_CATEGORIES}
-          selectedSubs={["Other"]}
+          selected={[]}
+          maxSections={1}
         />
       </div>
 

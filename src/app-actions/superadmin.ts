@@ -83,7 +83,7 @@ export async function createRestaurantAction(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const phone = String(formData.get("phone") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  const browseValidated = validateBrowseSelectionFromForm(formData);
+  const browseValidated = validateBrowseSelectionFromForm(formData, { maxSections: 1 });
   if (!browseValidated.ok) {
     redirect(`/dashboard/super-admin?error=${encodeURIComponent(browseValidated.error)}`);
   }
@@ -241,7 +241,7 @@ export async function updateRestaurantBrowseSectionsAction(formData: FormData) {
   await requireSuperAdmin();
   const id = String(formData.get("id") ?? "").trim();
   if (!id) return;
-  const browseValidated = validateBrowseSelectionFromForm(formData);
+  const browseValidated = validateBrowseSelectionFromForm(formData, { maxSections: 1 });
   if (!browseValidated.ok) {
     redirect(`/dashboard/super-admin?error=${encodeURIComponent(browseValidated.error)}`);
   }

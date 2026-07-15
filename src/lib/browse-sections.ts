@@ -248,21 +248,37 @@ export function parseFullBrowseSelectionFromForm(formData: FormData): string[] {
     .getAll("browse_sections")
     .map((value) => String(value ?? "").trim())
     .filter(Boolean);
-  if (raw.length > 0) return [...new Set(raw)];
-  return ["General Shops"];
+  return [...new Set(raw)];
 }
 
 export type BrowseSelectionValidation =
   | { ok: true; selection: string[] }
   | { ok: false; error: string; section?: BrowseSection };
 
+export type BrowseSelectionOptions = {
+  maxSections?: number;
+};
+
 /** Each selected category with sub-tags must have at least one tag chosen. */
-export function validateBrowseSelection(values: string[]): BrowseSelectionValidation {
+export function validateBrowseSelection(
+  values: string[],
+  options?: BrowseSelectionOptions,
+): BrowseSelectionValidation {
   const raw = [...new Set(values.map((value) => value.trim()).filter(Boolean))];
   const topLevel = normalizeBrowseSections(raw);
 
   if (topLevel.length === 0) {
-    return { ok: false, error: "Pick at least one business category." };
+    return { ok: false, error: "Pick a business category." };
+  }
+
+  if (options?.maxSections != null && topLevel.length > options.maxSections) {
+    return {
+      ok: false,
+      error:
+        options.maxSections === 1
+          ? "Pick only one business category."
+          : `Pick at most ${options.maxSections} business categories.`,
+    };
   }
 
   const subs = getBrowseSubTags(raw);
@@ -282,8 +298,11 @@ export function validateBrowseSelection(values: string[]): BrowseSelectionValida
   return { ok: true, selection: [...new Set([...topLevel, ...subs])] };
 }
 
-export function validateBrowseSelectionFromForm(formData: FormData): BrowseSelectionValidation {
-  return validateBrowseSelection(parseFullBrowseSelectionFromForm(formData));
+export function validateBrowseSelectionFromForm(
+  formData: FormData,
+  options?: BrowseSelectionOptions,
+): BrowseSelectionValidation {
+  return validateBrowseSelection(parseFullBrowseSelectionFromForm(formData), options);
 }
 
 export function parseBrowseSectionsFromForm(formData: FormData): BrowseSection[] {
