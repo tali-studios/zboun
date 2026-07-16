@@ -7,6 +7,7 @@ import { loadStoreAdminHeaderContext } from "@/lib/store-admin-header-context";
 import { DashboardSectionJump } from "@/components/dashboard-section-jump";
 import { RestaurantDashboardToast } from "@/components/restaurant-dashboard-toast";
 import { BusinessMenuItemsSection } from "@/components/business-menu-items-section";
+import { SectionManagePanel } from "@/components/section-manage-panel";
 import { loadMenuItemsAdminData } from "@/lib/menu-items-admin-data";
 import { parseMenuItemsSort, sortMenuItems } from "@/lib/menu-items-admin";
 import { MENU_ITEMS_ADMIN_PAGE_SIZE } from "@/lib/dashboard-admin";
@@ -31,6 +32,8 @@ type Props = {
     jump?: string;
     toast?: string;
     item_name?: string;
+    section_name?: string;
+    sections_count?: string;
   }>;
 };
 
@@ -40,8 +43,18 @@ export default async function BusinessMenuItemsPage({ searchParams }: Props) {
     redirect("/dashboard/login");
   }
 
-  const { q, category, stock, sort: sortRaw, page: pageRaw, jump, toast, item_name: itemNameRaw } =
-    await searchParams;
+  const {
+    q,
+    category,
+    stock,
+    sort: sortRaw,
+    page: pageRaw,
+    jump,
+    toast,
+    item_name: itemNameRaw,
+    section_name: sectionNameRaw,
+    sections_count: sectionsCountRaw,
+  } = await searchParams;
 
   let itemName: string | undefined;
   if (typeof itemNameRaw === "string" && itemNameRaw.length > 0) {
@@ -51,6 +64,20 @@ export default async function BusinessMenuItemsPage({ searchParams }: Props) {
       itemName = itemNameRaw;
     }
   }
+
+  let sectionName: string | undefined;
+  if (typeof sectionNameRaw === "string" && sectionNameRaw.length > 0) {
+    try {
+      sectionName = decodeURIComponent(sectionNameRaw);
+    } catch {
+      sectionName = sectionNameRaw;
+    }
+  }
+
+  const sectionsCount =
+    typeof sectionsCountRaw === "string" && sectionsCountRaw.length > 0
+      ? Number(sectionsCountRaw)
+      : null;
 
   const supabase = await createServerSupabaseClient();
   const restaurantId = appUser.restaurant_id;
@@ -120,7 +147,12 @@ export default async function BusinessMenuItemsPage({ searchParams }: Props) {
   return (
     <main className="min-h-screen bg-[#f8f8ff] p-3 sm:p-4 md:p-8">
       <DashboardSectionJump target={jump} />
-      <RestaurantDashboardToast toast={toast} itemName={itemName} />
+      <RestaurantDashboardToast
+        toast={toast}
+        itemName={itemName}
+        sectionName={sectionName}
+        sectionsCount={Number.isFinite(sectionsCount) ? sectionsCount : null}
+      />
       <div className="mx-auto max-w-7xl space-y-5">
         <StoreAdminHeader
           restaurantName={header.restaurantName}
@@ -131,7 +163,15 @@ export default async function BusinessMenuItemsPage({ searchParams }: Props) {
           driverManagementEnabled={header.driverManagementEnabled}
           currentPage="menu-items"
           title={itemProfile.isFoodLike ? "Menu items" : "Store items"}
-          subtitle="Search, filter, and update stock directly in the table."
+          subtitle="Manage sections, then add and update items."
+        />
+
+        <SectionManagePanel
+          categories={(categories ?? []).map((c) => ({
+            id: c.id,
+            name: c.name,
+            position: c.position ?? 0,
+          }))}
         />
 
         <BusinessMenuItemsSection

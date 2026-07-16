@@ -289,7 +289,7 @@ export async function createCategoryAction(formData: FormData) {
     ),
   ];
   if (names.length === 0) {
-    redirect("/dashboard/business?toast=section_name_required");
+    redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=section_name_required`);
   }
 
   const supabase = await createServerSupabaseClient();
@@ -309,12 +309,15 @@ export async function createCategoryAction(formData: FormData) {
   }));
 
   await supabase.from("categories").insert(inserts);
+  revalidatePath(MENU_ITEMS_ADMIN_PATH);
   revalidatePath("/dashboard/business");
 
   if (names.length === 1) {
-    redirect(`/dashboard/business?toast=section_created&section_name=${encodeURIComponent(names[0]!)}`);
+    redirect(
+      `${MENU_ITEMS_ADMIN_PATH}?toast=section_created&section_name=${encodeURIComponent(names[0]!)}`,
+    );
   }
-  redirect(`/dashboard/business?toast=sections_created&sections_count=${names.length}`);
+  redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=sections_created&sections_count=${names.length}`);
 }
 
 export async function updateCategoryAction(formData: FormData) {
@@ -329,6 +332,7 @@ export async function updateCategoryAction(formData: FormData) {
     .update({ name })
     .eq("id", id)
     .eq("restaurant_id", user.restaurant_id);
+  revalidatePath(MENU_ITEMS_ADMIN_PATH);
   revalidatePath("/dashboard/business");
 }
 
@@ -339,6 +343,7 @@ export async function deleteCategoryAction(formData: FormData) {
 
   const supabase = await createServerSupabaseClient();
   await supabase.from("categories").delete().eq("id", id).eq("restaurant_id", user.restaurant_id);
+  revalidatePath(MENU_ITEMS_ADMIN_PATH);
   revalidatePath("/dashboard/business");
 }
 

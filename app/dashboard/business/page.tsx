@@ -15,7 +15,6 @@ import { DashboardSectionJump } from "@/components/dashboard-section-jump";
 import { RestaurantLocationsPanel } from "@/components/restaurant-locations-panel";
 import type { RestaurantLocationRow } from "@/app-actions/restaurant";
 import { BrandManagePanel } from "@/components/brand-manage-panel";
-import { SectionManagePanel } from "@/components/section-manage-panel";
 import { MenuPromotionsPanel } from "@/components/menu-promotions-panel";
 import { MenuCouponCodesPanel } from "@/components/menu-coupon-codes-panel";
 import { DeliveryFeeSettings } from "@/components/delivery-fee-settings";
@@ -473,14 +472,6 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
           </div>
           </StoreSettingsForm>
         </section>
-
-        <SectionManagePanel
-          categories={(categories ?? []).map((c) => ({
-            id: c.id,
-            name: c.name,
-            position: c.position ?? 0,
-          }))}
-        />
 
         <RestaurantHoursPanel
           openingHours={parseOpeningHours(restaurant?.opening_hours)}
