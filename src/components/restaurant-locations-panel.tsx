@@ -33,13 +33,15 @@ const GoogleMapPicker = dynamic(
 type Props = {
   restaurantId: string;
   initialLocations: RestaurantLocationRow[];
+  /** Nest inside Store settings (no separate panel card). */
+  embedded?: boolean;
 };
 
 type FormMode = { kind: "new" } | { kind: "edit"; loc: RestaurantLocationRow };
 
 const BEIRUT = { lat: 33.8938, lng: 35.5018 };
 
-export function RestaurantLocationsPanel({ restaurantId, initialLocations }: Props) {
+export function RestaurantLocationsPanel({ restaurantId, initialLocations, embedded = false }: Props) {
   const location = initialLocations[0] ?? null;
   const hasLocation = Boolean(location);
   const [formMode, setFormMode] = useState<FormMode | null>(null);
@@ -73,10 +75,10 @@ export function RestaurantLocationsPanel({ restaurantId, initialLocations }: Pro
   const editing = formMode?.kind === "edit" ? formMode.loc : null;
 
   return (
-    <div id="locations" className="panel p-5">
+    <div id="locations" className={embedded ? "p-5" : "panel p-5"}>
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="panel-title">Store location</h2>
+          <h2 className={embedded ? "text-sm font-bold text-slate-800" : "panel-title"}>Store location</h2>
           <p className="mt-0.5 text-xs text-slate-500">
             {hasLocation
               ? "Your store pin on the map — customers nearby can find you on the home page."

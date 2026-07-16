@@ -1,6 +1,6 @@
 "use client";
 
-import { Bike, Gift, MapPin, Users, Zap } from "lucide-react";
+import { Gift, MapPin, Users, Zap } from "lucide-react";
 import { useState } from "react";
 import {
   MAX_RESTAURANT_DELIVERY_RADIUS_KM,
@@ -65,15 +65,7 @@ export function DeliveryFeeSettings({
 
   return (
     <div>
-      <div className="flex items-center gap-2.5">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-violet-700">
-          <Bike className="h-4 w-4" strokeWidth={2} aria-hidden />
-        </span>
-        <div>
-          <h2 className="panel-title">Delivery settings</h2>
-          <p className="text-xs text-slate-500">How far you deliver and what customers pay.</p>
-        </div>
-      </div>
+      <h2 className="panel-title">Delivery settings</h2>
 
       <div className="mt-3 space-y-2">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2">

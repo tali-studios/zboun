@@ -27,6 +27,8 @@ type AlertState = {
 type Props = {
   children: ReactNode;
   className?: string;
+  /** Rendered after the `<form>` (e.g. nested-form sections) but still inside pending context. */
+  footer?: ReactNode;
 };
 
 function resultToAlert(result: UpdateRestaurantSettingsResult): AlertState | null {
@@ -75,7 +77,11 @@ function resultToAlert(result: UpdateRestaurantSettingsResult): AlertState | nul
   };
 }
 
-export function StoreSettingsForm({ children, className = "flex flex-col gap-4 lg:col-span-2" }: Props) {
+export function StoreSettingsForm({
+  children,
+  className = "flex flex-col gap-4 lg:col-span-2",
+  footer,
+}: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [alert, setAlert] = useState<AlertState | null>(null);
@@ -106,6 +112,7 @@ export function StoreSettingsForm({ children, className = "flex flex-col gap-4 l
           </p>
         ) : null}
       </form>
+      {footer}
       <DashboardAlertModal
         open={alert != null}
         heading={alert?.heading ?? ""}
@@ -120,13 +127,16 @@ export function StoreSettingsForm({ children, className = "flex flex-col gap-4 l
 export function StoreSettingsSubmitButton({
   children,
   className,
+  form,
 }: {
   children: ReactNode;
   className?: string;
+  /** Associate with a form when the button sits outside it. */
+  form?: string;
 }) {
   const pending = useStoreSettingsPending();
   return (
-    <button type="submit" disabled={pending} className={className}>
+    <button type="submit" form={form} disabled={pending} className={className}>
       {pending ? "Saving…" : children}
     </button>
   );
