@@ -286,26 +286,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
         {isMenuBusiness ? (
         <>
         <section className="panel divide-y divide-slate-100 overflow-hidden p-0">
-          <StoreSettingsForm
-            className="divide-y divide-slate-100"
-            footer={
-              <>
-                <RestaurantLocationsPanel
-                  restaurantId={appUser.restaurant_id}
-                  initialLocations={restaurantLocations}
-                  embedded
-                />
-                <div className="bg-slate-50/60 p-5">
-                  <StoreSettingsSubmitButton
-                    form="restaurant-store-settings-form"
-                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-violet-500/25 transition hover:brightness-105 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
-                  >
-                    Save store &amp; delivery settings
-                  </StoreSettingsSubmitButton>
-                </div>
-              </>
-            }
-          >
+          <StoreSettingsForm className="divide-y divide-slate-100">
           <div className="p-5">
             <h2 className="panel-title">Store settings</h2>
             <div className="mt-3 grid gap-3 md:grid-cols-3">
@@ -423,6 +404,14 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
               deliveryRadiusDefault={restaurant?.delivery_radius_km ?? null}
               driverManagementEnabledDefault={restaurant?.driver_management_enabled ?? false}
             />
+          </div>
+
+          <RestaurantLocationsPanel initialLocations={restaurantLocations} embedded />
+
+          <div className="bg-slate-50/60 p-5">
+            <StoreSettingsSubmitButton className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-violet-500/25 transition hover:brightness-105 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70">
+              Save store &amp; delivery settings
+            </StoreSettingsSubmitButton>
           </div>
           </StoreSettingsForm>
         </section>

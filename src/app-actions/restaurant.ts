@@ -940,6 +940,8 @@ export async function updateRestaurantSettingsAction(
   const lngRaw = String(formData.get("longitude") ?? "").trim();
   const latitude = latRaw && Number.isFinite(Number(latRaw)) ? Number(latRaw) : null;
   const longitude = lngRaw && Number.isFinite(Number(lngRaw)) ? Number(lngRaw) : null;
+  const locationAddress = String(formData.get("location_address") ?? "").trim() || null;
+  const locationId = String(formData.get("location_id") ?? "").trim();
   const freeDelivery = formData.get("free_delivery") === "true" || formData.get("free_delivery") === "on";
   const allowGuestCheckout =
     formData.get("allow_guest_checkout") === "true" || formData.get("allow_guest_checkout") === "on";
@@ -984,6 +986,42 @@ export async function updateRestaurantSettingsAction(
 
   if (updateError) {
     return { ok: false, toast: "settings_save_failed", message: updateError.message };
+  }
+
+  if (latitude != null && longitude != null) {
+    const branchPayload = {
+      restaurant_id: user.restaurant_id,
+      name: "Store location",
+      latitude,
+      longitude,
+      address: locationAddress,
+      phone: null as string | null,
+      is_main: true,
+      position: 0,
+    };
+    if (locationId) {
+      await supabase
+        .from("restaurant_locations")
+        .update(branchPayload)
+        .eq("id", locationId)
+        .eq("restaurant_id", user.restaurant_id);
+    } else {
+      const { data: existing } = await supabase
+        .from("restaurant_locations")
+        .select("id")
+        .eq("restaurant_id", user.restaurant_id)
+        .limit(1)
+        .maybeSingle();
+      if (existing?.id) {
+        await supabase
+          .from("restaurant_locations")
+          .update(branchPayload)
+          .eq("id", existing.id)
+          .eq("restaurant_id", user.restaurant_id);
+      } else {
+        await supabase.from("restaurant_locations").insert(branchPayload);
+      }
+    }
   }
 
   revalidatePath("/");

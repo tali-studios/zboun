@@ -106,11 +106,6 @@ export function StoreSettingsForm({
     <PendingContext.Provider value={isPending}>
       <form id="restaurant-store-settings-form" onSubmit={handleSubmit} className={className}>
         {children}
-        {isPending ? (
-          <p className="px-5 pb-4 text-xs font-medium text-violet-600" aria-live="polite">
-            Saving settings…
-          </p>
-        ) : null}
       </form>
       {footer}
       <DashboardAlertModal
@@ -136,8 +131,8 @@ export function StoreSettingsSubmitButton({
 }) {
   const pending = useStoreSettingsPending();
   return (
-    <button type="submit" form={form} disabled={pending} className={className}>
-      {pending ? "Saving…" : children}
+    <button type="submit" form={form} disabled={pending} className={className} aria-busy={pending}>
+      {children}
     </button>
   );
 }
