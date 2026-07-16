@@ -14,7 +14,6 @@ import { parseOpeningHours } from "@/lib/opening-hours";
 import { DashboardSectionJump } from "@/components/dashboard-section-jump";
 import { RestaurantLocationsPanel } from "@/components/restaurant-locations-panel";
 import type { RestaurantLocationRow } from "@/app-actions/restaurant";
-import { BrandManagePanel } from "@/components/brand-manage-panel";
 import { MenuPromotionsPanel } from "@/components/menu-promotions-panel";
 import { MenuCouponCodesPanel } from "@/components/menu-coupon-codes-panel";
 import { DeliveryFeeSettings } from "@/components/delivery-fee-settings";
@@ -556,8 +555,6 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
             initialLocations={restaurantLocations}
           />
         ) : null}
-
-        <BrandManagePanel brands={menuBrands} />
 
         <MenuPromotionsPanel
           promotions={menuPromotions}

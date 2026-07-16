@@ -8,6 +8,7 @@ import { DashboardSectionJump } from "@/components/dashboard-section-jump";
 import { RestaurantDashboardToast } from "@/components/restaurant-dashboard-toast";
 import { BusinessMenuItemsSection } from "@/components/business-menu-items-section";
 import { SectionManagePanel } from "@/components/section-manage-panel";
+import { BrandManagePanel } from "@/components/brand-manage-panel";
 import { loadMenuItemsAdminData } from "@/lib/menu-items-admin-data";
 import { parseMenuItemsSort, sortMenuItems } from "@/lib/menu-items-admin";
 import { MENU_ITEMS_ADMIN_PAGE_SIZE } from "@/lib/dashboard-admin";
@@ -34,6 +35,7 @@ type Props = {
     item_name?: string;
     section_name?: string;
     sections_count?: string;
+    brand_name?: string;
   }>;
 };
 
@@ -54,6 +56,7 @@ export default async function BusinessMenuItemsPage({ searchParams }: Props) {
     item_name: itemNameRaw,
     section_name: sectionNameRaw,
     sections_count: sectionsCountRaw,
+    brand_name: brandNameRaw,
   } = await searchParams;
 
   let itemName: string | undefined;
@@ -78,6 +81,15 @@ export default async function BusinessMenuItemsPage({ searchParams }: Props) {
     typeof sectionsCountRaw === "string" && sectionsCountRaw.length > 0
       ? Number(sectionsCountRaw)
       : null;
+
+  let brandName: string | undefined;
+  if (typeof brandNameRaw === "string" && brandNameRaw.length > 0) {
+    try {
+      brandName = decodeURIComponent(brandNameRaw);
+    } catch {
+      brandName = brandNameRaw;
+    }
+  }
 
   const supabase = await createServerSupabaseClient();
   const restaurantId = appUser.restaurant_id;
@@ -152,6 +164,7 @@ export default async function BusinessMenuItemsPage({ searchParams }: Props) {
         itemName={itemName}
         sectionName={sectionName}
         sectionsCount={Number.isFinite(sectionsCount) ? sectionsCount : null}
+        brandName={brandName}
       />
       <div className="mx-auto max-w-7xl space-y-5">
         <StoreAdminHeader
@@ -163,7 +176,7 @@ export default async function BusinessMenuItemsPage({ searchParams }: Props) {
           driverManagementEnabled={header.driverManagementEnabled}
           currentPage="menu-items"
           title={itemProfile.isFoodLike ? "Menu items" : "Store items"}
-          subtitle="Manage sections, then add and update items."
+          subtitle="Manage sections and brands, then add and update items."
         />
 
         <SectionManagePanel
@@ -173,6 +186,8 @@ export default async function BusinessMenuItemsPage({ searchParams }: Props) {
             position: c.position ?? 0,
           }))}
         />
+
+        <BrandManagePanel brands={menuBrands} />
 
         <BusinessMenuItemsSection
           categories={(categories ?? []).map((c) => ({ id: c.id, name: c.name }))}

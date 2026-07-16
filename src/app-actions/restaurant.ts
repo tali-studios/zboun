@@ -351,7 +351,7 @@ export async function createBrandAction(formData: FormData) {
   const user = await requireRestaurantAdmin();
   const name = String(formData.get("name") ?? "").trim();
   if (!name) {
-    redirect("/dashboard/business?toast=brand_name_required");
+    redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=brand_name_required`);
   }
 
   const logoFile = formData.get("logo_file");
@@ -362,7 +362,7 @@ export async function createBrandAction(formData: FormData) {
         ? await uploadBrandLogo(logoFile, user.restaurant_id)
         : null;
   } catch {
-    redirect("/dashboard/business?toast=brand_logo_invalid");
+    redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=brand_logo_invalid`);
   }
 
   const supabase = await createServerSupabaseClient();
@@ -375,13 +375,14 @@ export async function createBrandAction(formData: FormData) {
 
   if (error) {
     if (error.code === "23505") {
-      redirect("/dashboard/business?toast=brand_name_duplicate");
+      redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=brand_name_duplicate`);
     }
-    redirect("/dashboard/business?toast=brand_create_failed");
+    redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=brand_create_failed`);
   }
 
+  revalidatePath(MENU_ITEMS_ADMIN_PATH);
   revalidatePath("/dashboard/business");
-  redirect(`/dashboard/business?toast=brand_created&brand_name=${encodeURIComponent(name)}`);
+  redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=brand_created&brand_name=${encodeURIComponent(name)}`);
 }
 
 export async function updateBrandAction(formData: FormData) {
@@ -397,7 +398,7 @@ export async function updateBrandAction(formData: FormData) {
     try {
       uploadedLogoUrl = await uploadBrandLogo(logoFile, user.restaurant_id);
     } catch {
-      redirect("/dashboard/business?toast=brand_logo_invalid");
+      redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=brand_logo_invalid`);
     }
   }
 
@@ -413,11 +414,12 @@ export async function updateBrandAction(formData: FormData) {
 
   if (error) {
     if (error.code === "23505") {
-      redirect("/dashboard/business?toast=brand_name_duplicate");
+      redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=brand_name_duplicate`);
     }
     return;
   }
 
+  revalidatePath(MENU_ITEMS_ADMIN_PATH);
   revalidatePath("/dashboard/business");
 }
 
@@ -428,6 +430,7 @@ export async function deleteBrandAction(formData: FormData) {
 
   const supabase = await createServerSupabaseClient();
   await supabase.from("menu_brands").delete().eq("id", id).eq("restaurant_id", user.restaurant_id);
+  revalidatePath(MENU_ITEMS_ADMIN_PATH);
   revalidatePath("/dashboard/business");
 }
 
