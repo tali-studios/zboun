@@ -20,31 +20,35 @@ export function AddSectionsForm() {
   }
 
   return (
-    <form action={createCategoryAction} className="rounded-2xl border border-violet-200 bg-violet-50/50 p-4">
-      <div className="flex items-center gap-2">
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-violet-600">
-          <Plus className="h-4 w-4" strokeWidth={2.5} />
-        </span>
-        <h3 className="text-sm font-bold text-slate-900">Add a new section</h3>
-      </div>
-      <p className="mt-1 text-xs text-slate-500">
+    <form action={createCategoryAction} className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 sm:p-5">
+      <h3 className="text-sm font-bold text-slate-900">Add section</h3>
+      <p className="text-xs text-slate-500">
         Examples: Burgers, Drinks, Desserts, Dairy &amp; Eggs, Grocery.
       </p>
 
-      <div className="mt-3 space-y-2">
+      <div className="space-y-2">
         {rows.map((row, index) => (
           <div key={row.id} className="flex items-center gap-2">
-            <input
-              name="name"
-              placeholder={index === 0 ? "Section name" : `Section name ${index + 1}`}
-              className="ui-input min-w-0 flex-1 bg-white"
-              aria-label={index === 0 ? "Section name" : `Section name ${index + 1}`}
-            />
+            <label className="min-w-0 flex-1 space-y-1">
+              {index === 0 ? (
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Section name
+                </span>
+              ) : null}
+              <input
+                name="name"
+                placeholder={index === 0 ? "Section name" : `Section name ${index + 1}`}
+                className="ui-input w-full bg-white"
+                aria-label={index === 0 ? "Section name" : `Section name ${index + 1}`}
+              />
+            </label>
             {rows.length > 1 ? (
               <button
                 type="button"
                 onClick={() => removeRow(row.id)}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 ${
+                  index === 0 ? "mt-5" : ""
+                }`}
                 aria-label="Remove section row"
               >
                 <Minus className="h-4 w-4" strokeWidth={2.5} />
@@ -54,17 +58,21 @@ export function AddSectionsForm() {
         ))}
       </div>
 
-      <div className="mt-4 space-y-3">
+      <div className="space-y-3">
         <button
           type="button"
           onClick={addRow}
-          className="btn btn-secondary w-full border-dashed border-violet-300 py-3 text-violet-700 hover:border-violet-400 hover:bg-violet-50"
+          className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-300 bg-white py-3 text-sm font-semibold text-slate-600 transition hover:border-violet-300 hover:bg-violet-50 hover:text-violet-700"
         >
           <Plus className="h-4 w-4" strokeWidth={2.5} />
           Add another section
         </button>
 
-        <button type="submit" className="btn btn-primary w-full py-3">
+        <button
+          type="submit"
+          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-violet-500/25 transition hover:brightness-105 active:scale-[0.99]"
+        >
+          <Plus className="h-4 w-4" strokeWidth={2.5} />
           {rows.length > 1 ? `Add ${rows.length} sections` : "Add section"}
         </button>
       </div>

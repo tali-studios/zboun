@@ -13,6 +13,7 @@ import {
   normalizeCouponCode,
   type MenuCouponCode,
 } from "@/lib/menu-coupon-codes";
+import { SALES_ADMIN_PATH } from "@/lib/sales-admin-path";
 
 async function requireRestaurantAdmin() {
   const user = await getCurrentUserRole();
@@ -53,6 +54,7 @@ function parseOptionalMaxUses(raw: FormDataEntryValue | null): number | null {
 }
 
 function revalidateStorePaths(slug?: string | null) {
+  revalidatePath(SALES_ADMIN_PATH);
   revalidatePath("/dashboard/business");
   revalidatePath("/");
   if (slug) {
@@ -172,7 +174,7 @@ export async function createMenuCouponCodeAction(formData: FormData) {
   const isActive = String(formData.get("is_active") ?? "true") !== "false";
 
   if (!isCouponCodeValidFormat(code) || percentOff == null) {
-    redirect("/dashboard/business?error=invalid_coupon");
+    redirect(`${SALES_ADMIN_PATH}?error=invalid_coupon`);
   }
 
   const { error } = await supabase.from("menu_coupon_codes").insert({
@@ -187,9 +189,9 @@ export async function createMenuCouponCodeAction(formData: FormData) {
 
   if (error) {
     if (/duplicate|unique/i.test(error.message ?? "")) {
-      redirect("/dashboard/business?error=coupon_code_exists");
+      redirect(`${SALES_ADMIN_PATH}?error=coupon_code_exists`);
     }
-    redirect("/dashboard/business?error=coupon_save_failed");
+    redirect(`${SALES_ADMIN_PATH}?error=coupon_save_failed`);
   }
 
   const { data: restaurant } = await supabase
@@ -199,7 +201,7 @@ export async function createMenuCouponCodeAction(formData: FormData) {
     .maybeSingle();
 
   revalidateStorePaths(restaurant?.slug);
-  redirect("/dashboard/business?toast=coupon_created&jump=coupons");
+  redirect(`${SALES_ADMIN_PATH}?toast=coupon_created&jump=coupons`);
 }
 
 export async function toggleMenuCouponCodeAction(formData: FormData) {
@@ -222,7 +224,7 @@ export async function toggleMenuCouponCodeAction(formData: FormData) {
     .maybeSingle();
 
   revalidateStorePaths(restaurant?.slug);
-  redirect("/dashboard/business?toast=coupon_updated&jump=coupons");
+  redirect(`${SALES_ADMIN_PATH}?toast=coupon_updated&jump=coupons`);
 }
 
 export async function deleteMenuCouponCodeAction(formData: FormData) {
@@ -240,5 +242,5 @@ export async function deleteMenuCouponCodeAction(formData: FormData) {
     .maybeSingle();
 
   revalidateStorePaths(restaurant?.slug);
-  redirect("/dashboard/business?toast=coupon_deleted&jump=coupons");
+  redirect(`${SALES_ADMIN_PATH}?toast=coupon_deleted&jump=coupons`);
 }

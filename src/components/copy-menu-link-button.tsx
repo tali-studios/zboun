@@ -5,9 +5,14 @@ import { useState } from "react";
 type Props = {
   url: string;
   label?: string;
+  className?: string;
 };
 
-export function CopyMenuLinkButton({ url, label = "Copy menu link" }: Props) {
+export function CopyMenuLinkButton({
+  url,
+  label = "Copy menu link",
+  className,
+}: Props) {
   const [copied, setCopied] = useState(false);
 
   async function onCopy() {
@@ -20,15 +25,19 @@ export function CopyMenuLinkButton({ url, label = "Copy menu link" }: Props) {
     }
   }
 
+  const toneClass = copied
+    ? "border-emerald-300/60 bg-emerald-500 text-white hover:bg-emerald-400"
+    : "border-sky-300/60 bg-sky-500 text-white hover:bg-sky-400";
+
   return (
     <button
       type="button"
       onClick={onCopy}
-      className={`btn rounded-full border shadow-sm transition ${
-        copied
-          ? "border-emerald-300/60 bg-emerald-500 text-white hover:bg-emerald-400"
-          : "border-sky-300/60 bg-sky-500 text-white hover:bg-sky-400"
-      }`}
+      className={
+        className
+          ? `${className} ${toneClass}`
+          : `btn rounded-full border shadow-sm transition ${toneClass}`
+      }
     >
       {copied ? "Copied!" : label}
     </button>

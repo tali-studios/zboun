@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { StoreSettingsForm, StoreSettingsSubmitButton } from "@/components/store-settings-form";
-import { getCurrentUserRole, getRestaurantMenuCouponCodes, getRestaurantMenuPromotions } from "@/lib/data";
+import { getCurrentUserRole } from "@/lib/data";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { StoreAdminHeader } from "@/components/store-admin-header";
 import { BusinessCategoryDashboard } from "@/components/business-category-dashboard";
@@ -14,8 +14,6 @@ import { parseOpeningHours } from "@/lib/opening-hours";
 import { DashboardSectionJump } from "@/components/dashboard-section-jump";
 import { RestaurantLocationsPanel } from "@/components/restaurant-locations-panel";
 import type { RestaurantLocationRow } from "@/app-actions/restaurant";
-import { MenuPromotionsPanel } from "@/components/menu-promotions-panel";
-import { MenuCouponCodesPanel } from "@/components/menu-coupon-codes-panel";
 import { DeliveryFeeSettings } from "@/components/delivery-fee-settings";
 import { MenuThemePicker } from "@/components/menu-theme-picker";
 import {
@@ -83,19 +81,12 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
   const restaurantId = appUser.restaurant_id;
   const today = new Date().toISOString().split("T")[0];
 
-  const [restaurantRaw, { data: categories }, { data: addonRows }, menuPromotions, menuCouponCodes] = await Promise.all([
+  const [restaurantRaw, { data: addonRows }] = await Promise.all([
     loadRestaurantForAdminDashboard(supabase, restaurantId),
-    supabase
-      .from("categories")
-      .select("id, name, position")
-      .eq("restaurant_id", restaurantId)
-      .order("position"),
     supabase
       .from("restaurant_addons")
       .select("addon_key, is_enabled")
       .eq("restaurant_id", restaurantId),
-    getRestaurantMenuPromotions(restaurantId),
-    getRestaurantMenuCouponCodes(restaurantId),
   ]);
 
   const addonOn = (key: string) =>
@@ -180,24 +171,6 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
       ? supabase.from("club_members").select("id, status").eq("restaurant_id", restaurantId).limit(500)
       : Promise.resolve({ data: [] as { id: string; status: string }[] }),
   ]);
-
-  const [{ data: menuBrandsRaw }, { data: promotionMenuItems }] = await Promise.all([
-    supabase
-      .from("menu_brands")
-      .select("id, name, logo_url")
-      .eq("restaurant_id", appUser.restaurant_id)
-      .order("name"),
-    supabase
-      .from("menu_items")
-      .select("id, name, category_id")
-      .eq("restaurant_id", appUser.restaurant_id)
-      .order("name"),
-  ]);
-  const menuBrands = (menuBrandsRaw ?? []) as Array<{
-    id: string;
-    name: string;
-    logo_url: string | null;
-  }>;
 
   const inventoryEnabled = addonOn("inventory");
   const inventoryLowStock = inventoryEnabled
@@ -555,19 +528,6 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
             initialLocations={restaurantLocations}
           />
         ) : null}
-
-        <MenuPromotionsPanel
-          promotions={menuPromotions}
-          sections={(categories ?? []).map((c) => ({ id: c.id, name: c.name }))}
-          brands={menuBrands}
-          menuItems={(promotionMenuItems ?? []).map((item) => ({
-            id: item.id,
-            name: item.name,
-            category_id: item.category_id ?? null,
-          }))}
-        />
-
-        <MenuCouponCodesPanel coupons={menuCouponCodes} />
 
       </div>
     </main>

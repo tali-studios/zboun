@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUserRole } from "@/lib/data";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { PromotionScope } from "@/lib/menu-promotions";
+import { SALES_ADMIN_PATH } from "@/lib/sales-admin-path";
 
 async function requireRestaurantAdmin() {
   const user = await getCurrentUserRole();
@@ -37,6 +38,7 @@ function parseOptionalDate(raw: FormDataEntryValue | null): string | null {
 }
 
 function revalidateStorePaths(slug?: string | null) {
+  revalidatePath(SALES_ADMIN_PATH);
   revalidatePath("/dashboard/business");
   revalidatePath("/");
   if (slug) {
@@ -58,7 +60,7 @@ export async function createMenuPromotionAction(formData: FormData) {
   const isActive = String(formData.get("is_active") ?? "true") !== "false";
 
   if (!scopeType || percentOff == null) {
-    redirect("/dashboard/business?error=invalid_promotion");
+    redirect(`${SALES_ADMIN_PATH}?error=invalid_promotion`);
   }
 
   const scopeId = scopeType === "store" ? null : scopeIdRaw || null;
@@ -73,7 +75,7 @@ export async function createMenuPromotionAction(formData: FormData) {
         : [];
 
   if (scopeType !== "store" && scopeIds.length === 0) {
-    redirect("/dashboard/business?error=invalid_promotion_scope");
+    redirect(`${SALES_ADMIN_PATH}?error=invalid_promotion_scope`);
   }
 
   const promotionRows = scopeIds.map((id) => ({
@@ -108,7 +110,7 @@ export async function createMenuPromotionAction(formData: FormData) {
   const { error } = await supabase.from("menu_promotions").insert(insertPayload);
 
   if (error) {
-    redirect("/dashboard/business?error=promotion_save_failed");
+    redirect(`${SALES_ADMIN_PATH}?error=promotion_save_failed`);
   }
 
   const { data: restaurant } = await supabase
@@ -118,7 +120,7 @@ export async function createMenuPromotionAction(formData: FormData) {
     .maybeSingle();
 
   revalidateStorePaths(restaurant?.slug);
-  redirect("/dashboard/business?toast=promotion_created&jump=promotions");
+  redirect(`${SALES_ADMIN_PATH}?toast=promotion_created&jump=promotions`);
 }
 
 export async function toggleMenuPromotionAction(formData: FormData) {
@@ -141,7 +143,7 @@ export async function toggleMenuPromotionAction(formData: FormData) {
     .maybeSingle();
 
   revalidateStorePaths(restaurant?.slug);
-  redirect("/dashboard/business?toast=promotion_updated&jump=promotions");
+  redirect(`${SALES_ADMIN_PATH}?toast=promotion_updated&jump=promotions`);
 }
 
 export async function deleteMenuPromotionAction(formData: FormData) {
@@ -159,5 +161,5 @@ export async function deleteMenuPromotionAction(formData: FormData) {
     .maybeSingle();
 
   revalidateStorePaths(restaurant?.slug);
-  redirect("/dashboard/business?toast=promotion_deleted&jump=promotions");
+  redirect(`${SALES_ADMIN_PATH}?toast=promotion_deleted&jump=promotions`);
 }

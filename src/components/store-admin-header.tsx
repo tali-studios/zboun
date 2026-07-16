@@ -10,6 +10,7 @@ export type StoreAdminNavPage =
   | "qr"
   | "flyer"
   | "menu-items"
+  | "sales"
   | "billing"
   | "password";
 
@@ -28,8 +29,15 @@ type Props = {
 
 function navClass(current: boolean) {
   return current
-    ? "btn rounded-full bg-white text-violet-700 shadow-sm hover:bg-violet-50"
-    : "btn rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20";
+    ? "shrink-0 rounded-full bg-white px-2.5 py-1.5 text-xs font-semibold text-violet-700 shadow-sm hover:bg-violet-50"
+    : "shrink-0 rounded-full border border-white/30 bg-white/10 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-white/20";
+}
+
+function actionClass(tone: "green" | "red") {
+  if (tone === "green") {
+    return "shrink-0 rounded-full border border-emerald-300/60 bg-emerald-500 px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-emerald-400";
+  }
+  return "shrink-0 rounded-full border border-rose-400/50 bg-rose-600 px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-rose-500";
 }
 
 export function StoreAdminHeader({
@@ -55,33 +63,40 @@ export function StoreAdminHeader({
     menuUrl && !/^https?:\/\//i.test(menuUrl) ? `https://${menuUrl}` : menuUrl;
 
   return (
-    <header className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-violet-700 via-violet-600 to-fuchsia-600 p-5 text-white shadow-lg shadow-violet-600/30 md:p-6">
+    <header className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-violet-700 via-violet-600 to-fuchsia-600 p-4 text-white shadow-lg shadow-violet-600/30 md:p-5">
       <div
         aria-hidden
         className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-white/10 blur-3xl"
       />
-      <div className="relative flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-violet-200">{STORE_ADMIN_LABEL}</p>
-          <h1 className="mt-1 text-xl font-bold md:text-2xl">{displayTitle}</h1>
-          {displaySubtitle ? (
-            <p className="mt-0.5 text-xs text-violet-200 md:text-sm">{displaySubtitle}</p>
-          ) : null}
-        </div>
-        <div className="flex flex-wrap gap-2">
+
+      <div className="relative">
+        <p className="text-[11px] font-bold uppercase tracking-widest text-violet-200">{STORE_ADMIN_LABEL}</p>
+        <h1 className="mt-1 text-xl font-bold md:text-2xl">{displayTitle}</h1>
+        {displaySubtitle ? (
+          <p className="mt-0.5 text-xs text-violet-200 md:text-sm">{displaySubtitle}</p>
+        ) : null}
+
+        <nav
+          aria-label="Store admin"
+          className="mt-4 flex items-center gap-1.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
           {isMenuBusiness && menuUrl ? (
             <>
               <a
                 href={openStoreHref}
                 target="_blank"
                 rel="noreferrer"
-                className="btn rounded-full border border-emerald-300/60 bg-emerald-500 text-white shadow-sm hover:bg-emerald-400"
+                className={actionClass("green")}
               >
-                {storefrontLabels.open}
+                Open
               </a>
-              <CopyMenuLinkButton url={menuUrl} label={storefrontLabels.copyLink} />
+              <CopyMenuLinkButton
+                url={menuUrl}
+                label="Copy link"
+                className="shrink-0 rounded-full border px-2.5 py-1.5 text-xs font-semibold shadow-sm transition"
+              />
               <Link href="/dashboard/business" className={navClass(currentPage === "dashboard")}>
-                Store settings
+                Settings
               </Link>
               <Link href="/dashboard/business/orders" className={navClass(currentPage === "orders")}>
                 Orders
@@ -91,14 +106,17 @@ export function StoreAdminHeader({
                   Drivers
                 </Link>
               ) : null}
+              <Link href="/dashboard/business/menu-items" className={navClass(currentPage === "menu-items")}>
+                Menu
+              </Link>
+              <Link href="/dashboard/business/sales" className={navClass(currentPage === "sales")}>
+                Sales
+              </Link>
               <Link href="/dashboard/business/qr" className={navClass(currentPage === "qr")}>
-                QR codes
+                QR
               </Link>
               <Link href="/dashboard/business/flyer" className={navClass(currentPage === "flyer")}>
-                Print flyer
-              </Link>
-              <Link href="/dashboard/business/menu-items" className={navClass(currentPage === "menu-items")}>
-                Menu items
+                Flyer
               </Link>
             </>
           ) : null}
@@ -108,15 +126,12 @@ export function StoreAdminHeader({
           <Link href="/dashboard/change-password" className={navClass(currentPage === "password")}>
             Password
           </Link>
-          <form action={signOutAction} className="w-full sm:w-auto">
-            <button
-              type="submit"
-              className="btn w-full rounded-full border border-rose-400/50 bg-rose-600 text-white shadow-sm hover:border-rose-300/60 hover:bg-rose-500 sm:w-auto"
-            >
+          <form action={signOutAction} className="shrink-0">
+            <button type="submit" className={actionClass("red")}>
               Sign out
             </button>
           </form>
-        </div>
+        </nav>
       </div>
     </header>
   );

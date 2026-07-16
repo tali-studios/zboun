@@ -19,6 +19,7 @@ export function RestaurantDashboardToast({ toast, sectionName, sectionsCount, it
   const clearToastParams = useCallback(() => {
     const params = new URLSearchParams(window.location.search);
     params.delete("toast");
+    params.delete("error");
     params.delete("section_name");
     params.delete("sections_count");
     params.delete("item_name");
@@ -107,6 +108,21 @@ export function RestaurantDashboardToast({ toast, sectionName, sectionsCount, it
   } else if (toast === "coupon_deleted") {
     heading = "Coupon removed";
     message = "This promo code can no longer be used.";
+  } else if (toast === "invalid_promotion" || toast === "invalid_promotion_scope") {
+    heading = "Check the sale";
+    message = "Enter a valid discount percent and choose what the sale applies to.";
+  } else if (toast === "promotion_save_failed") {
+    heading = "Could not save sale";
+    message = "Something went wrong while saving. Try again.";
+  } else if (toast === "invalid_coupon") {
+    heading = "Check the coupon";
+    message = "Enter a valid code and discount percent.";
+  } else if (toast === "coupon_code_exists") {
+    heading = "Code already exists";
+    message = "That promo code is already in use. Choose a different code.";
+  } else if (toast === "coupon_save_failed") {
+    heading = "Could not save coupon";
+    message = "Something went wrong while saving. Try again.";
   } else if (toast === "item_created") {
     heading = "Item added";
     message = itemName ? (
