@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { useFormStatus } from "react-dom";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { createMenuItemAction } from "@/app-actions/restaurant";
 import { IngredientListField } from "@/components/ingredient-list-field";
 import { ImageUploadField } from "@/components/image-upload-field";
@@ -53,12 +55,16 @@ function MoneyInput({
   placeholder,
   required,
   autoFocus,
+  value,
+  onChange,
 }: {
   id: string;
   name: string;
   placeholder: string;
   required?: boolean;
   autoFocus?: boolean;
+  value?: string;
+  onChange?: (value: string) => void;
 }) {
   return (
     <div className="flex min-h-[2.75rem] w-full items-center gap-2 rounded-[0.85rem] border-[1.5px] border-[#e2e5f5] bg-white px-3 transition focus-within:border-violet-400 focus-within:shadow-[0_0_0_3px_rgba(120,84,255,0.12)]">
@@ -72,6 +78,8 @@ function MoneyInput({
         step="0.01"
         min={0}
         autoFocus={autoFocus}
+        value={value}
+        onChange={onChange ? (event) => onChange(event.target.value) : undefined}
         className="min-w-0 flex-1 border-0 bg-transparent py-2.5 text-[0.9375rem] text-slate-900 outline-none placeholder:text-slate-400"
       />
     </div>
@@ -130,6 +138,40 @@ function ExpandSection({
   );
 }
 
+function AddItemSubmitButton({ isFood }: { isFood: boolean }) {
+  const { pending } = useFormStatus();
+
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      aria-busy={pending}
+      className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-violet-500/25 transition hover:brightness-105 active:scale-[0.99] disabled:cursor-wait disabled:opacity-80"
+    >
+      {pending ? (
+        <>
+          <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            />
+          </svg>
+          Adding item…
+        </>
+      ) : (
+        <>
+          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+          Add item to {isFood ? "menu" : "store"}
+        </>
+      )}
+    </button>
+  );
+}
+
 // ─── Main form ────────────────────────────────────────────────────────────────
 
 export function AddMenuItemForm({
@@ -142,15 +184,41 @@ export function AddMenuItemForm({
   profile?: StoreItemProfile;
 }) {
   const [soldByWeight, setSoldByWeight] = useState(false);
+  const [price, setPrice] = useState("");
+  const [pricePerKg, setPricePerKg] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
+  const submittingRef = useRef(false);
+
+  function toggleSoldByWeight() {
+    if (!soldByWeight) {
+      // Keep the typed amount — move it into $/kg when enabling weight pricing.
+      setPricePerKg((current) => current.trim() || price.trim());
+      setSoldByWeight(true);
+      return;
+    }
+    setPrice((current) => current.trim() || pricePerKg.trim());
+    setSoldByWeight(false);
+  }
   const isFood = profile.isFoodLike;
   const canWeighByWeight = profile.weightPricing;
   const canShowQty = profile.displayQuantity;
   const canShowNutritionSection = profile.nutrition || profile.contents;
   const canCustomizeIngredients = profile.ingredientCustomization;
 
+  async function handleCreate(formData: FormData) {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    try {
+      await createMenuItemAction(formData);
+    } catch (error) {
+      if (isRedirectError(error)) throw error;
+      submittingRef.current = false;
+      throw error;
+    }
+  }
+
   return (
-    <form ref={formRef} action={createMenuItemAction} id="add-item" className="space-y-3">
+    <form ref={formRef} action={handleCreate} id="add-item" className="space-y-3">
 
       {/* ─── STEP 1: Essentials (always shown, fast-fill) ─────────────────── */}
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -188,7 +256,14 @@ export function AddMenuItemForm({
           {!soldByWeight && (
             <div>
               <FieldLabel htmlFor="add-price" required>Price ($)</FieldLabel>
-              <MoneyInput id="add-price" name="price" placeholder="4.50" required />
+              <MoneyInput
+                id="add-price"
+                name="price"
+                placeholder="4.50"
+                required
+                value={price}
+                onChange={setPrice}
+              />
               <input type="hidden" name="price_per_kg" value="" />
               <input type="hidden" name="weight_step_kg" value="0.1" />
             </div>
@@ -212,7 +287,7 @@ export function AddMenuItemForm({
               <input type="hidden" name="sold_by_weight" value={soldByWeight ? "true" : "false"} />
               <button
                 type="button"
-                onClick={() => setSoldByWeight((v) => !v)}
+                onClick={toggleSoldByWeight}
                 className={`flex w-full items-center justify-between rounded-xl border px-4 py-2.5 text-left transition ${
                   soldByWeight
                     ? "border-violet-300 bg-violet-50"
@@ -242,7 +317,14 @@ export function AddMenuItemForm({
                   <input type="hidden" name="display_unit" value="g" />
                   <div>
                     <FieldLabel htmlFor="add-price_per_kg" required>Price per KG ($/kg)</FieldLabel>
-                    <MoneyInput id="add-price_per_kg" name="price_per_kg" placeholder="2.80" required />
+                    <MoneyInput
+                      id="add-price_per_kg"
+                      name="price_per_kg"
+                      placeholder="2.80"
+                      required
+                      value={pricePerKg}
+                      onChange={setPricePerKg}
+                    />
                     <p className="mt-1 text-xs text-slate-400">e.g. $2.80/kg → 750g = $2.10</p>
                   </div>
                   <div>
@@ -383,15 +465,7 @@ export function AddMenuItemForm({
       </ExpandSection>
 
       {/* ─── Submit ───────────────────────────────────────────────────────── */}
-      <button
-        type="submit"
-        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-violet-500/25 transition hover:brightness-105 active:scale-[0.99]"
-      >
-        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-          <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-        </svg>
-        Add item to {isFood ? "menu" : "store"}
-      </button>
+      <AddItemSubmitButton isFood={isFood} />
     </form>
   );
 }

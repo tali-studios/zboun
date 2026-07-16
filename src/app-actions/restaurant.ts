@@ -463,12 +463,6 @@ export async function createMenuItemAction(formData: FormData) {
     redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_create_invalid`);
   }
 
-  const imageFile = formData.get("image_file");
-  const imageUrl =
-    imageFile instanceof File && imageFile.size > 0
-      ? await uploadMenuItemImage(imageFile, user.restaurant_id)
-      : null;
-
   const removableIngredients = parseIngredientJson(formData.get("removable_ingredients")).map(
     (item) => ({ name: item.name }),
   );
@@ -489,11 +483,18 @@ export async function createMenuItemAction(formData: FormData) {
   const description = String(formData.get("description") ?? "").trim() || null;
   const calories = parseOptionalCalories(formData.get("calories"));
   const proteinG = parseOptionalProteinGrams(formData.get("protein_g"));
-  const { brandId, brandName } = await resolveMenuBrandForItem(
-    supabase,
-    user.restaurant_id,
-    String(formData.get("brand_id") ?? ""),
-  );
+
+  const imageFile = formData.get("image_file");
+  const [imageUrl, { brandId, brandName }] = await Promise.all([
+    imageFile instanceof File && imageFile.size > 0
+      ? uploadMenuItemImage(imageFile, user.restaurant_id)
+      : Promise.resolve(null),
+    resolveMenuBrandForItem(
+      supabase,
+      user.restaurant_id,
+      String(formData.get("brand_id") ?? ""),
+    ),
+  ]);
 
   const { data: createdItem, error } = await supabase.from("menu_items").insert({
     restaurant_id: user.restaurant_id,
@@ -592,10 +593,12 @@ export async function createMenuItemAction(formData: FormData) {
   }
 
   if (createdItem?.id) {
-    void notifyStockAlertsForMenuItem(supabase, createdItem.id, user.restaurant_id);
+    // Never block the add-item response on stock-alert emails.
+    void notifyStockAlertsForMenuItem(supabase, createdItem.id, user.restaurant_id).catch(() => {});
   }
 
-  revalidateMenuAdminPaths();
+  // Menu items page is force-dynamic; revalidate only this route for a faster redirect.
+  revalidatePath(MENU_ITEMS_ADMIN_PATH);
   redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_created&item_name=${encodeURIComponent(name)}`);
 }
 

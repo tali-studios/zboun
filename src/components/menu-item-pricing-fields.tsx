@@ -32,6 +32,14 @@ export function MenuItemPricingFields({
   idPrefix = "edit-item-qty",
 }: Props) {
   const [soldByWeight, setSoldByWeight] = useState(defaultSoldByWeight);
+  const [price, setPrice] = useState(
+    defaultPrice !== "" && defaultPrice != null ? String(defaultPrice) : "",
+  );
+  const [pricePerKg, setPricePerKg] = useState(
+    defaultPricePerKg !== null && defaultPricePerKg !== ""
+      ? String(defaultPricePerKg)
+      : "",
+  );
   const resolvedDisplay = resolveDisplayQuantityFields({
     grams: defaultGrams !== "" && defaultGrams != null ? Number(defaultGrams) : null,
     display_quantity:
@@ -40,6 +48,15 @@ export function MenuItemPricingFields({
         : null,
     display_unit: defaultDisplayUnit,
   });
+
+  function onSoldByWeightChange(checked: boolean) {
+    setSoldByWeight(checked);
+    if (checked) {
+      setPricePerKg((current) => current.trim() || price.trim());
+    } else {
+      setPrice((current) => current.trim() || pricePerKg.trim());
+    }
+  }
 
   return (
     <>
@@ -57,7 +74,8 @@ export function MenuItemPricingFields({
               type="number"
               step="0.01"
               min={0}
-              defaultValue={defaultPrice !== "" ? String(defaultPrice) : undefined}
+              value={price}
+              onChange={(event) => setPrice(event.target.value)}
               className="ui-input"
             />
             <p className="text-xs text-slate-500">US dollars ($). Base price before optional add-ons.</p>
@@ -94,7 +112,7 @@ export function MenuItemPricingFields({
               name="sold_by_weight"
               value="true"
               checked={soldByWeight}
-              onChange={(e) => setSoldByWeight(e.target.checked)}
+              onChange={(e) => onSoldByWeightChange(e.target.checked)}
               className="mt-0.5 h-4 w-4 accent-violet-600"
             />
             <div>
@@ -121,11 +139,8 @@ export function MenuItemPricingFields({
                 step="0.01"
                 min={0}
                 required={soldByWeight}
-                defaultValue={
-                  defaultPricePerKg !== null && defaultPricePerKg !== ""
-                    ? String(defaultPricePerKg)
-                    : undefined
-                }
+                value={pricePerKg}
+                onChange={(event) => setPricePerKg(event.target.value)}
                 className="ui-input"
                 autoFocus
               />
