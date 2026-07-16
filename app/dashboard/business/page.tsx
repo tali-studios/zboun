@@ -8,9 +8,7 @@ import { ImageUploadField } from "@/components/image-upload-field";
 import { normalizeBrowseSections, getBrowseSubTags, getRawBrowseSectionValues, BROWSE_SECTION_ICONS } from "@/lib/browse-sections";
 import { getBusinessTypeLabel, hasCatalogDashboard, parseBusinessType } from "@/lib/business-types";
 import { formatBrowseSectionsLabel } from "@/lib/browse-sections";
-import { RestaurantHoursPanel } from "@/components/restaurant-hours-panel";
 import { RestaurantDashboardToast } from "@/components/restaurant-dashboard-toast";
-import { parseOpeningHours } from "@/lib/opening-hours";
 import { DashboardSectionJump } from "@/components/dashboard-section-jump";
 import { RestaurantLocationsPanel } from "@/components/restaurant-locations-panel";
 import type { RestaurantLocationRow } from "@/app-actions/restaurant";
@@ -445,10 +443,6 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
           </StoreSettingsForm>
         </section>
 
-        <RestaurantHoursPanel
-          openingHours={parseOpeningHours(restaurant?.opening_hours)}
-          isTemporarilyClosed={restaurant?.is_temporarily_closed ?? false}
-        />
         </>
         ) : (
           <section className="panel p-5">

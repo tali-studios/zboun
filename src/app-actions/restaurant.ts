@@ -19,6 +19,7 @@ import {
 } from "@/lib/delivery-radius";
 import { deriveLocationLabelFromBranch } from "@/lib/restaurant-profile";
 import { MENU_ITEMS_ADMIN_PATH } from "@/lib/menu-items-admin-data";
+import { HOURS_ADMIN_PATH } from "@/lib/hours-admin-path";
 
 function revalidateMenuAdminPaths() {
   revalidatePath("/dashboard/business");
@@ -1017,7 +1018,7 @@ export async function updateRestaurantHoursAction(formData: FormData) {
   const user = await requireRestaurantAdmin();
   const hours = parseOpeningHoursFromForm(String(formData.get("opening_hours") ?? ""));
   if (hours.length === 0) {
-    redirect("/dashboard/business?toast=hours_invalid");
+    redirect(`${HOURS_ADMIN_PATH}?toast=hours_invalid`);
   }
 
   const supabase = await createServerSupabaseClient();
@@ -1032,11 +1033,12 @@ export async function updateRestaurantHoursAction(formData: FormData) {
     .update({ opening_hours: hours })
     .eq("id", user.restaurant_id);
 
+  revalidatePath(HOURS_ADMIN_PATH);
   revalidatePath("/dashboard/business");
   revalidatePath("/");
   revalidateTag("home-restaurants", "max");
   if (restaurant?.slug) revalidatePath(`/${restaurant.slug}`);
-  redirect("/dashboard/business?toast=hours_saved");
+  redirect(`${HOURS_ADMIN_PATH}?toast=hours_saved`);
 }
 
 export async function toggleTemporaryCloseAction(closed: boolean) {
@@ -1053,6 +1055,7 @@ export async function toggleTemporaryCloseAction(closed: boolean) {
     .update({ is_temporarily_closed: closed })
     .eq("id", user.restaurant_id);
 
+  revalidatePath(HOURS_ADMIN_PATH);
   revalidatePath("/dashboard/business");
   revalidatePath("/");
   revalidateTag("home-restaurants", "max");
@@ -1060,7 +1063,7 @@ export async function toggleTemporaryCloseAction(closed: boolean) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Restaurant locations (multi-branch)
+// Restaurant location (one store location per business)
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type RestaurantLocationRow = {
@@ -1086,13 +1089,13 @@ export async function saveRestaurantLocationAction(formData: FormData) {
 
   const payload = {
     restaurant_id: user.restaurant_id,
-    name: String(formData.get("name") ?? "Branch").trim() || "Branch",
+    name: String(formData.get("name") ?? "Store location").trim() || "Store location",
     latitude: lat,
     longitude: lng,
     address: String(formData.get("address") ?? "").trim() || null,
     phone: String(formData.get("phone") ?? "").trim() || null,
-    is_main: formData.get("is_main") === "true",
-    position: Number(formData.get("position") ?? 0),
+    is_main: true,
+    position: 0,
   };
 
   const id = String(formData.get("id") ?? "").trim();
@@ -1104,12 +1107,12 @@ export async function saveRestaurantLocationAction(formData: FormData) {
       .eq("id", id)
       .eq("restaurant_id", user.restaurant_id);
   } else {
-    // If this is marked main, clear existing main flag
-    if (payload.is_main) {
-      await supabase
-        .from("restaurant_locations")
-        .update({ is_main: false })
-        .eq("restaurant_id", user.restaurant_id);
+    const { count } = await supabase
+      .from("restaurant_locations")
+      .select("id", { count: "exact", head: true })
+      .eq("restaurant_id", user.restaurant_id);
+    if ((count ?? 0) > 0) {
+      redirect("/dashboard/business?toast=location_limit&jump=locations");
     }
     await supabase.from("restaurant_locations").insert(payload);
   }

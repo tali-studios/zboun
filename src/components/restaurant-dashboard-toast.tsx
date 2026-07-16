@@ -175,12 +175,15 @@ export function RestaurantDashboardToast({ toast, sectionName, sectionsCount, it
     heading = "Item added — nutrition columns missing";
     message =
       "The item was created without calories/protein. Run add-menu-item-nutrition.sql in Supabase, then edit the item to add them.";
+  } else if (toast === "location_limit") {
+    heading = "One location only";
+    message = "Each store can have a single location. Edit or remove the existing one.";
   } else if (toast === "location_saved") {
-    heading = "Branch saved";
-    message = "The location was saved and is now visible to customers nearby.";
+    heading = "Location saved";
+    message = "Your store location is saved and visible to customers nearby.";
   } else if (toast === "location_deleted") {
-    heading = "Branch removed";
-    message = "The location was deleted from your profile.";
+    heading = "Location removed";
+    message = "Your store location was removed from your profile.";
   } else if (toast === "location_invalid_coords") {
     heading = "Invalid coordinates";
     message = "Please pick a location on the map before saving.";

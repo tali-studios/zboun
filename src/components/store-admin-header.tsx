@@ -11,6 +11,8 @@ export type StoreAdminNavPage =
   | "flyer"
   | "menu-items"
   | "sales"
+  | "coupons"
+  | "hours"
   | "billing"
   | "password";
 
@@ -111,6 +113,12 @@ export function StoreAdminHeader({
               </Link>
               <Link href="/dashboard/business/sales" className={navClass(currentPage === "sales")}>
                 Sales
+              </Link>
+              <Link href="/dashboard/business/coupons" className={navClass(currentPage === "coupons")}>
+                Coupons
+              </Link>
+              <Link href="/dashboard/business/hours" className={navClass(currentPage === "hours")}>
+                Hours
               </Link>
               <Link href="/dashboard/business/qr" className={navClass(currentPage === "qr")}>
                 QR
