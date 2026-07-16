@@ -9,7 +9,8 @@ import { AddMenuItemForm } from "@/components/add-menu-item-form";
 import { BusinessMenuItemsToolbar } from "@/components/business-menu-items-toolbar";
 import { ImageUploadField } from "@/components/image-upload-field";
 import { IngredientListField } from "@/components/ingredient-list-field";
-import { MenuItemOptionsFields } from "@/components/menu-item-options-fields";
+// Temporarily hidden — option type / values UI
+// import { MenuItemOptionsFields } from "@/components/menu-item-options-fields";
 import { MenuItemPricingFields } from "@/components/menu-item-pricing-fields";
 import { MenuItemStockFields } from "@/components/menu-item-stock-fields";
 import { MenuItemStockQuickEdit } from "@/components/menu-item-stock-quick-edit";
@@ -351,20 +352,21 @@ export function BusinessMenuItemsSection({
                                   />
                                 </div>
 
-                                {/* — Options/Variants — */}
-                                <div className="md:col-span-2">
-                                  <MenuItemOptionsFields
-                                    idPrefix={`edit-opt-${item.id}-`}
-                                    defaultLabel={item.option_label}
-                                    defaultValues={(item.option_values ?? [])
+                                {/* Option type / values UI temporarily hidden — keep existing values on save */}
+                                <input type="hidden" name="option_label" value={item.option_label ?? ""} />
+                                <input
+                                  type="hidden"
+                                  name="option_values"
+                                  value={JSON.stringify(
+                                    (item.option_values ?? [])
                                       .filter((entry): entry is { name: string; price?: number } =>
                                         Boolean(entry && typeof entry.name === "string" && entry.name.trim()))
                                       .map((entry) => ({
                                         name: entry.name,
                                         price: Number.isFinite(Number(entry.price)) ? Number(entry.price) : 0,
-                                      }))}
-                                  />
-                                </div>
+                                      })),
+                                  )}
+                                />
 
                                 {/* — Ingredient customization — only for categories where dish-style customization applies — */}
                                 {itemProfile.ingredientCustomization ? (

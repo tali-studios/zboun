@@ -8,7 +8,8 @@ import { IngredientListField } from "@/components/ingredient-list-field";
 import { ImageUploadField } from "@/components/image-upload-field";
 import { DisplayQuantityFields } from "@/components/display-quantity-fields";
 import { MenuNutritionFields } from "@/components/menu-nutrition-fields";
-import { MenuItemOptionsFields } from "@/components/menu-item-options-fields";
+// Temporarily hidden — option type / values UI
+// import { MenuItemOptionsFields } from "@/components/menu-item-options-fields";
 import { MenuItemStockFields } from "@/components/menu-item-stock-fields";
 import type { StoreItemProfile } from "@/lib/store-item-profile";
 
@@ -82,16 +83,6 @@ function MoneyInput({
         onChange={onChange ? (event) => onChange(event.target.value) : undefined}
         className="min-w-0 flex-1 border-0 bg-transparent py-2.5 text-[0.9375rem] text-slate-900 outline-none placeholder:text-slate-400"
       />
-    </div>
-  );
-}
-
-function Divider({ label }: { label: string }) {
-  return (
-    <div className="flex items-center gap-3 py-1">
-      <div className="h-px flex-1 bg-slate-100" />
-      <span className="shrink-0 text-[10px] font-bold uppercase tracking-widest text-slate-400">{label}</span>
-      <div className="h-px flex-1 bg-slate-100" />
     </div>
   );
 }
@@ -416,41 +407,38 @@ export function AddMenuItemForm({
         <input type="hidden" name="contents" value="" />
       )}
 
-      {/* ─── STEP 4: Variants & Options ───────────────────────────────────── */}
-      <ExpandSection
-        label={isFood ? "Customization & options" : "Variants & options"}
-        icon={
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5" aria-hidden>
-            <circle cx="12" cy="12" r="3" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14" />
-          </svg>
-        }
-      >
-        <div className="space-y-4">
-          <MenuItemOptionsFields />
+      {/* Option type / values temporarily hidden */}
+      <input type="hidden" name="option_label" value="" />
+      <input type="hidden" name="option_values" value="[]" />
 
-          {canCustomizeIngredients ? (
-            <>
-              <Divider label="Ingredient customization" />
-              <div className="grid gap-4 sm:grid-cols-2">
-                <IngredientListField
-                  name="removable_ingredients"
-                  label="Items customers can remove"
-                />
-                <IngredientListField
-                  name="add_ingredients"
-                  label="Add-ons (+ extra price per line)"
-                  withPrice
-                />
-              </div>
-            </>
-          ) : (
-            <>
-              <input type="hidden" name="removable_ingredients" value="[]" />
-              <input type="hidden" name="add_ingredients" value="[]" />
-            </>
-          )}
-        </div>
-      </ExpandSection>
+      {/* ─── STEP 4: Ingredient customization (options UI paused) ─────────── */}
+      {canCustomizeIngredients ? (
+        <ExpandSection
+          label="Customization & options"
+          icon={
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5" aria-hidden>
+              <circle cx="12" cy="12" r="3" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14" />
+            </svg>
+          }
+        >
+          <div className="grid gap-4 sm:grid-cols-2">
+            <IngredientListField
+              name="removable_ingredients"
+              label="Items customers can remove"
+            />
+            <IngredientListField
+              name="add_ingredients"
+              label="Add-ons (+ extra price per line)"
+              withPrice
+            />
+          </div>
+        </ExpandSection>
+      ) : (
+        <>
+          <input type="hidden" name="removable_ingredients" value="[]" />
+          <input type="hidden" name="add_ingredients" value="[]" />
+        </>
+      )}
 
       {/* ─── STEP 5: Stock ────────────────────────────────────────────────── */}
       <ExpandSection
