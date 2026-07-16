@@ -13,7 +13,12 @@ type Props = {
   themeColor?: string | null;
 };
 
-const FLYER_ACCENT = "#C4A882";
+const FLYER_ACCENT_FALLBACK = "#C4A882";
+
+function resolveFlyerAccent(themeColor?: string | null) {
+  const value = themeColor?.trim() ?? "";
+  return /^#[0-9a-fA-F]{6}$/.test(value) ? value : FLYER_ACCENT_FALLBACK;
+}
 
 interface DesignProps {
   restaurantName: string;
@@ -21,10 +26,19 @@ interface DesignProps {
   menuUrl: string;
   qrDataUrl: string;
   isLoading: boolean;
+  accent: string;
   px?: boolean;
 }
 
-function FlyerSparkle({ size = 28, flip = false }: { size?: number; flip?: boolean }) {
+function FlyerSparkle({
+  size = 28,
+  flip = false,
+  accent,
+}: {
+  size?: number;
+  flip?: boolean;
+  accent: string;
+}) {
   return (
     <svg
       width={size}
@@ -34,14 +48,14 @@ function FlyerSparkle({ size = 28, flip = false }: { size?: number; flip?: boole
       aria-hidden
       style={flip ? { transform: "scaleX(-1)" } : undefined}
     >
-      <path d="M4 14h8" stroke={FLYER_ACCENT} strokeWidth="1.5" strokeLinecap="round" />
-      <path d="M6 10l6 4" stroke={FLYER_ACCENT} strokeWidth="1.5" strokeLinecap="round" />
-      <path d="M6 18l6-4" stroke={FLYER_ACCENT} strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M4 14h8" stroke={accent} strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M6 10l6 4" stroke={accent} strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M6 18l6-4" stroke={accent} strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   );
 }
 
-function FlyerDesign({ restaurantName, logoUrl, menuUrl, qrDataUrl, isLoading, px }: DesignProps) {
+function FlyerDesign({ restaurantName, logoUrl, menuUrl, qrDataUrl, isLoading, accent, px }: DesignProps) {
   const S = {
     outerPad: px ? 72 : undefined,
     logoH: px ? 120 : undefined,
@@ -116,7 +130,7 @@ function FlyerDesign({ restaurantName, logoUrl, menuUrl, qrDataUrl, isLoading, p
           }}
           className={px ? "" : "flyer-scan-row"}
         >
-          <FlyerSparkle size={px ? 28 : 24} />
+          <FlyerSparkle size={px ? 28 : 24} accent={accent} />
           <p
             style={{
               margin: 0,
@@ -130,13 +144,13 @@ function FlyerDesign({ restaurantName, logoUrl, menuUrl, qrDataUrl, isLoading, p
           >
             Scan to view our menu
           </p>
-          <FlyerSparkle size={px ? 28 : 24} flip />
+          <FlyerSparkle size={px ? 28 : 24} flip accent={accent} />
         </div>
       </div>
 
       <div
         style={{
-          border: `2px solid ${FLYER_ACCENT}`,
+          border: `2px solid ${accent}`,
           borderRadius: px ? 16 : undefined,
           padding: S.qrPad,
           display: "flex",
@@ -193,17 +207,17 @@ function FlyerDesign({ restaurantName, logoUrl, menuUrl, qrDataUrl, isLoading, p
           style={{ display: "flex", alignItems: "center", gap: px ? 14 : undefined, width: px ? 220 : undefined }}
           className={px ? "" : "flyer-heart-row"}
         >
-          <div style={{ flex: 1, height: 1, background: FLYER_ACCENT, opacity: 0.85 }} />
+          <div style={{ flex: 1, height: 1, background: accent, opacity: 0.85 }} />
           <svg
             width={px ? 20 : 18}
             height={px ? 20 : 18}
             viewBox="0 0 24 24"
-            fill={FLYER_ACCENT}
+            fill={accent}
             aria-hidden
           >
             <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
           </svg>
-          <div style={{ flex: 1, height: 1, background: FLYER_ACCENT, opacity: 0.85 }} />
+          <div style={{ flex: 1, height: 1, background: accent, opacity: 0.85 }} />
         </div>
 
         <p
@@ -240,11 +254,12 @@ function FlyerDesign({ restaurantName, logoUrl, menuUrl, qrDataUrl, isLoading, p
 
 // ─── Main exported card ───────────────────────────────────────────────────────
 
-export function MenuFlyerCard({ menuUrl, restaurantName, logoUrl }: Props) {
+export function MenuFlyerCard({ menuUrl, restaurantName, logoUrl, themeColor }: Props) {
   const [qrDataUrl, setQrDataUrl] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
   const exportRef = useRef<HTMLDivElement>(null);
+  const accent = resolveFlyerAccent(themeColor);
 
   useEffect(() => {
     async function makeQr() {
@@ -289,7 +304,7 @@ export function MenuFlyerCard({ menuUrl, restaurantName, logoUrl }: Props) {
     }
   }
 
-  const designProps = { restaurantName, logoUrl, menuUrl, qrDataUrl, isLoading };
+  const designProps = { restaurantName, logoUrl, menuUrl, qrDataUrl, isLoading, accent };
 
   return (
     <>

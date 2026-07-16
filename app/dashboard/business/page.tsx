@@ -5,9 +5,8 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { StoreAdminHeader } from "@/components/store-admin-header";
 import { BusinessCategoryDashboard } from "@/components/business-category-dashboard";
 import { ImageUploadField } from "@/components/image-upload-field";
-import { normalizeBrowseSections, getBrowseSubTags, getRawBrowseSectionValues, BROWSE_SECTION_ICONS } from "@/lib/browse-sections";
+import { getRawBrowseSectionValues, formatBrowseSectionsLabel } from "@/lib/browse-sections";
 import { getBusinessTypeLabel, hasCatalogDashboard, parseBusinessType } from "@/lib/business-types";
-import { formatBrowseSectionsLabel } from "@/lib/browse-sections";
 import { RestaurantDashboardToast } from "@/components/restaurant-dashboard-toast";
 import { DashboardSectionJump } from "@/components/dashboard-section-jump";
 import { RestaurantLocationsPanel } from "@/components/restaurant-locations-panel";
@@ -234,10 +233,6 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
   const categoryLabel = formatBrowseSectionsLabel(restaurant?.browse_sections);
   const isMenuBusiness = hasCatalogDashboard(businessType);
   const rawBrowseSections = getRawBrowseSectionValues(restaurant?.browse_sections ?? []);
-  const selectedBrowseSections = normalizeBrowseSections(rawBrowseSections);
-  const selectedBrowseSubTags = getBrowseSubTags(rawBrowseSections);
-  const browseSectionsForForm =
-    selectedBrowseSections.length > 0 ? selectedBrowseSections : (["Food & Restaurants"] as const);
 
   if (!isMenuBusiness) {
     return (
@@ -378,33 +373,9 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                 />
                 <p className="text-xs text-slate-500">Example: Fresh pasta and handmade sauces since 2015.</p>
               </label>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 md:col-span-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Business categories</p>
-                <p className="mt-1 text-xs text-slate-500">
-                  Where customers find you on the home page. Contact Zboun support to change your categories.
-                </p>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {browseSectionsForForm.map((section) => (
-                    <span
-                      key={section}
-                      className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200"
-                    >
-                      {BROWSE_SECTION_ICONS[section]} {section}
-                    </span>
-                  ))}
-                  {selectedBrowseSubTags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="rounded-full bg-violet-50 px-3 py-1 text-xs font-medium text-violet-700 ring-1 ring-violet-100"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-                {rawBrowseSections.map((value) => (
-                  <input key={value} type="hidden" name="browse_sections" value={value} />
-                ))}
-              </div>
+              {rawBrowseSections.map((value) => (
+                <input key={value} type="hidden" name="browse_sections" value={value} />
+              ))}
               <MenuThemePicker defaultColor={restaurant?.menu_theme_color ?? null} />
               <div className="md:col-span-3">
                 <ImageUploadField
