@@ -106,7 +106,7 @@ export function DeliveryFeeSettings({
     <div>
       <h2 className="panel-title">Delivery settings</h2>
 
-      <div className="mt-3 grid grid-cols-2 gap-2.5 lg:grid-cols-4">
+      <div className="mt-3 grid grid-cols-1 gap-2.5">
         <SettingTile
           icon={<MapPin className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />}
           iconClass="bg-sky-100 text-sky-600"
