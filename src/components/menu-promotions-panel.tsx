@@ -13,6 +13,7 @@ import {
   type MenuPromotion,
   type PromotionScope,
 } from "@/lib/menu-promotions";
+import { OptionalDateTimeField } from "@/components/optional-datetime-field";
 
 type Section = { id: string; name: string };
 type Brand = { id: string; name: string };
@@ -256,15 +257,8 @@ export function MenuPromotionsPanel({ promotions, sections, brands, menuItems }:
             <input name="label" placeholder="Summer sale" className="ui-input" />
           </label>
 
-          <label className="block min-w-0 space-y-1">
-            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Starts (optional)</span>
-            <input name="starts_at" type="datetime-local" className="ui-input min-w-0 w-full max-w-full" />
-          </label>
-
-          <label className="block min-w-0 space-y-1">
-            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Ends (optional)</span>
-            <input name="ends_at" type="datetime-local" className="ui-input min-w-0 w-full max-w-full" />
-          </label>
+          <OptionalDateTimeField name="starts_at" label="Starts (optional)" defaultTime="00:00" />
+          <OptionalDateTimeField name="ends_at" label="Ends (optional)" defaultTime="23:59" />
 
           <div
             className={`flex items-center justify-between gap-4 rounded-xl border px-4 py-3 md:col-span-2 transition ${

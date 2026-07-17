@@ -11,6 +11,7 @@ import {
   isCouponCodeActive,
   type MenuCouponCode,
 } from "@/lib/menu-coupon-codes";
+import { OptionalDateTimeField } from "@/components/optional-datetime-field";
 
 type Props = {
   coupons: MenuCouponCode[];
@@ -81,26 +82,10 @@ export function MenuCouponCodesPanel({ coupons }: Props) {
               className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-violet-200 focus:ring-2"
             />
           </label>
-          <label className="block min-w-0">
-            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Starts <span className="font-normal normal-case">(optional)</span>
-            </span>
-            <input
-              name="starts_at"
-              type="datetime-local"
-              className="ui-input mt-1 min-w-0 w-full max-w-full"
-            />
-          </label>
-          <label className="block min-w-0 sm:col-span-2">
-            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Ends <span className="font-normal normal-case">(optional)</span>
-            </span>
-            <input
-              name="ends_at"
-              type="datetime-local"
-              className="ui-input mt-1 min-w-0 w-full max-w-full"
-            />
-          </label>
+          <OptionalDateTimeField name="starts_at" label="Starts (optional)" defaultTime="00:00" />
+          <div className="min-w-0 sm:col-span-2">
+            <OptionalDateTimeField name="ends_at" label="Ends (optional)" defaultTime="23:59" />
+          </div>
         </div>
         <input type="hidden" name="is_active" value="true" />
         <button
