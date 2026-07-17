@@ -83,9 +83,7 @@ export function MenuCouponCodesPanel({ coupons }: Props) {
             />
           </label>
           <OptionalDateTimeField name="starts_at" label="Starts (optional)" defaultTime="00:00" />
-          <div className="min-w-0 sm:col-span-2">
-            <OptionalDateTimeField name="ends_at" label="Ends (optional)" defaultTime="23:59" />
-          </div>
+          <OptionalDateTimeField name="ends_at" label="Ends (optional)" defaultTime="23:59" />
         </div>
         <input type="hidden" name="is_active" value="true" />
         <button
