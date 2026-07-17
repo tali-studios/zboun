@@ -146,18 +146,43 @@ body {
   box-shadow: 0 0 0 4px rgba(120, 84, 255, 0.14);
 }
 
-/* Prevent date/time pickers from overflowing narrow containers (common on mobile) */
+/* Prevent date/time pickers from overflowing narrow containers.
+   iOS Safari ignores width on native date/time inputs unless appearance is
+   reset, so this is required for them to respect the card width on phones. */
 input[type="date"].ui-input,
 input[type="datetime-local"].ui-input,
 input[type="time"].ui-input {
+  -webkit-appearance: none;
+  appearance: none;
   display: block;
-  width: 100%;
-  min-width: 0;
-  max-width: 100%;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
-/* WebKit datetime-local uses a wide intrinsic min-width; force it to shrink on phones */
+/* iOS centers the value oddly once appearance is reset — align it left */
+input[type="date"].ui-input::-webkit-date-and-time-value,
+input[type="datetime-local"].ui-input::-webkit-date-and-time-value,
+input[type="time"].ui-input::-webkit-date-and-time-value {
+  text-align: left;
+  margin: 0;
+}
+
+input[type="datetime-local"].ui-input::-webkit-datetime-edit,
+input[type="date"].ui-input::-webkit-datetime-edit,
+input[type="time"].ui-input::-webkit-datetime-edit {
+  min-width: 0;
+  padding: 0;
+}
+
+input[type="datetime-local"].ui-input::-webkit-calendar-picker-indicator,
+input[type="date"].ui-input::-webkit-calendar-picker-indicator {
+  margin-left: 0.15rem;
+  padding: 0;
+}
+
 @media (max-width: 640px) {
   input[type="date"].ui-input,
   input[type="datetime-local"].ui-input,
@@ -165,19 +190,6 @@ input[type="time"].ui-input {
     font-size: 0.875rem;
     padding-left: 0.65rem;
     padding-right: 0.5rem;
-  }
-
-  input[type="datetime-local"].ui-input::-webkit-datetime-edit,
-  input[type="date"].ui-input::-webkit-datetime-edit,
-  input[type="time"].ui-input::-webkit-datetime-edit {
-    min-width: 0;
-    padding: 0;
-  }
-
-  input[type="datetime-local"].ui-input::-webkit-calendar-picker-indicator,
-  input[type="date"].ui-input::-webkit-calendar-picker-indicator {
-    margin-left: 0.15rem;
-    padding: 0;
   }
 }
 
