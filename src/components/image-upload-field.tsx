@@ -60,7 +60,7 @@ export function ImageUploadField({
   }
 
   return (
-    <div className={compact ? "space-y-1.5" : inline ? "space-y-1" : "space-y-2"}>
+    <div className={compact ? "min-w-0 space-y-1.5" : inline ? "min-w-0 space-y-1" : "min-w-0 space-y-2"}>
       {label ? (
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           {label}
@@ -76,7 +76,7 @@ export function ImageUploadField({
         }}
         onDragLeave={() => setIsDragging(false)}
         onDrop={onDrop}
-        className={`flex cursor-pointer transition ${
+        className={`flex w-full min-w-0 cursor-pointer overflow-hidden transition ${
           compact
             ? `flex-col items-center gap-2 rounded-xl border border-dashed p-2.5 text-center ${
                 isDragging ? "border-violet-500 bg-violet-50" : "border-slate-200 bg-slate-50/80"
@@ -100,8 +100,8 @@ export function ImageUploadField({
               compact
                 ? "h-14 w-full max-w-[7rem] rounded-lg object-contain"
                 : inline
-                  ? "h-10 w-10 rounded-lg object-cover ring-1 ring-slate-200"
-                : "h-16 w-16 rounded-lg object-cover"
+                  ? "h-10 w-10 shrink-0 rounded-lg object-cover ring-1 ring-slate-200"
+                : "h-16 w-16 shrink-0 rounded-lg object-cover"
             }
             unoptimized
           />
@@ -112,29 +112,29 @@ export function ImageUploadField({
                 ? "flex h-14 w-full max-w-[7rem] items-center justify-center rounded-lg bg-white text-[10px] text-slate-400 ring-1 ring-slate-200"
                 : inline
                   ? "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-[10px] font-medium text-slate-400 ring-1 ring-slate-200"
-                : "flex h-16 w-16 items-center justify-center rounded-lg bg-slate-100 text-xs text-slate-500"
+                : "flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-xs text-slate-500"
             }
           >
             {compact || inline ? "No logo" : "No image"}
           </div>
         )}
 
-        <div className={compact ? "min-w-0 px-1" : "min-w-0 flex-1"}>
+        <div className="min-w-0 flex-1 overflow-hidden">
           <p
             className={
               compact
                 ? "text-[11px] font-semibold text-slate-700"
                 : inline
                   ? "truncate text-sm font-semibold text-slate-700"
-                  : "text-sm font-semibold text-slate-800"
+                  : "truncate text-sm font-semibold text-slate-800"
             }
           >
             {compact ? "Click to change logo" : inline ? "Click to upload brand logo" : "Drag & drop or click to upload"}
           </p>
           {!compact && !inline ? (
-            <p className="text-xs text-slate-500">PNG/JPG/WebP, max 5MB</p>
+            <p className="truncate text-xs text-slate-500">PNG/JPG/WebP, max 5MB</p>
           ) : (
-            <p className={inline ? "text-xs text-slate-500" : "text-[10px] text-slate-400"}>
+            <p className={`truncate ${inline ? "text-xs text-slate-500" : "text-[10px] text-slate-400"}`}>
               PNG/JPG/WebP · 5MB max
             </p>
           )}

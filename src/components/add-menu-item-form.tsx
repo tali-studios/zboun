@@ -121,7 +121,7 @@ function ExpandSection({
         </svg>
       </button>
       {open && (
-        <div className="border-t border-slate-100 px-5 pb-5 pt-4 space-y-4">
+        <div className="border-t border-slate-100 px-5 pb-5 pt-4 space-y-4 overflow-x-hidden">
           {children}
         </div>
       )}
@@ -342,11 +342,11 @@ export function AddMenuItemForm({
         }
       >
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-3">
+          <div className="min-w-0 space-y-3">
             {brands.length > 0 && (
               <div>
                 <FieldLabel htmlFor="add-brand_id" optional>Brand</FieldLabel>
-                <select id="add-brand_id" name="brand_id" className="ui-select w-full">
+                <select id="add-brand_id" name="brand_id" className="ui-select w-full max-w-full">
                   <option value="">No brand</option>
                   {brands.map((brand) => (
                     <option key={brand.id} value={brand.id}>{brand.name}</option>
@@ -357,18 +357,18 @@ export function AddMenuItemForm({
             {brands.length === 0 && (
               <input type="hidden" name="brand_id" value="" />
             )}
-            <div>
+            <div className="min-w-0">
               <FieldLabel htmlFor="add-description" optional>Description</FieldLabel>
               <textarea
                 id="add-description"
                 name="description"
                 placeholder={isFood ? "Describe this dish…" : "Describe this product…"}
                 rows={3}
-                className="ui-textarea w-full resize-none"
+                className="ui-textarea w-full max-w-full resize-none"
               />
             </div>
           </div>
-          <div>
+          <div className="min-w-0">
             <ImageUploadField name="image_file" optional />
           </div>
         </div>
