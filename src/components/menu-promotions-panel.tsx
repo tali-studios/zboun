@@ -96,12 +96,12 @@ export function MenuPromotionsPanel({ promotions, sections, brands, menuItems }:
 
       <form
         action={createMenuPromotionAction}
-        className="mt-4 rounded-2xl border border-violet-100 bg-violet-50/40 p-4 sm:p-5"
+        className="mt-4 min-w-0 overflow-x-hidden rounded-2xl border border-violet-100 bg-violet-50/40 p-4 sm:p-5"
       >
         <h3 className="text-sm font-bold text-slate-900">Create sale</h3>
-        <div className="mt-3 grid gap-3 md:grid-cols-2">
+        <div className="mt-3 grid min-w-0 gap-3 md:grid-cols-2">
           <label
-            className={`block space-y-1 ${scopeType === "item" ? "md:col-span-2" : ""}`}
+            className={`block min-w-0 space-y-1 ${scopeType === "item" ? "md:col-span-2" : ""}`}
           >
             <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Applies to</span>
             <select
@@ -256,14 +256,14 @@ export function MenuPromotionsPanel({ promotions, sections, brands, menuItems }:
             <input name="label" placeholder="Summer sale" className="ui-input" />
           </label>
 
-          <label className="block space-y-1">
+          <label className="block min-w-0 space-y-1">
             <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Starts (optional)</span>
-            <input name="starts_at" type="datetime-local" className="ui-input" />
+            <input name="starts_at" type="datetime-local" className="ui-input min-w-0 w-full max-w-full" />
           </label>
 
-          <label className="block space-y-1">
+          <label className="block min-w-0 space-y-1">
             <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Ends (optional)</span>
-            <input name="ends_at" type="datetime-local" className="ui-input" />
+            <input name="ends_at" type="datetime-local" className="ui-input min-w-0 w-full max-w-full" />
           </label>
 
           <div

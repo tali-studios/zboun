@@ -151,9 +151,34 @@ input[type="date"].ui-input,
 input[type="datetime-local"].ui-input,
 input[type="time"].ui-input {
   display: block;
+  width: 100%;
   min-width: 0;
   max-width: 100%;
   box-sizing: border-box;
+}
+
+/* WebKit datetime-local uses a wide intrinsic min-width; force it to shrink on phones */
+@media (max-width: 640px) {
+  input[type="date"].ui-input,
+  input[type="datetime-local"].ui-input,
+  input[type="time"].ui-input {
+    font-size: 0.875rem;
+    padding-left: 0.65rem;
+    padding-right: 0.5rem;
+  }
+
+  input[type="datetime-local"].ui-input::-webkit-datetime-edit,
+  input[type="date"].ui-input::-webkit-datetime-edit,
+  input[type="time"].ui-input::-webkit-datetime-edit {
+    min-width: 0;
+    padding: 0;
+  }
+
+  input[type="datetime-local"].ui-input::-webkit-calendar-picker-indicator,
+  input[type="date"].ui-input::-webkit-calendar-picker-indicator {
+    margin-left: 0.15rem;
+    padding: 0;
+  }
 }
 
 input[type="number"].ui-input {

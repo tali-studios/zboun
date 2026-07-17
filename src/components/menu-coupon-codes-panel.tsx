@@ -81,24 +81,24 @@ export function MenuCouponCodesPanel({ coupons }: Props) {
               className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-violet-200 focus:ring-2"
             />
           </label>
-          <label className="block">
+          <label className="block min-w-0">
             <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Starts <span className="font-normal normal-case">(optional)</span>
             </span>
             <input
               name="starts_at"
               type="datetime-local"
-              className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-violet-200 focus:ring-2"
+              className="ui-input mt-1 min-w-0 w-full max-w-full"
             />
           </label>
-          <label className="block sm:col-span-2">
+          <label className="block min-w-0 sm:col-span-2">
             <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Ends <span className="font-normal normal-case">(optional)</span>
             </span>
             <input
               name="ends_at"
               type="datetime-local"
-              className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-violet-200 focus:ring-2"
+              className="ui-input mt-1 min-w-0 w-full max-w-full"
             />
           </label>
         </div>
