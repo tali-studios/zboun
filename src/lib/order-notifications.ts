@@ -63,43 +63,59 @@ function mapsLink(lat: number, lng: number) {
   return `https://www.google.com/maps?q=${lat},${lng}`;
 }
 
+/** Emoji via code points so file encoding cannot corrupt WhatsApp/email icons. */
+const ICO = {
+  newOrder: "\u{1F195}",
+  customer: "\u{1F464}",
+  phone: "\u{1F4DE}",
+  zap: "\u{26A1}",
+  pin: "\u{1F4CD}",
+  map: "\u{1F5FA}\u{FE0F}",
+  cart: "\u{1F6D2}",
+  tag: "\u{1F3F7}\u{FE0F}",
+  money: "\u{1F4B0}",
+  cash: "\u{1F4B5}",
+  note: "\u{1F4DD}",
+  clock: "\u{23F0}",
+} as const;
+
 /** Plain-text order body for WhatsApp / SMS style messages. */
 export function buildOrderPlainText(p: OrderNotificationParams): string {
   const lines: string[] = [
-    `🆕 New Order — ${p.restaurantName}`,
+    `${ICO.newOrder} New Order - ${p.restaurantName}`,
     `Order #${p.orderNumber ?? p.orderId.slice(0, 8).toUpperCase()}`,
     ``,
-    `👤 Customer: ${p.customerName}`,
-    ...(p.customerPhone ? [`📞 Phone: ${p.customerPhone}`] : []),
-    ...(p.deliverySpeed === "fast" ? [`⚡ Delivery: Fast (dedicated driver)`] : []),
-    ...(p.deliveryAddress ? [`📍 Address: ${p.deliveryAddress}`] : []),
+    `${ICO.customer} Customer: ${p.customerName}`,
+    ...(p.customerPhone ? [`${ICO.phone} Phone: ${p.customerPhone}`] : []),
+    ...(p.deliverySpeed === "fast" ? [`${ICO.zap} Delivery: Fast (dedicated driver)`] : []),
+    ...(p.deliveryAddress ? [`${ICO.pin} Address: ${p.deliveryAddress}`] : []),
     ...(p.deliveryLat != null && p.deliveryLng != null
-      ? [`🗺 Map: ${mapsLink(p.deliveryLat, p.deliveryLng)}`]
+      ? [`${ICO.map} Map: ${mapsLink(p.deliveryLat, p.deliveryLng)}`]
       : []),
     ``,
-    `🛒 Items:`,
+    `${ICO.cart} Items:`,
     ...p.items.map((item) => {
       const modParts: string[] = [];
-      if (item.removedIngredients?.length) modParts.push(`−${item.removedIngredients.join(", ")}`);
+      if (item.removedIngredients?.length) modParts.push(`-${item.removedIngredients.join(", ")}`);
       if (item.addedIngredients?.length)
-        modParts.push(`+${item.addedIngredients.map((a) => `${a.name}×${a.qty}`).join(", ")}`);
+        modParts.push(`+${item.addedIngredients.map((a) => `${a.name}x${a.qty}`).join(", ")}`);
       if (item.selectedOption) {
         const label = item.optionLabel?.trim() || "Option";
         modParts.push(`${label}: ${item.selectedOption}`);
       }
       if (item.specialInstructions) modParts.push(item.specialInstructions);
       const mod = modParts.length ? ` [${modParts.join(" | ")}]` : "";
-      return `  • ${formatQty(item.unit, item.qty)} ${item.name}${mod} — $${(item.qty * item.unitPrice).toFixed(2)}`;
+      return `  - ${formatQty(item.unit, item.qty)} ${item.name}${mod} - $${(item.qty * item.unitPrice).toFixed(2)}`;
     }),
     ``,
     ...(p.couponCode && p.couponDiscountUsd
-      ? [`🏷 Promo (${p.couponCode}): −$${p.couponDiscountUsd.toFixed(2)}`, ``]
+      ? [`${ICO.tag} Promo (${p.couponCode}): -$${p.couponDiscountUsd.toFixed(2)}`, ``]
       : []),
-    `💰 Total: $${p.totalUsd.toFixed(2)}`,
-    ...(p.paymentNote ? [`💵 Payment: ${p.paymentNote}`] : []),
-    ...(p.notes ? [`📝 Notes: ${p.notes}`] : []),
+    `${ICO.money} Total: $${p.totalUsd.toFixed(2)}`,
+    ...(p.paymentNote ? [`${ICO.cash} Payment: ${p.paymentNote}`] : []),
+    ...(p.notes ? [`${ICO.note} Notes: ${p.notes}`] : []),
     ``,
-    `⏰ Placed at: ${formatOrderPlacedAt(p.placedAt)}`,
+    `${ICO.clock} Placed at: ${formatOrderPlacedAt(p.placedAt)}`,
   ];
   return lines.join("\n");
 }
@@ -129,7 +145,7 @@ function buildOrderEmailHtml(p: OrderNotificationParams): string {
 
   const mapSection =
     p.deliveryLat != null && p.deliveryLng != null
-      ? `<p><strong>📍 Location:</strong> <a href="${mapsLink(p.deliveryLat, p.deliveryLng)}" style="color:#4c1d95">Open in Google Maps</a></p>`
+      ? `<p><strong>${ICO.pin} Location:</strong> <a href="${mapsLink(p.deliveryLat, p.deliveryLng)}" style="color:#4c1d95">Open in Google Maps</a></p>`
       : "";
 
   return `<!DOCTYPE html>
@@ -144,8 +160,8 @@ function buildOrderEmailHtml(p: OrderNotificationParams): string {
     <h1 style="margin:8px 0 0;font-size:22px;font-weight:600;color:#fff;">Order #${p.orderNumber ?? p.orderId.slice(0, 8).toUpperCase()}</h1>
   </td></tr>
   <tr><td style="padding:24px 28px;color:#27272a;font-size:15px;line-height:1.6;">
-    <p style="margin:0 0 16px"><strong>👤 Customer:</strong> ${p.customerName}${p.customerPhone ? `<br/><strong>📞 Phone:</strong> ${p.customerPhone}` : ""}</p>
-    ${p.deliveryAddress ? `<p style="margin:0 0 8px"><strong>📍 Address:</strong> ${p.deliveryAddress}</p>` : ""}
+    <p style="margin:0 0 16px"><strong>${ICO.customer} Customer:</strong> ${p.customerName}${p.customerPhone ? `<br/><strong>${ICO.phone} Phone:</strong> ${p.customerPhone}` : ""}</p>
+    ${p.deliveryAddress ? `<p style="margin:0 0 8px"><strong>${ICO.pin} Address:</strong> ${p.deliveryAddress}</p>` : ""}
     ${mapSection}
     <h2 style="margin:20px 0 8px;font-size:16px;font-weight:600;color:#111827;">Order Items</h2>
     <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #f3f4f6;border-radius:8px;overflow:hidden;">
@@ -168,8 +184,8 @@ function buildOrderEmailHtml(p: OrderNotificationParams): string {
         <td style="padding:12px;font-weight:700;font-size:16px;text-align:right;color:#4c1d95">$${p.totalUsd.toFixed(2)}</td>
       </tr></tfoot>
     </table>
-    ${p.paymentNote ? `<p style="margin:16px 0 0"><strong>💵 Payment:</strong> ${p.paymentNote}</p>` : ""}
-    ${p.notes ? `<p style="margin:16px 0 0"><strong>📝 Notes:</strong> ${p.notes}</p>` : ""}
+    ${p.paymentNote ? `<p style="margin:16px 0 0"><strong>${ICO.cash} Payment:</strong> ${p.paymentNote}</p>` : ""}
+    ${p.notes ? `<p style="margin:16px 0 0"><strong>${ICO.note} Notes:</strong> ${p.notes}</p>` : ""}
   </td></tr>
   <tr><td style="padding:0 28px 24px;color:#71717a;font-size:13px">
     Order placed at ${formatOrderPlacedAtLong(p.placedAt)} &bull; Zboun
@@ -187,7 +203,8 @@ export function buildRestaurantWhatsAppNotifyUrl(
 ): string {
   const text = buildOrderPlainText(p);
   const clean = restaurantPhone.replace(/\D/g, "");
-  return `https://wa.me/${clean}?text=${encodeURIComponent(text)}`;
+  // api.whatsapp.com handles UTF-8 emoji more reliably than wa.me on some phones
+  return `https://api.whatsapp.com/send?phone=${clean}&text=${encodeURIComponent(text)}`;
 }
 
 /**
@@ -201,7 +218,7 @@ export async function sendNewOrderEmailNotification(
   try {
     await sendMail({
       to: p.restaurantEmail,
-      subject: `🆕 New order from ${p.customerName} — ${p.restaurantName}`,
+      subject: `${ICO.newOrder} New order from ${p.customerName} - ${p.restaurantName}`,
       text: buildOrderPlainText(p),
       html: buildOrderEmailHtml(p),
     });

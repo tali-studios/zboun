@@ -111,6 +111,7 @@ export async function sendMail(params: SendMailParams) {
     subject: params.subject,
     text: params.text,
     html: params.html,
+    textEncoding: "base64",
     // Align SMTP envelope with From (helps SPF alignment / Zoho).
     envelope: {
       from: fromEmail,
