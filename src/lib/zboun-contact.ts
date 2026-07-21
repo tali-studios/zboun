@@ -2,7 +2,7 @@
 export const ZBOUN_OPS_EMAIL = "admin@zboun.net";
 
 /** Business WhatsApp — digits only, no + prefix. */
-export const ZBOUN_WHATSAPP_DIGITS = "96171212734";
+export const ZBOUN_WHATSAPP_DIGITS = "96179036602";
 
 export const ZBOUN_WHATSAPP_URL = `https://wa.me/${ZBOUN_WHATSAPP_DIGITS}`;
 

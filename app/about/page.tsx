@@ -400,7 +400,7 @@ export default function AboutPage() {
                 Contact us to join
               </Link>
               <a
-                href="https://wa.me/96171212734"
+                href="https://wa.me/96179036602"
                 className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-8 py-3.5 text-sm font-semibold text-white transition hover:bg-white/15"
               >
                 <MessageCircle className="h-4 w-4" aria-hidden />

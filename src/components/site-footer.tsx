@@ -106,7 +106,7 @@ export async function SiteFooter({ padForMobileNav = false }: SiteFooterProps = 
               Get help
             </p>
             <a
-              href="https://wa.me/96171212734"
+              href="https://wa.me/96179036602"
               className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-5 py-3.5 text-sm font-semibold text-white shadow-md shadow-violet-500/25 transition hover:brightness-105 active:scale-[0.99] sm:py-4"
             >
               <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
