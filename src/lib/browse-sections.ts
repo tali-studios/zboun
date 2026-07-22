@@ -448,14 +448,14 @@ export function getStorefrontQrLabels(browseSections: unknown): {
       orderDescription:
         "Full menu with add-to-cart and WhatsApp ordering — for links, social, and delivery.",
       orderBadge: "Online order",
-      inStoreTitle: "In-restaurant menu",
+      inStoreTitle: "In-store menu",
       inStoreDescription:
         "Same look and items, without + buttons or checkout — ideal for QR on tables inside the venue.",
       inStoreBadge: "In-store",
       openLink: "Open menu",
       orderDownloadSuffix: "menu-qr-order",
       inStoreDownloadSuffix: "menu-qr-in-store",
-      inStoreViewBadge: "In-restaurant menu · view only",
+      inStoreViewBadge: "In-store menu · view only",
       inStoreViewTagline: "Browse our menu — items and prices for reference while you dine in.",
     };
   }

@@ -28,7 +28,7 @@ npm run qa:seed-menu -- --slug your-qa-slug
 2. Public & contact (TC-101–105)
 3. Auth (TC-201–203)
 4. Super admin create + finance + renew + deactivate (TC-301–307)
-5. Restaurant menu + settings (TC-401–407)
+5. Store menu + settings (TC-401–407)
 6. QR + flyer (TC-501–502)
 7. Billing (TC-503)
 8. Public guest order + in-store (TC-601–603)

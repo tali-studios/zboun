@@ -125,7 +125,7 @@ If smoke fails, **stop** and report failures before manual QA.
 | Step | Action | Expected result | Pass |
 |------|--------|-----------------|------|
 | 1 | Log in with super admin credentials | Redirect to `/dashboard/super-admin` | ☐ |
-| 2 | Confirm you do **not** see restaurant menu editor as main view | Super admin table visible | ☐ |
+| 2 | Confirm you do **not** see store menu editor as main view | Super admin table visible | ☐ |
 | 3 | Log out (if button exists) or use private window for next tests | Session cleared | ☐ |
 
 ### TC-203 — Change password (any logged-in user)
@@ -345,7 +345,7 @@ Use **Add menu item** form for each row:
 | 3 | URL shown ends with `/{slug}` only (no `/menu`) | | ☐ |
 | 4 | **Download QR** | PNG downloads | ☐ |
 | 5 | **Open menu** | Order menu with + buttons | ☐ |
-| 6 | **In-restaurant menu** card | Badge “In-store”; QR loads | ☐ |
+| 6 | **In-store menu** card | Badge “In-store”; QR loads | ☐ |
 | 7 | URL ends with `/{slug}/menu` | | ☐ |
 | 8 | Scan in-store QR with phone | Opens view-only menu | ☐ |
 | 9 | Download in-store PNG | File saves | ☐ |
@@ -404,7 +404,7 @@ Replace `{slug}` with QA restaurant slug.
 | Step | Action | Expected result | Pass |
 |------|--------|-----------------|------|
 | 1 | Open in-store URL | Same branding as order menu | ☐ |
-| 2 | Badge **In-restaurant menu · view only** | Visible on hero | ☐ |
+| 2 | Badge **In-store menu · view only** | Visible on hero | ☐ |
 | 3 | Scroll all sections | Items and prices visible | ☐ |
 | 4 | Confirm **no +** buttons on item cards | | ☐ |
 | 5 | Confirm **no cart** sidebar or mobile cart bar | | ☐ |
@@ -566,7 +566,7 @@ curl.exe "https://zboun.vercel.app/api/cron/subscription-reminders?secret=SECRET
 | Public & marketing | | | | |
 | Auth | | | | |
 | Super admin | | | | |
-| Restaurant menu | | | | |
+| Store menu | | | | |
 | QR & flyer | | | | |
 | Billing | | | | |
 | Public guest | | | | |
