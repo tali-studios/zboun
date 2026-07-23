@@ -276,6 +276,16 @@ export function RestaurantDirectory({
       });
   }, [restaurants, query, activeSection, activeSub, location, radiusKm]);
 
+  const categoryCounts = useMemo(() => {
+    const counts = {} as Record<BrowseSection, number>;
+    for (const section of BROWSE_SECTION_OPTIONS) {
+      counts[section] = restaurants.filter((r) =>
+        matchesBrowseFilter(r.browse_sections, section, "all"),
+      ).length;
+    }
+    return counts;
+  }, [restaurants]);
+
   const featuredCategories = useMemo(() => {
     const preferred: BrowseSection[] = [
       "Food & Restaurants",
@@ -444,6 +454,9 @@ export function RestaurantDirectory({
                   </div>
                   <div className="bg-white/80 px-3 py-2.5 backdrop-blur-[2px]">
                     <p className="truncate text-sm font-bold text-slate-900">{meta.shortLabel}</p>
+                    <p className="mt-0.5 text-xs font-medium text-violet-600">
+                      {categoryCounts[section]} {categoryCounts[section] === 1 ? "store" : "stores"}
+                    </p>
                   </div>
                 </button>
               );
