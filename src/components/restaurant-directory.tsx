@@ -10,7 +10,7 @@ import {
   Search,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFavorites } from "@/hooks/use-favorites";
 import {
   BROWSE_SECTION_ACCENTS,
@@ -210,6 +210,7 @@ export function RestaurantDirectory({
   const [activeSection, setActiveSection] = useState<string>("all");
   const [activeSub, setActiveSub] = useState<string>("all");
   const [heroIndex, setHeroIndex] = useState(0);
+  const heroTouchStartX = useRef<number | null>(null);
   const { isFavorite, toggle: toggleFavorite } = useFavorites();
 
   const handleFavoriteClick = useCallback(
@@ -228,7 +229,27 @@ export function RestaurantDirectory({
       setHeroIndex((i) => (i + 1) % HERO_SLIDES.length);
     }, 5000);
     return () => window.clearInterval(id);
+  }, [heroIndex]);
+
+  const goHero = useCallback((dir: -1 | 1) => {
+    setHeroIndex((i) => (i + dir + HERO_SLIDES.length) % HERO_SLIDES.length);
   }, []);
+
+  const onHeroTouchStart = useCallback((e: React.TouchEvent) => {
+    heroTouchStartX.current = e.changedTouches[0]?.clientX ?? null;
+  }, []);
+
+  const onHeroTouchEnd = useCallback(
+    (e: React.TouchEvent) => {
+      if (heroTouchStartX.current == null) return;
+      const endX = e.changedTouches[0]?.clientX ?? heroTouchStartX.current;
+      const dx = endX - heroTouchStartX.current;
+      heroTouchStartX.current = null;
+      if (Math.abs(dx) < 40) return;
+      goHero(dx < 0 ? 1 : -1);
+    },
+    [goHero],
+  );
 
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -364,10 +385,18 @@ export function RestaurantDirectory({
               </span>
               <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-400" strokeWidth={2.5} />
             </button>
+            {/* Phone: search opens /search (replaces bag). Desktop: orders / sign in. */}
+            <Link
+              href="/search"
+              className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-600 transition hover:bg-slate-100 md:hidden"
+              aria-label="Search"
+            >
+              <Search className="h-5 w-5" strokeWidth={2} />
+            </Link>
             {isLoggedIn ? (
               <Link
                 href="/account/orders"
-                className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-600 transition hover:bg-slate-100 md:h-10 md:w-10"
+                className="relative hidden h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-600 transition hover:bg-slate-100 md:flex md:h-10 md:w-10"
                 aria-label="My orders"
               >
                 <svg
@@ -386,7 +415,7 @@ export function RestaurantDirectory({
             ) : (
               <Link
                 href="/login"
-                className="inline-flex h-9 shrink-0 items-center rounded-full bg-violet-600 px-3.5 text-xs font-semibold text-white shadow-sm shadow-violet-400/30 transition hover:bg-violet-700 md:h-10 md:px-4 md:text-sm"
+                className="hidden h-9 shrink-0 items-center rounded-full bg-violet-600 px-3.5 text-xs font-semibold text-white shadow-sm shadow-violet-400/30 transition hover:bg-violet-700 md:inline-flex md:h-10 md:px-4 md:text-sm"
               >
                 Sign in
               </Link>
@@ -396,8 +425,8 @@ export function RestaurantDirectory({
       </div>
 
       <section className="mx-auto max-w-6xl px-4 pb-8 pt-5 md:px-6 md:pb-12 md:pt-8">
-        {/* Search */}
-        <div className="mb-5 md:mb-7">
+        {/* Search — desktop only; phone uses header search icon → /search */}
+        <div className="mb-7 hidden md:block">
           <div className="relative">
             <Search
               className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
@@ -427,7 +456,7 @@ export function RestaurantDirectory({
         {/* Shop by category */}
         <div className="mb-8 md:mb-10">
           {/* <h2 className="mb-3 text-lg font-bold text-slate-900 md:text-xl">Shop by category</h2> */}
-          <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:grid md:grid-cols-3 md:gap-4 md:overflow-visible md:px-0 lg:grid-cols-6">
+          <div className="-mx-4 flex gap-3 overflow-x-auto px-4 py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:grid md:grid-cols-3 md:gap-4 md:overflow-visible md:px-0 md:py-0 lg:grid-cols-6">
             {featuredCategories.map((section) => {
               const meta = CATEGORY_CARD_META[section];
               const selected = activeSection === section;
@@ -465,7 +494,14 @@ export function RestaurantDirectory({
         </div>
 
         {/* Hero carousel */}
-        <div className="relative mb-8 overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-[#5B2CFF] via-[#6D3BFF] to-[#8B45F5] px-5 py-7 text-white shadow-lg shadow-violet-500/25 md:mb-10 md:px-10 md:py-10">
+        <div
+          className="relative mb-8 touch-pan-y overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-[#5B2CFF] via-[#6D3BFF] to-[#8B45F5] px-5 py-7 text-white shadow-lg shadow-violet-500/25 md:mb-10 md:px-10 md:py-10"
+          onTouchStart={onHeroTouchStart}
+          onTouchEnd={onHeroTouchEnd}
+          role="region"
+          aria-roledescription="carousel"
+          aria-label="Promotions"
+        >
           <div
             aria-hidden
             className="pointer-events-none absolute -right-8 -top-10 h-44 w-44 rounded-full bg-white/10 blur-2xl md:h-64 md:w-64"
