@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   ClipboardList,
   Clock,
@@ -214,6 +215,8 @@ export function RestaurantDirectory({
   const [activeSub, setActiveSub] = useState<string>("all");
   const [heroIndex, setHeroIndex] = useState(0);
   const heroTouchStartX = useRef<number | null>(null);
+  const categoryScrollRef = useRef<HTMLDivElement>(null);
+  const [categoryScroll, setCategoryScroll] = useState({ left: false, right: true });
   const { isFavorite, toggle: toggleFavorite, favorites } = useFavorites();
 
   const handleFavoriteClick = useCallback(
@@ -327,6 +330,35 @@ export function RestaurantDirectory({
       // "Gas & Fuel", // temporarily hidden
     ];
     return preferred.filter((s) => BROWSE_SECTION_OPTIONS.includes(s));
+  }, []);
+
+  const updateCategoryScroll = useCallback(() => {
+    const el = categoryScrollRef.current;
+    if (!el) return;
+    const { scrollLeft, scrollWidth, clientWidth } = el;
+    setCategoryScroll({
+      left: scrollLeft > 6,
+      right: scrollLeft + clientWidth < scrollWidth - 6,
+    });
+  }, []);
+
+  useEffect(() => {
+    const el = categoryScrollRef.current;
+    if (!el) return;
+    updateCategoryScroll();
+    el.addEventListener("scroll", updateCategoryScroll, { passive: true });
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(updateCategoryScroll) : null;
+    ro?.observe(el);
+    return () => {
+      el.removeEventListener("scroll", updateCategoryScroll);
+      ro?.disconnect();
+    };
+  }, [updateCategoryScroll, featuredCategories]);
+
+  const scrollCategories = useCallback((dir: -1 | 1) => {
+    const el = categoryScrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir * Math.round(el.clientWidth * 0.72), behavior: "smooth" });
   }, []);
 
   const activeSectionKey = activeSection as BrowseSection;
@@ -467,9 +499,12 @@ export function RestaurantDirectory({
         </div>
 
         {/* Shop by category */}
-        <div className="mb-8 md:mb-10">
+        <div className="relative mb-8 md:mb-10">
           {/* <h2 className="mb-3 text-lg font-bold text-slate-900 md:text-xl">Shop by category</h2> */}
-          <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:grid md:grid-cols-3 md:gap-4 md:overflow-visible md:px-0 md:py-0 lg:grid-cols-6">
+          <div
+            ref={categoryScrollRef}
+            className="-mx-4 flex gap-2.5 overflow-x-auto scroll-smooth px-4 py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:grid md:grid-cols-3 md:gap-4 md:overflow-visible md:px-0 md:py-0 lg:grid-cols-6"
+          >
             {featuredCategories.map((section) => {
               const meta = CATEGORY_CARD_META[section];
               const selected = activeSection === section;
@@ -504,6 +539,34 @@ export function RestaurantDirectory({
               );
             })}
           </div>
+
+          {/* Phone scroll arrows */}
+          <button
+            type="button"
+            onClick={() => scrollCategories(-1)}
+            aria-label="Scroll categories left"
+            disabled={!categoryScroll.left}
+            className={`absolute left-0.5 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white text-violet-600 shadow-md ring-1 ring-black/[0.08] transition md:hidden ${
+              categoryScroll.left
+                ? "opacity-100 hover:bg-violet-50 active:scale-95"
+                : "pointer-events-none opacity-0"
+            }`}
+          >
+            <ChevronLeft className="h-5 w-5" strokeWidth={2.5} />
+          </button>
+          <button
+            type="button"
+            onClick={() => scrollCategories(1)}
+            aria-label="Scroll categories right"
+            disabled={!categoryScroll.right}
+            className={`absolute right-0.5 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white text-violet-600 shadow-md ring-1 ring-black/[0.08] transition md:hidden ${
+              categoryScroll.right
+                ? "opacity-100 hover:bg-violet-50 active:scale-95"
+                : "pointer-events-none opacity-0"
+            }`}
+          >
+            <ChevronRight className="h-5 w-5" strokeWidth={2.5} />
+          </button>
         </div>
 
         {/* Hero carousel */}
