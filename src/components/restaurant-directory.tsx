@@ -112,7 +112,7 @@ const CATEGORY_CARD_META: Record<
 
 const HERO_SLIDES = [
   {
-    title: "Support local. Shop local.",
+    title: "Support local.",
     subtitle: "Your favorite stores, now on WhatsApp.",
   },
   {
@@ -469,7 +469,7 @@ export function RestaurantDirectory({
         {/* Shop by category */}
         <div className="mb-8 md:mb-10">
           {/* <h2 className="mb-3 text-lg font-bold text-slate-900 md:text-xl">Shop by category</h2> */}
-          <div className="-mx-4 flex gap-3 overflow-x-auto px-4 py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:grid md:grid-cols-3 md:gap-4 md:overflow-visible md:px-0 md:py-0 lg:grid-cols-6">
+          <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:grid md:grid-cols-3 md:gap-4 md:overflow-visible md:px-0 md:py-0 lg:grid-cols-6">
             {featuredCategories.map((section) => {
               const meta = CATEGORY_CARD_META[section];
               const selected = activeSection === section;
@@ -478,25 +478,25 @@ export function RestaurantDirectory({
                   key={section}
                   type="button"
                   onClick={() => pickSection(selected ? "all" : section)}
-                  className={`flex w-[10.5rem] shrink-0 flex-col overflow-hidden rounded-[1.25rem] text-left shadow-sm ring-1 transition md:w-auto ${
+                  className={`flex w-[7.75rem] shrink-0 flex-col overflow-hidden rounded-2xl text-left shadow-sm ring-1 transition md:w-auto md:rounded-[1.25rem] ${
                     selected
                       ? "ring-violet-400 ring-offset-2"
                       : "ring-black/[0.05] hover:-translate-y-0.5 hover:shadow-md"
                   }`}
                   style={{ backgroundColor: meta.pastel }}
                 >
-                  <div className="relative h-32 w-full overflow-hidden md:h-36">
+                  <div className="relative h-24 w-full overflow-hidden md:h-36">
                     <Image
                       src={meta.image}
                       alt=""
                       fill
                       className="object-cover object-center"
-                      sizes="(max-width:768px) 168px, 180px"
+                      sizes="(max-width:768px) 124px, 180px"
                     />
                   </div>
-                  <div className="bg-white/80 px-3 py-2.5 backdrop-blur-[2px]">
-                    <p className="truncate text-sm font-bold text-slate-900">{meta.shortLabel}</p>
-                    <p className="mt-0.5 text-xs font-medium text-violet-600">
+                  <div className="bg-white/80 px-2.5 py-2 backdrop-blur-[2px] md:px-3 md:py-2.5">
+                    <p className="truncate text-xs font-bold text-slate-900 md:text-sm">{meta.shortLabel}</p>
+                    <p className="mt-0.5 text-[10px] font-medium text-violet-600 md:text-xs">
                       {categoryCounts[section]} {categoryCounts[section] === 1 ? "store" : "stores"}
                     </p>
                   </div>
