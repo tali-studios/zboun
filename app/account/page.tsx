@@ -60,7 +60,7 @@ export default async function AccountPage({ searchParams }: Props) {
   const { success, error } = await searchParams;
 
   return (
-    <div className="min-h-screen bg-[#f2f2f7]">
+    <div className="min-h-screen bg-white">
       <CustomerMobileTopBar title="Account" />
 
       <CustomerDesktopNav title="Account Settings" />

@@ -26,7 +26,7 @@ export default async function ChangePasswordPage({ searchParams }: Props) {
   const { error } = await searchParams;
 
   return (
-    <div className="min-h-screen bg-[#f2f2f7]">
+    <div className="min-h-screen bg-white">
       {/* Desktop nav */}
       <CustomerDesktopNav title="Change Password" backHref="/account" />
 

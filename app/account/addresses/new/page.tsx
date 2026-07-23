@@ -15,7 +15,7 @@ export default async function NewAddressPage({ searchParams }: Props) {
   if (!session) redirect("/login");
 
   return (
-    <div className="min-h-screen bg-[#f2f2f7]">
+    <div className="min-h-screen bg-white">
       <CustomerDesktopNav title="New Address" backHref="/account" />
 
       <CustomerMobileTopBar title="New Address" backHref="/account" />

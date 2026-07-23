@@ -23,7 +23,7 @@ export default async function EditAddressPage({ params, searchParams }: Props) {
   if (!address) redirect("/account");
 
   return (
-    <div className="min-h-screen bg-[#f2f2f7]">
+    <div className="min-h-screen bg-white">
       <CustomerDesktopNav title="Edit Address" backHref="/account" />
 
       <CustomerMobileTopBar title="Edit Address" backHref="/account" />

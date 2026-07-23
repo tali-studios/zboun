@@ -12,7 +12,7 @@ export default async function FavoritesPage() {
   const restaurants = await getHomeRestaurants();
 
   return (
-    <div className="min-h-screen bg-[#f2f2f7]">
+    <div className="min-h-screen bg-white">
       {/* Desktop nav */}
       <CustomerDesktopNav title="Favorites" />
 

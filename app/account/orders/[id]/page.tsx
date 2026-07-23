@@ -56,7 +56,7 @@ export default async function OrderDetailPage({ params }: Params) {
 
   return (
     <>
-      <div className="min-h-screen bg-[#f2f2f7] pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-0">
+      <div className="min-h-screen bg-white pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-0">
 
         {/* Desktop nav */}
         <CustomerDesktopNav title="Order Details" backHref="/account/orders" />

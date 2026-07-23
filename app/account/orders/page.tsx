@@ -21,7 +21,7 @@ export default async function CustomerOrdersPage() {
 
   return (
     <>
-      <div className="min-h-screen bg-[#f2f2f7] pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-0">
+      <div className="min-h-screen bg-white pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-0">
         <CustomerDesktopNav title="My Orders" />
 
         <CustomerMobileTopBar title="Orders" />
