@@ -40,12 +40,12 @@ const CATEGORY_CARD_META: Record<
   { shortLabel: string; pastel: string; image: string }
 > = {
   "Food & Restaurants": {
-    shortLabel: "Restaurants",
+    shortLabel: "Food",
     pastel: "#FFF1E8",
     image: "/categories/category-restaurants.png",
   },
   Groceries: {
-    shortLabel: "Groceries",
+    shortLabel: "Market",
     pastel: "#EEF8E9",
     image: "/categories/category-groceries.png",
   },
@@ -60,7 +60,7 @@ const CATEGORY_CARD_META: Record<
     image: "/categories/category-electronics.png",
   },
   "Beauty & Pharmacy": {
-    shortLabel: "Beauty & Pharmacy",
+    shortLabel: "Self-care",
     pastel: "#E6FAF5",
     image: "/categories/category-beauty-pharmacy.png",
   },
@@ -91,7 +91,7 @@ const CATEGORY_CARD_META: Record<
     image: "/categories/category-pets.png",
   },
   Automotive: {
-    shortLabel: "Automotive",
+    shortLabel: "Auto",
     pastel: "#F1F5F9",
     image: "/categories/category-auto.png",
   },
@@ -101,7 +101,7 @@ const CATEGORY_CARD_META: Record<
     image: "/categories/category-gifts.png",
   },
   "Sports & Outdoors": {
-    shortLabel: "Sports & Outdoors",
+    shortLabel: "Sports",
     pastel: "#ECFDF5",
     image: "/categories/category-sports-outdoors.png",
   },
@@ -206,7 +206,7 @@ export function RestaurantDirectory({
   customerName: _customerName = "",
   initialQuery,
 }: Props) {
-  const [query, setQuery] = useState(initialQuery ?? "");
+  const [query, setQuery] = useState((initialQuery ?? "").slice(0, 50));
   const [activeSection, setActiveSection] = useState<string>("all");
   const [activeSub, setActiveSub] = useState<string>("all");
   const [heroIndex, setHeroIndex] = useState(0);
@@ -275,16 +275,6 @@ export function RestaurantDirectory({
         return 0;
       });
   }, [restaurants, query, activeSection, activeSub, location, radiusKm]);
-
-  const categoryCounts = useMemo(() => {
-    const counts = {} as Record<BrowseSection, number>;
-    for (const section of BROWSE_SECTION_OPTIONS) {
-      counts[section] = restaurants.filter((r) =>
-        matchesBrowseFilter(r.browse_sections, section, "all"),
-      ).length;
-    }
-    return counts;
-  }, [restaurants]);
 
   const featuredCategories = useMemo(() => {
     const preferred: BrowseSection[] = [
@@ -405,8 +395,9 @@ export function RestaurantDirectory({
             />
             <input
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => setQuery(e.target.value.slice(0, 50))}
               placeholder={HOME_SEARCH_PLACEHOLDER}
+              maxLength={50}
               className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-10 pr-10 text-sm outline-none transition focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-100"
               aria-label="Search stores"
             />
@@ -429,7 +420,6 @@ export function RestaurantDirectory({
           <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:grid md:grid-cols-3 md:gap-4 md:overflow-visible md:px-0 lg:grid-cols-6">
             {featuredCategories.map((section) => {
               const meta = CATEGORY_CARD_META[section];
-              const count = categoryCounts[section];
               const selected = activeSection === section;
               return (
                 <button
@@ -454,9 +444,6 @@ export function RestaurantDirectory({
                   </div>
                   <div className="bg-white/80 px-3 py-2.5 backdrop-blur-[2px]">
                     <p className="truncate text-sm font-bold text-slate-900">{meta.shortLabel}</p>
-                    <p className="text-xs font-semibold text-violet-600">
-                      {count} {count === 1 ? "store" : "stores"}
-                    </p>
                   </div>
                 </button>
               );

@@ -82,12 +82,72 @@ const SECTION_SHORT: Record<BrowseSection, string> = {
   "Sports & Outdoors": "Sports",
 };
 
-const COLLECTIONS = [
-  { id: "track-meals", name: "Track Your Meals 🔍", color: "#10b981" },
-  { id: "sushi", name: "Sushi Squad 🍣", color: "#a78bfa" },
-  { id: "desserts", name: "Sweet Treats 🍰", color: "#f59e0b" },
-  { id: "healthy", name: "Healthy Options 🥗", color: "#8b5cf6" },
-] as const;
+/** Same category card images / labels as the home page shop-by-category row. */
+const CATEGORY_CARD_META: Record<
+  BrowseSection,
+  { shortLabel: string; pastel: string; image: string }
+> = {
+  "Food & Restaurants": {
+    shortLabel: "Food",
+    pastel: "#FFF1E8",
+    image: "/categories/category-restaurants.png",
+  },
+  Groceries: {
+    shortLabel: "Market",
+    pastel: "#EEF8E9",
+    image: "/categories/category-groceries.png",
+  },
+  "Fashion & Apparel": {
+    shortLabel: "Fashion",
+    pastel: "#F3E8FF",
+    image: "/categories/category-fashion-v2.png",
+  },
+  "Electronics & Tech": {
+    shortLabel: "Electronics",
+    pastel: "#E8F1FF",
+    image: "/categories/category-electronics.png",
+  },
+  "Beauty & Pharmacy": {
+    shortLabel: "Self-care",
+    pastel: "#E6FAF5",
+    image: "/categories/category-beauty-pharmacy.png",
+  },
+  "Home & Living": {
+    shortLabel: "Home",
+    pastel: "#FFF8E8",
+    image: "/categories/category-home.png",
+  },
+  "Drinks & Beverages": {
+    shortLabel: "Drinks",
+    pastel: "#E8FBFF",
+    image: "/categories/category-drinks-v2.png",
+  },
+  "Smoke & Tobacco": {
+    shortLabel: "Smoke",
+    pastel: "#F1F5F9",
+    image: "/categories/category-smoke.png",
+  },
+  "Pets & Supplies": {
+    shortLabel: "Pets",
+    pastel: "#EEF2FF",
+    image: "/categories/category-pets.png",
+  },
+  Automotive: {
+    shortLabel: "Auto",
+    pastel: "#F1F5F9",
+    image: "/categories/category-auto.png",
+  },
+  "Gifts & Lifestyle": {
+    shortLabel: "Gifts",
+    pastel: "#FFE8F1",
+    image: "/categories/category-gifts.png",
+  },
+  "Sports & Outdoors": {
+    shortLabel: "Sports",
+    pastel: "#ECFDF5",
+    image: "/categories/category-sports-outdoors.png",
+  },
+};
 
 function sectionLabel(sections: string[] | null | undefined): string {
   if (!sections?.length) return "";
@@ -111,7 +171,7 @@ export function SearchPageContent({ restaurants }: SearchPageContentProps) {
   const { location } = useDeliveryLocation();
 
   const trimmed = query.trim();
-  const isSearching = trimmed.length > 0;
+  const isSearching = trimmed.length > 0 || filters.sections.length > 0;
   const sectionKey = filters.sections.join("|");
 
   useEffect(() => {
@@ -218,8 +278,9 @@ export function SearchPageContent({ restaurants }: SearchPageContentProps) {
   );
 
   const storeResults = useMemo(() => {
-    if (!trimmed) return [];
     const q = trimmed.toLowerCase();
+    const browsingCategoryOnly = !q && filters.sections.length > 0;
+    if (!q && !browsingCategoryOnly) return [];
 
     return restaurants
       .map((r) => {
@@ -234,6 +295,7 @@ export function SearchPageContent({ restaurants }: SearchPageContentProps) {
       })
       .filter((r) => {
         const matchesQuery =
+          browsingCategoryOnly ||
           r.name.toLowerCase().includes(q) ||
           r.slug.toLowerCase().includes(q) ||
           (r.description ?? "").toLowerCase().includes(q) ||
@@ -288,11 +350,24 @@ export function SearchPageContent({ restaurants }: SearchPageContentProps) {
       });
   }, [restaurants, trimmed, filters, location]);
 
+  const resultsLabel = trimmed
+    ? `‘${trimmed}’`
+    : filters.sections.length === 1
+      ? SECTION_SHORT[filters.sections[0]]
+      : filters.sections.length > 1
+        ? `${filters.sections.length} categories`
+        : "your search";
+
   const clearQuery = () => {
     setQuery("");
     setFilters(DEFAULT_SEARCH_FILTERS);
     setResultTab("stores");
     inputRef.current?.focus();
+  };
+
+  const openCategory = (section: BrowseSection) => {
+    setFilters({ ...DEFAULT_SEARCH_FILTERS, sections: [section] });
+    setResultTab("stores");
   };
 
   const pickSectionPill = (section: string) => {
@@ -302,9 +377,10 @@ export function SearchPageContent({ restaurants }: SearchPageContentProps) {
     }
     setFilters((prev) => ({
       ...prev,
-      sections: prev.sections.length === 1 && prev.sections[0] === section
-        ? []
-        : [section as BrowseSection],
+      sections:
+        prev.sections.length === 1 && prev.sections[0] === section
+          ? []
+          : [section as BrowseSection],
     }));
   };
 
@@ -337,8 +413,9 @@ export function SearchPageContent({ restaurants }: SearchPageContentProps) {
               <input
                 ref={inputRef}
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => setQuery(e.target.value.slice(0, 50))}
                 placeholder="Store name or item..."
+                maxLength={50}
                 className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-4 pr-9 text-sm outline-none transition focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-100"
                 aria-label="Search"
                 autoFocus
@@ -453,8 +530,8 @@ export function SearchPageContent({ restaurants }: SearchPageContentProps) {
           {resultTab === "stores" ? (
             <div className="px-4 pt-4">
               <p className="mb-3 text-sm text-slate-400">
-                {storeResults.length} {storeResults.length === 1 ? "result" : "results"} for &lsquo;
-                {trimmed}&rsquo;
+                {storeResults.length} {storeResults.length === 1 ? "result" : "results"} for{" "}
+                {resultsLabel}
               </p>
 
               {storeResults.length === 0 ? (
@@ -561,7 +638,7 @@ export function SearchPageContent({ restaurants }: SearchPageContentProps) {
               <p className="mb-3 text-sm text-slate-400">
                 {itemsLoading
                   ? "Searching items…"
-                  : `${itemResults.length} ${itemResults.length === 1 ? "result" : "results"} for ‘${trimmed}’`}
+                  : `${itemResults.length} ${itemResults.length === 1 ? "result" : "results"} for ${resultsLabel}`}
               </p>
 
               {itemsLoading && itemResults.length === 0 ? (
@@ -675,8 +752,9 @@ export function SearchPageContent({ restaurants }: SearchPageContentProps) {
               <input
                 ref={inputRef}
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => setQuery(e.target.value.slice(0, 50))}
                 placeholder="Store name or item..."
+                maxLength={50}
                 className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-10 pr-4 text-sm outline-none transition focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-100"
                 aria-label="Search"
               />
@@ -734,7 +812,7 @@ export function SearchPageContent({ restaurants }: SearchPageContentProps) {
                   <button
                     key={term}
                     type="button"
-                    onClick={() => setQuery(term)}
+                    onClick={() => setQuery(term.slice(0, 50))}
                     className="group inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-200"
                   >
                     <span>{term}</span>
@@ -763,21 +841,35 @@ export function SearchPageContent({ restaurants }: SearchPageContentProps) {
           ) : null}
 
           <section>
-            <h2 className="mb-3 text-base font-bold text-slate-900">Collections</h2>
+            <h2 className="mb-3 text-base font-bold text-slate-900">Categories</h2>
             <div className="grid grid-cols-2 gap-3">
-              {COLLECTIONS.map((collection) => (
-                <div
-                  key={collection.id}
-                  className="overflow-hidden rounded-2xl shadow-sm ring-1 ring-black/5"
-                  style={{ backgroundColor: collection.color }}
-                >
-                  <div className="flex aspect-[4/3] items-center justify-center p-4">
-                    <p className="text-center text-base font-bold text-white drop-shadow-lg">
-                      {collection.name}
-                    </p>
-                  </div>
-                </div>
-              ))}
+              {BROWSE_SECTION_OPTIONS.map((section) => {
+                const meta = CATEGORY_CARD_META[section];
+                return (
+                  <button
+                    key={section}
+                    type="button"
+                    onClick={() => openCategory(section)}
+                    className="flex flex-col overflow-hidden rounded-[1.25rem] text-left shadow-sm ring-1 ring-black/[0.05] transition hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99]"
+                    style={{ backgroundColor: meta.pastel }}
+                  >
+                    <div className="relative h-28 w-full overflow-hidden sm:h-32">
+                      <Image
+                        src={meta.image}
+                        alt=""
+                        fill
+                        className="object-cover object-center"
+                        sizes="(max-width:768px) 50vw, 200px"
+                      />
+                    </div>
+                    <div className="bg-white/80 px-3 py-2.5 backdrop-blur-[2px]">
+                      <p className="truncate text-sm font-bold text-slate-900">
+                        {SECTION_SHORT[section]}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </section>
         </div>
