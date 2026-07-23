@@ -21,6 +21,17 @@ import {
   type BrowseSection,
 } from "@/lib/browse-sections";
 import type { SearchMenuItemResult } from "@/lib/data";
+import {
+  hasConfiguredOpeningHours,
+  isRestaurantOpenNow,
+  parseOpeningHours,
+  RESTAURANT_TIMEZONE,
+} from "@/lib/opening-hours";
+import {
+  DEFAULT_SEARCH_FILTERS,
+  SearchFilterSheet,
+  type SearchFilterState,
+} from "@/components/search-filter-sheet";
 
 type RestaurantCard = {
   id: string;
@@ -90,7 +101,8 @@ function sectionLabel(sections: string[] | null | undefined): string {
 export function SearchPageContent({ restaurants }: SearchPageContentProps) {
   const [query, setQuery] = useState("");
   const [resultTab, setResultTab] = useState<"stores" | "items">("stores");
-  const [activeSection, setActiveSection] = useState<string>("all");
+  const [filters, setFilters] = useState<SearchFilterState>(DEFAULT_SEARCH_FILTERS);
+  const [filterOpen, setFilterOpen] = useState(false);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [itemResults, setItemResults] = useState<SearchMenuItemResult[]>([]);
   const [itemsLoading, setItemsLoading] = useState(false);
@@ -100,6 +112,7 @@ export function SearchPageContent({ restaurants }: SearchPageContentProps) {
 
   const trimmed = query.trim();
   const isSearching = trimmed.length > 0;
+  const sectionKey = filters.sections.join("|");
 
   useEffect(() => {
     try {
@@ -153,10 +166,11 @@ export function SearchPageContent({ restaurants }: SearchPageContentProps) {
     setItemsLoading(true);
     const t = window.setTimeout(async () => {
       try {
-        const params = new URLSearchParams({
-          q: trimmed,
-          section: activeSection,
-        });
+        const params = new URLSearchParams({ q: trimmed });
+        // Single category can be filtered server-side; multi is filtered client-side
+        if (filters.sections.length === 1) {
+          params.set("section", filters.sections[0]);
+        }
         const res = await fetch(`/api/search/items?${params}`, {
           signal: controller.signal,
         });
@@ -165,7 +179,15 @@ export function SearchPageContent({ restaurants }: SearchPageContentProps) {
           return;
         }
         const data = (await res.json()) as { items?: SearchMenuItemResult[] };
-        setItemResults(Array.isArray(data.items) ? data.items : []);
+        let items = Array.isArray(data.items) ? data.items : [];
+        if (filters.sections.length > 1) {
+          items = items.filter((item) =>
+            filters.sections.some((section) =>
+              matchesBrowseFilter(item.restaurant.browse_sections, section, "all"),
+            ),
+          );
+        }
+        setItemResults(items);
       } catch (err) {
         if ((err as { name?: string })?.name === "AbortError") return;
         setItemResults([]);
@@ -178,7 +200,7 @@ export function SearchPageContent({ restaurants }: SearchPageContentProps) {
       controller.abort();
       window.clearTimeout(t);
     };
-  }, [trimmed, activeSection]);
+  }, [trimmed, sectionKey, filters.sections]);
 
   const removeSearch = (searchTerm: string) => {
     const updated = recentSearches.filter((s) => s !== searchTerm);
@@ -223,27 +245,75 @@ export function SearchPageContent({ restaurants }: SearchPageContentProps) {
               (b.address ?? "").toLowerCase().includes(q),
           );
 
-        const matchesSection = matchesBrowseFilter(
-          r.browse_sections,
-          activeSection,
-          "all",
-        );
-        return matchesQuery && matchesSection;
+        const matchesSection =
+          filters.sections.length === 0 ||
+          filters.sections.some((section) =>
+            matchesBrowseFilter(r.browse_sections, section, "all"),
+          );
+
+        if (!matchesQuery || !matchesSection) return false;
+
+        if (filters.freeDelivery && !r.free_delivery) return false;
+        if (filters.fastDelivery && !r.fast_delivery_enabled) return false;
+        if (filters.openNow) {
+          const hasHours = hasConfiguredOpeningHours(r.opening_hours);
+          const hours = parseOpeningHours(r.opening_hours, {
+            fallbackToDefault: false,
+          });
+          const isClosed =
+            r.is_temporarily_closed ||
+            (hasHours &&
+              !isRestaurantOpenNow(hours, {
+                isTemporarilyClosed: r.is_temporarily_closed,
+                timeZone: RESTAURANT_TIMEZONE,
+              }));
+          if (isClosed) return false;
+        }
+
+        return true;
       })
       .sort((a, b) => {
+        if (filters.sortBy === "rating" || filters.sortBy === "popular") {
+          const ar = a.rating ?? -1;
+          const br = b.rating ?? -1;
+          if (br !== ar) return br - ar;
+          const ac = a.rating_count ?? 0;
+          const bc = b.rating_count ?? 0;
+          if (bc !== ac) return bc - ac;
+        }
         if (a.distKm != null && b.distKm != null) return a.distKm - b.distKm;
         if (a.distKm != null) return -1;
         if (b.distKm != null) return 1;
         return a.name.localeCompare(b.name);
       });
-  }, [restaurants, trimmed, activeSection, location]);
+  }, [restaurants, trimmed, filters, location]);
 
   const clearQuery = () => {
     setQuery("");
-    setActiveSection("all");
+    setFilters(DEFAULT_SEARCH_FILTERS);
     setResultTab("stores");
     inputRef.current?.focus();
   };
+
+  const pickSectionPill = (section: string) => {
+    if (section === "all") {
+      setFilters((prev) => ({ ...prev, sections: [] }));
+      return;
+    }
+    setFilters((prev) => ({
+      ...prev,
+      sections: prev.sections.length === 1 && prev.sections[0] === section
+        ? []
+        : [section as BrowseSection],
+    }));
+  };
+
+  const filtersActive =
+    filters.sortBy !== "recommended" ||
+    filters.freeDelivery ||
+    filters.openNow ||
+    filters.fastDelivery ||
+    filters.sections.length > 0;
 
   return (
     <div className="min-h-screen bg-white pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
@@ -286,10 +356,16 @@ export function SearchPageContent({ restaurants }: SearchPageContentProps) {
             </div>
             <button
               type="button"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-600 transition hover:bg-slate-100"
+              onClick={() => setFilterOpen(true)}
+              className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition hover:bg-slate-100 ${
+                filtersActive ? "text-violet-700" : "text-slate-600"
+              }`}
               aria-label="Filters"
             >
               <SlidersHorizontal className="h-5 w-5" strokeWidth={2} />
+              {filtersActive ? (
+                <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-violet-600" aria-hidden />
+              ) : null}
             </button>
           </div>
         ) : (
@@ -343,13 +419,12 @@ export function SearchPageContent({ restaurants }: SearchPageContentProps) {
           </div>
 
           {/* Category pills */}
-          {/* Category pills */}
           <div className="mt-3 flex gap-2 overflow-x-auto px-4 pb-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <button
               type="button"
-              onClick={() => setActiveSection("all")}
+              onClick={() => pickSectionPill("all")}
               className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-semibold transition ${
-                activeSection === "all"
+                filters.sections.length === 0
                   ? "border border-violet-500 bg-white text-violet-700"
                   : "bg-slate-100 text-slate-800 hover:bg-slate-200"
               }`}
@@ -357,12 +432,12 @@ export function SearchPageContent({ restaurants }: SearchPageContentProps) {
               All
             </button>
             {BROWSE_SECTION_OPTIONS.map((section) => {
-              const selected = activeSection === section;
+              const selected = filters.sections.includes(section);
               return (
                 <button
                   key={section}
                   type="button"
-                  onClick={() => setActiveSection(selected ? "all" : section)}
+                  onClick={() => pickSectionPill(section)}
                   className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-semibold transition ${
                     selected
                       ? "border border-violet-500 bg-white text-violet-700"
@@ -707,6 +782,13 @@ export function SearchPageContent({ restaurants }: SearchPageContentProps) {
           </section>
         </div>
       )}
+
+      <SearchFilterSheet
+        open={filterOpen}
+        value={filters}
+        onClose={() => setFilterOpen(false)}
+        onApply={setFilters}
+      />
     </div>
   );
 }

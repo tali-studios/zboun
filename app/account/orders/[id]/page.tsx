@@ -1,4 +1,5 @@
 import { redirect, notFound } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getCustomerOrder } from "@/app-actions/orders";
@@ -69,8 +70,21 @@ export default async function OrderDetailPage({ params }: Params) {
             {/* Restaurant row */}
             <Link href={`/${order.restaurant_slug}`} className="flex items-center justify-between gap-3 px-4 py-4 transition hover:bg-slate-50">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-violet-600 text-sm font-bold text-white shadow-sm">
-                  {order.restaurant_name.charAt(0).toUpperCase()}
+                <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-violet-100 ring-1 ring-black/[0.06]">
+                  {order.restaurant_logo_url ? (
+                    <Image
+                      src={order.restaurant_logo_url}
+                      alt=""
+                      fill
+                      className="object-cover"
+                      sizes="44px"
+                      unoptimized
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-violet-600 text-sm font-bold text-white">
+                      {order.restaurant_name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
                 </div>
                 <div className="min-w-0">
                   <p className="truncate text-sm font-bold text-slate-900">{order.restaurant_name}</p>
@@ -169,11 +183,21 @@ export default async function OrderDetailPage({ params }: Params) {
           <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
             <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3.5">
               <p className="text-sm text-slate-500">Subtotal</p>
-              <p className="text-sm text-slate-700">${order.total_usd.toFixed(2)}</p>
+              <p className="text-right text-sm text-slate-700">
+                <span className="font-semibold text-slate-800">
+                  LBP {Math.round(order.total_usd * order.restaurant_lbp_rate).toLocaleString("en-US")}
+                </span>
+                <span className="ml-1.5 text-slate-400">USD {order.total_usd.toFixed(2)}</span>
+              </p>
             </div>
             <div className="flex items-center justify-between px-4 py-3.5">
               <p className="text-base font-bold text-slate-900">Total</p>
-              <p className="text-base font-bold text-violet-700">${order.total_usd.toFixed(2)}</p>
+              <p className="text-right text-base font-bold text-slate-900">
+                LBP {Math.round(order.total_usd * order.restaurant_lbp_rate).toLocaleString("en-US")}
+                <span className="ml-1.5 text-sm font-semibold text-slate-400">
+                  USD {order.total_usd.toFixed(2)}
+                </span>
+              </p>
             </div>
           </div>
 

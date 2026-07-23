@@ -1,11 +1,13 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { ChevronRight, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { CustomerOrderRow } from "@/app-actions/orders";
 
 const VISIBLE_ORDER_LIMIT = 10;
+const ITEM_PREVIEW_LIMIT = 2;
 
 const STATUS_META: Record<string, { label: string; color: string; bg: string }> = {
   pending: { label: "Pending", color: "text-amber-700", bg: "bg-amber-50" },
@@ -29,6 +31,15 @@ function formatDate(iso: string) {
   const rest = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   const time = d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
   return `${dayName}, ${rest}, ${time}`;
+}
+
+function formatUsd(amount: number) {
+  return `USD ${amount.toFixed(2)}`;
+}
+
+function formatLbp(amountUsd: number, lbpRate: number) {
+  const lbp = Math.round(amountUsd * lbpRate);
+  return `LBP ${lbp.toLocaleString("en-US")}`;
 }
 
 function orderSearchHaystack(order: CustomerOrderRow): string {
@@ -102,8 +113,8 @@ export function CustomerOrdersList({ orders }: Props) {
           {visibleOrders.map((order) => {
             const meta = STATUS_META[order.status] ?? STATUS_META.pending;
             const items = order.items as unknown as OrderItem[];
-            const preview = items.slice(0, 2);
-            const extra = items.length - 2;
+            const preview = items.slice(0, ITEM_PREVIEW_LIMIT);
+            const extra = items.length - ITEM_PREVIEW_LIMIT;
             const canReorder = order.status !== "cancelled" && order.restaurant_is_active;
 
             return (
@@ -111,15 +122,28 @@ export function CustomerOrdersList({ orders }: Props) {
                 <Link href={`/account/orders/${order.id}`} className="block transition active:scale-[0.99]">
                   <div className="flex items-center justify-between gap-3 px-4 py-3.5">
                     <div className="flex min-w-0 items-center gap-3">
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-violet-600 text-sm font-bold text-white shadow-sm">
-                        {order.restaurant_name.charAt(0).toUpperCase()}
+                      <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-violet-100 ring-1 ring-black/[0.06]">
+                        {order.restaurant_logo_url ? (
+                          <Image
+                            src={order.restaurant_logo_url}
+                            alt=""
+                            fill
+                            className="object-cover"
+                            sizes="44px"
+                            unoptimized
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center bg-violet-600 text-sm font-bold text-white">
+                            {order.restaurant_name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
                       </div>
                       <div className="min-w-0">
                         <p className="truncate text-sm font-bold text-slate-900">{order.restaurant_name}</p>
                         <p className="text-xs text-slate-400">{formatDate(order.created_at)}</p>
                       </div>
                     </div>
-                    <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" />
+                    <ChevronRight className="h-4 w-4 shrink-0 text-violet-500" />
                   </div>
 
                   <div className="border-t border-slate-100 px-4 pb-3 pt-2.5">
@@ -128,20 +152,26 @@ export function CustomerOrdersList({ orders }: Props) {
                         <span className="text-xs font-bold text-violet-600">
                           {item.unit === "kg" ? `${item.qty}kg` : item.qty}
                         </span>
-                        <span className="text-sm text-slate-700">{item.name}</span>
+                        <span className="text-sm text-slate-800">{item.name}</span>
                       </div>
                     ))}
                     {extra > 0 ? (
-                      <p className="mt-0.5 text-xs text-slate-400">
-                        {extra} other item{extra > 1 ? "s" : ""}…
+                      <p className="mt-0.5 text-xs italic text-slate-400">
+                        {extra} other item{extra === 1 ? "" : "s"}…
                       </p>
                     ) : null}
-                    <div className="mt-2.5 flex items-center justify-between">
-                      <p className="text-sm font-bold text-slate-900">
-                        Total: <span className="text-violet-700">${order.total_usd.toFixed(2)}</span>
+                    <div className="mt-2.5 flex items-end justify-between gap-3">
+                      <p className="min-w-0 text-sm font-bold text-slate-900">
+                        Total:{" "}
+                        <span className="text-slate-900">
+                          {formatLbp(order.total_usd, order.restaurant_lbp_rate)}
+                        </span>{" "}
+                        <span className="font-semibold text-slate-400">
+                          {formatUsd(order.total_usd)}
+                        </span>
                       </p>
                       <span
-                        className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${meta.bg} ${meta.color}`}
+                        className={`inline-flex shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${meta.bg} ${meta.color}`}
                       >
                         {meta.label}
                       </span>

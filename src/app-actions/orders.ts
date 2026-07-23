@@ -657,9 +657,38 @@ export type CustomerOrderRow = OrderRow & {
   restaurant_name: string;
   restaurant_slug: string;
   restaurant_is_active: boolean;
+  restaurant_logo_url: string | null;
+  restaurant_lbp_rate: number;
   restaurant_avg_rating: number | null;
   restaurant_rating_count: number;
 };
+
+type RestaurantEmbed = {
+  name: string;
+  slug: string;
+  is_active?: boolean;
+  logo_url?: string | null;
+  lbp_rate?: number | null;
+};
+
+function mapCustomerOrderRow(
+  r: Record<string, unknown>,
+  extras?: { restaurant_avg_rating?: number | null; restaurant_rating_count?: number },
+): CustomerOrderRow {
+  const rest = r.restaurants as RestaurantEmbed | null;
+  const lbp = Number(rest?.lbp_rate);
+  return {
+    ...(r as unknown as OrderRow),
+    restaurant_id: String(r.restaurant_id ?? ""),
+    restaurant_name: rest?.name ?? "Store",
+    restaurant_slug: rest?.slug ?? "",
+    restaurant_is_active: rest?.is_active !== false,
+    restaurant_logo_url: rest?.logo_url ?? null,
+    restaurant_lbp_rate: Number.isFinite(lbp) && lbp > 0 ? lbp : 89500,
+    restaurant_avg_rating: extras?.restaurant_avg_rating ?? null,
+    restaurant_rating_count: extras?.restaurant_rating_count ?? 0,
+  };
+}
 
 export async function getCustomerOrder(orderId: string): Promise<CustomerOrderRow | null> {
   const supabase = await createServerSupabaseClient();
@@ -669,7 +698,7 @@ export async function getCustomerOrder(orderId: string): Promise<CustomerOrderRo
   const { data } = await supabase
     .from("orders")
     .select(
-      "id, restaurant_id, customer_id, customer_name, customer_phone, delivery_address, delivery_lat, delivery_lng, items, notes, payment_note, expected_delivery_time, expected_delivery_time_set_at, total_usd, delivery_fee_usd, delivery_speed, scheduled_for, coupon_code, coupon_discount_usd, driver_id, driver_assigned_at, status, whatsapp_sent, created_at, updated_at, restaurants(name, slug, is_active)",
+      "id, restaurant_id, customer_id, customer_name, customer_phone, delivery_address, delivery_lat, delivery_lng, items, notes, payment_note, expected_delivery_time, expected_delivery_time_set_at, total_usd, delivery_fee_usd, delivery_speed, scheduled_for, coupon_code, coupon_discount_usd, driver_id, driver_assigned_at, status, whatsapp_sent, created_at, updated_at, restaurants(name, slug, is_active, logo_url, lbp_rate)",
     )
     .eq("id", orderId)
     .eq("customer_id", user.id)
@@ -677,7 +706,6 @@ export async function getCustomerOrder(orderId: string): Promise<CustomerOrderRo
 
   if (!data) return null;
   const r = data as unknown as Record<string, unknown>;
-  const rest = r.restaurants as { name: string; slug: string; is_active?: boolean } | null;
   const restaurantId = String(r.restaurant_id ?? "");
   let restaurant_avg_rating: number | null = null;
   let restaurant_rating_count = 0;
@@ -693,15 +721,7 @@ export async function getCustomerOrder(orderId: string): Promise<CustomerOrderRo
       if (Number.isFinite(cnt)) restaurant_rating_count = cnt;
     }
   }
-  return {
-    ...(r as unknown as OrderRow),
-    restaurant_id: restaurantId,
-    restaurant_name: rest?.name ?? "Store",
-    restaurant_slug: rest?.slug ?? "",
-    restaurant_is_active: rest?.is_active !== false,
-    restaurant_avg_rating,
-    restaurant_rating_count,
-  };
+  return mapCustomerOrderRow(r, { restaurant_avg_rating, restaurant_rating_count });
 }
 
 export async function getCustomerOrders(): Promise<CustomerOrderRow[]> {
@@ -714,23 +734,13 @@ export async function getCustomerOrders(): Promise<CustomerOrderRow[]> {
   const { data } = await supabase
     .from("orders")
     .select(
-      "id, restaurant_id, customer_id, customer_name, customer_phone, delivery_address, delivery_lat, delivery_lng, items, notes, payment_note, expected_delivery_time, expected_delivery_time_set_at, total_usd, delivery_fee_usd, delivery_speed, scheduled_for, coupon_code, coupon_discount_usd, status, whatsapp_sent, created_at, updated_at, restaurants(name, slug, is_active)",
+      "id, restaurant_id, customer_id, customer_name, customer_phone, delivery_address, delivery_lat, delivery_lng, items, notes, payment_note, expected_delivery_time, expected_delivery_time_set_at, total_usd, delivery_fee_usd, delivery_speed, scheduled_for, coupon_code, coupon_discount_usd, status, whatsapp_sent, created_at, updated_at, restaurants(name, slug, is_active, logo_url, lbp_rate)",
     )
     .eq("customer_id", user.id)
     .order("created_at", { ascending: false })
     .limit(100);
 
-  return ((data ?? []) as unknown[]).map((row) => {
-    const r = row as Record<string, unknown>;
-    const rest = r.restaurants as { name: string; slug: string; is_active?: boolean } | null;
-    return {
-      ...(r as unknown as OrderRow),
-      restaurant_id: String(r.restaurant_id ?? ""),
-      restaurant_name: rest?.name ?? "Store",
-      restaurant_slug: rest?.slug ?? "",
-      restaurant_is_active: rest?.is_active !== false,
-      restaurant_avg_rating: null,
-      restaurant_rating_count: 0,
-    };
-  });
+  return ((data ?? []) as unknown[]).map((row) =>
+    mapCustomerOrderRow(row as Record<string, unknown>),
+  );
 }
