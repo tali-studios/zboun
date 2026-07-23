@@ -147,15 +147,14 @@ export default async function RestaurantMenuPage({ params, searchParams }: Props
           </div>
         </header>
 
-        {/* Desktop: banner constrained to exact same container+padding as the header above */}
-        <div className="hidden md:block">
-          <div className="container px-4 pt-3">
-            <RestaurantMenuHero restaurant={restaurant} tagline={tagline} menuThemeColor={restaurant.menu_theme_color} desktop />
-          </div>
-        </div>
-        {/* Mobile: full-bleed */}
-        <div className="md:hidden">
-          <RestaurantMenuHero restaurant={restaurant} tagline={tagline} menuThemeColor={restaurant.menu_theme_color} />
+        {/* Banner — same horizontal inset as search bar (main uses container px-3 / sm:px-6) */}
+        <div className="container px-3 pt-3 sm:px-6 md:pt-3">
+          <RestaurantMenuHero
+            restaurant={restaurant}
+            tagline={tagline}
+            menuThemeColor={restaurant.menu_theme_color}
+            desktop
+          />
         </div>
 
         <main className="container px-3 pb-10 pt-3 sm:px-6 sm:pb-12 sm:pt-6 lg:pb-8">

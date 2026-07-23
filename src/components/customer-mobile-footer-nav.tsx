@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, ClipboardList, User, Heart } from "lucide-react";
+import { Home, Search, Heart, ClipboardList, User } from "lucide-react";
 import { useFavorites } from "@/hooks/use-favorites";
 
 const ITEMS = [
   { href: "/",                label: "Home",       icon: Home,          match: (p: string) => p === "/" },
-  { href: "/favorites",       label: "Favorites",      icon: Heart,         match: (p: string) => p.startsWith("/favorites") },
+  { href: "/search",          label: "Search",     icon: Search,        match: (p: string) => p.startsWith("/search") },
+  { href: "/favorites",       label: "Favorites",  icon: Heart,         match: (p: string) => p.startsWith("/favorites") },
   { href: "/account/orders",  label: "Orders",     icon: ClipboardList, match: (p: string) => p.startsWith("/account/orders") },
   { href: "/account",         label: "Account",    icon: User,          match: (p: string) => p.startsWith("/account") },
 ] as const;
@@ -22,7 +23,7 @@ export function CustomerMobileFooterNav() {
       aria-label="Customer mobile navigation"
       className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur md:hidden"
     >
-      <div className="mx-auto grid max-w-md grid-cols-4 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1">
+      <div className="mx-auto grid max-w-md grid-cols-5 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1">
         {ITEMS.map((item) => {
           const active = item.href === activeHref;
           const Icon = item.icon;
@@ -43,7 +44,7 @@ export function CustomerMobileFooterNav() {
                 <Icon
                   className={`h-5 w-5 ${
                     active ? "text-violet-600" : "text-slate-500"
-                  } ${isFavoritesItem ? "fill-none" : ""}`}
+                  }`}
                 />
                 {showDot ? (
                   <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-violet-500" aria-hidden />

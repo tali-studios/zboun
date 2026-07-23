@@ -12,6 +12,7 @@ import {
   type MenuPromotion,
 } from "@/lib/menu-promotions";
 import { isMenuCouponCodesMigrationError } from "@/lib/menu-coupon-codes";
+import { matchesBrowseFilter } from "@/lib/browse-sections";
 
 type RatingAgg = { avgRating: number; ratingCount: number };
 
@@ -531,6 +532,159 @@ export const getHomeRestaurants = unstable_cache(
   ["home-restaurants", "visitor-ratings-v2", "branches-v1", "hours-v2", "delivery-fee-v1", "fast-delivery-v1", "phone-v1"],
   { revalidate: 60, tags: ["home-restaurants"] },
 );
+
+export type SearchMenuItemResult = {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  sale_price: number | null;
+  image_url: string | null;
+  restaurant: {
+    id: string;
+    name: string;
+    slug: string;
+    logo_url: string | null;
+    location: string | null;
+    browse_sections: string[] | null;
+  };
+};
+
+function escapeIlike(value: string): string {
+  return value.replace(/[%_,\\]/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
+}
+
+/** Public search of available menu items from active home stores. */
+export async function searchHomeMenuItems(
+  query: string,
+  options?: { section?: string; limit?: number },
+): Promise<SearchMenuItemResult[]> {
+  const safe = escapeIlike(query);
+  if (!safe) return [];
+  if (!env.supabaseUrl || !env.supabaseAnonKey) return [];
+
+  const supabase = createClient(env.supabaseUrl, env.supabaseAnonKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+
+  const pattern = `%${safe}%`;
+  const limit = Math.min(Math.max(options?.limit ?? 40, 1), 60);
+  const section = options?.section && options.section !== "all" ? options.section : null;
+
+  const selectFull =
+    "id, name, description, price, image_url, sale_price, restaurants!inner(id, name, slug, logo_url, location, browse_sections, is_active, show_on_home)";
+  const selectBasic =
+    "id, name, description, price, image_url, restaurants!inner(id, name, slug, logo_url, location, browse_sections, is_active, show_on_home)";
+
+  const run = async (selectCols: string, withExtraFields: boolean) => {
+    let q = supabase
+      .from("menu_items")
+      .select(selectCols)
+      .eq("is_available", true)
+      .eq("restaurants.is_active", true)
+      .eq("restaurants.show_on_home", true)
+      .order("name", { ascending: true })
+      .limit(limit);
+
+    if (withExtraFields) {
+      q = q.or(
+        `name.ilike.${pattern},description.ilike.${pattern},brand_name.ilike.${pattern},contents.ilike.${pattern}`,
+      );
+    } else {
+      q = q.or(`name.ilike.${pattern},description.ilike.${pattern}`);
+    }
+
+    return q;
+  };
+
+  let { data, error } = await run(selectFull, true);
+
+  if (error) {
+    ({ data, error } = await run(selectFull, false));
+  }
+  if (error) {
+    ({ data, error } = await run(selectBasic, false));
+  }
+  if (error || !data) {
+    // Last resort: name-only, no show_on_home (older schemas)
+    const last = await supabase
+      .from("menu_items")
+      .select(
+        "id, name, description, price, image_url, restaurants!inner(id, name, slug, logo_url, location, browse_sections, is_active)",
+      )
+      .eq("is_available", true)
+      .eq("restaurants.is_active", true)
+      .ilike("name", pattern)
+      .order("name", { ascending: true })
+      .limit(limit);
+
+    if (last.error || !last.data) return [];
+    return mapSearchMenuItemRows(last.data as unknown[], section);
+  }
+
+  return mapSearchMenuItemRows(data as unknown[], section);
+}
+
+function mapSearchMenuItemRows(
+  rows: unknown[],
+  section: string | null,
+): SearchMenuItemResult[] {
+  const out: SearchMenuItemResult[] = [];
+
+  for (const raw of rows) {
+    const row = raw as {
+      id: string;
+      name: string;
+      description: string | null;
+      price: number;
+      sale_price?: number | null;
+      image_url: string | null;
+      restaurants:
+        | {
+            id: string;
+            name: string;
+            slug: string;
+            logo_url: string | null;
+            location: string | null;
+            browse_sections: string[] | null;
+          }
+        | Array<{
+            id: string;
+            name: string;
+            slug: string;
+            logo_url: string | null;
+            location: string | null;
+            browse_sections: string[] | null;
+          }>;
+    };
+
+    const restaurant = Array.isArray(row.restaurants) ? row.restaurants[0] : row.restaurants;
+    if (!restaurant) continue;
+
+    if (section && !matchesBrowseFilter(restaurant.browse_sections, section, "all")) {
+      continue;
+    }
+
+    out.push({
+      id: row.id,
+      name: row.name,
+      description: row.description ?? null,
+      price: Number(row.price) || 0,
+      sale_price: row.sale_price != null ? Number(row.sale_price) : null,
+      image_url: row.image_url ?? null,
+      restaurant: {
+        id: restaurant.id,
+        name: restaurant.name,
+        slug: restaurant.slug,
+        logo_url: restaurant.logo_url ?? null,
+        location: restaurant.location ?? null,
+        browse_sections: restaurant.browse_sections ?? null,
+      },
+    });
+  }
+
+  return out;
+}
 
 export const getCurrentUserRole = cache(async function getCurrentUserRole() {
   const supabase = await createServerSupabaseClient();

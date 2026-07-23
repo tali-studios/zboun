@@ -9,10 +9,15 @@ import { getCustomerOrderContext } from "@/lib/customer-order-context";
 import { CustomerMobileFooterNav } from "@/components/customer-mobile-footer-nav";
 import { BackToTopButton } from "@/components/back-to-top-button";
 
-export default async function HomePage() {
-  const [restaurants, customerCtx] = await Promise.all([
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const [restaurants, customerCtx, params] = await Promise.all([
     getHomeRestaurants(),
     getCustomerOrderContext(),
+    searchParams,
   ]);
 
   return (
@@ -25,6 +30,7 @@ export default async function HomePage() {
               savedAddresses={customerCtx.savedAddresses}
               isLoggedIn={customerCtx.isLoggedIn}
               customerName={customerCtx.defaultCustomerName}
+              initialQuery={params.q}
             />
           </section>
         </DeliveryLocationProvider>

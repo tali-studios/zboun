@@ -5,6 +5,7 @@ import { getCustomerOrders } from "@/app-actions/orders";
 import { CustomerMobileFooterNav } from "@/components/customer-mobile-footer-nav";
 import { BackToTopButton } from "@/components/back-to-top-button";
 import { CustomerDesktopNav } from "@/components/customer-desktop-nav";
+import { CustomerMobileTopBar } from "@/components/customer-mobile-top-bar";
 import { CustomerOrdersList } from "@/components/customer-orders-list";
 
 export const dynamic = "force-dynamic";
@@ -23,9 +24,7 @@ export default async function CustomerOrdersPage() {
       <div className="min-h-screen bg-[#f2f2f7] pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-0">
         <CustomerDesktopNav title="My Orders" />
 
-        <header className="sticky top-0 z-30 flex h-14 items-center justify-center border-b border-slate-200/60 bg-white/95 px-4 backdrop-blur md:hidden">
-          <p className="text-[15px] font-semibold text-slate-900">Orders</p>
-        </header>
+        <CustomerMobileTopBar title="Orders" />
 
         <div className="mx-auto max-w-2xl px-4 py-5">
           {orders.length === 0 ? (

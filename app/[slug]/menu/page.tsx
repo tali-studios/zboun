@@ -82,12 +82,15 @@ export default async function RestaurantInStoreMenuPage({ params }: Props) {
   return (
     <DeliveryLocationProvider>
       <div className="min-h-screen overflow-x-hidden bg-[#F9FAFB]">
-        <RestaurantMenuHero
-          restaurant={restaurant}
-          tagline={tagline}
-          menuThemeColor={restaurant.menu_theme_color}
-          modeBadge={viewLabels.inStoreViewBadge}
-        />
+        <div className="container px-3 pt-3 sm:px-6">
+          <RestaurantMenuHero
+            restaurant={restaurant}
+            tagline={tagline}
+            menuThemeColor={restaurant.menu_theme_color}
+            modeBadge={viewLabels.inStoreViewBadge}
+            desktop
+          />
+        </div>
 
         <main className="container px-3 pb-10 pt-3 sm:px-6 sm:pb-12 sm:pt-6 lg:pb-8">
           <MenuClient

@@ -14,6 +14,7 @@ import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { CustomerMobileFooterNav } from "@/components/customer-mobile-footer-nav";
 import { BackToTopButton } from "@/components/back-to-top-button";
 import { CustomerDesktopNav } from "@/components/customer-desktop-nav";
+import { CustomerMobileTopBar } from "@/components/customer-mobile-top-bar";
 
 export const dynamic = "force-dynamic";
 
@@ -60,12 +61,7 @@ export default async function AccountPage({ searchParams }: Props) {
 
   return (
     <div className="min-h-screen bg-[#f2f2f7]">
-      {/* ── Mobile-style top bar ── */}
-      <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-slate-200/60 bg-white/95 px-4 backdrop-blur sm:hidden">
-        <div className="w-9" aria-hidden />
-        <p className="text-[15px] font-semibold text-slate-900">Account</p>
-        <div className="w-9" aria-hidden />
-      </header>
+      <CustomerMobileTopBar title="Account" />
 
       <CustomerDesktopNav title="Account Settings" />
 

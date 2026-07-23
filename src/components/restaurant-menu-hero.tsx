@@ -1,5 +1,4 @@
 import Image from "next/image";
-import Link from "next/link";
 import type { MenuTheme } from "@/lib/menu-theme";
 import { resolveMenuTheme } from "@/lib/menu-theme";
 
@@ -32,6 +31,7 @@ export function RestaurantMenuHero({ restaurant, tagline, menuThemeColor, modeBa
       ? Math.round(Number(restaurant.user_avg_rating) * 10) / 10
       : null;
   const ratingCount = restaurant.user_rating_count ?? 0;
+  const hasBanner = Boolean(restaurant.banner_url);
 
   const heroPills = (
     <div className="meta-row mt-3">
@@ -54,66 +54,73 @@ export function RestaurantMenuHero({ restaurant, tagline, menuThemeColor, modeBa
   return (
     <header className="relative z-0 w-full">
       <div
-          className={`relative h-[46vw] w-full overflow-hidden sm:h-64 md:h-72 lg:h-80 ${desktop ? "rounded-2xl" : ""}`}
-          style={{
-            background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.accent} 48%, ${theme.deep} 100%)`,
-          }}
-        >
-          {restaurant.banner_url ? (
-            <>
-              <Image
-                src={restaurant.banner_url}
-                alt=""
-                fill
-                className="object-cover"
-                sizes="(max-width:768px) 100vw, (max-width:1280px) 90vw, 1200px"
-                priority
-                unoptimized
-              />
-              {/* Strong gradient so text is always legible over any banner */}
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/40 via-black/25 to-black/75" />
-            </>
-          ) : (
-            <div
-              className="absolute inset-0"
-              style={{
-                background: `linear-gradient(to bottom right, ${theme.primary}, ${theme.accent}, ${theme.deep})`,
-              }}
-              aria-hidden
+        className={`relative w-full overflow-hidden ${
+          desktop ? "rounded-2xl shadow-sm ring-1 ring-black/[0.04]" : ""
+        } ${
+          hasBanner
+            ? "min-h-[15rem] sm:min-h-[17rem] md:min-h-[18rem] lg:min-h-[20rem]"
+            : "h-[46vw] sm:h-64 md:h-72 lg:h-80"
+        }`}
+        style={{
+          background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.accent} 48%, ${theme.deep} 100%)`,
+        }}
+      >
+        {hasBanner && restaurant.banner_url ? (
+          <>
+            {/* Height follows the image at every breakpoint — full banner, no crop, no letterbox bars */}
+            <Image
+              src={restaurant.banner_url}
+              alt=""
+              width={1600}
+              height={900}
+              className="relative z-0 block h-auto w-full"
+              sizes="(max-width:768px) 100vw, (max-width:1280px) 90vw, 1200px"
+              priority
+              unoptimized
             />
-          )}
+            <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-b from-black/35 via-black/20 to-black/70" />
+          </>
+        ) : (
+          <div
+            className="absolute inset-0"
+            style={{
+              background: `linear-gradient(to bottom right, ${theme.primary}, ${theme.accent}, ${theme.deep})`,
+            }}
+            aria-hidden
+          />
+        )}
 
-          <div className="absolute inset-0 z-20 flex flex-col justify-end">
-            <div className="flex items-end gap-3 px-4 pb-5 pt-16 sm:gap-5 sm:px-6 sm:pb-6 sm:pt-20 lg:pb-7">
-              {restaurant.logo_url ? (
-                <div className="relative z-30 h-14 w-14 shrink-0 overflow-hidden rounded-2xl border-[3px] border-white bg-white shadow-lg sm:h-16 sm:w-16 lg:h-[4.5rem] lg:w-[4.5rem]">
-                  <Image
-                    src={restaurant.logo_url}
-                    alt={`${restaurant.name} logo`}
-                    width={72}
-                    height={72}
-                    className="h-full w-full object-cover"
-                    unoptimized
-                  />
-                </div>
-              ) : null}
-              <div className="min-w-0 flex-1 pb-0.5 text-left text-white drop-shadow-sm">
-                <h1 className="text-2xl font-bold leading-tight tracking-tight text-white sm:text-3xl lg:text-4xl">
-                  {restaurant.name}
-                </h1>
-                <p className="mt-1 max-w-2xl text-sm font-normal leading-relaxed text-white/90 sm:text-[15px]">
-                  {tagline}
-                </p>
-                {modeBadge ? (
-                  <p className="mt-1.5 inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white ring-1 ring-white/25">
-                    {modeBadge}
-                  </p>
-                ) : null}
-                {heroPills}
+        <div className="absolute inset-0 z-20 flex flex-col justify-end">
+          <div className="flex items-end gap-3 px-4 pb-5 pt-16 sm:gap-5 sm:px-6 sm:pb-6 sm:pt-20 lg:pb-7">
+            {restaurant.logo_url ? (
+              <div className="relative z-30 h-14 w-14 shrink-0 overflow-hidden rounded-2xl border-[3px] border-white bg-white shadow-lg sm:h-16 sm:w-16 lg:h-[4.5rem] lg:w-[4.5rem]">
+                <Image
+                  src={restaurant.logo_url}
+                  alt={`${restaurant.name} logo`}
+                  width={72}
+                  height={72}
+                  className="h-full w-full object-cover"
+                  unoptimized
+                />
               </div>
+            ) : null}
+            <div className="min-w-0 flex-1 pb-0.5 text-left text-white drop-shadow-sm">
+              <h1 className="text-2xl font-bold leading-tight tracking-tight text-white sm:text-3xl lg:text-4xl">
+                {restaurant.name}
+              </h1>
+              <p className="mt-1 max-w-2xl text-sm font-normal leading-relaxed text-white/90 sm:text-[15px]">
+                {tagline}
+              </p>
+              {modeBadge ? (
+                <p className="mt-1.5 inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white ring-1 ring-white/25">
+                  {modeBadge}
+                </p>
+              ) : null}
+              {heroPills}
             </div>
           </div>
         </div>
+      </div>
     </header>
   );
 }
