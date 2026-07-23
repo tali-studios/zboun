@@ -5,9 +5,12 @@ import Link from "next/link";
 import {
   ChevronDown,
   ChevronRight,
+  ClipboardList,
   Clock,
+  Heart,
   MapPin,
   Search,
+  User,
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -122,8 +125,8 @@ const HERO_SLIDES = [
   },
 ] as const;
 
-/** Flip to true to restore the Popular stores list on the home page. */
-const SHOW_POPULAR_STORES = false;
+/** Suggested stores list on home when no category is selected. */
+const SHOW_POPULAR_STORES = true;
 
 function subFilterAccent(sub: string, parent: BrowseSection): string {
   return BROWSE_SUB_FILTER_ACCENTS[sub] ?? BROWSE_SECTION_ACCENTS[parent];
@@ -211,7 +214,7 @@ export function RestaurantDirectory({
   const [activeSub, setActiveSub] = useState<string>("all");
   const [heroIndex, setHeroIndex] = useState(0);
   const heroTouchStartX = useRef<number | null>(null);
-  const { isFavorite, toggle: toggleFavorite } = useFavorites();
+  const { isFavorite, toggle: toggleFavorite, favorites } = useFavorites();
 
   const handleFavoriteClick = useCallback(
     (e: React.MouseEvent, slug: string) => {
@@ -385,7 +388,7 @@ export function RestaurantDirectory({
               </span>
               <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-400" strokeWidth={2.5} />
             </button>
-            {/* Phone: search opens /search (replaces bag). Desktop: orders / sign in. */}
+            {/* Phone: search. Desktop: favorites + orders + account (or sign in). */}
             <Link
               href="/search"
               className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-600 transition hover:bg-slate-100 md:hidden"
@@ -393,25 +396,35 @@ export function RestaurantDirectory({
             >
               <Search className="h-5 w-5" strokeWidth={2} />
             </Link>
+            <Link
+              href="/favorites"
+              className="relative hidden h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-600 transition hover:bg-slate-100 md:flex md:h-10 md:w-10"
+              aria-label="Favorite stores"
+            >
+              <Heart className="h-5 w-5" strokeWidth={2} />
+              {favorites.size > 0 ? (
+                <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold leading-none text-white">
+                  {favorites.size > 9 ? "9+" : favorites.size}
+                </span>
+              ) : null}
+            </Link>
             {isLoggedIn ? (
-              <Link
-                href="/account/orders"
-                className="relative hidden h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-600 transition hover:bg-slate-100 md:flex md:h-10 md:w-10"
-                aria-label="My orders"
-              >
-                <svg
-                  className="h-5 w-5"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden
+              <>
+                <Link
+                  href="/account/orders"
+                  className="relative hidden h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-600 transition hover:bg-slate-100 md:flex md:h-10 md:w-10"
+                  aria-label="Orders"
                 >
-                  <path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                </svg>
-              </Link>
+                  <ClipboardList className="h-5 w-5" strokeWidth={2} />
+                </Link>
+                <Link
+                  href="/account"
+                  className="relative hidden h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-600 transition hover:bg-slate-100 md:flex md:h-10 md:w-10"
+                  aria-label="Account"
+                >
+                  <User className="h-5 w-5" strokeWidth={2} />
+                </Link>
+              </>
             ) : (
               <Link
                 href="/login"
@@ -733,23 +746,32 @@ export function RestaurantDirectory({
           </div>
         ) : null}
 
-        {/* Popular stores — temporarily hidden; set SHOW_POPULAR_STORES to true to restore */}
+        {/* Suggested stores — shown until a category is chosen */}
         {SHOW_POPULAR_STORES && activeSection === "all" ? (
           <div id="popular-stores">
             <div className="mb-3 flex items-center justify-between gap-3">
               <h2 className="text-lg font-bold text-slate-900 md:text-xl">
-                {query.trim() ? "Stores" : "Popular stores"}
+                {query.trim() ? "Stores" : "Suggested stores"}
               </h2>
-              <button
-                type="button"
-                onClick={() => {
-                  pickSection("all");
-                  setQuery("");
-                }}
-                className="text-sm font-semibold text-violet-600 transition hover:text-violet-700"
-              >
-                View all
-              </button>
+              {query.trim() ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    pickSection("all");
+                    setQuery("");
+                  }}
+                  className="text-sm font-semibold text-violet-600 transition hover:text-violet-700"
+                >
+                  Clear
+                </button>
+              ) : (
+                <Link
+                  href="/search"
+                  className="text-sm font-semibold text-violet-600 transition hover:text-violet-700"
+                >
+                  View all
+                </Link>
+              )}
             </div>
 
             {filtered.length === 0 ? (

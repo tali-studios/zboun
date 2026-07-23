@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 const KEY = "zboun_favorites";
+const CHANGE_EVENT = "zboun_favorites_change";
 
 function readStored(): Set<string> {
   if (typeof window === "undefined") return new Set();
@@ -36,9 +37,11 @@ export function useFavorites() {
       if (next.has(slug)) next.delete(slug);
       else next.add(slug);
       writeStored(next);
-      // Notify other tabs / components
-      window.dispatchEvent(new Event("zboun_favorites_change"));
       return next;
+    });
+    // Defer broadcast so sibling hooks (e.g. footer) never setState during this update.
+    queueMicrotask(() => {
+      window.dispatchEvent(new Event(CHANGE_EVENT));
     });
   }, []);
 
@@ -47,13 +50,13 @@ export function useFavorites() {
     [favorites],
   );
 
-  // sync when another tab changes favorites
+  // sync when another tab / component changes favorites
   useEffect(() => {
     const handler = () => setFavorites(readStored());
-    window.addEventListener("zboun_favorites_change", handler);
+    window.addEventListener(CHANGE_EVENT, handler);
     window.addEventListener("storage", handler);
     return () => {
-      window.removeEventListener("zboun_favorites_change", handler);
+      window.removeEventListener(CHANGE_EVENT, handler);
       window.removeEventListener("storage", handler);
     };
   }, []);

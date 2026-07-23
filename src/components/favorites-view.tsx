@@ -50,7 +50,7 @@ export function FavoritesView({ restaurants }: Props) {
   }
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <div className="grid grid-cols-2 items-stretch gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-4">
       {favorited.map((r) => {
         const rating =
           r.rating != null && Number.isFinite(Number(r.rating))
@@ -63,10 +63,10 @@ export function FavoritesView({ restaurants }: Props) {
         }
 
         return (
-          <Link key={r.id} href={`/${r.slug}`} className="group block">
-            <article className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/[0.06] transition duration-300 hover:-translate-y-1 hover:shadow-lg">
+          <Link key={r.id} href={`/${r.slug}`} className="group flex h-full min-h-0">
+            <article className="flex h-full w-full flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/[0.06] transition duration-300 hover:-translate-y-1 hover:shadow-lg">
               {/* Banner */}
-              <div className="relative h-[42vw] w-full overflow-hidden bg-slate-100 sm:h-44">
+              <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden bg-slate-100">
                 {r.banner_url ? (
                   <Image
                     src={r.banner_url}
@@ -106,8 +106,8 @@ export function FavoritesView({ restaurants }: Props) {
                 </button>
               </div>
 
-              {/* Info panel */}
-              <div className="px-3 pb-3 pt-2.5">
+              {/* Info panel — fixed structure so siblings match height */}
+              <div className="flex flex-1 flex-col px-3 pb-3 pt-2.5">
                 <div className="flex items-center gap-2">
                   {r.logo_url ? (
                     <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-xl border border-slate-100 bg-white shadow-sm">
@@ -128,18 +128,16 @@ export function FavoritesView({ restaurants }: Props) {
                     </span>
                   ) : null}
                 </div>
-                <p className="mt-1.5 line-clamp-2 text-[11px] leading-snug text-slate-500">
+                <p className="mt-1.5 line-clamp-2 min-h-[2.2rem] text-[11px] leading-snug text-slate-500">
                   {r.description?.trim() || "Browse the menu and order online."}
                 </p>
-                <div className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1">
-                  {r.eta_label?.trim() ? (
-                    <span className="inline-flex items-center gap-0.5 text-[11px] text-slate-500">
-                      <svg className="h-3 w-3 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                        <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-                      </svg>
-                      {r.eta_label.trim()}
-                    </span>
-                  ) : null}
+                <div className="mt-auto flex min-h-[1.25rem] flex-wrap items-center gap-x-2.5 gap-y-1 pt-2">
+                  <span className="inline-flex items-center gap-0.5 text-[11px] text-slate-500">
+                    <svg className="h-3 w-3 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                      <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                    </svg>
+                    {r.eta_label?.trim() || "—"}
+                  </span>
                   {r.location?.trim() ? (
                     <span className="inline-flex min-w-0 items-center gap-0.5 truncate text-[11px] text-slate-400">
                       <MapPin className="h-3 w-3 shrink-0" />
