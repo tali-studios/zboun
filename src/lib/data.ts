@@ -384,6 +384,7 @@ type HomeRestaurantCard = {
   id: string;
   name: string;
   slug: string;
+  phone?: string | null;
   logo_url: string | null;
   banner_url: string | null;
   description: string | null;
@@ -411,10 +412,12 @@ function mapLegacyHomeRow(r: {
   name: string;
   slug: string;
   logo_url: string | null;
+  phone?: string | null;
   browse_sections?: string[] | null;
 }): HomeRestaurantCard {
   return {
     ...r,
+    phone: r.phone ?? null,
     banner_url: null,
     description: null,
     rating: null,
@@ -469,7 +472,7 @@ export const getHomeRestaurants = unstable_cache(
       auth: { persistSession: false, autoRefreshToken: false },
     });
     const fullSelect =
-      "id, name, slug, logo_url, banner_url, description, browse_sections, location, eta_label, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd, delivery_radius_km, latitude, longitude, restaurant_locations(id, name, latitude, longitude, address, is_main)";
+      "id, name, slug, phone, logo_url, banner_url, description, browse_sections, location, eta_label, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd, delivery_radius_km, latitude, longitude, restaurant_locations(id, name, latitude, longitude, address, is_main)";
 
     const full = await supabase
       .from("restaurants")
@@ -491,7 +494,7 @@ export const getHomeRestaurants = unstable_cache(
     const withHours = await supabase
       .from("restaurants")
       .select(
-        "id, name, slug, logo_url, banner_url, description, browse_sections, location, eta_label, opening_hours, is_temporarily_closed, latitude, longitude",
+        "id, name, slug, phone, logo_url, banner_url, description, browse_sections, location, eta_label, opening_hours, is_temporarily_closed, latitude, longitude",
       )
       .eq("is_active", true)
       .eq("show_on_home", true)
@@ -515,7 +518,7 @@ export const getHomeRestaurants = unstable_cache(
     // Fallback: new columns may not exist until migration is applied
     const legacy = await supabase
       .from("restaurants")
-      .select("id, name, slug, logo_url, browse_sections")
+      .select("id, name, slug, phone, logo_url, browse_sections")
       .eq("is_active", true)
       .eq("show_on_home", true)
       .order("created_at", { ascending: false });
@@ -525,7 +528,7 @@ export const getHomeRestaurants = unstable_cache(
     }
     return legacy.data.map(mapLegacyHomeRow);
   },
-  ["home-restaurants", "visitor-ratings-v2", "branches-v1", "hours-v2", "delivery-fee-v1", "fast-delivery-v1"],
+  ["home-restaurants", "visitor-ratings-v2", "branches-v1", "hours-v2", "delivery-fee-v1", "fast-delivery-v1", "phone-v1"],
   { revalidate: 60, tags: ["home-restaurants"] },
 );
 

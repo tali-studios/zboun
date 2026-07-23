@@ -153,7 +153,7 @@ export default async function BusinessMenuItemsPage({ searchParams }: Props) {
       ? selectedBrowseSections
       : businessType === "restaurant" || businessType === "cloud_kitchen"
         ? ["Food & Restaurants"]
-        : ["General Shops"];
+        : ["Sports & Outdoors"];
   const itemProfile = resolveStoreItemProfile(itemProfileBadgeSections);
 
   return (

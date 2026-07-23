@@ -3,37 +3,22 @@
 import Image from "next/image";
 import Link from "next/link";
 import {
-  Bike,
   ChevronDown,
-  CupSoda,
-  Fuel,
-  Home,
+  ChevronRight,
+  Clock,
   MapPin,
-  Navigation,
-  Package,
-  PawPrint,
-  Shirt,
-  SlidersHorizontal,
-  Smartphone,
-  Sparkles,
-  Store,
-  Utensils,
-  Wind,
-  HeartPulse,
+  Search,
   X,
-  Zap,
-  type LucideIcon,
 } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useFavorites } from "@/hooks/use-favorites";
 import {
-  BROWSE_FILTER_ALL_ACCENT,
   BROWSE_SECTION_ACCENTS,
   BROWSE_SECTION_OPTIONS,
   BROWSE_SUB_FILTER_ACCENTS,
-  HOME_HERO_SUBTITLE,
-  HOME_HERO_TITLE,
+  BROWSE_SUB_FILTER_ICONS,
   HOME_SEARCH_PLACEHOLDER,
+  formatBrowseSectionsLabel,
   getSubFiltersForSection,
   matchesBrowseFilter,
   sectionHasSubFilters,
@@ -49,31 +34,97 @@ import {
   parseOpeningHours,
   RESTAURANT_TIMEZONE,
 } from "@/lib/opening-hours";
+import { buildWhatsAppChatUrl } from "@/lib/whatsapp-url";
 
-const PAGE = {
-  ink: "#111827",
-  muted: "#6B7280",
-  surface: "#F9FAFB",
-  purple: "#5B21B6",
-  purpleLight: "#EDE9FE",
-} as const;
-
-type QuickFilterKey = "all" | BrowseSection;
-
-const FILTER_STYLES: Record<QuickFilterKey, { Icon: LucideIcon; color: string }> = {
-  all: { Icon: Sparkles, color: BROWSE_FILTER_ALL_ACCENT },
-  "Food & Restaurants": { Icon: Utensils, color: BROWSE_SECTION_ACCENTS["Food & Restaurants"] },
-  Groceries: { Icon: Package, color: BROWSE_SECTION_ACCENTS.Groceries },
-  "Fashion & Apparel": { Icon: Shirt, color: BROWSE_SECTION_ACCENTS["Fashion & Apparel"] },
-  "Electronics & Tech": { Icon: Smartphone, color: BROWSE_SECTION_ACCENTS["Electronics & Tech"] },
-  "Health & Beauty": { Icon: HeartPulse, color: BROWSE_SECTION_ACCENTS["Health & Beauty"] },
-  "Home & Living": { Icon: Home, color: BROWSE_SECTION_ACCENTS["Home & Living"] },
-  "Drinks & Beverages": { Icon: CupSoda, color: BROWSE_SECTION_ACCENTS["Drinks & Beverages"] },
-  "Vape & Tobacco": { Icon: Wind, color: BROWSE_SECTION_ACCENTS["Vape & Tobacco"] },
-  "Gas & Fuel": { Icon: Fuel, color: BROWSE_SECTION_ACCENTS["Gas & Fuel"] },
-  "Pets & Supplies": { Icon: PawPrint, color: BROWSE_SECTION_ACCENTS["Pets & Supplies"] },
-  "General Shops": { Icon: Store, color: BROWSE_SECTION_ACCENTS["General Shops"] },
+const CATEGORY_CARD_META: Record<
+  BrowseSection,
+  { shortLabel: string; pastel: string; image: string }
+> = {
+  "Food & Restaurants": {
+    shortLabel: "Restaurants",
+    pastel: "#FFF1E8",
+    image: "/categories/category-restaurants.png",
+  },
+  Groceries: {
+    shortLabel: "Groceries",
+    pastel: "#EEF8E9",
+    image: "/categories/category-groceries.png",
+  },
+  "Fashion & Apparel": {
+    shortLabel: "Fashion",
+    pastel: "#F3E8FF",
+    image: "/categories/category-fashion-v2.png",
+  },
+  "Electronics & Tech": {
+    shortLabel: "Electronics",
+    pastel: "#E8F1FF",
+    image: "/categories/category-electronics.png",
+  },
+  "Beauty & Pharmacy": {
+    shortLabel: "Beauty & Pharmacy",
+    pastel: "#E6FAF5",
+    image: "/categories/category-beauty-pharmacy.png",
+  },
+  "Home & Living": {
+    shortLabel: "Home",
+    pastel: "#FFF8E8",
+    image: "/categories/category-home.png",
+  },
+  "Drinks & Beverages": {
+    shortLabel: "Drinks",
+    pastel: "#E8FBFF",
+    image: "/categories/category-drinks-v2.png",
+  },
+  "Smoke & Tobacco": {
+    shortLabel: "Smoke",
+    pastel: "#F1F5F9",
+    image: "/categories/category-smoke.png",
+  },
+  // Temporarily hidden — restore with BROWSE_SECTION_OPTIONS "Gas & Fuel":
+  // "Gas & Fuel": {
+  //   shortLabel: "Fuel",
+  //   pastel: "#FFF4E5",
+  //   image: "/categories/category-fuel.png",
+  // },
+  "Pets & Supplies": {
+    shortLabel: "Pets",
+    pastel: "#EEF2FF",
+    image: "/categories/category-pets.png",
+  },
+  Automotive: {
+    shortLabel: "Automotive",
+    pastel: "#F1F5F9",
+    image: "/categories/category-auto.png",
+  },
+  "Gifts & Lifestyle": {
+    shortLabel: "Gifts",
+    pastel: "#FFE8F1",
+    image: "/categories/category-gifts.png",
+  },
+  "Sports & Outdoors": {
+    shortLabel: "Sports & Outdoors",
+    pastel: "#ECFDF5",
+    image: "/categories/category-sports-outdoors.png",
+  },
 };
+
+const HERO_SLIDES = [
+  {
+    title: "Support local. Shop local.",
+    subtitle: "Your favorite stores, now on WhatsApp.",
+  },
+  {
+    title: "Order in one tap.",
+    subtitle: "Clear WhatsApp orders — no app needed.",
+  },
+  {
+    title: "Discover nearby.",
+    subtitle: "Browse menus from stores around you.",
+  },
+] as const;
+
+/** Flip to true to restore the Popular stores list on the home page. */
+const SHOW_POPULAR_STORES = false;
 
 function subFilterAccent(sub: string, parent: BrowseSection): string {
   return BROWSE_SUB_FILTER_ACCENTS[sub] ?? BROWSE_SECTION_ACCENTS[parent];
@@ -106,6 +157,7 @@ type RestaurantCard = {
   id: string;
   name: string;
   slug: string;
+  phone?: string | null;
   logo_url: string | null;
   banner_url: string | null;
   description: string | null;
@@ -137,13 +189,34 @@ type Props = {
     is_default: boolean;
   }>;
   isLoggedIn?: boolean;
+  customerName?: string;
 };
 
-export function RestaurantDirectory({ restaurants, savedAddresses = [], isLoggedIn = false }: Props) {
+function WhatsAppIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.435 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+    </svg>
+  );
+}
+
+function storeSubtitle(restaurant: RestaurantCard): string {
+  const label = formatBrowseSectionsLabel(restaurant.browse_sections);
+  if (label && label !== "Uncategorized") return label;
+  if (restaurant.location?.trim()) return restaurant.location.trim();
+  return "Local store";
+}
+
+export function RestaurantDirectory({
+  restaurants,
+  savedAddresses = [],
+  isLoggedIn = false,
+  customerName: _customerName = "",
+}: Props) {
   const [query, setQuery] = useState("");
   const [activeSection, setActiveSection] = useState<string>("all");
   const [activeSub, setActiveSub] = useState<string>("all");
-  const [filterOpen, setFilterOpen] = useState(false);
+  const [heroIndex, setHeroIndex] = useState(0);
   const { isFavorite, toggle: toggleFavorite } = useFavorites();
 
   const handleFavoriteClick = useCallback(
@@ -155,14 +228,20 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
     [toggleFavorite],
   );
 
-  const { location, openSheet, clearLocation, radiusKm, isResolvingLocation } = useDeliveryLocation();
+  const { location, openSheet, radiusKm, isResolvingLocation } = useDeliveryLocation();
+
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setHeroIndex((i) => (i + 1) % HERO_SLIDES.length);
+    }, 5000);
+    return () => window.clearInterval(id);
+  }, []);
 
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
 
     return restaurants
       .map((r) => {
-        // Collect all candidate geo-points: explicit branches + legacy single lat/lng
         const points: { lat: number; lng: number }[] = [
           ...(r.branches ?? []).map((b) => ({ lat: b.latitude, lng: b.longitude })),
           ...(r.latitude != null && r.longitude != null ? [{ lat: r.latitude, lng: r.longitude }] : []),
@@ -176,7 +255,6 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
         return { ...r, distKm };
       })
       .filter(({ distKm, ...r }) => {
-        // Only exclude if we KNOW the restaurant is outside the effective delivery range.
         if (location && distKm !== null) {
           const maxKm = effectiveSearchRadiusKm(radiusKm, r.delivery_radius_km);
           if (distKm > maxKm) return false;
@@ -188,9 +266,10 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
           r.slug.toLowerCase().includes(normalized) ||
           (r.description ?? "").toLowerCase().includes(normalized) ||
           (r.location ?? "").toLowerCase().includes(normalized) ||
-          (r.branches ?? []).some((b) =>
-            (b.address ?? "").toLowerCase().includes(normalized) ||
-            b.name.toLowerCase().includes(normalized),
+          (r.branches ?? []).some(
+            (b) =>
+              (b.address ?? "").toLowerCase().includes(normalized) ||
+              b.name.toLowerCase().includes(normalized),
           );
 
         const matchesSection = matchesBrowseFilter(r.browse_sections, activeSection, activeSub);
@@ -204,6 +283,35 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
       });
   }, [restaurants, query, activeSection, activeSub, location, radiusKm]);
 
+  const categoryCounts = useMemo(() => {
+    const counts = {} as Record<BrowseSection, number>;
+    for (const section of BROWSE_SECTION_OPTIONS) {
+      counts[section] = restaurants.filter((r) =>
+        matchesBrowseFilter(r.browse_sections, section, "all"),
+      ).length;
+    }
+    return counts;
+  }, [restaurants]);
+
+  const featuredCategories = useMemo(() => {
+    const preferred: BrowseSection[] = [
+      "Food & Restaurants",
+      "Groceries",
+      "Fashion & Apparel",
+      "Electronics & Tech",
+      "Beauty & Pharmacy",
+      "Drinks & Beverages",
+      "Smoke & Tobacco",
+      "Home & Living",
+      "Pets & Supplies",
+      "Automotive",
+      "Gifts & Lifestyle",
+      "Sports & Outdoors",
+      // "Gas & Fuel", // temporarily hidden
+    ];
+    return preferred.filter((s) => BROWSE_SECTION_OPTIONS.includes(s));
+  }, []);
+
   const activeSectionKey = activeSection as BrowseSection;
   const showSubFilters = activeSection !== "all" && sectionHasSubFilters(activeSectionKey);
   const subFilterOptions = showSubFilters ? getSubFiltersForSection(activeSectionKey) : [];
@@ -211,536 +319,612 @@ export function RestaurantDirectory({ restaurants, savedAddresses = [], isLogged
   const pickSection = (id: string) => {
     setActiveSection(id);
     setActiveSub("all");
-    if (id === "all" || !sectionHasSubFilters(id as BrowseSection)) {
-      setFilterOpen(false);
+    if (typeof window !== "undefined" && id !== "all") {
+      window.setTimeout(() => {
+        document.getElementById("category-results")?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }, 50);
     }
   };
 
   const pickSub = (sub: string) => {
     setActiveSub(sub);
-    setFilterOpen(false);
   };
-
-  const filterButtonLabel =
-    activeSection === "all"
-      ? "All"
-      : activeSub !== "all"
-        ? `${activeSection} · ${activeSub}`
-        : activeSection;
 
   const locationLabel = isResolvingLocation
     ? "Finding location…"
-    : (location?.label ?? null);
+    : (location?.label ?? "Set your location");
+
+  const hero = HERO_SLIDES[heroIndex];
 
   return (
     <>
       <DeliveryLocationSheet savedAddresses={savedAddresses} isLoggedIn={isLoggedIn} />
 
-      {/* ── Mobile app-style header (phone only) ── */}
-      <div className="md:hidden sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-100 shadow-sm">
-        <div className="flex items-center gap-3 px-4 py-3">
-          {/* Logo */}
+      {/* Sticky top bar — logo + location + orders */}
+      <div className="sticky top-0 z-30 border-b border-slate-100 bg-white/95 backdrop-blur-md">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-3 md:gap-3 md:px-6">
           <Link href="/" className="shrink-0" aria-label="Zboun home">
             <Image
               src="/Logo.svg?v=3"
               alt="Zboun"
-              width={80}
-              height={23}
+              width={110}
+              height={32}
               priority
               unoptimized
-              className="h-7 w-auto object-contain"
+              className="h-8 w-auto object-contain md:h-9"
             />
           </Link>
 
-          {/* Divider */}
-          <div className="h-5 w-px bg-slate-200 shrink-0" aria-hidden />
-
-          {/* Location picker */}
-          <button
-            onClick={openSheet}
-            className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
-            aria-label="Change delivery location"
-          >
-            <MapPin className="h-4 w-4 shrink-0 text-violet-600" strokeWidth={2.5} />
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-0.5">
-                <p className="truncate text-[14px] font-bold text-slate-900 leading-tight">
-                  {locationLabel ?? "Set location"}
-                </p>
-                <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-500" strokeWidth={2.5} />
-              </div>
-            </div>
-          </button>
-
-          {/* Right icons */}
-          <div className="flex items-center gap-2 shrink-0">
-            {location ? (
-              <button
-                onClick={clearLocation}
-                aria-label="Use current location"
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            ) : null}
+          <div className="flex min-w-0 shrink items-center gap-1.5 sm:gap-2">
+            <button
+              type="button"
+              onClick={openSheet}
+              className="inline-flex h-9 max-w-[11rem] min-w-0 items-center gap-1.5 rounded-full bg-slate-50 px-3 text-left transition hover:bg-slate-100 sm:max-w-[16rem] md:h-10 md:max-w-xs md:px-3.5"
+              aria-label="Change delivery location"
+            >
+              <MapPin className="h-4 w-4 shrink-0 text-violet-600" strokeWidth={2.5} />
+              <span className="truncate text-xs font-semibold text-slate-800 sm:text-sm">
+                {locationLabel}
+              </span>
+              <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-400" strokeWidth={2.5} />
+            </button>
             {isLoggedIn ? (
               <Link
                 href="/account/orders"
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-violet-600 text-white shadow-sm shadow-violet-400/30 transition hover:bg-violet-700"
+                className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-600 transition hover:bg-slate-100 md:h-10 md:w-10"
                 aria-label="My orders"
               >
-                <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <svg
+                  className="h-5 w-5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden
+                >
                   <path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                 </svg>
               </Link>
-            ) : null}
+            ) : (
+              <Link
+                href="/login"
+                className="inline-flex h-9 shrink-0 items-center rounded-full bg-violet-600 px-3.5 text-xs font-semibold text-white shadow-sm shadow-violet-400/30 transition hover:bg-violet-700 md:h-10 md:px-4 md:text-sm"
+              >
+                Sign in
+              </Link>
+            )}
           </div>
         </div>
+      </div>
 
-        {/* Search bar row */}
-        <div className="flex items-center gap-2 px-4 pb-3">
-          <div className="relative flex-1">
-            <svg
+      <section className="mx-auto max-w-6xl px-4 pb-8 pt-5 md:px-6 md:pb-12 md:pt-8">
+        {/* Search */}
+        <div className="mb-5 md:mb-7">
+          <div className="relative">
+            <Search
               className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
-              fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
-            </svg>
+              aria-hidden
+            />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={HOME_SEARCH_PLACEHOLDER}
-              className="h-10 w-full rounded-full border border-slate-200 bg-slate-50 pl-9 pr-4 text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 focus:bg-white transition"
+              className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-10 pr-10 text-sm outline-none transition focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-100"
+              aria-label="Search stores"
             />
-          </div>
-          <button
-            type="button"
-            onClick={() => setFilterOpen(true)}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-violet-600 text-white shadow-md shadow-violet-600/25 transition hover:bg-violet-700"
-            aria-label={`Category: ${filterButtonLabel}`}
-          >
-            <SlidersHorizontal className="h-4 w-4" strokeWidth={2} />
-          </button>
-        </div>
-      </div>
-
-      <section className="container pb-10 pt-4 md:pt-6" style={{ color: PAGE.ink }}>
-        {/* Desktop header — hidden on mobile (mobile has sticky header above) */}
-        <header className="mb-6 hidden md:block md:mb-8">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <h1 className="max-w-3xl text-3xl font-bold leading-[1.15] tracking-tight sm:text-4xl md:text-5xl">
-                {HOME_HERO_TITLE}
-              </h1>
-              <p className="mt-4 max-w-xl text-base leading-relaxed md:text-lg" style={{ color: PAGE.muted }}>
-                {HOME_HERO_SUBTITLE}
-              </p>
-            </div>
-          </div>
-        </header>
-
-        {/* ── Desktop: delivery location bar ── */}
-        <div className="mb-4 hidden md:block">
-          {location ? (
-            <div className="flex items-center gap-2">
+            {query ? (
               <button
-                onClick={openSheet}
-                className="flex min-w-0 flex-1 items-center gap-2.5 rounded-full border border-violet-200 bg-violet-50 py-2.5 pl-4 pr-5 text-left transition hover:bg-violet-100"
-              >
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-violet-600 text-white shadow-sm">
-                  <MapPin className="h-3.5 w-3.5" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-violet-500">Delivering to</p>
-                  <p className="truncate text-sm font-semibold text-slate-800">{location.label}</p>
-                </div>
-                <span className="shrink-0 rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold text-violet-600">
-                  {radiusKm} km
-                </span>
-              </button>
-              <button
-                onClick={clearLocation}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-100"
-                aria-label="Use current location"
+                type="button"
+                onClick={() => setQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-600"
+                aria-label="Clear search"
               >
                 <X className="h-4 w-4" />
               </button>
-            </div>
-          ) : (
-            <button
-              onClick={openSheet}
-              className="flex w-full items-center gap-3 rounded-full border border-dashed border-slate-300 bg-white px-4 py-3 text-left transition hover:border-violet-300 hover:bg-violet-50/50 sm:w-auto sm:min-w-[320px]"
-            >
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500">
-                <Navigation className="h-4 w-4" />
-              </span>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-slate-600">
-                  {isResolvingLocation ? "Finding your location…" : "Choose saved address"}
-                </p>
-                <p className="text-xs text-slate-400">
-                  {isResolvingLocation ? "Allow location access if prompted" : "Or wait for GPS to finish"}
-                </p>
-              </div>
-              <MapPin className="h-4 w-4 shrink-0 text-slate-300" />
-            </button>
-          )}
-        </div>
-
-        {/* ── Desktop: search + category ── */}
-        <div className="mb-6 hidden md:flex flex-col gap-3 sm:flex-row sm:items-stretch">
-          <div className="relative min-w-0 flex-1">
-            <svg
-              className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2"
-              style={{ color: PAGE.muted }}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-              aria-hidden
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
-            </svg>
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search..."
-              className="ui-input ui-input-search h-12 w-full rounded-full border border-slate-200/90 bg-white text-base shadow-sm"
-            />
+            ) : null}
           </div>
-          <button
-            type="button"
-            onClick={() => setFilterOpen(true)}
-            className="flex h-12 shrink-0 items-center justify-center gap-2 rounded-full bg-violet-600 px-4 text-sm font-semibold text-white shadow-md shadow-violet-600/25 transition hover:bg-violet-700 sm:min-w-[9.5rem] sm:px-5"
-            aria-label={`Category: ${filterButtonLabel}. Open filters`}
-          >
-            <SlidersHorizontal className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
-            <span className="truncate">{filterButtonLabel}</span>
-          </button>
         </div>
 
-
-        {/* ── Filter sheet ── */}
-        {filterOpen ? (
-          <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" role="dialog" aria-modal="true" aria-labelledby="filter-title">
-            <button
-              type="button"
-              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
-              aria-label="Close filters"
-              onClick={() => setFilterOpen(false)}
-            />
-            <div className="relative z-10 w-full max-w-lg rounded-t-[28px] bg-white/95 p-6 shadow-2xl sm:rounded-[28px] sm:p-8">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: PAGE.purple }}>
-                    Discover
-                  </p>
-                  <h2 id="filter-title" className="mt-1 text-2xl font-bold tracking-tight">
-                    Filter by category
-                  </h2>
-                </div>
+        {/* Shop by category */}
+        <div className="mb-8 md:mb-10">
+          {/* <h2 className="mb-3 text-lg font-bold text-slate-900 md:text-xl">Shop by category</h2> */}
+          <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:grid md:grid-cols-3 md:gap-4 md:overflow-visible md:px-0 lg:grid-cols-6">
+            {featuredCategories.map((section) => {
+              const meta = CATEGORY_CARD_META[section];
+              const count = categoryCounts[section];
+              const selected = activeSection === section;
+              return (
                 <button
+                  key={section}
                   type="button"
-                  onClick={() => setFilterOpen(false)}
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-md ring-1 ring-slate-200/80 transition hover:bg-slate-50"
-                  aria-label="Close"
+                  onClick={() => pickSection(selected ? "all" : section)}
+                  className={`flex w-[10.5rem] shrink-0 flex-col overflow-hidden rounded-[1.25rem] text-left shadow-sm ring-1 transition md:w-auto ${
+                    selected
+                      ? "ring-violet-400 ring-offset-2"
+                      : "ring-black/[0.05] hover:-translate-y-0.5 hover:shadow-md"
+                  }`}
+                  style={{ backgroundColor: meta.pastel }}
                 >
-                  <X className="h-5 w-5 text-slate-800" />
-                </button>
-              </div>
-
-              <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {(() => {
-                  const { Icon: AllIcon, color: allColor } = FILTER_STYLES.all;
-                  const allOn = activeSection === "all";
-                  return (
-                    <button
-                      type="button"
-                      onClick={() => pickSection("all")}
-                      className={`flex items-center gap-2 rounded-full px-2.5 py-2 text-left text-xs font-semibold shadow-sm ring-1 ring-black/[0.04] transition hover:brightness-[0.98] ${
-                        allOn ? "text-white" : "text-slate-800"
-                      }`}
-                      style={{ backgroundColor: allOn ? allColor : rgbaHex(allColor, 0.12) }}
-                    >
-                      <span
-                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
-                        style={{
-                          backgroundColor: allOn ? "rgba(255,255,255,0.22)" : rgbaHex(allColor, 0.22),
-                          color: allOn ? "#fff" : allColor,
-                        }}
-                      >
-                        <AllIcon className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
-                      </span>
-                      All
-                    </button>
-                  );
-                })()}
-                {BROWSE_SECTION_OPTIONS.map((section) => {
-                  const { Icon, color } = FILTER_STYLES[section];
-                  const on = activeSection === section;
-                  return (
-                    <button
-                      key={section}
-                      type="button"
-                      onClick={() => pickSection(section)}
-                      className="flex items-center gap-2 rounded-full px-2.5 py-2 text-left text-xs font-semibold leading-tight shadow-sm ring-1 ring-black/[0.04] transition hover:brightness-[0.98]"
-                      style={{
-                        backgroundColor: on ? color : rgbaHex(color, 0.12),
-                        color: on ? "#fff" : PAGE.ink,
-                      }}
-                    >
-                      <span
-                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
-                        style={{
-                          backgroundColor: on ? "rgba(255,255,255,0.22)" : rgbaHex(color, 0.22),
-                          color: on ? "#fff" : color,
-                        }}
-                      >
-                        <Icon className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
-                      </span>
-                      <span className="min-w-0">{section}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {showSubFilters ? (
-                <div className="mt-5 border-t border-slate-100 pt-4">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500">
-                    Refine {activeSection}
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => pickSub("all")}
-                      className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-                        activeSub === "all"
-                          ? "text-white"
-                          : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                      }`}
-                      style={
-                        activeSub === "all"
-                          ? { backgroundColor: BROWSE_SECTION_ACCENTS[activeSectionKey] }
-                          : undefined
-                      }
-                    >
-                      All
-                    </button>
-                    {subFilterOptions.map((sub) => {
-                      const on = activeSub === sub;
-                      const color = subFilterAccent(sub, activeSectionKey);
-                      return (
-                        <button
-                          key={sub}
-                          type="button"
-                          onClick={() => pickSub(sub)}
-                          className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-                            on ? "text-white" : "text-slate-700"
-                          }`}
-                          style={{
-                            backgroundColor: on ? color : rgbaHex(color, 0.14),
-                          }}
-                        >
-                          {sub}
-                        </button>
-                      );
-                    })}
+                  <div className="relative h-32 w-full overflow-hidden md:h-36">
+                    <Image
+                      src={meta.image}
+                      alt=""
+                      fill
+                      className="object-cover object-center"
+                      sizes="(max-width:768px) 168px, 180px"
+                    />
                   </div>
+                  <div className="bg-white/80 px-3 py-2.5 backdrop-blur-[2px]">
+                    <p className="truncate text-sm font-bold text-slate-900">{meta.shortLabel}</p>
+                    <p className="text-xs font-semibold text-violet-600">
+                      {count} {count === 1 ? "store" : "stores"}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Hero carousel */}
+        <div className="relative mb-8 overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-[#5B2CFF] via-[#6D3BFF] to-[#8B45F5] px-5 py-7 text-white shadow-lg shadow-violet-500/25 md:mb-10 md:px-10 md:py-10">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -right-8 -top-10 h-44 w-44 rounded-full bg-white/10 blur-2xl md:h-64 md:w-64"
+          />
+          <div className="relative flex items-center justify-between gap-3 md:gap-6">
+            <div className="min-w-0 flex-1 max-w-xl">
+              <p className="text-xl font-bold leading-tight md:text-3xl">{hero.title}</p>
+              <p className="mt-2 text-sm text-violet-100 md:text-base">{hero.subtitle}</p>
+            </div>
+            <div className="relative h-[4.75rem] w-[4.75rem] shrink-0 sm:h-28 sm:w-28 md:h-36 md:w-36" aria-hidden>
+              <Image
+                src="/hero-bag.png"
+                alt=""
+                fill
+                priority
+                unoptimized
+                className="object-contain drop-shadow-[0_12px_24px_rgba(40,10,90,0.35)]"
+                sizes="(max-width:640px) 76px, (max-width:768px) 112px, 144px"
+              />
+            </div>
+          </div>
+          <div className="relative mt-5 flex items-center justify-center gap-2">
+            {HERO_SLIDES.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => setHeroIndex(i)}
+                aria-label={`Show promo ${i + 1}`}
+                className={`h-2 w-2 rounded-full transition ${
+                  i === heroIndex ? "bg-white" : "bg-white/35 hover:bg-white/55"
+                }`}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Category results — inline below shop-by-category */}
+        {activeSection !== "all" ? (
+          <div id="category-results" className="mb-8 scroll-mt-24 md:mb-10">
+            <div className="mb-1 flex flex-wrap items-end justify-between gap-2">
+              <div>
+                <h2 className="text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">
+                  {CATEGORY_CARD_META[activeSectionKey]?.shortLabel ?? activeSection}
+                </h2>
+                <p className="mt-0.5 text-sm text-slate-500">
+                  Discover{" "}
+                  {(CATEGORY_CARD_META[activeSectionKey]?.shortLabel ?? activeSection).toLowerCase()} near
+                  you
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => pickSection("all")}
+                className="text-sm font-semibold text-violet-600 transition hover:text-violet-700"
+              >
+                Clear
+              </button>
+            </div>
+
+            {showSubFilters ? (
+              <div className="mt-4">
+                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
+                  Refine {CATEGORY_CARD_META[activeSectionKey]?.shortLabel ?? activeSection}
+                </p>
+                <div className="mt-3 -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:flex-wrap md:overflow-visible md:px-0">
                   <button
                     type="button"
-                    onClick={() => setFilterOpen(false)}
-                    className="mt-4 w-full rounded-full bg-violet-600 py-2.5 text-xs font-bold text-white transition hover:bg-violet-700"
+                    onClick={() => pickSub("all")}
+                    className={`shrink-0 rounded-full px-4 py-2 text-xs font-semibold transition ${
+                      activeSub === "all" ? "text-white" : "text-slate-700"
+                    }`}
+                    style={{
+                      backgroundColor:
+                        activeSub === "all"
+                          ? BROWSE_SECTION_ACCENTS[activeSectionKey]
+                          : rgbaHex(BROWSE_SECTION_ACCENTS[activeSectionKey], 0.14),
+                    }}
                   >
-                    Done
+                    All
                   </button>
+                  {subFilterOptions.map((sub) => {
+                    const on = activeSub === sub;
+                    const color = subFilterAccent(sub, activeSectionKey);
+                    const icon = BROWSE_SUB_FILTER_ICONS[sub];
+                    return (
+                      <button
+                        key={sub}
+                        type="button"
+                        onClick={() => pickSub(sub)}
+                        className={`flex shrink-0 items-center gap-1.5 rounded-full py-1.5 pl-2 pr-4 text-xs font-semibold transition ${
+                          on ? "text-white" : "text-slate-700"
+                        }`}
+                        style={{
+                          backgroundColor: on ? color : rgbaHex(color, 0.14),
+                        }}
+                      >
+                        {icon ? (
+                          <span
+                            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-sm md:h-7 md:w-7"
+                            aria-hidden="true"
+                          >
+                            {icon}
+                          </span>
+                        ) : null}
+                        {sub}
+                      </button>
+                    );
+                  })}
                 </div>
-              ) : null}
+              </div>
+            ) : null}
+
+            <div className="mt-5">
+              {filtered.length === 0 ? (
+                <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50 py-14 text-center">
+                  <p className="text-base font-semibold text-slate-700">No stores in this category</p>
+                  <p className="mt-1 text-sm text-slate-400">
+                    {location
+                      ? "Try adjusting your location or refine filters."
+                      : "Try another refine filter or set your location."}
+                  </p>
+                </div>
+              ) : (
+                <ul className="grid grid-cols-2 gap-3 md:gap-5 lg:grid-cols-3">
+                  {filtered.map((restaurant) => {
+                    const hasHours = hasConfiguredOpeningHours(restaurant.opening_hours);
+                    const hours = parseOpeningHours(restaurant.opening_hours, {
+                      fallbackToDefault: false,
+                    });
+                    const isClosed =
+                      restaurant.is_temporarily_closed ||
+                      (hasHours &&
+                        !isRestaurantOpenNow(hours, {
+                          isTemporarilyClosed: restaurant.is_temporarily_closed,
+                          timeZone: RESTAURANT_TIMEZONE,
+                        }));
+                    const cuisine = restaurant.description?.trim() || storeSubtitle(restaurant);
+                    const deliveryLabel = restaurant.free_delivery
+                      ? "$0 Delivery"
+                      : restaurant.delivery_fee_usd != null
+                        ? `$${restaurant.delivery_fee_usd} Delivery`
+                        : "Delivery";
+                    const bannerSrc = restaurant.banner_url || restaurant.logo_url;
+
+                    return (
+                      <li key={restaurant.id}>
+                        <article className="flex h-full flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/[0.06]">
+                          <Link
+                            href={`/${restaurant.slug}`}
+                            className="relative block aspect-[4/3] bg-slate-100"
+                          >
+                            {bannerSrc ? (
+                              <Image
+                                src={bannerSrc}
+                                alt=""
+                                fill
+                                className={`object-cover ${isClosed ? "opacity-70 grayscale-[0.3]" : ""}`}
+                                sizes="(max-width:768px) 50vw, 280px"
+                                unoptimized
+                              />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center bg-violet-100 text-lg font-bold text-violet-700">
+                                {restaurant.name.slice(0, 2).toUpperCase()}
+                              </div>
+                            )}
+                            {restaurant.rating != null ? (
+                              <span className="absolute right-2 top-2 inline-flex items-center gap-0.5 rounded-full bg-white/95 px-2 py-0.5 text-[11px] font-bold text-slate-800 shadow-sm">
+                                <span className="text-violet-600" aria-hidden>
+                                  ★
+                                </span>
+                                {Number(restaurant.rating).toFixed(1)}
+                              </span>
+                            ) : null}
+                            {isClosed ? (
+                              <span className="absolute left-2 top-2 rounded-md bg-rose-500/95 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                                Closed
+                              </span>
+                            ) : null}
+                          </Link>
+
+                          <div className="flex flex-1 flex-col px-2.5 pb-3 pt-2.5 md:px-3.5 md:pb-4 md:pt-3">
+                            <Link href={`/${restaurant.slug}`} className="min-w-0">
+                              <h3 className="truncate text-sm font-bold text-slate-900 md:text-base">
+                                {restaurant.name}
+                              </h3>
+                              <p className="mt-0.5 truncate text-xs font-medium text-violet-600 md:text-sm">
+                                {cuisine}
+                              </p>
+                              {restaurant.location ? (
+                                <p className="mt-1.5 flex items-center gap-1 truncate text-[11px] text-slate-500 md:text-xs">
+                                  <MapPin
+                                    className="h-3 w-3 shrink-0 text-violet-500"
+                                    strokeWidth={2.5}
+                                    aria-hidden
+                                  />
+                                  <span className="truncate">{restaurant.location}</span>
+                                </p>
+                              ) : null}
+                              <p className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-500 md:text-xs">
+                                <Clock className="h-3 w-3 shrink-0" strokeWidth={2.25} aria-hidden />
+                                <span>{restaurant.eta_label?.trim() || "—"}</span>
+                                <span aria-hidden>•</span>
+                                <span>{deliveryLabel}</span>
+                              </p>
+                            </Link>
+
+                            <Link
+                              href={`/${restaurant.slug}`}
+                              className="mt-3 inline-flex w-full items-center justify-center gap-1 rounded-full border-2 border-violet-500 py-2 text-xs font-bold text-violet-600 transition hover:bg-violet-50 md:text-sm"
+                            >
+                              View menu
+                              <ChevronRight className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
+                            </Link>
+                          </div>
+                        </article>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
             </div>
           </div>
         ) : null}
 
-        {/* ── Cards ── */}
-        {filtered.length === 0 ? (
-          <div
-            className="rounded-3xl border border-dashed border-slate-200 py-16 text-center"
-            style={{ backgroundColor: PAGE.surface }}
-          >
-            <p className="text-base font-semibold text-slate-700">No businesses found</p>
-            <p className="mt-1 text-sm text-slate-400">
-              {location
-                ? "Try increasing the search radius or choosing a different location."
-                : "Try another search or category."}
-            </p>
-            {location ? (
+        {/* Popular stores — temporarily hidden; set SHOW_POPULAR_STORES to true to restore */}
+        {SHOW_POPULAR_STORES && activeSection === "all" ? (
+          <div id="popular-stores">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <h2 className="text-lg font-bold text-slate-900 md:text-xl">
+                {query.trim() ? "Stores" : "Popular stores"}
+              </h2>
               <button
-                onClick={openSheet}
-                className="mt-4 rounded-full bg-violet-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-violet-700"
+                type="button"
+                onClick={() => {
+                  pickSection("all");
+                  setQuery("");
+                }}
+                className="text-sm font-semibold text-violet-600 transition hover:text-violet-700"
               >
-                Adjust radius
+                View all
               </button>
-            ) : null}
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 items-stretch gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {filtered.map((restaurant, index) => {
-              const hasHours = hasConfiguredOpeningHours(restaurant.opening_hours);
-              const hours = parseOpeningHours(restaurant.opening_hours, {
-                fallbackToDefault: false,
-              });
-              const isClosed =
-                restaurant.is_temporarily_closed ||
-                (hasHours &&
-                  !isRestaurantOpenNow(hours, {
-                    isTemporarilyClosed: restaurant.is_temporarily_closed,
-                    timeZone: RESTAURANT_TIMEZONE,
-                  }));
-              const rating =
-                restaurant.rating != null && Number.isFinite(Number(restaurant.rating))
-                  ? Math.round(Number(restaurant.rating) * 10) / 10
-                  : null;
+            </div>
 
-              return (
-                <Link key={restaurant.id} href={`/${restaurant.slug}`} className="group flex h-full flex-col">
-                  <article className="flex h-full flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/[0.06] transition duration-300 hover:-translate-y-1 hover:shadow-lg">
-                    {/* ── Banner image ── */}
-                    <div className="relative h-[42vw] w-full sm:h-44 overflow-hidden bg-slate-100">
-                      {restaurant.banner_url ? (
-                        <Image
-                          src={restaurant.banner_url}
-                          alt={restaurant.name}
-                          fill
-                          className="object-cover transition duration-500 group-hover:scale-[1.04]"
-                          sizes="(max-width:640px) 50vw, (max-width:1280px) 33vw, 25vw"
-                          loading={index < 4 ? "eager" : "lazy"}
-                          unoptimized
-                        />
-                      ) : (
-                        <div
-                          className="absolute inset-0 bg-gradient-to-br from-violet-400 via-fuchsia-500 to-amber-400"
-                          aria-hidden
-                        />
-                      )}
+            {filtered.length === 0 ? (
+              <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50 py-14 text-center">
+                <p className="text-base font-semibold text-slate-700">No businesses found</p>
+                <p className="mt-1 text-sm text-slate-400">
+                  {location
+                    ? "Try increasing the search radius or choosing a different location."
+                    : "Try another search or category."}
+                </p>
+                <button
+                  type="button"
+                  onClick={openSheet}
+                  className="mt-4 rounded-full bg-violet-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-violet-700"
+                >
+                  {location ? "Adjust location" : "Set location"}
+                </button>
+              </div>
+            ) : (
+              <ul className="space-y-3 md:grid md:grid-cols-2 md:gap-4 md:space-y-0">
+                {filtered.map((restaurant) => {
+                  const hasHours = hasConfiguredOpeningHours(restaurant.opening_hours);
+                  const hours = parseOpeningHours(restaurant.opening_hours, {
+                    fallbackToDefault: false,
+                  });
+                  const isClosed =
+                    restaurant.is_temporarily_closed ||
+                    (hasHours &&
+                      !isRestaurantOpenNow(hours, {
+                        isTemporarilyClosed: restaurant.is_temporarily_closed,
+                        timeZone: RESTAURANT_TIMEZONE,
+                      }));
+                  const waUrl = restaurant.phone
+                    ? buildWhatsAppChatUrl(
+                        restaurant.phone,
+                        `Hi! I'd like to order from ${restaurant.name} on Zboun.`,
+                      )
+                    : null;
 
-                      {isClosed ? (
-                        <span className="absolute bottom-2 left-2 z-10 rounded-md bg-rose-600/95 px-2 py-1 text-[10px] font-bold text-white shadow-sm backdrop-blur-sm">
-                          Closed now
-                        </span>
-                      ) : null}
-
-                      {/* favorite heart — bottom-right */}
-                      <button
-                        type="button"
-                        aria-label={isFavorite(restaurant.slug) ? "Remove from favorites" : "Add to favorites"}
-                        onClick={(e) => handleFavoriteClick(e, restaurant.slug)}
-                        className="absolute bottom-2 right-2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-white/80 shadow-sm backdrop-blur-sm transition hover:bg-white"
-                      >
-                        <svg
-                          className={`h-4 w-4 transition-colors ${isFavorite(restaurant.slug) ? "fill-amber-500 text-amber-500" : "fill-none text-slate-500"}`}
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          strokeWidth={2}
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          aria-hidden
+                  return (
+                    <li key={restaurant.id}>
+                      <article className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-3 shadow-sm ring-1 ring-black/[0.03] transition hover:shadow-md md:p-4">
+                        <Link
+                          href={`/${restaurant.slug}`}
+                          className="flex min-w-0 flex-1 items-center gap-3"
                         >
-                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                        </svg>
-                      </button>
-                    </div>
-
-                    {/* ── White info panel ── */}
-                    <div className="flex flex-1 flex-col px-3 pb-3 pt-2.5">
-                      {/* Name row */}
-                      <div className="flex shrink-0 items-center gap-2">
-                        {restaurant.logo_url ? (
-                          <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-xl border border-slate-100 bg-white shadow-sm">
-                            <Image
-                              src={restaurant.logo_url}
-                              alt=""
-                              width={36}
-                              height={36}
-                              className="h-full w-full object-cover"
-                              unoptimized
-                            />
+                          {restaurant.logo_url ? (
+                            <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full border border-slate-100 bg-slate-50 md:h-16 md:w-16">
+                              <Image
+                                src={restaurant.logo_url}
+                                alt=""
+                                fill
+                                className="object-cover"
+                                sizes="64px"
+                                unoptimized
+                              />
+                            </div>
+                          ) : (
+                            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-violet-100 text-sm font-bold text-violet-700 md:h-16 md:w-16">
+                              {restaurant.name.slice(0, 2).toUpperCase()}
+                            </div>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <h3 className="truncate text-sm font-bold text-slate-900 md:text-base">
+                                {restaurant.name}
+                              </h3>
+                              {isClosed ? (
+                                <span className="shrink-0 rounded-md bg-rose-50 px-1.5 py-0.5 text-[10px] font-bold text-rose-600">
+                                  Closed
+                                </span>
+                              ) : null}
+                            </div>
+                            <p className="mt-0.5 truncate text-xs font-medium text-violet-600 md:text-sm">
+                              {storeSubtitle(restaurant)}
+                            </p>
                           </div>
-                        ) : (
-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-100 bg-violet-50 text-xs font-bold text-violet-700">
-                            {restaurant.name.slice(0, 2).toUpperCase()}
-                          </div>
-                        )}
-                        <h3 className="min-w-0 flex-1 truncate text-sm font-bold leading-tight text-slate-900">
-                          {restaurant.name}
-                        </h3>
-                      </div>
+                        </Link>
 
-                      <div className="mt-auto pt-2.5">
-                        <div className="flex min-h-5 flex-wrap items-center gap-x-2.5 gap-y-1">
-                          {restaurant.free_delivery ? (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-[#E23744]">
-                              <Bike className="h-3.5 w-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
-                              Free delivery
-                            </span>
-                          ) : null}
-                          {restaurant.fast_delivery_enabled ? (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600">
-                              <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-sm">
-                                <Zap className="h-2.5 w-2.5 fill-current" strokeWidth={2.5} aria-hidden />
-                              </span>
-                              Fast delivery
-                            </span>
-                          ) : null}
-                          {restaurant.eta_label?.trim() ? (
-                            <span className="inline-flex items-center gap-0.5 text-[11px] text-slate-500">
-                              <svg
-                                className="h-3 w-3 shrink-0 text-slate-400"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth={2}
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                aria-hidden
-                              >
-                                <circle cx="12" cy="12" r="10" />
-                                <polyline points="12 6 12 12 16 14" />
-                              </svg>
-                              {restaurant.eta_label.trim()}
-                            </span>
-                          ) : null}
-                          {rating != null ? (
-                            <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-slate-600">
-                              <svg
-                                className="h-3 w-3 shrink-0 text-amber-500"
-                                viewBox="0 0 24 24"
-                                fill="currentColor"
-                                aria-hidden
-                              >
-                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                              </svg>
-                              {rating.toFixed(1)}
-                            </span>
-                          ) : null}
-                          {(restaurant.branches ?? []).length > 1 ? (
-                            <span className="inline-flex items-center gap-0.5 text-[11px] text-slate-500">
-                              <MapPin className="h-3 w-3 shrink-0 text-slate-400" />
-                              {restaurant.branches!.length} branches
-                            </span>
-                          ) : restaurant.location?.trim() ? (
-                            <span className="inline-flex min-w-0 items-center gap-0.5 truncate text-[11px] text-slate-500">
-                              <MapPin className="h-3 w-3 shrink-0 text-slate-400" />
-                              <span className="truncate">{restaurant.location.trim()}</span>
-                            </span>
-                          ) : null}
+                        <div className="flex shrink-0 items-center gap-1.5">
+                          <button
+                            type="button"
+                            aria-label={
+                              isFavorite(restaurant.slug)
+                                ? "Remove from favorites"
+                                : "Add to favorites"
+                            }
+                            onClick={(e) => handleFavoriteClick(e, restaurant.slug)}
+                            className="flex h-9 w-9 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-50 hover:text-amber-500"
+                          >
+                            <svg
+                              className={`h-4 w-4 ${
+                                isFavorite(restaurant.slug)
+                                  ? "fill-amber-500 text-amber-500"
+                                  : "fill-none"
+                              }`}
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth={2}
+                              aria-hidden
+                            >
+                              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                            </svg>
+                          </button>
+                          {waUrl ? (
+                            <a
+                              href={waUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 rounded-full bg-violet-600 px-3 py-2 text-xs font-semibold text-white shadow-sm shadow-violet-400/25 transition hover:bg-violet-700 md:gap-2 md:px-4 md:text-sm"
+                            >
+                              <WhatsAppIcon className="h-3.5 w-3.5 shrink-0 md:h-4 md:w-4" />
+                              <span className="hidden sm:inline">Order on WhatsApp</span>
+                              <span className="sm:hidden">Order</span>
+                            </a>
+                          ) : (
+                            <Link
+                              href={`/${restaurant.slug}`}
+                              className="inline-flex items-center rounded-full bg-violet-600 px-3 py-2 text-xs font-semibold text-white shadow-sm shadow-violet-400/25 transition hover:bg-violet-700 md:px-4 md:text-sm"
+                            >
+                              View store
+                            </Link>
+                          )}
                         </div>
-                      </div>
-                    </div>
-                  </article>
-                </Link>
-              );
-            })}
+                      </article>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </div>
-        )}
+        ) : null}
+
+        {/* Search results on home (Popular stores is hidden) */}
+        {!SHOW_POPULAR_STORES && activeSection === "all" && query.trim() ? (
+          <div id="search-stores" className="mt-2">
+            <h2 className="mb-3 text-lg font-bold text-slate-900 md:text-xl">Stores</h2>
+            {filtered.length === 0 ? (
+              <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50 py-14 text-center">
+                <p className="text-base font-semibold text-slate-700">No businesses found</p>
+                <p className="mt-1 text-sm text-slate-400">Try another search.</p>
+              </div>
+            ) : (
+              <ul className="space-y-3 md:grid md:grid-cols-2 md:gap-4 md:space-y-0">
+                {filtered.map((restaurant) => {
+                  const waUrl = restaurant.phone
+                    ? buildWhatsAppChatUrl(
+                        restaurant.phone,
+                        `Hi! I'd like to order from ${restaurant.name} on Zboun.`,
+                      )
+                    : null;
+                  return (
+                    <li key={restaurant.id}>
+                      <article className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-3 shadow-sm ring-1 ring-black/[0.03] md:p-4">
+                        <Link
+                          href={`/${restaurant.slug}`}
+                          className="flex min-w-0 flex-1 items-center gap-3"
+                        >
+                          {restaurant.logo_url ? (
+                            <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full border border-slate-100 bg-slate-50">
+                              <Image
+                                src={restaurant.logo_url}
+                                alt=""
+                                fill
+                                className="object-cover"
+                                sizes="64px"
+                                unoptimized
+                              />
+                            </div>
+                          ) : (
+                            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-violet-100 text-sm font-bold text-violet-700">
+                              {restaurant.name.slice(0, 2).toUpperCase()}
+                            </div>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <h3 className="truncate text-sm font-bold text-slate-900 md:text-base">
+                              {restaurant.name}
+                            </h3>
+                            <p className="mt-0.5 truncate text-xs font-medium text-violet-600">
+                              {storeSubtitle(restaurant)}
+                            </p>
+                          </div>
+                        </Link>
+                        {waUrl ? (
+                          <a
+                            href={waUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-violet-600 px-3 py-2 text-xs font-semibold text-white md:text-sm"
+                          >
+                            <WhatsAppIcon className="h-3.5 w-3.5" />
+                            Order
+                          </a>
+                        ) : (
+                          <Link
+                            href={`/${restaurant.slug}`}
+                            className="inline-flex shrink-0 rounded-full bg-violet-600 px-3 py-2 text-xs font-semibold text-white md:text-sm"
+                          >
+                            View store
+                          </Link>
+                        )}
+                      </article>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        ) : null}
       </section>
+
     </>
   );
 }

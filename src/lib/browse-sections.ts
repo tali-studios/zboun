@@ -3,13 +3,15 @@ export const BROWSE_SECTION_OPTIONS = [
   "Groceries",
   "Fashion & Apparel",
   "Electronics & Tech",
-  "Health & Beauty",
+  "Beauty & Pharmacy",
   "Home & Living",
   "Drinks & Beverages",
-  "Vape & Tobacco",
-  "Gas & Fuel",
+  "Smoke & Tobacco",
+  // "Gas & Fuel", // temporarily hidden — restore with sub-filters / accents / icons below
   "Pets & Supplies",
-  "General Shops",
+  "Automotive",
+  "Gifts & Lifestyle",
+  "Sports & Outdoors",
 ] as const;
 
 export type BrowseSection = (typeof BROWSE_SECTION_OPTIONS)[number];
@@ -34,8 +36,11 @@ export const BROWSE_SUB_FILTERS_BY_SECTION = {
     "Clothing",
     "Shoes & Footwear",
     "Bags & Accessories",
-    "Sportswear",
     "Kids & Baby",
+    "Kids Fashion",
+    "Boutiques",
+    "Perfumes",
+    "Sunglasses",
   ],
   "Electronics & Tech": [
     "Phones & Tablets",
@@ -44,11 +49,20 @@ export const BROWSE_SUB_FILTERS_BY_SECTION = {
     "Audio & TV",
     "Smart Home",
   ],
-  "Health & Beauty": [
+  "Beauty & Pharmacy": [
     "Pharmacy",
     "Cosmetics",
     "Personal Care",
     "Supplements",
+    "Prescription & OTC",
+    "Vitamins & Supplements",
+    "Baby Care",
+    "First Aid",
+    "Personal Hygiene",
+    "Baby Food & Formula",
+    "Diapers & Wipes",
+    "Contact Lenses",
+    "Frames & Cases",
   ],
   "Home & Living": [
     "Furniture",
@@ -63,15 +77,46 @@ export const BROWSE_SUB_FILTERS_BY_SECTION = {
     "Juice & Smoothies",
     "Alcohol",
   ],
-  "Vape & Tobacco": [
+  "Smoke & Tobacco": [
     "Devices",
     "E-liquid & Pods",
-    "Accessories",
+    "Smoke Accessories",
     "Tobacco",
   ],
-  "Gas & Fuel": ["LPG & Gas Cylinders", "Fuel Station"],
-  "Pets & Supplies": ["Pet Food", "Pet Accessories", "Grooming"],
-  "General Shops": ["Gifts", "Books & Stationery", "Hobbies & Crafts", "Other"],
+  // Temporarily hidden with "Gas & Fuel" top-level category:
+  // "Gas & Fuel": ["LPG & Gas Cylinders", "Fuel Station"],
+  "Pets & Supplies": ["Pet Food", "Pet Accessories"],
+  Automotive: [
+    "Parts & Accessories",
+    "Oils & Fluids",
+    "Tires",
+    "Car Electronics",
+    "Car Care",
+  ],
+  "Gifts & Lifestyle": [
+    "Bouquets & Flowers",
+    "Gift Baskets",
+    "Party Supplies",
+    "Greeting Cards",
+    "Seasonal & Holidays",
+    "Books & Stationery",
+    "Hobbies & Crafts",
+    "Toys & Play",
+    "Gifts",
+    "Strollers & Gear",
+  ],
+  "Sports & Outdoors": [
+    "Cycling",
+    "Gym Equipment",
+    "Team Sports",
+    "Camping",
+    "Water Sports",
+    "Pool & Beach",
+    "Sports Clothing",
+    "Sports Footwear",
+    "Accessories",
+    "Hiking",
+  ],
 } as const satisfies Record<BrowseSection, readonly string[]>;
 
 export type BrowseSubFilter =
@@ -93,6 +138,25 @@ const LEGACY_BROWSE_ALIASES: Record<string, BrowseSection> = {
   Groceries: "Groceries",
   Fashion: "Fashion & Apparel",
   Electronics: "Electronics & Tech",
+  /** Former top-level categories, folded / renamed. */
+  "Flowers & Occasions": "Gifts & Lifestyle",
+  "Optics & Eyewear": "Beauty & Pharmacy",
+  "Sports & Fitness": "Sports & Outdoors",
+  "Baby & Kids": "Beauty & Pharmacy",
+  "Bakeries & Sweets": "Groceries",
+  "Health & Beauty": "Beauty & Pharmacy",
+  "Pharmacy & Care": "Beauty & Pharmacy",
+  "General Shops": "Sports & Outdoors",
+  /** Renamed Sports & Outdoors sub-tags */
+  "Bicycles & Cycling": "Sports & Outdoors",
+  "Gym & Training": "Sports & Outdoors",
+  "Outdoor & Camping": "Sports & Outdoors",
+  Sportswear: "Sports & Outdoors",
+  "Fitness Nutrition": "Sports & Outdoors",
+  /** Temporarily hidden top-level category — map existing tags until restored. */
+  "Gas & Fuel": "Automotive",
+  /** Former name; renamed to avoid "Vape" in the public label. */
+  "Vape & Tobacco": "Smoke & Tobacco",
 };
 
 /** Primary accent per top-level section. */
@@ -101,13 +165,15 @@ export const BROWSE_SECTION_ACCENTS: Record<BrowseSection, string> = {
   Groceries: "#17a398",
   "Fashion & Apparel": "#db2777",
   "Electronics & Tech": "#2563eb",
-  "Health & Beauty": "#14b8a6",
+  "Beauty & Pharmacy": "#14b8a6",
   "Home & Living": "#8b5cf6",
   "Drinks & Beverages": "#22a7f0",
-  "Vape & Tobacco": "#64748b",
-  "Gas & Fuel": "#f59e0b",
+  "Smoke & Tobacco": "#64748b",
+  // "Gas & Fuel": "#f59e0b", // temporarily hidden
   "Pets & Supplies": "#ca8a04",
-  "General Shops": "#5f4be8",
+  Automotive: "#64748b",
+  "Gifts & Lifestyle": "#ec4899",
+  "Sports & Outdoors": "#16a34a",
 };
 
 export const BROWSE_SUB_FILTER_ACCENTS: Record<string, string> = {
@@ -131,33 +197,66 @@ export const BROWSE_SUB_FILTER_ACCENTS: Record<string, string> = {
   Coffee: "#92400e",
   "Juice & Smoothies": "#fb923c",
   Alcohol: "#be123c",
+  // Temporarily hidden with "Gas & Fuel":
+  // "LPG & Gas Cylinders": "#f59e0b",
+  // "Fuel Station": "#ea580c",
   Devices: "#475569",
   "E-liquid & Pods": "#6366f1",
-  Accessories: "#78716c",
+  "Smoke Accessories": "#78716c",
+  Accessories: "#64748b",
   Tobacco: "#57534e",
-  "LPG & Gas Cylinders": "#f59e0b",
-  "Fuel Station": "#ea580c",
   Clothing: "#f472b6",
   "Shoes & Footwear": "#e11d48",
   "Bags & Accessories": "#a855f7",
-  Sportswear: "#0d9488",
   "Kids & Baby": "#fb7185",
   "Phones & Tablets": "#3b82f6",
   Computers: "#6366f1",
   Gaming: "#7c3aed",
   "Audio & TV": "#0284c7",
   "Smart Home": "#0891b2",
-  Pharmacy: "#059669",
   Cosmetics: "#ec4899",
   "Personal Care": "#2dd4bf",
   Supplements: "#84cc16",
+  Pharmacy: "#0d9488",
+  "Prescription & OTC": "#0d9488",
+  "Vitamins & Supplements": "#22c55e",
+  "Baby Care": "#38bdf8",
+  "First Aid": "#ef4444",
+  "Personal Hygiene": "#14b8a6",
+  Perfumes: "#c026d3",
+  "Bouquets & Flowers": "#ec4899",
+  "Gift Baskets": "#a855f7",
+  "Party Supplies": "#f97316",
+  "Greeting Cards": "#6366f1",
+  "Seasonal & Holidays": "#e11d48",
+  "Baby Food & Formula": "#38bdf8",
+  "Diapers & Wipes": "#67e8f9",
+  "Toys & Play": "#f472b6",
+  "Kids Fashion": "#fb7185",
+  "Strollers & Gear": "#818cf8",
+  Cycling: "#0ea5e9",
+  "Gym Equipment": "#16a34a",
+  "Team Sports": "#2563eb",
+  Camping: "#65a30d",
+  "Water Sports": "#0284c7",
+  "Pool & Beach": "#06b6d4",
+  "Sports Clothing": "#0d9488",
+  "Sports Footwear": "#0f766e",
+  Hiking: "#84cc16",
+  "Parts & Accessories": "#64748b",
+  "Car Care": "#475569",
+  "Oils & Fluids": "#92400e",
+  Tires: "#1e293b",
+  "Car Electronics": "#0284c7",
+  Sunglasses: "#f59e0b",
+  "Contact Lenses": "#22d3ee",
+  "Frames & Cases": "#6366f1",
   "Pet Food": "#d97706",
   "Pet Accessories": "#b45309",
-  Grooming: "#f59e0b",
+  Boutiques: "#d946ef",
   Gifts: "#8b5cf6",
   "Books & Stationery": "#6366f1",
   "Hobbies & Crafts": "#a78bfa",
-  Other: "#64748b",
 };
 
 /** @deprecated Use BROWSE_SUB_FILTER_ACCENTS */
@@ -169,13 +268,110 @@ export const BROWSE_SECTION_ICONS: Record<BrowseSection, string> = {
   Groceries: "🥦",
   "Fashion & Apparel": "👕",
   "Electronics & Tech": "💻",
-  "Health & Beauty": "💄",
+  "Beauty & Pharmacy": "💄",
   "Home & Living": "🛋",
   "Drinks & Beverages": "🥤",
-  "Vape & Tobacco": "💨",
-  "Gas & Fuel": "⛽",
+  "Smoke & Tobacco": "💨",
+  // "Gas & Fuel": "⛽", // temporarily hidden
   "Pets & Supplies": "🐾",
-  "General Shops": "🛍",
+  Automotive: "🚗",
+  "Gifts & Lifestyle": "🎁",
+  "Sports & Outdoors": "🏕️",
+};
+
+/** Small emoji icon per sub-category tag — shown on the "Refine" pill row. */
+export const BROWSE_SUB_FILTER_ICONS: Record<string, string> = {
+  // Food & Restaurants
+  Breakfast: "🍳",
+  Lunch: "🍱",
+  Dinner: "🍽️",
+  "Quick Bites": "🌯",
+  Desserts: "🍰",
+  // Groceries
+  "Fresh Produce": "🥬",
+  "Butchery & Meat": "🥩",
+  Bakery: "🍞",
+  "Frozen Foods": "🧊",
+  "Household Staples": "🧴",
+  Organic: "🌿",
+  // Fashion / sports extras
+  Clothing: "👗",
+  "Shoes & Footwear": "👟",
+  "Bags & Accessories": "👜",
+  "Kids & Baby": "🧒",
+  Cycling: "🚲",
+  "Gym Equipment": "🏋️",
+  "Team Sports": "⚽",
+  Camping: "⛺",
+  "Water Sports": "🛶",
+  "Pool & Beach": "🏊",
+  "Sports Clothing": "🎽",
+  "Sports Footwear": "🥾",
+  Accessories: "🧤",
+  Hiking: "🏔️",
+  // Electronics & Tech
+  "Phones & Tablets": "📱",
+  Computers: "💻",
+  Gaming: "🎮",
+  "Audio & TV": "📺",
+  "Smart Home": "🏠",
+  // Beauty & Pharmacy
+  Pharmacy: "💊",
+  Cosmetics: "💄",
+  "Personal Care": "🧼",
+  Supplements: "🧪",
+  // Beauty / pharmacy extras
+  Sunglasses: "🕶️",
+  "Contact Lenses": "👁️",
+  "Frames & Cases": "🖼️",
+  "Prescription & OTC": "💊",
+  "Vitamins & Supplements": "🍊",
+  "Baby Care": "🍼",
+  "First Aid": "🩹",
+  "Personal Hygiene": "🧻",
+  Perfumes: "🌸",
+  "Baby Food & Formula": "🥣",
+  "Diapers & Wipes": "🧷",
+  "Toys & Play": "🧸",
+  "Kids Fashion": "👕",
+  "Strollers & Gear": "🚼",
+  // Home & Living
+  Furniture: "🛋️",
+  Kitchen: "🍳",
+  Décor: "🖼️",
+  Hardware: "🔧",
+  Garden: "🌱",
+  // Drinks & Beverages
+  "Water Delivery": "💧",
+  Coffee: "☕",
+  "Juice & Smoothies": "🧃",
+  Alcohol: "🍷",
+  // Temporarily hidden with "Gas & Fuel":
+  // "LPG & Gas Cylinders": "🛢️",
+  // "Fuel Station": "⛽",
+  // Pets & Supplies
+  "Pet Food": "🐶",
+  "Pet Accessories": "🐾",
+  // Catch-all / shops leftovers now rehomed
+  Boutiques: "🎀",
+  Gifts: "🎁",
+  "Books & Stationery": "📚",
+  "Hobbies & Crafts": "🎨",
+  "Parts & Accessories": "🔩",
+  "Car Care": "🧽",
+  "Oils & Fluids": "🛢️",
+  Tires: "🛞",
+  "Car Electronics": "🔌",
+  "Bouquets & Flowers": "💐",
+  "Gift Baskets": "🧺",
+  "Party Supplies": "🎉",
+  "Greeting Cards": "💌",
+  "Seasonal & Holidays": "🎄",
+  // Smoke & Tobacco
+  Devices: "🔋",
+  "E-liquid & Pods": "💨",
+  "Smoke Accessories": "🎒",
+  Tobacco: "🚬",
 };
 
 const SUB_FILTER_PARENT = new Map<string, BrowseSection>();
@@ -185,9 +381,7 @@ for (const section of BROWSE_SECTION_OPTIONS) {
   }
 }
 for (const [legacy, parent] of Object.entries(LEGACY_BROWSE_ALIASES)) {
-  if (SUB_FILTER_PARENT.has(legacy)) {
-    SUB_FILTER_PARENT.set(legacy, parent);
-  }
+  SUB_FILTER_PARENT.set(legacy, parent);
 }
 
 const ALL_SUB_FILTER_VALUES = new Set<string>(
@@ -315,11 +509,11 @@ export function parseBrowseSectionsFromForm(formData: FormData): BrowseSection[]
     if (normalized.length > 0) return normalized;
   }
 
-  return ["General Shops"];
+  return ["Sports & Outdoors"];
 }
 
 export function parseBrowseSectionFromForm(formData: FormData): BrowseSection {
-  return parseBrowseSectionsFromForm(formData)[0] ?? "General Shops";
+  return parseBrowseSectionsFromForm(formData)[0] ?? "Sports & Outdoors";
 }
 
 export function formatBrowseSectionsLabel(sections: unknown): string {
@@ -327,7 +521,7 @@ export function formatBrowseSectionsLabel(sections: unknown): string {
   const topLevel = normalizeBrowseSections(raw);
   const subs = getBrowseSubTags(raw);
   const parts = [...topLevel, ...subs];
-  return parts.length > 0 ? parts.join(", ") : "General Shops";
+  return parts.length > 0 ? parts.join(", ") : "Sports & Outdoors";
 }
 
 /** Map home page categories to internal dashboard type (legacy hotel/gym unchanged). */
@@ -345,9 +539,9 @@ export function defaultBrowseSectionsForBusinessType(
     case "cloud_kitchen":
       return ["Food & Restaurants"];
     case "retail_store":
-      return ["General Shops"];
+      return ["Sports & Outdoors"];
     default:
-      return ["General Shops"];
+      return ["Sports & Outdoors"];
   }
 }
 
@@ -359,7 +553,7 @@ export function defaultBrowseSubTagsForBusinessType(
     case "cloud_kitchen":
       return ["Lunch"];
     default:
-      return [];
+      return ["Camping"];
   }
 }
 
@@ -406,7 +600,8 @@ export const HOME_HERO_SUBTITLE =
 
 /** Whether this business is primarily food-service (menu wording fits). */
 export function isFoodMenuBusiness(browseSections: unknown): boolean {
-  return normalizeBrowseSections(getRawBrowseSectionValues(browseSections)).includes("Food & Restaurants");
+  const sections = normalizeBrowseSections(getRawBrowseSectionValues(browseSections));
+  return sections.includes("Food & Restaurants");
 }
 
 /** Dashboard / QR action labels — "menu" for food businesses, neutral "store" for retail. */

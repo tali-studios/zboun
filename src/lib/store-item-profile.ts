@@ -3,7 +3,7 @@ import type { BrowseSection } from "@/lib/browse-sections";
 /**
  * Which "add item" fields make sense for a store, based on the business
  * categories it operates in (browse_sections). A store can pick multiple
- * categories (e.g. a supermarket = Groceries + Drinks + Health & Beauty) —
+ * categories (e.g. a supermarket = Groceries + Drinks + Beauty & Pharmacy) —
  * in that case we show the union of everything those categories need.
  */
 export type StoreItemProfile = {
@@ -31,17 +31,21 @@ const DISPLAY_QUANTITY_SECTIONS = new Set<BrowseSection>([
   "Food & Restaurants",
   "Groceries",
   "Drinks & Beverages",
-  "Health & Beauty",
-  "Vape & Tobacco",
-  "Gas & Fuel",
+  "Beauty & Pharmacy",
+  // "Gas & Fuel", // temporarily hidden
   "Pets & Supplies",
+  "Sports & Outdoors",
+  "Smoke & Tobacco",
+  "Fashion & Apparel",
+  "Automotive",
+  "Gifts & Lifestyle",
 ]);
 
 const NUTRITION_SECTIONS = new Set<BrowseSection>([
   "Food & Restaurants",
   "Groceries",
   "Drinks & Beverages",
-  "Health & Beauty",
+  "Beauty & Pharmacy",
   "Pets & Supplies",
 ]);
 
@@ -49,12 +53,18 @@ const CONTENTS_SECTIONS = new Set<BrowseSection>([
   "Food & Restaurants",
   "Groceries",
   "Drinks & Beverages",
-  "Health & Beauty",
-  "Vape & Tobacco",
+  "Beauty & Pharmacy",
   "Pets & Supplies",
+  "Sports & Outdoors",
+  "Smoke & Tobacco",
+  "Fashion & Apparel",
+  "Automotive",
+  "Gifts & Lifestyle",
 ]);
 
-const INGREDIENT_CUSTOMIZATION_SECTIONS = new Set<BrowseSection>(["Food & Restaurants"]);
+const INGREDIENT_CUSTOMIZATION_SECTIONS = new Set<BrowseSection>([
+  "Food & Restaurants",
+]);
 
 const NO_EXTRAS_PROFILE: StoreItemProfile = {
   weightPricing: false,
