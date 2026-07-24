@@ -8,6 +8,7 @@ import {
   ChevronRight,
   ClipboardList,
   Clock,
+  Camera,
   Heart,
   MapPin,
   Search,
@@ -427,6 +428,14 @@ export function RestaurantDirectory({
               aria-label="Search"
             >
               <Search className="h-5 w-5" strokeWidth={2} />
+            </Link>
+            <Link
+              href="/nutrition"
+              className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-600 transition hover:bg-slate-100 md:h-10 md:w-10"
+              aria-label="Nutrition AI"
+              title="Nutrition AI"
+            >
+              <Camera className="h-5 w-5" strokeWidth={2} />
             </Link>
             <Link
               href="/favorites"

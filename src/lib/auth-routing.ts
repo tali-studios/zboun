@@ -14,6 +14,7 @@ export function isCustomerAppPath(pathname: string): boolean {
   if (pathname === "/forgot-password" || pathname.startsWith("/forgot-password/")) return true;
   if (pathname === "/account" || pathname.startsWith("/account/")) return true;
   if (pathname === "/favorites" || pathname.startsWith("/favorites/")) return true;
+  if (pathname === "/nutrition" || pathname.startsWith("/nutrition/")) return true;
   return false;
 }
 
