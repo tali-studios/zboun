@@ -404,7 +404,7 @@ export function SearchPageContent({ restaurants }: SearchPageContentProps) {
                 onChange={(e) => setQuery(e.target.value.slice(0, 50))}
                 placeholder="Store name or item..."
                 maxLength={50}
-                className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-4 pr-9 text-sm outline-none transition focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-100"
+                className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-4 pr-9 text-base outline-none transition focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-100"
                 aria-label="Search"
                 autoFocus
               />
@@ -743,7 +743,7 @@ export function SearchPageContent({ restaurants }: SearchPageContentProps) {
                 onChange={(e) => setQuery(e.target.value.slice(0, 50))}
                 placeholder="Store name or item..."
                 maxLength={50}
-                className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-10 pr-4 text-sm outline-none transition focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-100"
+                className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-10 pr-4 text-base outline-none transition focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-100"
                 aria-label="Search"
               />
             </div>

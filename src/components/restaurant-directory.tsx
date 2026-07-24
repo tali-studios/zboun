@@ -494,7 +494,7 @@ export function RestaurantDirectory({
               onChange={(e) => setQuery(e.target.value.slice(0, 50))}
               placeholder={HOME_SEARCH_PLACEHOLDER}
               maxLength={50}
-              className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-10 pr-10 text-sm outline-none transition focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-100"
+              className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-10 pr-10 text-base outline-none transition focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-100"
               aria-label="Search stores"
             />
             {query ? (
