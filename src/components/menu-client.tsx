@@ -9,6 +9,7 @@ import { createPortal } from "react-dom";
 import type { CategoryWithItems } from "@/lib/data";
 import { formatDisplayQuantity, resolveDisplayQuantityFields } from "@/lib/display-quantity";
 import { MenuNutritionBadges } from "@/components/menu-nutrition-badges";
+import { ImageLightbox } from "@/components/image-lightbox";
 import { CheckoutDeliverySections } from "@/components/checkout-delivery-sections";
 import { CheckoutOrderConfirm } from "@/components/checkout-order-confirm";
 import { CheckoutPromoCode, type AppliedCoupon } from "@/components/checkout-promo-code";
@@ -199,6 +200,7 @@ export function MenuClient({
   const canShop = !viewOnly && !orderingBlocked;
   const [cart, setCart] = useState<Record<string, CartLine>>({});
   const [customizing, setCustomizing] = useState<CustomizationState | null>(null);
+  const [previewImage, setPreviewImage] = useState<{ src: string; alt: string } | null>(null);
   const [query, setQuery] = useState("");
   const [menuCategoryFilter, setMenuCategoryFilter] = useState<string>("all");
   const [customerName, setCustomerName] = useState(defaultCustomerName);
@@ -1434,14 +1436,23 @@ export function MenuClient({
                     {/* Image */}
                     <div className="h-[88px] w-[88px] shrink-0 overflow-hidden rounded-2xl bg-slate-100">
                       {item.image_url ? (
-                        <Image
-                          src={item.image_url}
-                          alt=""
-                          width={88}
-                          height={88}
-                          className="h-full w-full object-cover"
-                          unoptimized
-                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setPreviewImage({ src: item.image_url!, alt: item.name })
+                          }
+                          className="relative h-full w-full overflow-hidden rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400"
+                          aria-label={`View larger photo of ${item.name}`}
+                        >
+                          <Image
+                            src={item.image_url}
+                            alt=""
+                            width={88}
+                            height={88}
+                            className="h-full w-full object-cover transition hover:scale-105"
+                            unoptimized
+                          />
+                        </button>
                       ) : (
                         <div className="flex h-full w-full items-center justify-center text-2xl text-slate-300" aria-hidden>
                           ···
@@ -1596,6 +1607,16 @@ export function MenuClient({
             </button>
           </div>
         </div>
+      ) : null}
+
+      {/* ── Item image lightbox ───────────────────────────────────────── */}
+      {previewImage ? (
+        <ImageLightbox
+          open
+          src={previewImage.src}
+          alt={previewImage.alt}
+          onClose={() => setPreviewImage(null)}
+        />
       ) : null}
 
       {/* ── Mobile cart sheet ──────────────────────────────────────────── */}
