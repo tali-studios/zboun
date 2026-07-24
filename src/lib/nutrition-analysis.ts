@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+/** Flip to true to show Nutrition AI entry points in the customer UI. */
+export const SHOW_NUTRITION_AI = false;
+
 const nutrientSchema = z.object({
   estimate: z.number().nonnegative(),
   min: z.number().nonnegative(),

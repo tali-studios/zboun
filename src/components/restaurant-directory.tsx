@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFavorites } from "@/hooks/use-favorites";
+import { SHOW_NUTRITION_AI } from "@/lib/nutrition-analysis";
 import {
   BROWSE_SECTION_ACCENTS,
   BROWSE_SECTION_OPTIONS,
@@ -429,14 +430,16 @@ export function RestaurantDirectory({
             >
               <Search className="h-5 w-5" strokeWidth={2} />
             </Link>
-            <Link
-              href="/nutrition"
-              className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-600 transition hover:bg-slate-100 md:h-10 md:w-10"
-              aria-label="Nutrition AI"
-              title="Nutrition AI"
-            >
-              <Camera className="h-5 w-5" strokeWidth={2} />
-            </Link>
+            {SHOW_NUTRITION_AI ? (
+              <Link
+                href="/nutrition"
+                className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-600 transition hover:bg-slate-100 md:h-10 md:w-10"
+                aria-label="Nutrition AI"
+                title="Nutrition AI"
+              >
+                <Camera className="h-5 w-5" strokeWidth={2} />
+              </Link>
+            ) : null}
             <Link
               href="/favorites"
               className="relative hidden h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-600 transition hover:bg-slate-100 md:flex md:h-10 md:w-10"
