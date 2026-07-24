@@ -17,6 +17,7 @@ import { useDeliveryLocation } from "@/components/delivery-location-provider";
 import { formatDistance, distanceKm } from "@/lib/geo";
 import {
   BROWSE_SECTION_OPTIONS,
+  BROWSE_SECTION_SHORT_LABELS,
   matchesBrowseFilter,
   type BrowseSection,
 } from "@/lib/browse-sections";
@@ -67,20 +68,7 @@ type SearchPageContentProps = {
 const RECENT_SEARCHES_KEY = "zboun_recent_searches";
 const MAX_RECENT_SEARCHES = 5;
 
-const SECTION_SHORT: Record<BrowseSection, string> = {
-  "Food & Restaurants": "Food",
-  Groceries: "Market",
-  "Fashion & Apparel": "Fashion",
-  "Electronics & Tech": "Electronics",
-  "Beauty & Pharmacy": "Self-care",
-  "Home & Living": "Home",
-  "Drinks & Beverages": "Drinks",
-  "Smoke & Tobacco": "Smoke",
-  "Pets & Supplies": "Pets",
-  Automotive: "Auto",
-  "Gifts & Lifestyle": "Gifts",
-  "Sports & Outdoors": "Sports",
-};
+const SECTION_SHORT = BROWSE_SECTION_SHORT_LABELS;
 
 /** Same category card images / labels as the home page shop-by-category row. */
 const CATEGORY_CARD_META: Record<
@@ -88,62 +76,62 @@ const CATEGORY_CARD_META: Record<
   { shortLabel: string; pastel: string; image: string }
 > = {
   "Food & Restaurants": {
-    shortLabel: "Food",
+    shortLabel: BROWSE_SECTION_SHORT_LABELS["Food & Restaurants"],
     pastel: "#FFF1E8",
     image: "/categories/category-restaurants.png",
   },
   Groceries: {
-    shortLabel: "Market",
+    shortLabel: BROWSE_SECTION_SHORT_LABELS.Groceries,
     pastel: "#EEF8E9",
     image: "/categories/category-groceries.png",
   },
   "Fashion & Apparel": {
-    shortLabel: "Fashion",
+    shortLabel: BROWSE_SECTION_SHORT_LABELS["Fashion & Apparel"],
     pastel: "#F3E8FF",
     image: "/categories/category-fashion-v2.png",
   },
   "Electronics & Tech": {
-    shortLabel: "Electronics",
+    shortLabel: BROWSE_SECTION_SHORT_LABELS["Electronics & Tech"],
     pastel: "#E8F1FF",
     image: "/categories/category-electronics.png",
   },
   "Beauty & Pharmacy": {
-    shortLabel: "Self-care",
+    shortLabel: BROWSE_SECTION_SHORT_LABELS["Beauty & Pharmacy"],
     pastel: "#E6FAF5",
     image: "/categories/category-beauty-pharmacy.png",
   },
   "Home & Living": {
-    shortLabel: "Home",
+    shortLabel: BROWSE_SECTION_SHORT_LABELS["Home & Living"],
     pastel: "#FFF8E8",
     image: "/categories/category-home.png",
   },
   "Drinks & Beverages": {
-    shortLabel: "Drinks",
+    shortLabel: BROWSE_SECTION_SHORT_LABELS["Drinks & Beverages"],
     pastel: "#E8FBFF",
     image: "/categories/category-drinks-v2.png",
   },
   "Smoke & Tobacco": {
-    shortLabel: "Smoke",
+    shortLabel: BROWSE_SECTION_SHORT_LABELS["Smoke & Tobacco"],
     pastel: "#F1F5F9",
     image: "/categories/category-smoke.png",
   },
   "Pets & Supplies": {
-    shortLabel: "Pets",
+    shortLabel: BROWSE_SECTION_SHORT_LABELS["Pets & Supplies"],
     pastel: "#EEF2FF",
     image: "/categories/category-pets.png",
   },
   Automotive: {
-    shortLabel: "Auto",
+    shortLabel: BROWSE_SECTION_SHORT_LABELS.Automotive,
     pastel: "#F1F5F9",
     image: "/categories/category-auto.png",
   },
   "Gifts & Lifestyle": {
-    shortLabel: "Gifts",
+    shortLabel: BROWSE_SECTION_SHORT_LABELS["Gifts & Lifestyle"],
     pastel: "#FFE8F1",
     image: "/categories/category-gifts.png",
   },
   "Sports & Outdoors": {
-    shortLabel: "Sports",
+    shortLabel: BROWSE_SECTION_SHORT_LABELS["Sports & Outdoors"],
     pastel: "#ECFDF5",
     image: "/categories/category-sports-outdoors.png",
   },

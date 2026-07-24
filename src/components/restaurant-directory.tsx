@@ -96,7 +96,7 @@ const CATEGORY_CARD_META: Record<
     image: "/categories/category-pets.png",
   },
   Automotive: {
-    shortLabel: "Auto",
+    shortLabel: "Automotive",
     pastel: "#F1F5F9",
     image: "/categories/category-auto.png",
   },

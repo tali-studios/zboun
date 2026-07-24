@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   BROWSE_SECTION_OPTIONS,
+  browseSectionShortLabel,
   getSubFiltersForSection,
   validateBrowseSelection,
   type BrowseSection,
@@ -134,7 +135,7 @@ export function BrowseSectionsCheckboxes({
               {maxSections === 1 && sections.has(section) ? (
                 <input type="hidden" name={name} value={section} />
               ) : null}
-              <span>{section}</span>
+              <span>{browseSectionShortLabel(section)}</span>
             </label>
           ))}
         </div>
@@ -143,6 +144,7 @@ export function BrowseSectionsCheckboxes({
           const subOptions = getSubFiltersForSection(section);
           if (subOptions.length === 0) return null;
           const missingTag = sectionsMissingTags.has(section);
+          const short = browseSectionShortLabel(section);
           return (
             <div
               key={section}
@@ -151,10 +153,10 @@ export function BrowseSectionsCheckboxes({
               }`}
             >
               <p className="text-xs font-semibold text-slate-700">
-                {section} tags <span className="text-red-500">*</span>
+                {short} tags <span className="text-red-500">*</span>
               </p>
               <p className="mt-0.5 text-xs text-slate-500">
-                Pick at least one tag so customers can filter your business under {section}.
+                Pick at least one tag so customers can filter your business under {short}.
               </p>
               <div className={`${containerClass} mt-2`}>
                 {subOptions.map((sub) => (

@@ -4,9 +4,9 @@ export const BROWSE_SECTION_OPTIONS = [
   "Fashion & Apparel",
   "Electronics & Tech",
   "Beauty & Pharmacy",
-  "Home & Living",
   "Drinks & Beverages",
   "Smoke & Tobacco",
+  "Home & Living",
   // "Gas & Fuel", // temporarily hidden — restore with sub-filters / accents / icons below
   "Pets & Supplies",
   "Automotive",
@@ -15,6 +15,28 @@ export const BROWSE_SECTION_OPTIONS = [
 ] as const;
 
 export type BrowseSection = (typeof BROWSE_SECTION_OPTIONS)[number];
+
+/** Short labels shown on home / search / admin pickers (DB still stores full names). */
+export const BROWSE_SECTION_SHORT_LABELS: Record<BrowseSection, string> = {
+  "Food & Restaurants": "Food",
+  Groceries: "Market",
+  "Fashion & Apparel": "Fashion",
+  "Electronics & Tech": "Electronics",
+  "Beauty & Pharmacy": "Self-care",
+  "Drinks & Beverages": "Drinks",
+  "Smoke & Tobacco": "Smoke",
+  "Home & Living": "Home",
+  "Pets & Supplies": "Pets",
+  Automotive: "Automotive",
+  "Gifts & Lifestyle": "Gifts",
+  "Sports & Outdoors": "Sports",
+};
+
+export function browseSectionShortLabel(section: string): string {
+  return (
+    BROWSE_SECTION_SHORT_LABELS[section as BrowseSection] ?? section
+  );
+}
 
 export const BROWSE_SUB_FILTERS_BY_SECTION = {
   "Food & Restaurants": [
@@ -483,7 +505,7 @@ export function validateBrowseSelection(
     if (!hasTag) {
       return {
         ok: false,
-        error: `Pick at least one tag for ${section}.`,
+        error: `Pick at least one tag for ${browseSectionShortLabel(section)}.`,
         section,
       };
     }
@@ -520,8 +542,11 @@ export function formatBrowseSectionsLabel(sections: unknown): string {
   const raw = getRawBrowseSectionValues(sections);
   const topLevel = normalizeBrowseSections(raw);
   const subs = getBrowseSubTags(raw);
-  const parts = [...topLevel, ...subs];
-  return parts.length > 0 ? parts.join(", ") : "Sports & Outdoors";
+  const parts = [
+    ...topLevel.map((section) => browseSectionShortLabel(section)),
+    ...subs,
+  ];
+  return parts.length > 0 ? parts.join(", ") : "Sports";
 }
 
 /** Map home page categories to internal dashboard type (legacy hotel/gym unchanged). */

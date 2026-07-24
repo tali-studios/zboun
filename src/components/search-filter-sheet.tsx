@@ -5,6 +5,7 @@ import { Heart, Smile, Star } from "lucide-react";
 import {
   BROWSE_SECTION_ICONS,
   BROWSE_SECTION_OPTIONS,
+  BROWSE_SECTION_SHORT_LABELS,
   type BrowseSection,
 } from "@/lib/browse-sections";
 
@@ -27,20 +28,7 @@ export const DEFAULT_SEARCH_FILTERS: SearchFilterState = {
   sections: [],
 };
 
-const SECTION_SHORT: Record<BrowseSection, string> = {
-  "Food & Restaurants": "Food",
-  Groceries: "Market",
-  "Fashion & Apparel": "Fashion",
-  "Electronics & Tech": "Electronics",
-  "Beauty & Pharmacy": "Self-care",
-  "Home & Living": "Home",
-  "Drinks & Beverages": "Drinks",
-  "Smoke & Tobacco": "Smoke",
-  "Pets & Supplies": "Pets",
-  Automotive: "Auto",
-  "Gifts & Lifestyle": "Gifts",
-  "Sports & Outdoors": "Sports",
-};
+const SECTION_SHORT = BROWSE_SECTION_SHORT_LABELS;
 
 const DISMISS_THRESHOLD_PX = 110;
 
