@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { env } from "@/lib/env";
 import { sendMail, isSmtpConfigured } from "@/lib/mail";
+import { pushOutboundStockUpdate } from "@/lib/stock-sync";
 import {
   getMenuItemStockAlertLevel,
   resolveStockAlertThresholds,
@@ -322,6 +323,7 @@ export async function decrementMenuItemStockForOrder(
       restaurantName: restaurant?.name ?? "Your store",
       adminEmail,
     });
+    void pushOutboundStockUpdate(restaurantId, itemId);
   }
 }
 

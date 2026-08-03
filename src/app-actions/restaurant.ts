@@ -36,6 +36,7 @@ import {
   parseStockQuantityFromForm,
 } from "@/lib/menu-item-stock";
 import { notifyMenuItemStockAlerts, type MenuItemStockAlertRow } from "@/lib/menu-item-stock-alerts";
+import { pushOutboundStockUpdate } from "@/lib/stock-sync";
 import { parseOptionalCalories, parseOptionalProteinGrams, isNutritionColumnMigrationError } from "@/lib/menu-nutrition";
 import { env } from "@/lib/env";
 
@@ -726,6 +727,7 @@ export async function updateMenuItemAction(formData: FormData) {
       .eq("restaurant_id", user.restaurant_id);
     if (!retry.error) {
       void notifyStockAlertsForMenuItem(supabase, id, user.restaurant_id);
+      void pushOutboundStockUpdate(user.restaurant_id, id);
       revalidatePath("/dashboard/business");
       redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_update_stock_alerts_migration`);
     }
@@ -755,6 +757,7 @@ export async function updateMenuItemAction(formData: FormData) {
   }
 
   void notifyStockAlertsForMenuItem(supabase, id, user.restaurant_id);
+  void pushOutboundStockUpdate(user.restaurant_id, id);
 
   revalidateMenuAdminPaths();
   redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_updated&item_name=${encodeURIComponent(name)}`);
@@ -786,6 +789,7 @@ export async function toggleMenuItemAvailabilityAction(formData: FormData) {
 
   if (item?.track_stock) {
     void notifyStockAlertsForMenuItem(supabase, id, user.restaurant_id);
+    void pushOutboundStockUpdate(user.restaurant_id, id);
   }
   revalidateMenuAdminPaths();
 }
@@ -858,6 +862,7 @@ export async function updateMenuItemStockQuickAction(
   if (error) return { ok: false, error: error.message };
 
   void notifyStockAlertsForMenuItem(supabase, id, user.restaurant_id);
+  void pushOutboundStockUpdate(user.restaurant_id, id);
   revalidateMenuAdminPaths();
   return { ok: true };
 }

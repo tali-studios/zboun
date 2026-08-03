@@ -205,6 +205,21 @@ export function RestaurantDashboardToast({ toast, sectionName, sectionsCount, it
   } else if (toast === "browse_tags_required") {
     heading = "Tags required";
     message = "For each business category you select, pick at least one tag (for example Lunch under Food & Restaurants).";
+  } else if (toast === "stock_sync_saved") {
+    heading = "Stock sync saved";
+    message = "Your sync connection settings were updated.";
+  } else if (toast === "stock_sync_invalid_url") {
+    heading = "Invalid webhook URL";
+    message = "Enter a valid https:// URL for your website's stock webhook, or leave it blank.";
+  } else if (toast === "stock_sync_error") {
+    heading = "Could not save";
+    message = "Something went wrong while saving your stock sync settings. Try again.";
+  } else if (toast === "stock_sync_key_rotated") {
+    heading = "API key regenerated";
+    message = "Update your website's integration with the new key — the old one no longer works.";
+  } else if (toast === "stock_sync_secret_rotated") {
+    heading = "Webhook secret regenerated";
+    message = "Update your website's signature check with the new secret.";
   } else {
     return null;
   }

@@ -9,6 +9,7 @@ export type StoreAdminNavPage =
   | "drivers"
   | "qr"
   | "flyer"
+  | "stock-sync"
   | "menu-items"
   | "sales"
   | "coupons"
@@ -126,6 +127,11 @@ export function StoreAdminHeader({
               <Link href="/dashboard/business/flyer" className={navClass(currentPage === "flyer")}>
                 Flyer
               </Link>
+              {/* Stock sync — hidden until feature is ready to ship
+              <Link href="/dashboard/business/stock-sync" className={navClass(currentPage === "stock-sync")}>
+                Stock sync
+              </Link>
+              */}
             </>
           ) : null}
           <Link href="/dashboard/billing" className={navClass(currentPage === "billing")}>
