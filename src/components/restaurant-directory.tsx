@@ -126,6 +126,10 @@ const HERO_SLIDES = [
     subtitle: "Clear WhatsApp orders — no app needed.",
   },
   {
+    title: "FREE & FAST delivery.",
+    subtitle: "🎁 FREE = No delivery fee • ⚡ FAST = Express delivery available.",
+  },
+  {
     title: "Discover nearby.",
     subtitle: "Browse menus from stores around you.",
   },
@@ -779,21 +783,21 @@ export function RestaurantDirectory({
                             ) : null}
                             
                             {/* Top-left badges */}
-                            <div className="absolute left-2 top-2 flex flex-col gap-1.5">
+                            <div className="absolute left-1.5 top-1.5 flex flex-wrap gap-1">
                               {isClosed ? (
-                                <span className="inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-rose-500 to-rose-600 px-2 py-1 text-[10px] font-bold text-white shadow-lg backdrop-blur-sm">
+                                <span className="inline-flex items-center gap-0.5 rounded-md bg-rose-500 px-1.5 py-0.5 text-[9px] font-bold text-white shadow-sm">
                                   Closed
                                 </span>
                               ) : null}
                               {restaurant.free_delivery ? (
-                                <span className="inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 px-2 py-1 text-[10px] font-extrabold text-white shadow-lg shadow-emerald-500/40 backdrop-blur-sm">
-                                  <Gift className="h-3 w-3" strokeWidth={2.5} aria-hidden />
+                                <span className="inline-flex items-center gap-0.5 rounded-md bg-emerald-500 px-1.5 py-0.5 text-[9px] font-bold text-white shadow-sm">
+                                  <Gift className="h-2.5 w-2.5" strokeWidth={2.5} aria-hidden />
                                   FREE
                                 </span>
                               ) : null}
                               {restaurant.fast_delivery_enabled ? (
-                                <span className="inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-violet-500 to-purple-600 px-2 py-1 text-[10px] font-extrabold text-white shadow-lg shadow-violet-500/40 backdrop-blur-sm">
-                                  <Zap className="h-3 w-3 fill-white" strokeWidth={2.5} aria-hidden />
+                                <span className="inline-flex items-center gap-0.5 rounded-md bg-violet-600 px-1.5 py-0.5 text-[9px] font-bold text-white shadow-sm">
+                                  <Zap className="h-2.5 w-2.5 fill-white" strokeWidth={2.5} aria-hidden />
                                   FAST
                                 </span>
                               ) : null}
@@ -949,25 +953,28 @@ export function RestaurantDirectory({
                             <p className="mt-0.5 truncate text-xs font-medium text-violet-600 md:text-sm">
                               {storeSubtitle(restaurant)}
                             </p>
-                            {/* Delivery badges */}
-                            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                              {restaurant.free_delivery ? (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-emerald-50 to-teal-50 px-2 py-0.5 text-[10px] font-extrabold text-emerald-700 ring-1 ring-emerald-200">
-                                  <Gift className="h-3 w-3" strokeWidth={2.5} aria-hidden />
-                                  FREE DELIVERY
-                                </span>
-                              ) : null}
-                              {restaurant.fast_delivery_enabled ? (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-violet-50 to-purple-50 px-2 py-0.5 text-[10px] font-extrabold text-violet-700 ring-1 ring-violet-200">
-                                  <Zap className="h-3 w-3 fill-violet-600" strokeWidth={2.5} aria-hidden />
-                                  FAST DELIVERY
-                                </span>
-                              ) : null}
-                            </div>
                           </div>
                         </Link>
 
-                        <div className="flex shrink-0 items-center gap-1.5">
+                        <div className="flex shrink-0 items-center gap-1">
+                          {/* Icon-only delivery badges */}
+                          {restaurant.free_delivery ? (
+                            <div
+                              className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 shadow-sm"
+                              title="Free Delivery"
+                            >
+                              <Gift className="h-3.5 w-3.5 text-white" strokeWidth={2.5} aria-hidden />
+                            </div>
+                          ) : null}
+                          {restaurant.fast_delivery_enabled ? (
+                            <div
+                              className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-600 shadow-sm"
+                              title="Fast Delivery"
+                            >
+                              <Zap className="h-3.5 w-3.5 fill-white text-white" strokeWidth={2.5} aria-hidden />
+                            </div>
+                          ) : null}
+                          
                           <button
                             type="button"
                             aria-label={

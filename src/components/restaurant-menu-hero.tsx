@@ -56,15 +56,15 @@ export function RestaurantMenuHero({ restaurant, tagline, menuThemeColor, modeBa
       
       {/* Delivery badges */}
       {restaurant.free_delivery ? (
-        <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-2.5 py-1 text-[11px] font-extrabold text-white shadow-lg shadow-emerald-900/30 backdrop-blur-sm">
-          <Gift className="h-3 w-3" strokeWidth={2.5} aria-hidden />
-          FREE DELIVERY
+        <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm sm:px-2.5 sm:py-1 sm:text-[11px]">
+          <Gift className="h-2.5 w-2.5 sm:h-3 sm:w-3" strokeWidth={2.5} aria-hidden />
+          FREE
         </span>
       ) : null}
       {restaurant.fast_delivery_enabled ? (
-        <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-violet-500 to-purple-600 px-2.5 py-1 text-[11px] font-extrabold text-white shadow-lg shadow-violet-900/30 backdrop-blur-sm">
-          <Zap className="h-3 w-3 fill-white" strokeWidth={2.5} aria-hidden />
-          FAST DELIVERY
+        <span className="inline-flex items-center gap-1 rounded-md bg-violet-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm sm:px-2.5 sm:py-1 sm:text-[11px]">
+          <Zap className="h-2.5 w-2.5 fill-white sm:h-3 sm:w-3" strokeWidth={2.5} aria-hidden />
+          FAST
         </span>
       ) : null}
     </div>
