@@ -204,27 +204,39 @@ export function DeliveryFeeSettings({
             />
           }
         >
-          <FieldShell>
-            <span className="shrink-0 text-sm font-medium text-slate-400" aria-hidden>
-              $
-            </span>
-            <input
-              name="delivery_fee_usd"
-              type="number"
-              step="0.01"
-              min={0.01}
-              required
-              defaultValue={deliveryFeeDefault > 0 ? String(deliveryFeeDefault) : ""}
-              placeholder="2.50"
-              aria-label="Standard delivery fee (USD)"
-              title={
-                freeDelivery
-                  ? "Saved but not charged while free delivery is on."
-                  : "Standard delivery fee (USD)"
-              }
-              className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm font-medium text-slate-900 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-            />
-          </FieldShell>
+          <div className="space-y-2">
+            <FieldShell>
+              <span className="shrink-0 text-sm font-medium text-slate-400" aria-hidden>
+                $
+              </span>
+              <input
+                name="delivery_fee_usd"
+                type="number"
+                step="0.01"
+                min={0.01}
+                required
+                defaultValue={deliveryFeeDefault > 0 ? String(deliveryFeeDefault) : ""}
+                placeholder="2.50"
+                aria-label="Standard delivery fee (USD)"
+                title={
+                  freeDelivery
+                    ? "Saved but not charged while free delivery is on."
+                    : "Standard delivery fee (USD)"
+                }
+                className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm font-medium text-slate-900 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              />
+            </FieldShell>
+            {!freeDelivery && (
+              <div className="rounded-lg bg-blue-50 px-3 py-2 text-[11px] leading-relaxed text-blue-700">
+                <strong className="font-semibold">How pricing works:</strong>
+                <br />
+                • If you set up distance tiers below, customers pay based on their distance
+                <br />
+                • This flat fee is used as fallback when no tiers match
+                <br />• No tiers? All customers pay this flat fee
+              </div>
+            )}
+          </div>
         </SettingTile>
 
         <SettingTile
@@ -240,23 +252,35 @@ export function DeliveryFeeSettings({
             />
           }
         >
-          <FieldShell>
-            <span className="shrink-0 text-sm font-medium text-slate-400" aria-hidden>
-              $
-            </span>
-            <input
-              name="fast_delivery_fee_usd"
-              type="number"
-              step="0.01"
-              min={0.01}
-              required={fastDeliveryEnabled}
-              defaultValue={fastDeliveryFeeDefault > 0 ? String(fastDeliveryFeeDefault) : ""}
-              placeholder="5.00"
-              aria-label="Fast delivery fee (USD)"
-              title="Fast delivery fee (USD)"
-              className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm font-medium text-slate-900 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-            />
-          </FieldShell>
+          <div className="space-y-2">
+            <FieldShell>
+              <span className="shrink-0 text-sm font-medium text-slate-400" aria-hidden>
+                $
+              </span>
+              <input
+                name="fast_delivery_fee_usd"
+                type="number"
+                step="0.01"
+                min={0.01}
+                required={fastDeliveryEnabled}
+                defaultValue={fastDeliveryFeeDefault > 0 ? String(fastDeliveryFeeDefault) : ""}
+                placeholder="5.00"
+                aria-label="Fast delivery fee (USD)"
+                title="Fast delivery fee (USD)"
+                className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm font-medium text-slate-900 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              />
+            </FieldShell>
+            {fastDeliveryEnabled && (
+              <div className="rounded-lg bg-blue-50 px-3 py-2 text-[11px] leading-relaxed text-blue-700">
+                <strong className="font-semibold">How pricing works:</strong>
+                <br />
+                • If you set up fast delivery tiers below, customers pay based on their distance
+                <br />
+                • This flat fee is used as fallback when no tiers match
+                <br />• No tiers? All customers pay this flat fee
+              </div>
+            )}
+          </div>
         </SettingTile>
 
         <SettingTile

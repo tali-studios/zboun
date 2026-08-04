@@ -923,22 +923,41 @@ export function RestaurantDirectory({
                           href={`/${restaurant.slug}`}
                           className="flex min-w-0 flex-1 items-center gap-3"
                         >
-                          {restaurant.logo_url ? (
-                            <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full border border-slate-100 bg-slate-50 md:h-16 md:w-16">
-                              <Image
-                                src={restaurant.logo_url}
-                                alt=""
-                                fill
-                                className="object-cover"
-                                sizes="64px"
-                                unoptimized
-                              />
-                            </div>
-                          ) : (
-                            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-violet-100 text-sm font-bold text-violet-700 md:h-16 md:w-16">
-                              {restaurant.name.slice(0, 2).toUpperCase()}
-                            </div>
-                          )}
+                          <div className="relative flex shrink-0 items-center justify-center">
+                            {restaurant.logo_url ? (
+                              <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full border border-slate-100 bg-slate-50 md:h-16 md:w-16">
+                                <Image
+                                  src={restaurant.logo_url}
+                                  alt=""
+                                  fill
+                                  className="object-cover"
+                                  sizes="64px"
+                                  unoptimized
+                                />
+                              </div>
+                            ) : (
+                              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-violet-100 text-sm font-bold text-violet-700 md:h-16 md:w-16">
+                                {restaurant.name.slice(0, 2).toUpperCase()}
+                              </div>
+                            )}
+                            
+                            {/* Delivery icons as small badges on top of logo */}
+                            {(restaurant.free_delivery || restaurant.fast_delivery_enabled) ? (
+                              <div className="absolute -top-1 left-1/2 flex -translate-x-1/2 gap-0.5">
+                                {restaurant.free_delivery ? (
+                                  <span className="flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 shadow-sm" title="Free Delivery">
+                                    <Gift className="h-2.5 w-2.5 text-white" strokeWidth={2.5} aria-hidden />
+                                  </span>
+                                ) : null}
+                                {restaurant.fast_delivery_enabled ? (
+                                  <span className="flex h-4 w-4 items-center justify-center rounded-full bg-violet-600 shadow-sm" title="Fast Delivery">
+                                    <Zap className="h-2.5 w-2.5 fill-white text-white" strokeWidth={2.5} aria-hidden />
+                                  </span>
+                                ) : null}
+                              </div>
+                            ) : null}
+                          </div>
+                          
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
                               <h3 className="truncate text-sm font-bold text-slate-900 md:text-base">
@@ -956,25 +975,7 @@ export function RestaurantDirectory({
                           </div>
                         </Link>
 
-                        <div className="flex shrink-0 items-center gap-1">
-                          {/* Icon-only delivery badges */}
-                          {restaurant.free_delivery ? (
-                            <div
-                              className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 shadow-sm"
-                              title="Free Delivery"
-                            >
-                              <Gift className="h-3.5 w-3.5 text-white" strokeWidth={2.5} aria-hidden />
-                            </div>
-                          ) : null}
-                          {restaurant.fast_delivery_enabled ? (
-                            <div
-                              className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-600 shadow-sm"
-                              title="Fast Delivery"
-                            >
-                              <Zap className="h-3.5 w-3.5 fill-white text-white" strokeWidth={2.5} aria-hidden />
-                            </div>
-                          ) : null}
-                          
+                        <div className="flex shrink-0 items-center gap-1.5">
                           <button
                             type="button"
                             aria-label={

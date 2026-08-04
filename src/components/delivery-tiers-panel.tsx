@@ -171,6 +171,16 @@ export function DeliveryTiersPanel({ restaurantId, initialTiers = [], deliveryTy
         </button>
       </div>
 
+      {/* Explanation banner */}
+      <div className="mb-3 rounded-lg border border-indigo-100 bg-indigo-50/50 px-3 py-2">
+        <p className="text-xs font-semibold text-indigo-900">📍 Distance-based pricing</p>
+        <p className="mt-1 text-xs leading-relaxed text-indigo-700">
+          <strong>With tiers:</strong> Customers pay based on their distance from your store.
+          <br />
+          <strong>Without tiers (or gaps):</strong> The flat fee above is used as default/fallback.
+        </p>
+      </div>
+
       {/* Error message */}
       {error && (
         <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2">
@@ -195,7 +205,9 @@ export function DeliveryTiersPanel({ restaurantId, initialTiers = [], deliveryTy
           <MapPin className="mx-auto h-8 w-8 text-slate-300" />
           <p className="mt-2 text-sm font-semibold text-slate-600">No distance tiers configured</p>
           <p className="mt-1 text-xs text-slate-400">
-            All customers pay the flat delivery fee above. Add tiers to charge based on distance.
+            All customers currently pay the flat delivery fee shown above.
+            <br />
+            Add tiers to charge different fees based on distance from your store.
           </p>
         </div>
       ) : (
@@ -393,9 +405,13 @@ export function DeliveryTiersPanel({ restaurantId, initialTiers = [], deliveryTy
 
       {hasTiers && (
         <div className="mt-3 rounded-lg border border-blue-100 bg-blue-50/50 px-3 py-2">
-          <p className="text-xs font-medium text-blue-900">💡 How it works</p>
-          <p className="mt-0.5 text-xs text-blue-700">
-            When a customer orders, we calculate their distance and apply the matching tier. If no tier matches, we use the flat delivery fee above.
+          <p className="text-xs font-medium text-blue-900">💡 How customers are charged</p>
+          <p className="mt-0.5 text-xs leading-relaxed text-blue-700">
+            <strong>Step 1:</strong> We calculate the customer's distance from your store
+            <br />
+            <strong>Step 2:</strong> We find the matching tier for that distance
+            <br />
+            <strong>Step 3:</strong> If a tier matches → use tier price. If no match → use flat fee as fallback.
           </p>
         </div>
       )}
