@@ -54,19 +54,21 @@ export function RestaurantMenuHero({ restaurant, tagline, menuThemeColor, modeBa
         ) : null}
       </div>
       
-      {/* Delivery badges */}
-      {restaurant.free_delivery ? (
-        <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm sm:px-2.5 sm:py-1 sm:text-[11px]">
-          <Gift className="h-2.5 w-2.5 sm:h-3 sm:w-3" strokeWidth={2.5} aria-hidden />
-          FREE
-        </span>
-      ) : null}
-      {restaurant.fast_delivery_enabled ? (
-        <span className="inline-flex items-center gap-1 rounded-md bg-violet-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm sm:px-2.5 sm:py-1 sm:text-[11px]">
-          <Zap className="h-2.5 w-2.5 fill-white sm:h-3 sm:w-3" strokeWidth={2.5} aria-hidden />
-          FAST
-        </span>
-      ) : null}
+      {/* Delivery badges - hidden on mobile, shown on tablet+ */}
+      <div className="hidden sm:flex sm:flex-wrap sm:items-center sm:gap-2">
+        {restaurant.free_delivery ? (
+          <span className="inline-flex items-center gap-1.5 rounded-full border-2 border-emerald-300/50 bg-emerald-50/80 px-3 py-1.5 text-xs font-semibold text-emerald-700 backdrop-blur-sm">
+            <Gift className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
+            Free delivery
+          </span>
+        ) : null}
+        {restaurant.fast_delivery_enabled ? (
+          <span className="inline-flex items-center gap-1.5 rounded-full border-2 border-violet-300/50 bg-violet-50/80 px-3 py-1.5 text-xs font-semibold text-violet-700 backdrop-blur-sm">
+            <Zap className="h-3.5 w-3.5 fill-violet-600" strokeWidth={2.5} aria-hidden />
+            Fast delivery
+          </span>
+        ) : null}
+      </div>
     </div>
   );
 

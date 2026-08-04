@@ -1,9 +1,9 @@
-﻿"use client";
+"use client";
 
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { ArrowLeft, Minus, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Gift, Minus, Plus, Trash2, Zap } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { CategoryWithItems } from "@/lib/data";
@@ -1349,6 +1349,24 @@ export function MenuClient({
       >
         {/* ── Menu items column ──────────────────────────────────────── */}
         <section className="min-w-0 space-y-4">
+          {/* Delivery info badges - mobile only, above search */}
+          {(freeDelivery || fastDeliveryEnabled) && (
+            <div className="flex w-full flex-col gap-2 sm:hidden">
+              {freeDelivery ? (
+                <div className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700">
+                  <Gift className="h-4 w-4" strokeWidth={2.5} aria-hidden />
+                  Free delivery available!
+                </div>
+              ) : null}
+              {fastDeliveryEnabled ? (
+                <div className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-violet-200 bg-violet-50 px-4 py-2.5 text-sm font-semibold text-violet-700">
+                  <Zap className="h-4 w-4 fill-violet-600" strokeWidth={2.5} aria-hidden />
+                  Fast delivery available!
+                </div>
+              ) : null}
+            </div>
+          )}
+          
           {/* Search */}
           <div className="relative w-full min-w-0">
             <svg
