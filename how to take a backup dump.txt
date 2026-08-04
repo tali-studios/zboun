@@ -1,0 +1,2 @@
+cd F:\zboun
+& "F:\Program Files\PostgreSQL\18\bin\pg_dump.exe" "postgresql://postgres.tbnfrqftpocihuzvlttm:YOUR_PASSWORD@aws-1-ap-northeast-2.pooler.supabase.com:5432/postgres?sslmode=require" -f "backups/zboun_backup_$(Get-Date -Format 'yyyyMMdd').sql"
