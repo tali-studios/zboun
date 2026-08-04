@@ -514,6 +514,7 @@ export const getHomeRestaurants = unstable_cache(
           fast_delivery_enabled: false,
           fast_delivery_fee_usd: 0,
           delivery_radius_km: null,
+          delivers_nationwide: false,
         })),
         supabase,
       );
