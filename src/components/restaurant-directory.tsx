@@ -9,6 +9,7 @@ import {
   ClipboardList,
   Clock,
   Camera,
+  Globe,
   Heart,
   MapPin,
   Search,
@@ -179,6 +180,7 @@ type RestaurantCard = {
   is_temporarily_closed?: boolean;
   latitude: number | null;
   longitude: number | null;
+  delivers_nationwide?: boolean;
   branches?: RestaurantBranch[] | null;
 };
 
@@ -277,7 +279,10 @@ export function RestaurantDirectory({
         return { ...r, distKm };
       })
       .filter(({ distKm, ...r }) => {
-        if (location && distKm !== null) {
+        // Nationwide delivery restaurants skip location filtering
+        if (r.delivers_nationwide) {
+          // Keep them in results
+        } else if (location && distKm !== null) {
           const maxKm = effectiveSearchRadiusKm(radiusKm, r.delivery_radius_km);
           if (distKm > maxKm) return false;
         }
@@ -785,7 +790,16 @@ export function RestaurantDirectory({
                               <p className="mt-0.5 truncate text-xs font-medium text-violet-600 md:text-sm">
                                 {cuisine}
                               </p>
-                              {restaurant.location ? (
+                              {restaurant.delivers_nationwide ? (
+                                <p className="mt-1.5 flex items-center gap-1 truncate text-[11px] font-semibold text-blue-600 md:text-xs">
+                                  <Globe
+                                    className="h-3 w-3 shrink-0"
+                                    strokeWidth={2.5}
+                                    aria-hidden
+                                  />
+                                  <span className="truncate">Delivers across Lebanon</span>
+                                </p>
+                              ) : restaurant.location ? (
                                 <p className="mt-1.5 flex items-center gap-1 truncate text-[11px] text-slate-500 md:text-xs">
                                   <MapPin
                                     className="h-3 w-3 shrink-0 text-violet-500"

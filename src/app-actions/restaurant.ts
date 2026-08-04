@@ -948,6 +948,7 @@ export async function updateRestaurantSettingsAction(
   const locationAddress = String(formData.get("location_address") ?? "").trim() || null;
   const locationId = String(formData.get("location_id") ?? "").trim();
   const freeDelivery = formData.get("free_delivery") === "true" || formData.get("free_delivery") === "on";
+  const deliversNationwide = formData.get("delivers_nationwide") === "true" || formData.get("delivers_nationwide") === "on";
   const allowGuestCheckout =
     formData.get("allow_guest_checkout") === "true" || formData.get("allow_guest_checkout") === "on";
   const driverManagementEnabled =
@@ -976,6 +977,7 @@ export async function updateRestaurantSettingsAction(
       eta_label,
       latitude,
       longitude,
+      delivers_nationwide: deliversNationwide,
       free_delivery: freeDelivery,
       delivery_fee_usd: Math.round(deliveryFeeUsd * 100) / 100,
       fast_delivery_enabled: fastDeliveryEnabled,
@@ -991,6 +993,100 @@ export async function updateRestaurantSettingsAction(
 
   if (updateError) {
     return { ok: false, toast: "settings_save_failed", message: updateError.message };
+  }
+
+  // Handle regular delivery tiers - ALWAYS delete existing tiers first
+  const { error: deleteRegularTiersError } = await supabase
+    .from("restaurant_delivery_tiers")
+    .delete()
+    .eq("restaurant_id", user.restaurant_id);
+
+  if (deleteRegularTiersError) {
+    console.error("Failed to delete old delivery tiers:", deleteRegularTiersError);
+    return { 
+      ok: false, 
+      toast: "settings_save_failed", 
+      message: `Failed to delete old delivery tiers: ${deleteRegularTiersError.message}` 
+    };
+  }
+
+  // Insert new regular delivery tiers if any
+  const tiersCount = Number(formData.get("tiers_count") ?? 0);
+  if (tiersCount > 0) {
+    const tiersToInsert = [];
+    for (let i = 0; i < tiersCount; i++) {
+      const minKm = Number(formData.get(`tier_${i}_min_km`) ?? 0);
+      const maxKm = Number(formData.get(`tier_${i}_max_km`) ?? 0);
+      const feeUsd = Number(formData.get(`tier_${i}_fee`) ?? 0);
+
+      if (maxKm > minKm && feeUsd >= 0) {
+        tiersToInsert.push({
+          restaurant_id: user.restaurant_id,
+          min_distance_km: minKm,
+          max_distance_km: maxKm,
+          fee_usd: feeUsd,
+          position: i,
+        });
+      }
+    }
+
+    if (tiersToInsert.length > 0) {
+      const { error: tiersError } = await supabase
+        .from("restaurant_delivery_tiers")
+        .insert(tiersToInsert);
+
+      if (tiersError) {
+        console.error("Failed to save delivery tiers:", tiersError);
+        return { ok: false, toast: "settings_save_failed", message: tiersError.message };
+      }
+    }
+  }
+
+  // Handle fast delivery tiers - ALWAYS delete existing tiers first
+  const { error: deleteFastTiersError } = await supabase
+    .from("restaurant_fast_delivery_tiers")
+    .delete()
+    .eq("restaurant_id", user.restaurant_id);
+
+  if (deleteFastTiersError) {
+    console.error("Failed to delete old fast delivery tiers:", deleteFastTiersError);
+    return { 
+      ok: false, 
+      toast: "settings_save_failed", 
+      message: `Failed to delete old fast delivery tiers: ${deleteFastTiersError.message}` 
+    };
+  }
+
+  // Insert new fast delivery tiers if any
+  const fastTiersCount = Number(formData.get("fast_tiers_count") ?? 0);
+  if (fastTiersCount > 0) {
+    const fastTiersToInsert = [];
+    for (let i = 0; i < fastTiersCount; i++) {
+      const minKm = Number(formData.get(`fast_tier_${i}_min_km`) ?? 0);
+      const maxKm = Number(formData.get(`fast_tier_${i}_max_km`) ?? 0);
+      const feeUsd = Number(formData.get(`fast_tier_${i}_fee`) ?? 0);
+
+      if (maxKm > minKm && feeUsd >= 0) {
+        fastTiersToInsert.push({
+          restaurant_id: user.restaurant_id,
+          min_distance_km: minKm,
+          max_distance_km: maxKm,
+          fee_usd: feeUsd,
+          position: i,
+        });
+      }
+    }
+
+    if (fastTiersToInsert.length > 0) {
+      const { error: fastTiersError } = await supabase
+        .from("restaurant_fast_delivery_tiers")
+        .insert(fastTiersToInsert);
+
+      if (fastTiersError) {
+        console.error("Failed to save fast delivery tiers:", fastTiersError);
+        return { ok: false, toast: "settings_save_failed", message: fastTiersError.message };
+      }
+    }
   }
 
   if (latitude != null && longitude != null) {
@@ -1059,10 +1155,16 @@ function parseOpeningHoursFromForm(raw: string): Array<{ day: number; open: stri
 
 export async function updateRestaurantHoursAction(formData: FormData) {
   const user = await requireRestaurantAdmin();
-  const hours = parseOpeningHoursFromForm(String(formData.get("opening_hours") ?? ""));
-  if (hours.length === 0) {
+  const hoursRaw = String(formData.get("opening_hours") ?? "");
+  const hours = parseOpeningHoursFromForm(hoursRaw);
+  
+  // Allow empty hours (means always open 24/7)
+  // Only reject if the string is not empty but parsing failed
+  if (hoursRaw !== "[]" && hours.length === 0) {
     redirect(`${HOURS_ADMIN_PATH}?toast=hours_invalid`);
   }
+
+  const isTemporarilyClosed = formData.get("is_temporarily_closed") === "true";
 
   const supabase = await createServerSupabaseClient();
   const { data: restaurant } = await supabase
@@ -1073,7 +1175,10 @@ export async function updateRestaurantHoursAction(formData: FormData) {
 
   await supabase
     .from("restaurants")
-    .update({ opening_hours: hours })
+    .update({ 
+      opening_hours: hours,
+      is_temporarily_closed: isTemporarilyClosed
+    })
     .eq("id", user.restaurant_id);
 
   revalidatePath(HOURS_ADMIN_PATH);

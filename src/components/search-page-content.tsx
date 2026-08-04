@@ -55,6 +55,7 @@ type RestaurantCard = {
   is_temporarily_closed?: boolean;
   latitude: number | null;
   longitude: number | null;
+  delivers_nationwide?: boolean;
   activeOffer?: { discount: string; description?: string } | null;
   status?: string;
   branches?: Array<{ name: string; address?: string | null; latitude: number; longitude: number }>;

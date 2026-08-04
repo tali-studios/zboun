@@ -12,6 +12,7 @@ import { DashboardSectionJump } from "@/components/dashboard-section-jump";
 import { RestaurantLocationsPanel } from "@/components/restaurant-locations-panel";
 import type { RestaurantLocationRow } from "@/app-actions/restaurant";
 import { DeliveryFeeSettings } from "@/components/delivery-fee-settings";
+import { DeliveryTiersPanel } from "@/components/delivery-tiers-panel";
 import { MenuThemePicker } from "@/components/menu-theme-picker";
 import {
   loadRestaurantForAdminDashboard,
@@ -215,6 +216,32 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
     .order("position", { ascending: true });
   const restaurantLocations = (restaurantLocationsRaw ?? []) as RestaurantLocationRow[];
 
+  const { data: deliveryTiersRaw } = await supabase
+    .from("restaurant_delivery_tiers")
+    .select("id, min_distance_km, max_distance_km, fee_usd, position")
+    .eq("restaurant_id", appUser.restaurant_id)
+    .order("position", { ascending: true });
+  const deliveryTiers = (deliveryTiersRaw ?? []) as Array<{
+    id: string;
+    min_distance_km: number;
+    max_distance_km: number;
+    fee_usd: number;
+    position: number;
+  }>;
+
+  const { data: fastDeliveryTiersRaw } = await supabase
+    .from("restaurant_fast_delivery_tiers")
+    .select("id, min_distance_km, max_distance_km, fee_usd, position")
+    .eq("restaurant_id", appUser.restaurant_id)
+    .order("position", { ascending: true });
+  const fastDeliveryTiers = (fastDeliveryTiersRaw ?? []) as Array<{
+    id: string;
+    min_distance_km: number;
+    max_distance_km: number;
+    fee_usd: number;
+    position: number;
+  }>;
+
   let restaurant = restaurantRaw;
   if (restaurant) {
     const synced = await syncRestaurantProfileFromMainBranch(
@@ -402,7 +429,11 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
               fastDeliveryEnabledDefault={restaurant?.fast_delivery_enabled ?? false}
               fastDeliveryFeeDefault={Number(restaurant?.fast_delivery_fee_usd ?? 0)}
               deliveryRadiusDefault={restaurant?.delivery_radius_km ?? null}
+              deliversNationwideDefault={restaurant?.delivers_nationwide ?? false}
               driverManagementEnabledDefault={restaurant?.driver_management_enabled ?? false}
+              restaurantId={appUser.restaurant_id}
+              deliveryTiers={deliveryTiers ?? []}
+              fastDeliveryTiers={fastDeliveryTiers ?? []}
             />
           </div>
 

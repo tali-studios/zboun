@@ -121,7 +121,8 @@ export function isRestaurantOpenNow(
   options?: { isTemporarilyClosed?: boolean; now?: Date; timeZone?: string },
 ): boolean {
   if (options?.isTemporarilyClosed) return false;
-  if (hours.length === 0) return false;
+  // If no hours configured, store is always open (24/7)
+  if (hours.length === 0) return true;
   const now = options?.now ?? new Date();
   const timeZone = options?.timeZone ?? RESTAURANT_TIMEZONE;
   const { day, minutes: currentMin } = getDayAndMinutesInTimezone(now, timeZone);
@@ -129,7 +130,10 @@ export function isRestaurantOpenNow(
   if (!dayConfig || dayConfig.closed) return false;
   const openMin = parseTimeToMinutes(dayConfig.open);
   const closeMin = parseTimeToMinutes(dayConfig.close);
-  if (openMin == null || closeMin == null || closeMin <= openMin) return false;
+  if (openMin == null || closeMin == null) return false;
+  // Allow full-day hours: if close == open, treat as 24 hours
+  if (closeMin === openMin) return true;
+  if (closeMin <= openMin) return false;
   return currentMin >= openMin && currentMin < closeMin;
 }
 
@@ -192,9 +196,12 @@ export function getScheduleSlots(
 
     const openMin = parseTimeToMinutes(dayConfig.open);
     const closeMin = parseTimeToMinutes(dayConfig.close);
-    if (openMin == null || closeMin == null || closeMin <= openMin) continue;
+    if (openMin == null || closeMin == null) continue;
+    // Allow full-day hours: if close == open, generate slots for full 24 hours
+    const effectiveCloseMin = closeMin === openMin ? 24 * 60 : closeMin;
+    if (effectiveCloseMin <= openMin) continue;
 
-    for (let minute = openMin; minute + interval <= closeMin; minute += interval) {
+    for (let minute = openMin; minute + interval <= effectiveCloseMin; minute += interval) {
       const slot = new Date(dayStart);
       slot.setHours(Math.floor(minute / 60), minute % 60, 0, 0);
       if (slot.getTime() <= now.getTime()) continue;

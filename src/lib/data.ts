@@ -138,6 +138,7 @@ type RestaurantRowCore = {
   delivery_radius_km?: number | null;
   latitude?: number | null;
   longitude?: number | null;
+  delivers_nationwide?: boolean;
   menu_theme_color?: string | null;
   allow_guest_checkout?: boolean;
   driver_management_enabled?: boolean;
@@ -146,14 +147,14 @@ type RestaurantRowCore = {
 export async function getRestaurantBySlug(slug: string): Promise<RestaurantForMenuPage | null> {
   const supabase = await createServerSupabaseClient();
   const fullSelect =
-    "id, name, slug, phone, logo_url, banner_url, description, lbp_rate, is_active, browse_sections, location, eta_label, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd, delivery_radius_km, latitude, longitude, menu_theme_color, allow_guest_checkout, driver_management_enabled";
+    "id, name, slug, phone, logo_url, banner_url, description, lbp_rate, is_active, browse_sections, location, eta_label, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd, delivery_radius_km, latitude, longitude, delivers_nationwide, menu_theme_color, allow_guest_checkout, driver_management_enabled";
   let { data, error } = await supabase.from("restaurants").select(fullSelect).eq("slug", slug).single();
 
   if (error && /(allow_guest_checkout|driver_management_enabled)/i.test(error.message ?? "")) {
     const retry = await supabase
       .from("restaurants")
       .select(
-        "id, name, slug, phone, logo_url, banner_url, description, lbp_rate, is_active, browse_sections, location, eta_label, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd, delivery_radius_km, latitude, longitude, menu_theme_color",
+        "id, name, slug, phone, logo_url, banner_url, description, lbp_rate, is_active, browse_sections, location, eta_label, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd, delivery_radius_km, latitude, longitude, delivers_nationwide, menu_theme_color",
       )
       .eq("slug", slug)
       .single();
@@ -404,6 +405,7 @@ type HomeRestaurantCard = {
   delivery_radius_km: number | null;
   latitude: number | null;
   longitude: number | null;
+  delivers_nationwide: boolean;
   /** All physical branches — used for multi-location distance filtering */
   branches: RestaurantLocationBranch[];
 };
@@ -434,6 +436,7 @@ function mapLegacyHomeRow(r: {
     delivery_radius_km: null,
     latitude: null,
     longitude: null,
+    delivers_nationwide: false,
     branches: [],
   };
 }
@@ -473,7 +476,7 @@ export const getHomeRestaurants = unstable_cache(
       auth: { persistSession: false, autoRefreshToken: false },
     });
     const fullSelect =
-      "id, name, slug, phone, logo_url, banner_url, description, browse_sections, location, eta_label, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd, delivery_radius_km, latitude, longitude, restaurant_locations(id, name, latitude, longitude, address, is_main)";
+      "id, name, slug, phone, logo_url, banner_url, description, browse_sections, location, eta_label, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd, delivery_radius_km, latitude, longitude, delivers_nationwide, restaurant_locations(id, name, latitude, longitude, address, is_main)";
 
     const full = await supabase
       .from("restaurants")

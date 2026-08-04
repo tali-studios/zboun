@@ -1,15 +1,15 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
 import {
   DEFAULT_OPENING_HOURS,
+  isRestaurantOpenNow,
   parseOpeningHours,
   serializeOpeningHoursForForm,
   WEEKDAY_LABELS,
   type DayHours,
 } from "@/lib/opening-hours";
 import {
-  toggleTemporaryCloseAction,
   updateRestaurantHoursAction,
 } from "@/app-actions/restaurant";
 
@@ -124,15 +124,36 @@ function HoursDayTableCells({
 export function RestaurantHoursPanel({ openingHours, isTemporarilyClosed }: Props) {
   const [hours, setHours] = useState<DayHours[]>(() => parseOpeningHours(openingHours));
   const [tempClosed, setTempClosed] = useState(isTemporarilyClosed);
-  const [pendingToggle, startToggle] = useTransition();
+  const [alwaysOpen, setAlwaysOpen] = useState(() => {
+    // Check if openingHours is empty (always open) or if parsed hours is empty
+    if (Array.isArray(openingHours) && openingHours.length === 0) return true;
+    const parsed = parseOpeningHours(openingHours);
+    return parsed.length === 0;
+  });
 
-  const serialized = useMemo(() => serializeOpeningHoursForForm(hours), [hours]);
+  const serialized = useMemo(() => alwaysOpen ? "[]" : serializeOpeningHoursForForm(hours), [hours, alwaysOpen]);
 
   const rows = useMemo(
     () =>
       DEFAULT_OPENING_HOURS.map((fallback) => hours.find((h) => h.day === fallback.day) ?? fallback),
     [hours],
   );
+
+  // Calculate current status based on SAVED state (props), not local changes
+  const currentStatus = useMemo(() => {
+    // Use initial props, not local state
+    if (isTemporarilyClosed) return { status: "emergency_closed", label: "Emergency Closed", color: "rose" };
+    
+    // Check if saved hours are empty (always open)
+    if (openingHours.length === 0) return { status: "always_open", label: "Always Open (24/7)", color: "blue" };
+    
+    // Check if currently open based on saved hours
+    const now = new Date();
+    const isOpen = openingHours.length > 0 && isRestaurantOpenNow(openingHours, { now });
+    
+    if (isOpen) return { status: "open", label: "Currently Open", color: "emerald" };
+    return { status: "closed", label: "Currently Closed", color: "slate" };
+  }, [isTemporarilyClosed, openingHours]);
 
   function updateDay(day: number, patch: Partial<DayHours>) {
     setHours((prev) =>
@@ -141,46 +162,145 @@ export function RestaurantHoursPanel({ openingHours, isTemporarilyClosed }: Prop
   }
 
   function handleEmergencyToggle() {
-    const next = !tempClosed;
-    setTempClosed(next);
-    startToggle(async () => {
-      await toggleTemporaryCloseAction(next);
-    });
+    setTempClosed(!tempClosed);
   }
 
   return (
     <div className="panel min-w-0 overflow-x-hidden p-4 sm:p-5">
+      {/* Status indicator */}
+      <div className={`mb-4 flex items-center gap-3 rounded-xl border-2 px-4 py-3 ${
+        currentStatus.color === "rose" ? "border-rose-300 bg-rose-50" :
+        currentStatus.color === "blue" ? "border-blue-300 bg-blue-50" :
+        currentStatus.color === "emerald" ? "border-emerald-300 bg-emerald-50" :
+        "border-slate-300 bg-slate-50"
+      }`}>
+        <div className={`flex h-3 w-3 items-center justify-center rounded-full ${
+          currentStatus.color === "rose" ? "bg-rose-500" :
+          currentStatus.color === "blue" ? "bg-blue-500 animate-pulse" :
+          currentStatus.color === "emerald" ? "bg-emerald-500 animate-pulse" :
+          "bg-slate-400"
+        }`}>
+          <div className={`h-2 w-2 rounded-full ${
+            currentStatus.color === "rose" ? "bg-rose-600" :
+            currentStatus.color === "blue" ? "bg-blue-600" :
+            currentStatus.color === "emerald" ? "bg-emerald-600" :
+            "bg-slate-500"
+          }`} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className={`text-sm font-bold ${
+            currentStatus.color === "rose" ? "text-rose-900" :
+            currentStatus.color === "blue" ? "text-blue-900" :
+            currentStatus.color === "emerald" ? "text-emerald-900" :
+            "text-slate-900"
+          }`}>
+            Store Status: {currentStatus.label}
+          </p>
+          <p className={`mt-0.5 text-xs ${
+            currentStatus.color === "rose" ? "text-rose-700" :
+            currentStatus.color === "blue" ? "text-blue-700" :
+            currentStatus.color === "emerald" ? "text-emerald-700" :
+            "text-slate-600"
+          }`}>
+            {currentStatus.status === "emergency_closed" && "Customers cannot place orders"}
+            {currentStatus.status === "always_open" && "Customers can order anytime"}
+            {currentStatus.status === "open" && "Customers can place orders now"}
+            {currentStatus.status === "closed" && "Outside of operating hours"}
+          </p>
+        </div>
+      </div>
+
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
         <div className="min-w-0">
           <h2 className="panel-title">Opening hours</h2>
           <p className="mt-1 text-sm text-slate-500">
-            Customers can schedule delivery up to 5 days ahead, only during these hours.
+            {alwaysOpen 
+              ? "Your store appears as always open. Perfect for online stores that don't have physical hours."
+              : "Customers can schedule delivery up to 5 days ahead, only during these hours."
+            }
           </p>
         </div>
-        <button
-          type="button"
-          disabled={pendingToggle}
-          onClick={handleEmergencyToggle}
-          className={`w-full shrink-0 rounded-full px-4 py-2.5 text-sm font-bold transition disabled:opacity-60 sm:w-auto ${
-            tempClosed
-              ? "bg-emerald-600 text-white hover:bg-emerald-700"
-              : "border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
-          }`}
-        >
-          {tempClosed ? "Re-open store" : "Emergency: we're closed"}
-        </button>
+        <div className="flex w-full shrink-0 gap-2 sm:w-auto">
+          <button
+            type="button"
+            onClick={() => setAlwaysOpen(!alwaysOpen)}
+            className={`flex-1 rounded-full px-4 py-2.5 text-sm font-bold shadow-sm transition sm:flex-none ${
+              alwaysOpen
+                ? "bg-blue-600 text-white shadow-blue-500/25 hover:bg-blue-700"
+                : "border-2 border-blue-500 bg-white text-blue-700 hover:bg-blue-50"
+            }`}
+          >
+            {alwaysOpen ? "🕐 Always open (24/7)" : "Set as always open"}
+          </button>
+          <button
+            type="button"
+            onClick={handleEmergencyToggle}
+            className={`flex-1 shrink-0 rounded-full px-4 py-2.5 text-sm font-bold transition sm:flex-none ${
+              tempClosed
+                ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                : "border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
+            }`}
+            title={tempClosed ? "Click to mark as open (remember to save)" : "Mark store as closed (remember to save)"}
+          >
+            {tempClosed ? "✓ Re-open store" : "Emergency closed"}
+          </button>
+        </div>
       </div>
 
       {tempClosed ? (
-        <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-          Your store is marked as <strong>temporarily closed</strong>. Customers will see &quot;Closed now&quot; on the
-          home page and cannot place online orders until you re-open.
+        <div className="mt-4 rounded-xl border-2 border-rose-300 bg-rose-50 px-4 py-3">
+          <div className="flex items-start gap-2">
+            <span className="text-lg">🚫</span>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-rose-900">Store is temporarily closed</p>
+              <p className="mt-1 text-sm text-rose-700">
+                Customers see &quot;Closed now&quot; and cannot place orders. Click &quot;✓ Re-open store&quot; button above to enable ordering again.
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {alwaysOpen ? (
+        <div className="mt-4 overflow-hidden rounded-2xl border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-blue-100">
+          <div className="px-5 py-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-600 text-2xl">
+                🕐
+              </div>
+              <div className="min-w-0">
+                <p className="text-base font-bold text-blue-900">Always Open (24/7)</p>
+                <p className="mt-0.5 text-sm text-blue-700">
+                  Your store appears as open all the time to customers
+                </p>
+              </div>
+            </div>
+            <div className="mt-3 rounded-xl border border-blue-300 bg-white px-3 py-2.5">
+              <p className="text-xs font-semibold text-blue-900">ℹ️ What this means:</p>
+              <ul className="mt-1 space-y-1 text-xs text-blue-800">
+                <li>• Customers can order anytime, any day</li>
+                <li>• No restrictions on delivery scheduling</li>
+                <li>• Perfect for online stores, cloud kitchens & delivery services</li>
+              </ul>
+            </div>
+          </div>
         </div>
       ) : null}
 
       <form action={updateRestaurantHoursAction} className="mt-4 min-w-0 space-y-3">
         <input type="hidden" name="opening_hours" value={serialized} />
+        <input type="hidden" name="is_temporarily_closed" value={tempClosed ? "true" : "false"} />
 
+        {/* Save button at the top for quick access */}
+        <button
+          type="submit"
+          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-violet-500/25 transition hover:brightness-105 active:scale-[0.99]"
+        >
+          Save settings
+        </button>
+
+        {alwaysOpen ? null : (
+        <>
         {/* Mobile: one card per day (dropdown times — native time inputs overflow) */}
         <ul className="min-w-0 space-y-2.5 lg:hidden">
           {rows.map((row) => (
@@ -244,13 +364,8 @@ export function RestaurantHoursPanel({ openingHours, isTemporarilyClosed }: Prop
             </tbody>
           </table>
         </div>
-
-        <button
-          type="submit"
-          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-violet-500/25 transition hover:brightness-105 active:scale-[0.99]"
-        >
-          Save opening hours
-        </button>
+        </>
+        )}
       </form>
     </div>
   );

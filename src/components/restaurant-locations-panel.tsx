@@ -69,7 +69,7 @@ export function RestaurantLocationsPanel({ initialLocations, embedded = false }:
       ) : hasPin ? (
         <div className="mt-3 flex items-start gap-2.5 rounded-xl border border-violet-100 bg-violet-50/60 px-3 py-2.5">
           <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-violet-600" aria-hidden />
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="text-sm font-medium text-slate-800">
               {address || "Location pinned"}
             </p>
@@ -77,9 +77,26 @@ export function RestaurantLocationsPanel({ initialLocations, embedded = false }:
               {lat!.toFixed(5)}, {lng!.toFixed(5)}
             </p>
           </div>
+          <button
+            type="button"
+            onClick={() => {
+              setLat(null);
+              setLng(null);
+              setAddress("");
+            }}
+            className="shrink-0 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
+            title="Clear location"
+          >
+            Clear
+          </button>
         </div>
       ) : (
-        <p className="mt-3 text-xs text-slate-400">No location picked yet.</p>
+        <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2.5">
+          <p className="text-xs font-medium text-slate-600">No location set</p>
+          <p className="mt-1 text-xs text-slate-400">
+            Location is optional. Pick on map if you want customers to see your area and calculate delivery distance.
+          </p>
+        </div>
       )}
     </div>
   );

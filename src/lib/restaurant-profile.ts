@@ -12,10 +12,10 @@ export type RestaurantBranchLike = {
 const GENERIC_BRANCH_NAMES = new Set(["main branch", "branch", "main"]);
 
 const RESTAURANT_ADMIN_SELECT_FULL =
-  "name, slug, phone, logo_url, banner_url, description, lbp_rate, browse_sections, location, eta_label, business_type, latitude, longitude, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd, delivery_radius_km, menu_theme_color, allow_guest_checkout, driver_management_enabled";
+  "name, slug, phone, logo_url, banner_url, description, lbp_rate, browse_sections, location, eta_label, business_type, latitude, longitude, delivers_nationwide, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd, delivery_radius_km, menu_theme_color, allow_guest_checkout, driver_management_enabled";
 
 const RESTAURANT_ADMIN_SELECT_CORE =
-  "name, slug, phone, logo_url, banner_url, description, lbp_rate, browse_sections, location, eta_label, business_type, latitude, longitude, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd, delivery_radius_km, allow_guest_checkout, driver_management_enabled";
+  "name, slug, phone, logo_url, banner_url, description, lbp_rate, browse_sections, location, eta_label, business_type, latitude, longitude, delivers_nationwide, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd, delivery_radius_km, allow_guest_checkout, driver_management_enabled";
 
 export type RestaurantAdminProfile = {
   name: string;
@@ -31,6 +31,7 @@ export type RestaurantAdminProfile = {
   business_type: string | null;
   latitude: number | null;
   longitude: number | null;
+  delivers_nationwide: boolean;
   opening_hours: unknown;
   is_temporarily_closed: boolean;
   free_delivery: boolean;

@@ -1,12 +1,21 @@
 "use client";
 
-import { Gift, MapPin, Users, Zap } from "lucide-react";
+import { Gift, Globe, MapPin, Users, Zap } from "lucide-react";
 import { useState, type ReactNode } from "react";
+import { DeliveryTiersPanel } from "@/components/delivery-tiers-panel";
 import {
   MAX_RESTAURANT_DELIVERY_RADIUS_KM,
   MIN_RESTAURANT_DELIVERY_RADIUS_KM,
 } from "@/lib/delivery-radius";
 import { env } from "@/lib/env";
+
+type DeliveryTier = {
+  id: string;
+  min_distance_km: number;
+  max_distance_km: number;
+  fee_usd: number;
+  position: number;
+};
 
 type Props = {
   freeDeliveryDefault?: boolean;
@@ -14,8 +23,14 @@ type Props = {
   fastDeliveryEnabledDefault?: boolean;
   fastDeliveryFeeDefault?: number;
   deliveryRadiusDefault?: number | null;
+  deliversNationwideDefault?: boolean;
   driverManagementEnabledDefault?: boolean;
+  restaurantId?: string;
+  deliveryTiers?: DeliveryTier[];
+  fastDeliveryTiers?: DeliveryTier[];
 };
+
+const MAX_RESTAURANT_DELIVERY_RADIUS_KM = 100;
 
 function ToggleSwitch({
   checked,
@@ -96,10 +111,15 @@ export function DeliveryFeeSettings({
   fastDeliveryEnabledDefault = false,
   fastDeliveryFeeDefault = 0,
   deliveryRadiusDefault = null,
+  deliversNationwideDefault = false,
   driverManagementEnabledDefault = false,
+  restaurantId,
+  deliveryTiers = [],
+  fastDeliveryTiers = [],
 }: Props) {
   const [freeDelivery, setFreeDelivery] = useState(freeDeliveryDefault);
   const [fastDeliveryEnabled, setFastDeliveryEnabled] = useState(fastDeliveryEnabledDefault);
+  const [deliversNationwide, setDeliversNationwide] = useState(deliversNationwideDefault);
   const [driverManagementEnabled, setDriverManagementEnabled] = useState(driverManagementEnabledDefault);
 
   return (
@@ -107,6 +127,40 @@ export function DeliveryFeeSettings({
       <h2 className="panel-title">Delivery settings</h2>
 
       <div className="mt-3 grid grid-cols-1 gap-2.5">
+        <SettingTile
+          icon={<Globe className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />}
+          iconClass="bg-blue-100 text-blue-600"
+          title="Deliver across all Lebanon"
+          toggle={
+            <ToggleSwitch
+              name="delivers_nationwide"
+              checked={deliversNationwide}
+              onChange={setDeliversNationwide}
+              activeClass="bg-blue-500"
+            />
+          }
+        >
+          <div
+            className={`flex h-9 items-center justify-center rounded-xl border text-xs font-semibold ${
+              deliversNationwide
+                ? "border-blue-200 bg-blue-50 text-blue-700"
+                : "border-slate-200 bg-white text-slate-400"
+            }`}
+          >
+            {deliversNationwide
+              ? "✓ Your store appears to all customers across Lebanon"
+              : "Limited to delivery radius below"}
+          </div>
+        </SettingTile>
+
+        {deliversNationwide ? (
+          // Hidden field when nationwide is enabled - still submit a value for the backend
+          <input 
+            type="hidden" 
+            name="delivery_radius_km" 
+            value={String(MAX_RESTAURANT_DELIVERY_RADIUS_KM)} 
+          />
+        ) : (
         <SettingTile
           icon={<MapPin className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />}
           iconClass="bg-sky-100 text-sky-600"
@@ -137,6 +191,7 @@ export function DeliveryFeeSettings({
             </span>
           </FieldShell>
         </SettingTile>
+        )}
 
         <SettingTile
           icon={<Gift className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />}
@@ -230,6 +285,33 @@ export function DeliveryFeeSettings({
           </div>
         </SettingTile>
       </div>
+
+      {/* Distance-based delivery tiers */}
+      {restaurantId && (
+        <div className="mt-5 space-y-5 border-t border-slate-200 pt-5">
+          {/* Regular delivery tiers - hidden when free delivery is enabled */}
+          {!freeDelivery && (
+            <DeliveryTiersPanel 
+              restaurantId={restaurantId} 
+              initialTiers={deliveryTiers}
+              deliveryType="regular"
+              maxDeliveryRadius={deliversNationwide ? MAX_RESTAURANT_DELIVERY_RADIUS_KM : (deliveryRadiusDefault ?? MAX_RESTAURANT_DELIVERY_RADIUS_KM)}
+            />
+          )}
+          
+          {/* Fast delivery tiers - show when fast delivery is enabled (independent of free delivery) */}
+          {fastDeliveryEnabled && (
+            <div className={!freeDelivery ? "border-t border-slate-200 pt-5" : ""}>
+              <DeliveryTiersPanel 
+                restaurantId={restaurantId} 
+                initialTiers={fastDeliveryTiers}
+                deliveryType="fast"
+                maxDeliveryRadius={deliversNationwide ? MAX_RESTAURANT_DELIVERY_RADIUS_KM : (deliveryRadiusDefault ?? MAX_RESTAURANT_DELIVERY_RADIUS_KM)}
+              />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
