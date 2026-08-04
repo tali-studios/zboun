@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { Gift, Zap } from "lucide-react";
 import type { MenuTheme } from "@/lib/menu-theme";
 import { resolveMenuTheme } from "@/lib/menu-theme";
 
@@ -12,6 +13,8 @@ type RestaurantHeroData = {
   location: string | null;
   user_avg_rating: number | null;
   user_rating_count: number | null;
+  free_delivery?: boolean;
+  fast_delivery_enabled?: boolean;
 };
 
 type Props = {
@@ -34,19 +37,35 @@ export function RestaurantMenuHero({ restaurant, tagline, menuThemeColor, modeBa
   const hasBanner = Boolean(restaurant.banner_url);
 
   const heroPills = (
-    <div className="meta-row mt-3">
-      {avgRating != null ? (
-        <span>
-          <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-          </svg>
-          {avgRating.toFixed(1)}
-          {ratingCount > 0 ? ` (${ratingCount})` : ""}
+    <div className="mt-3 flex flex-wrap items-center gap-2">
+      <div className="meta-row">
+        {avgRating != null ? (
+          <span>
+            <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+            </svg>
+            {avgRating.toFixed(1)}
+            {ratingCount > 0 ? ` (${ratingCount})` : ""}
+          </span>
+        ) : null}
+        {restaurant.eta_label?.trim() ? <span>{restaurant.eta_label.trim()}</span> : null}
+        {restaurant.location?.trim() ? (
+          <span className="max-w-full min-w-0 truncate">{restaurant.location.trim()}</span>
+        ) : null}
+      </div>
+      
+      {/* Delivery badges */}
+      {restaurant.free_delivery ? (
+        <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-2.5 py-1 text-[11px] font-extrabold text-white shadow-lg shadow-emerald-900/30 backdrop-blur-sm">
+          <Gift className="h-3 w-3" strokeWidth={2.5} aria-hidden />
+          FREE DELIVERY
         </span>
       ) : null}
-      {restaurant.eta_label?.trim() ? <span>{restaurant.eta_label.trim()}</span> : null}
-      {restaurant.location?.trim() ? (
-        <span className="max-w-full min-w-0 truncate">{restaurant.location.trim()}</span>
+      {restaurant.fast_delivery_enabled ? (
+        <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-violet-500 to-purple-600 px-2.5 py-1 text-[11px] font-extrabold text-white shadow-lg shadow-violet-900/30 backdrop-blur-sm">
+          <Zap className="h-3 w-3 fill-white" strokeWidth={2.5} aria-hidden />
+          FAST DELIVERY
+        </span>
       ) : null}
     </div>
   );

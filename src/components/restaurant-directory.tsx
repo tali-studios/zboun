@@ -9,12 +9,14 @@ import {
   ClipboardList,
   Clock,
   Camera,
+  Gift,
   Globe,
   Heart,
   MapPin,
   Search,
   User,
   X,
+  Zap,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFavorites } from "@/hooks/use-favorites";
@@ -775,11 +777,27 @@ export function RestaurantDirectory({
                                 {Number(restaurant.rating).toFixed(1)}
                               </span>
                             ) : null}
-                            {isClosed ? (
-                              <span className="absolute left-2 top-2 rounded-md bg-rose-500/95 px-1.5 py-0.5 text-[10px] font-bold text-white">
-                                Closed
-                              </span>
-                            ) : null}
+                            
+                            {/* Top-left badges */}
+                            <div className="absolute left-2 top-2 flex flex-col gap-1.5">
+                              {isClosed ? (
+                                <span className="inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-rose-500 to-rose-600 px-2 py-1 text-[10px] font-bold text-white shadow-lg backdrop-blur-sm">
+                                  Closed
+                                </span>
+                              ) : null}
+                              {restaurant.free_delivery ? (
+                                <span className="inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 px-2 py-1 text-[10px] font-extrabold text-white shadow-lg shadow-emerald-500/40 backdrop-blur-sm">
+                                  <Gift className="h-3 w-3" strokeWidth={2.5} aria-hidden />
+                                  FREE
+                                </span>
+                              ) : null}
+                              {restaurant.fast_delivery_enabled ? (
+                                <span className="inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-violet-500 to-purple-600 px-2 py-1 text-[10px] font-extrabold text-white shadow-lg shadow-violet-500/40 backdrop-blur-sm">
+                                  <Zap className="h-3 w-3 fill-white" strokeWidth={2.5} aria-hidden />
+                                  FAST
+                                </span>
+                              ) : null}
+                            </div>
                           </Link>
 
                           <div className="flex flex-1 flex-col px-2.5 pb-3 pt-2.5 md:px-3.5 md:pb-4 md:pt-3">
@@ -931,6 +949,21 @@ export function RestaurantDirectory({
                             <p className="mt-0.5 truncate text-xs font-medium text-violet-600 md:text-sm">
                               {storeSubtitle(restaurant)}
                             </p>
+                            {/* Delivery badges */}
+                            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                              {restaurant.free_delivery ? (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-emerald-50 to-teal-50 px-2 py-0.5 text-[10px] font-extrabold text-emerald-700 ring-1 ring-emerald-200">
+                                  <Gift className="h-3 w-3" strokeWidth={2.5} aria-hidden />
+                                  FREE DELIVERY
+                                </span>
+                              ) : null}
+                              {restaurant.fast_delivery_enabled ? (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-violet-50 to-purple-50 px-2 py-0.5 text-[10px] font-extrabold text-violet-700 ring-1 ring-violet-200">
+                                  <Zap className="h-3 w-3 fill-violet-600" strokeWidth={2.5} aria-hidden />
+                                  FAST DELIVERY
+                                </span>
+                              ) : null}
+                            </div>
                           </div>
                         </Link>
 
