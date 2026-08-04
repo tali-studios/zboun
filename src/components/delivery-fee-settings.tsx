@@ -30,8 +30,6 @@ type Props = {
   fastDeliveryTiers?: DeliveryTier[];
 };
 
-const MAX_RESTAURANT_DELIVERY_RADIUS_KM = 100;
-
 function ToggleSwitch({
   checked,
   onChange,
