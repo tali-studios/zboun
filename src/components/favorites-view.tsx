@@ -21,10 +21,10 @@ type RestaurantCard = {
   longitude: number | null;
 };
 
-type Props = { restaurants: RestaurantCard[] };
+type Props = { restaurants: RestaurantCard[]; isLoggedIn?: boolean };
 
-export function FavoritesView({ restaurants }: Props) {
-  const { favorites, toggle } = useFavorites();
+export function FavoritesView({ restaurants, isLoggedIn = true }: Props) {
+  const { favorites, toggle } = useFavorites(isLoggedIn);
   const { location } = useDeliveryLocation();
 
   const favorited = restaurants.filter((r) => favorites.has(r.slug));
@@ -37,7 +37,7 @@ export function FavoritesView({ restaurants }: Props) {
         </div>
         <p className="text-base font-semibold text-slate-800">No favorites yet</p>
         <p className="text-sm text-slate-500">
-          Tap the ♥ on any store to save it here.
+          Sign in and tap the ♥ on any store to save it here.
         </p>
         <Link
           href="/"

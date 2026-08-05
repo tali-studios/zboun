@@ -147,7 +147,7 @@ function sectionLabel(sections: string[] | null | undefined): string {
   return labels.join(", ");
 }
 
-export function SearchPageContent({ restaurants }: SearchPageContentProps) {
+export function SearchPageContent({ restaurants, isLoggedIn }: SearchPageContentProps) {
   const [query, setQuery] = useState("");
   const [resultTab, setResultTab] = useState<"stores" | "items">("stores");
   const [filters, setFilters] = useState<SearchFilterState>(DEFAULT_SEARCH_FILTERS);
@@ -156,7 +156,7 @@ export function SearchPageContent({ restaurants }: SearchPageContentProps) {
   const [itemResults, setItemResults] = useState<SearchMenuItemResult[]>([]);
   const [itemsLoading, setItemsLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { isFavorite, toggle: toggleFavorite } = useFavorites();
+  const { isFavorite, toggle: toggleFavorite } = useFavorites(isLoggedIn);
   const { location } = useDeliveryLocation();
 
   const trimmed = query.trim();

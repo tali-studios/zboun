@@ -227,7 +227,7 @@ export function RestaurantDirectory({
   const heroTouchStartX = useRef<number | null>(null);
   const categoryScrollRef = useRef<HTMLDivElement>(null);
   const [categoryScroll, setCategoryScroll] = useState({ left: false, right: true });
-  const { isFavorite, toggle: toggleFavorite, favorites } = useFavorites();
+  const { isFavorite, toggle: toggleFavorite, favorites } = useFavorites(isLoggedIn);
 
   const handleFavoriteClick = useCallback(
     (e: React.MouseEvent, slug: string) => {
