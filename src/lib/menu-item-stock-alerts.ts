@@ -9,6 +9,14 @@ import {
   type MenuItemStockFields,
   type StockAlertLevel,
 } from "@/lib/menu-item-stock";
+import {
+  buildVariantKey,
+  itemUsesVariantStock,
+  normalizeOptionGroups,
+  parseVariantStockMap,
+  selectionsFromDisplayString,
+  sumVariantStock,
+} from "@/lib/menu-item-options";
 
 export type MenuItemStockAlertRow = MenuItemStockFields & {
   id: string;
@@ -265,16 +273,37 @@ export async function notifyMenuItemStockAlerts(
 export async function decrementMenuItemStockForOrder(
   client: SupabaseClient,
   restaurantId: string,
-  lines: Array<{ menuItemId?: string | null; qty: number; unit: "each" | "kg" }>,
+  lines: Array<{
+    menuItemId?: string | null;
+    qty: number;
+    unit: "each" | "kg";
+    selectedOption?: string | null;
+    variantKey?: string | null;
+  }>,
 ): Promise<void> {
   const serviceClient = getServiceClient() ?? client;
-  const decrements = new Map<string, number>();
+  type DecKey = { itemId: string; variantKey: string | null; selectedOption: string | null };
+  const decrements = new Map<string, { meta: DecKey; qty: number }>();
 
   for (const line of lines) {
     if (!line.menuItemId || line.unit !== "each") continue;
     const qty = Math.max(0, Math.floor(line.qty));
     if (qty <= 0) continue;
-    decrements.set(line.menuItemId, (decrements.get(line.menuItemId) ?? 0) + qty);
+    const variantKey = line.variantKey?.trim() || null;
+    const mapKey = `${line.menuItemId}::${variantKey ?? line.selectedOption?.trim() ?? ""}`;
+    const existing = decrements.get(mapKey);
+    if (existing) {
+      existing.qty += qty;
+    } else {
+      decrements.set(mapKey, {
+        meta: {
+          itemId: line.menuItemId,
+          variantKey,
+          selectedOption: line.selectedOption?.trim() || null,
+        },
+        qty,
+      });
+    }
   }
 
   if (decrements.size === 0) return;
@@ -286,11 +315,26 @@ export async function decrementMenuItemStockForOrder(
     .maybeSingle();
   const adminEmail = await getRestaurantAdminEmail(serviceClient, restaurantId);
 
-  for (const [itemId, decrementBy] of decrements) {
+  // Aggregate per item after applying all variant decrements in memory
+  const byItem = new Map<
+    string,
+    Array<{ variantKey: string | null; selectedOption: string | null; qty: number }>
+  >();
+  for (const { meta, qty } of decrements.values()) {
+    const list = byItem.get(meta.itemId) ?? [];
+    list.push({
+      variantKey: meta.variantKey,
+      selectedOption: meta.selectedOption,
+      qty,
+    });
+    byItem.set(meta.itemId, list);
+  }
+
+  for (const [itemId, itemDecs] of byItem) {
     const { data: item } = await serviceClient
       .from("menu_items")
       .select(
-        "id, name, restaurant_id, track_stock, stock_quantity, is_available, stock_alert_warning_qty, stock_alert_urgent_qty, stock_alert_critical_qty, stock_alert_warning_sent_at, stock_alert_urgent_sent_at, stock_alert_critical_sent_at, stock_alert_out_sent_at",
+        "id, name, restaurant_id, track_stock, stock_quantity, is_available, option_variant_stock, option_label, option_values, stock_alert_warning_qty, stock_alert_urgent_qty, stock_alert_critical_qty, stock_alert_warning_sent_at, stock_alert_urgent_sent_at, stock_alert_critical_sent_at, stock_alert_out_sent_at",
       )
       .eq("id", itemId)
       .eq("restaurant_id", restaurantId)
@@ -298,15 +342,44 @@ export async function decrementMenuItemStockForOrder(
 
     if (!item?.track_stock) continue;
 
-    const currentQty = Math.max(0, Math.floor(Number(item.stock_quantity ?? 0)));
-    const newQty = Math.max(0, currentQty - decrementBy);
+    const variantStock = parseVariantStockMap(item.option_variant_stock);
+    const usesVariants = itemUsesVariantStock(variantStock);
+    let newQty: number;
+    let nextVariantStock = variantStock;
+
+    if (usesVariants) {
+      const groups = normalizeOptionGroups(item.option_label, item.option_values);
+      for (const dec of itemDecs) {
+        let key = dec.variantKey;
+        if (!key && dec.selectedOption) {
+          const selections = selectionsFromDisplayString(groups, dec.selectedOption);
+          key = buildVariantKey(groups, selections);
+        }
+        if (!key) continue;
+        const current = Math.max(0, Math.floor(Number(nextVariantStock[key] ?? 0)));
+        nextVariantStock = {
+          ...nextVariantStock,
+          [key]: Math.max(0, current - dec.qty),
+        };
+      }
+      newQty = sumVariantStock(nextVariantStock);
+    } else {
+      const totalDec = itemDecs.reduce((sum, d) => sum + d.qty, 0);
+      const currentQty = Math.max(0, Math.floor(Number(item.stock_quantity ?? 0)));
+      newQty = Math.max(0, currentQty - totalDec);
+    }
+
+    const updatePayload: Record<string, unknown> = {
+      stock_quantity: newQty,
+      is_available: newQty > 0,
+    };
+    if (usesVariants) {
+      updatePayload.option_variant_stock = nextVariantStock;
+    }
 
     const { data: updated, error } = await serviceClient
       .from("menu_items")
-      .update({
-        stock_quantity: newQty,
-        is_available: newQty > 0,
-      })
+      .update(updatePayload)
       .eq("id", itemId)
       .eq("restaurant_id", restaurantId)
       .select(
@@ -315,6 +388,29 @@ export async function decrementMenuItemStockForOrder(
       .maybeSingle();
 
     if (error || !updated) {
+      // Retry without option_variant_stock if column missing
+      if (error && /option_variant_stock/i.test(error.message ?? "")) {
+        const fallback = await serviceClient
+          .from("menu_items")
+          .update({
+            stock_quantity: newQty,
+            is_available: newQty > 0,
+          })
+          .eq("id", itemId)
+          .eq("restaurant_id", restaurantId)
+          .select(
+            "id, name, restaurant_id, track_stock, stock_quantity, is_available, stock_alert_warning_qty, stock_alert_urgent_qty, stock_alert_critical_qty, stock_alert_warning_sent_at, stock_alert_urgent_sent_at, stock_alert_critical_sent_at, stock_alert_out_sent_at",
+          )
+          .maybeSingle();
+        if (fallback.data) {
+          void notifyMenuItemStockAlerts(serviceClient, fallback.data as MenuItemStockAlertRow, {
+            restaurantName: restaurant?.name ?? "Your store",
+            adminEmail,
+          });
+          void pushOutboundStockUpdate(restaurantId, itemId);
+        }
+        continue;
+      }
       console.error("[decrementMenuItemStockForOrder] update failed", itemId, error?.message);
       continue;
     }

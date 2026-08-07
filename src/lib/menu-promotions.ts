@@ -26,7 +26,8 @@ export type MenuItemPricingFields = {
   sale_price_per_kg?: number | null;
   percent_off?: number | null;
   promotion_label?: string | null;
-  option_values?: Array<{ name: string; price: number }>;
+  option_values?: unknown;
+  option_label?: string | null;
   add_ingredients?: Array<{ name: string; price: number }>;
 };
 
@@ -173,6 +174,12 @@ export function itemHasActiveSale(item: MenuItemPricingFields): boolean {
   return item.percent_off != null && item.percent_off > 0;
 }
 
+import {
+  getCombinedOptionExtraPrice,
+  normalizeOptionGroups,
+  selectionsFromDisplayString,
+} from "@/lib/menu-item-options";
+
 type OrderLineInput = {
   menuItemId?: string | null;
   name: string;
@@ -187,10 +194,16 @@ function getOptionExtraPrice(
   item: MenuItemPricingFields,
   selectedOption: string | null | undefined,
 ): number {
-  const option = String(selectedOption ?? "").trim();
-  if (!option) return 0;
-  const match = (item.option_values ?? []).find((value) => value.name === option);
-  return Math.max(0, Number(match?.price ?? 0));
+  const groups = normalizeOptionGroups(item.option_label, item.option_values);
+  if (groups.length === 0) return 0;
+  const display = String(selectedOption ?? "").trim();
+  if (!display) return 0;
+  if (groups.length === 1) {
+    const match = groups[0]!.values.find((value) => value.name === display);
+    if (match) return Math.max(0, Number(match.price ?? 0));
+  }
+  const selections = selectionsFromDisplayString(groups, display);
+  return getCombinedOptionExtraPrice(groups, selections);
 }
 
 function getAddOnCost(

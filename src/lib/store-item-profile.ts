@@ -17,6 +17,8 @@ export type StoreItemProfile = {
   contents: boolean;
   /** Dish-level customization: "remove onions", "add cheese (+$1)". */
   ingredientCustomization: boolean;
+  /** Product variants: Size, Color, etc. (customers must pick one). */
+  productOptions: boolean;
   /** Copy tone: "menu"/"dish" wording vs generic "product" wording. */
   isFoodLike: boolean;
 };
@@ -66,12 +68,25 @@ const INGREDIENT_CUSTOMIZATION_SECTIONS = new Set<BrowseSection>([
   "Food & Restaurants",
 ]);
 
+/** Variants customers must pick: sizes, grind, nicotine, storage/color, etc. */
+const PRODUCT_OPTIONS_SECTIONS = new Set<BrowseSection>([
+  "Fashion & Apparel",
+  "Sports & Outdoors",
+  "Groceries", // e.g. roastery grind / roast
+  "Smoke & Tobacco",
+  "Electronics & Tech",
+  "Beauty & Pharmacy",
+  "Home & Living",
+  "Automotive",
+]);
+
 const NO_EXTRAS_PROFILE: StoreItemProfile = {
   weightPricing: false,
   displayQuantity: false,
   nutrition: false,
   contents: false,
   ingredientCustomization: false,
+  productOptions: false,
   isFoodLike: false,
 };
 
@@ -86,6 +101,7 @@ export function resolveStoreItemProfile(sections: readonly BrowseSection[]): Sto
     nutrition: has(NUTRITION_SECTIONS),
     contents: has(CONTENTS_SECTIONS),
     ingredientCustomization: has(INGREDIENT_CUSTOMIZATION_SECTIONS),
+    productOptions: has(PRODUCT_OPTIONS_SECTIONS),
     isFoodLike: sections.includes("Food & Restaurants"),
   };
 }

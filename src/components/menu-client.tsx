@@ -44,6 +44,18 @@ import {
   itemHasActiveSale,
 } from "@/lib/menu-promotions";
 import { getMenuItemStockState } from "@/lib/menu-item-stock";
+import {
+  buildVariantKey,
+  formatOptionLabelsDisplay,
+  getCombinedOptionExtraPrice,
+  getVariantStockQty,
+  itemUsesVariantStock,
+  normalizeOptionGroups,
+  selectionsComplete,
+  selectionsFromDisplayString,
+  snapshotSelectedOptions,
+  type OptionSelections,
+} from "@/lib/menu-item-options";
 
 const WHATSAPP_GREEN = "#25D366";
 
@@ -89,6 +101,8 @@ type CartLine = {
   addedIngredients: Array<{ name: string; price: number; qty: number }>;
   specialInstructions: string;
   selectedOption: string | null;
+  selectedOptions: OptionSelections;
+  variantKey: string | null;
 };
 
 type AddIngredientOption = { name: string; price: number };
@@ -99,7 +113,7 @@ type CustomizationState = {
   add: Record<string, number>;
   note: string;
   qty: number; // either count (each) or kilograms (kg) when sold_by_weight
-  selectedOption: string | null;
+  selectedOptions: OptionSelections;
   editingKey?: string;
 };
 
@@ -117,12 +131,12 @@ function getMenuItemBrand(item: MenuItemRow) {
   return null;
 }
 
-function getItemOptionValues(item: MenuItemRow) {
-  return (item.option_values ?? []).filter((value) => String(value?.name ?? "").trim());
+function getItemOptionGroups(item: MenuItemRow) {
+  return normalizeOptionGroups(item.option_label, item.option_values);
 }
 
 function itemHasOptions(item: MenuItemRow) {
-  return Boolean(item.option_label?.trim()) && getItemOptionValues(item).length > 0;
+  return getItemOptionGroups(item).length > 0;
 }
 
 function needsCustomizationModal(item: MenuItemRow) {
@@ -143,10 +157,28 @@ function getCartQtyForItem(cart: Record<string, CartLine>, itemId: string) {
   }, 0);
 }
 
-function getOptionExtraPrice(item: MenuItemRow, selectedOption: string | null) {
-  if (!selectedOption) return 0;
-  const match = getItemOptionValues(item).find((value) => value.name === selectedOption);
-  return Number(match?.price ?? 0);
+function getCartQtyForVariant(
+  cart: Record<string, CartLine>,
+  itemId: string,
+  variantKey: string | null,
+) {
+  if (!variantKey) return getCartQtyForItem(cart, itemId);
+  return Object.values(cart).reduce((sum, line) => {
+    if (line.itemId !== itemId || line.unit === "kg" || line.variantKey !== variantKey) return sum;
+    return sum + line.qty;
+  }, 0);
+}
+
+function getOptionExtraPrice(item: MenuItemRow, selections: OptionSelections) {
+  return getCombinedOptionExtraPrice(getItemOptionGroups(item), selections);
+}
+
+function getVariantMaxQty(item: MenuItemRow, variantKey: string | null) {
+  const stocks = item.option_variant_stock ?? {};
+  if (item.track_stock && itemUsesVariantStock(stocks) && variantKey) {
+    return getVariantStockQty(stocks, variantKey) ?? 0;
+  }
+  return getMenuItemStockState(item).maxQty;
 }
 
 function formatQty(unit: "each" | "kg", qty: number): string {
@@ -373,7 +405,7 @@ export function MenuClient({
       add: {},
       note: "",
       qty: unitQty,
-      selectedOption: itemHasOptions(item) ? null : "",
+      selectedOptions: {},
     });
   }
 
@@ -401,6 +433,8 @@ export function MenuClient({
           addedIngredients: [],
           specialInstructions: "",
           selectedOption: null,
+          selectedOptions: {},
+          variantKey: null,
         },
       };
     });
@@ -423,13 +457,17 @@ export function MenuClient({
     line.addedIngredients.forEach((ingredient) => {
       add[ingredient.name] = ingredient.qty;
     });
+    const groups = getItemOptionGroups(item);
     setCustomizing({
       item,
       remove: [...line.removedIngredients],
       add,
       note: line.specialInstructions,
       qty: line.qty,
-      selectedOption: line.selectedOption,
+      selectedOptions:
+        Object.keys(line.selectedOptions ?? {}).length > 0
+          ? line.selectedOptions
+          : selectionsFromDisplayString(groups, line.selectedOption),
       editingKey: line.key,
     });
   }
@@ -440,10 +478,16 @@ export function MenuClient({
 
   function addCustomizedItem() {
     if (!customizing) return;
-    if (itemHasOptions(customizing.item) && !customizing.selectedOption) return;
+    const groups = getItemOptionGroups(customizing.item);
+    if (itemHasOptions(customizing.item) && !selectionsComplete(groups, customizing.selectedOptions)) {
+      return;
+    }
 
     const stock = getMenuItemStockState(customizing.item);
     if (!stock.available) return;
+
+    const snapshot = snapshotSelectedOptions(groups, customizing.selectedOptions);
+    const maxForVariant = getVariantMaxQty(customizing.item, snapshot.variantKey);
 
     const addOptions = normalizeAddIngredients(customizing.item.add_ingredients);
     const selectedAdd = addOptions
@@ -457,11 +501,11 @@ export function MenuClient({
     const baseUnitPrice = soldByWeight ? getEffectivePricePerKg(customizing.item) : getEffectiveFlatPrice(customizing.item);
     const unitPrice = Math.max(
       0,
-      baseUnitPrice + addCost + getOptionExtraPrice(customizing.item, customizing.selectedOption),
+      baseUnitPrice + addCost + getOptionExtraPrice(customizing.item, customizing.selectedOptions),
     );
     const lineKey = [
       customizing.item.id,
-      customizing.selectedOption ?? "",
+      snapshot.variantKey ?? snapshot.selectedOption ?? "",
       [...customizing.remove].sort().join("|"),
       Object.entries(customizing.add)
         .filter(([, qty]) => qty > 0)
@@ -473,11 +517,15 @@ export function MenuClient({
 
     setCart((prev) => {
       const inCartOthers = Object.entries(prev)
-        .filter(([key, line]) => line.itemId === customizing.item.id && key !== customizing.editingKey)
-        .reduce((sum, [, line]) => sum + (line.unit === "kg" ? 0 : line.qty), 0);
-      const requestedQty = customizing.editingKey ? customizing.qty : customizing.qty;
-      const maxQty = stock.maxQty;
-      if (maxQty != null && inCartOthers + requestedQty > maxQty) {
+        .filter(([key, line]) => {
+          if (key === customizing.editingKey) return false;
+          if (line.itemId !== customizing.item.id || line.unit === "kg") return false;
+          if (snapshot.variantKey) return line.variantKey === snapshot.variantKey;
+          return true;
+        })
+        .reduce((sum, [, line]) => sum + line.qty, 0);
+      const requestedQty = customizing.qty;
+      if (maxForVariant != null && inCartOthers + requestedQty > maxForVariant) {
         return prev;
       }
 
@@ -500,7 +548,9 @@ export function MenuClient({
             addedIngredients: selectedAdd,
             unitPrice,
             unit: soldByWeight ? "kg" : "each",
-            selectedOption: customizing.selectedOption,
+            selectedOption: snapshot.selectedOption,
+            selectedOptions: { ...customizing.selectedOptions },
+            variantKey: snapshot.variantKey,
           },
         };
       }
@@ -517,7 +567,9 @@ export function MenuClient({
           removedIngredients: [...customizing.remove],
           addedIngredients: selectedAdd,
           specialInstructions: customizing.note.trim(),
-          selectedOption: customizing.selectedOption,
+          selectedOption: snapshot.selectedOption,
+          selectedOptions: { ...customizing.selectedOptions },
+          variantKey: snapshot.variantKey,
         },
       };
     });
@@ -551,8 +603,9 @@ export function MenuClient({
       if (!line) return prev;
       const menuItem = getMenuItemById(line.itemId);
       if (menuItem?.track_stock) {
-        const stock = getMenuItemStockState(menuItem);
-        if (stock.maxQty != null && getCartQtyForItem(prev, line.itemId) >= stock.maxQty) {
+        const maxQty = getVariantMaxQty(menuItem, line.variantKey);
+        const inCart = getCartQtyForVariant(prev, line.itemId, line.variantKey);
+        if (maxQty != null && inCart >= maxQty) {
           return prev;
         }
       }
@@ -627,7 +680,11 @@ export function MenuClient({
         }
         if (item.selectedOption) {
           const menuItem = getMenuItemById(item.itemId);
-          const label = menuItem?.option_label?.trim() || "Option";
+          const groups = menuItem ? getItemOptionGroups(menuItem) : [];
+          const label =
+            formatOptionLabelsDisplay(groups) ||
+            menuItem?.option_label?.trim() ||
+            "Option";
           modifiers.push(`${label}: ${item.selectedOption}`);
         }
         if (item.specialInstructions) {
@@ -720,8 +777,15 @@ export function MenuClient({
           specialInstructions: item.specialInstructions,
           selectedOption: item.selectedOption,
           optionLabel: item.selectedOption
-            ? getMenuItemById(item.itemId)?.option_label?.trim() || "Option"
+            ? formatOptionLabelsDisplay(
+                getItemOptionGroups(
+                  getMenuItemById(item.itemId) ?? ({ option_values: [] } as MenuItemRow),
+                ),
+              ) ||
+              getMenuItemById(item.itemId)?.option_label?.trim() ||
+              "Option"
             : null,
+          variantKey: item.variantKey,
         })),
         notes: buildOrderNotes(),
         paymentNote,
@@ -859,7 +923,15 @@ export function MenuClient({
                         </p>
                         {item.selectedOption ? (
                           <p className="mt-0.5 text-[11px] font-medium text-slate-500">
-                            {getMenuItemById(item.itemId)?.option_label?.trim() || "Option"}: {item.selectedOption}
+                            {(() => {
+                              const menuItem = getMenuItemById(item.itemId);
+                              const groups = menuItem ? getItemOptionGroups(menuItem) : [];
+                              const label =
+                                formatOptionLabelsDisplay(groups) ||
+                                menuItem?.option_label?.trim() ||
+                                "Option";
+                              return `${label}: ${item.selectedOption}`;
+                            })()}
                           </p>
                         ) : null}
                         <p className="mt-1 text-sm font-bold text-slate-900">{formatLbp(lineTotal)}</p>
@@ -1703,36 +1775,68 @@ export function MenuClient({
             </div>
 
             {itemHasOptions(customizing.item) ? (
-              <div className="mt-5 border-t border-slate-100 pt-4">
-                <h4 className="text-sm font-bold text-slate-900">
-                  {customizing.item.option_label}
-                  <span className="ml-1 text-red-500">*</span>
-                </h4>
-                <div className="mt-2.5 flex flex-wrap gap-2">
-                  {getItemOptionValues(customizing.item).map((option) => {
-                    const selected = customizing.selectedOption === option.name;
-                    const extra = Number(option.price ?? 0);
-                    return (
-                      <button
-                        key={option.name}
-                        type="button"
-                        onClick={() =>
-                          setCustomizing((prev) =>
-                            prev ? { ...prev, selectedOption: option.name } : prev,
-                          )
-                        }
-                        className={`rounded-full border px-3 py-1.5 text-sm font-semibold transition ${
-                          selected
-                            ? "border-violet-500 bg-violet-50 text-violet-800"
-                            : "border-slate-200 bg-white text-slate-700 hover:border-violet-200"
-                        }`}
-                      >
-                        {option.name}
-                        {extra > 0 ? ` +${formatUsd(extra)}` : ""}
-                      </button>
-                    );
-                  })}
-                </div>
+              <div className="mt-5 space-y-4 border-t border-slate-100 pt-4">
+                {getItemOptionGroups(customizing.item).map((group) => (
+                  <div key={group.label}>
+                    <h4 className="text-sm font-bold text-slate-900">
+                      {group.label}
+                      <span className="ml-1 text-red-500">*</span>
+                    </h4>
+                    <div className="mt-2.5 flex flex-wrap gap-2">
+                      {group.values.map((option) => {
+                        const selected = customizing.selectedOptions[group.label] === option.name;
+                        const extra = Number(option.price ?? 0);
+                        const tentative: OptionSelections = {
+                          ...customizing.selectedOptions,
+                          [group.label]: option.name,
+                        };
+                        const variantKey = buildVariantKey(
+                          getItemOptionGroups(customizing.item),
+                          tentative,
+                        );
+                        const stocks = customizing.item.option_variant_stock ?? {};
+                        const variantQty =
+                          customizing.item.track_stock &&
+                          itemUsesVariantStock(stocks) &&
+                          selectionsComplete(getItemOptionGroups(customizing.item), tentative)
+                            ? getVariantStockQty(stocks, variantKey)
+                            : null;
+                        const soldOut = variantQty === 0;
+                        return (
+                          <button
+                            key={`${group.label}-${option.name}`}
+                            type="button"
+                            disabled={soldOut}
+                            onClick={() =>
+                              setCustomizing((prev) =>
+                                prev
+                                  ? {
+                                      ...prev,
+                                      selectedOptions: {
+                                        ...prev.selectedOptions,
+                                        [group.label]: option.name,
+                                      },
+                                    }
+                                  : prev,
+                              )
+                            }
+                            className={`rounded-full border px-3 py-1.5 text-sm font-semibold transition ${
+                              soldOut
+                                ? "cursor-not-allowed border-slate-100 bg-slate-50 text-slate-300"
+                                : selected
+                                  ? "border-violet-500 bg-violet-50 text-violet-800"
+                                  : "border-slate-200 bg-white text-slate-700 hover:border-violet-200"
+                            }`}
+                          >
+                            {option.name}
+                            {extra > 0 ? ` +${formatUsd(extra)}` : ""}
+                            {soldOut ? " · sold out" : ""}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : null}
 
@@ -1912,7 +2016,13 @@ export function MenuClient({
               <button
                 type="button"
                 onClick={addCustomizedItem}
-                disabled={itemHasOptions(customizing.item) && !customizing.selectedOption}
+                disabled={
+                  itemHasOptions(customizing.item) &&
+                  !selectionsComplete(
+                    getItemOptionGroups(customizing.item),
+                    customizing.selectedOptions,
+                  )
+                }
                 className="flex-1 rounded-xl py-3 text-sm font-bold text-white shadow-md transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
                 style={menuPrimaryButtonStyle(theme)}
               >
@@ -1924,7 +2034,10 @@ export function MenuClient({
                     const base = soldByWeight
                       ? Number((customizing.item as { price_per_kg?: number | null }).price_per_kg ?? 0)
                       : Number(customizing.item.price);
-                    const optionExtra = getOptionExtraPrice(customizing.item, customizing.selectedOption);
+                    const optionExtra = getOptionExtraPrice(
+                      customizing.item,
+                      customizing.selectedOptions,
+                    );
                     return Math.max(0, base + addCost + optionExtra) * customizing.qty;
                   })()
                 )}

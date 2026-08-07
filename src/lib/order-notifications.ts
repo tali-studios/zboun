@@ -12,6 +12,8 @@ export type OrderNotificationItem = {
   specialInstructions?: string;
   selectedOption?: string | null;
   optionLabel?: string | null;
+  /** Size||Color key used for per-variant stock decrement */
+  variantKey?: string | null;
 };
 
 export type OrderNotificationParams = {

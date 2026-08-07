@@ -1,6 +1,12 @@
 import type { OrderNotificationItem } from "@/lib/order-notifications";
 import type { CategoryWithItems } from "@/lib/data";
 import type { DeliverySpeed } from "@/app-actions/orders";
+import {
+  buildVariantKey,
+  normalizeOptionGroups,
+  selectionsFromDisplayString,
+  type OptionSelections,
+} from "@/lib/menu-item-options";
 
 export type ReorderCartLine = {
   key: string;
@@ -14,6 +20,8 @@ export type ReorderCartLine = {
   addedIngredients: Array<{ name: string; price: number; qty: number }>;
   specialInstructions: string;
   selectedOption: string | null;
+  selectedOptions: OptionSelections;
+  variantKey: string | null;
 };
 
 export type MenuReorderPayload = {
@@ -80,6 +88,11 @@ export function buildCartFromReorder(
     }));
     const note = item.specialInstructions?.trim() ?? "";
     const selectedOption = item.selectedOption?.trim() || null;
+    const groups = menuItem
+      ? normalizeOptionGroups(menuItem.option_label, menuItem.option_values)
+      : [];
+    const selectedOptions = selectionsFromDisplayString(groups, selectedOption);
+    const variantKey = buildVariantKey(groups, selectedOptions);
     const key = buildLineKey(itemId, selectedOption, removed, added, note);
     const soldByWeight = Boolean((menuItem as { sold_by_weight?: boolean } | undefined)?.sold_by_weight);
     const unit: "each" | "kg" = item.unit === "kg" || soldByWeight ? "kg" : "each";
@@ -96,6 +109,8 @@ export function buildCartFromReorder(
       addedIngredients: added,
       specialInstructions: note,
       selectedOption,
+      selectedOptions,
+      variantKey,
     };
   }
 

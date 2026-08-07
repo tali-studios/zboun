@@ -9,8 +9,7 @@ import { AddMenuItemForm } from "@/components/add-menu-item-form";
 import { BusinessMenuItemsToolbar } from "@/components/business-menu-items-toolbar";
 import { ImageUploadField } from "@/components/image-upload-field";
 import { IngredientListField } from "@/components/ingredient-list-field";
-// Temporarily hidden — option type / values UI
-// import { MenuItemOptionsFields } from "@/components/menu-item-options-fields";
+import { MenuItemOptionsFields } from "@/components/menu-item-options-fields";
 import { MenuItemPricingFields } from "@/components/menu-item-pricing-fields";
 import { MenuItemStockFields } from "@/components/menu-item-stock-fields";
 import { MenuItemStockQuickEdit } from "@/components/menu-item-stock-quick-edit";
@@ -25,6 +24,7 @@ import {
 import { resolveMenuItemBrandId } from "@/lib/menu-brands";
 import { getMenuItemStockAlertLevel, isMenuItemLowStock } from "@/lib/menu-item-stock";
 import { stockAlertBadgeClass, stockAlertBadgeLabel } from "@/lib/menu-item-stock-alerts";
+import { normalizeOptionGroups, parseVariantStockMap } from "@/lib/menu-item-options";
 import type { MenuItemsSort } from "@/lib/menu-items-admin";
 import type { StoreItemProfile } from "@/lib/store-item-profile";
 
@@ -352,21 +352,43 @@ export function BusinessMenuItemsSection({
                                   />
                                 </div>
 
-                                {/* Option type / values UI temporarily hidden — keep existing values on save */}
-                                <input type="hidden" name="option_label" value={item.option_label ?? ""} />
-                                <input
-                                  type="hidden"
-                                  name="option_values"
-                                  value={JSON.stringify(
-                                    (item.option_values ?? [])
-                                      .filter((entry): entry is { name: string; price?: number } =>
-                                        Boolean(entry && typeof entry.name === "string" && entry.name.trim()))
-                                      .map((entry) => ({
-                                        name: entry.name,
-                                        price: Number.isFinite(Number(entry.price)) ? Number(entry.price) : 0,
-                                      })),
-                                  )}
-                                />
+                                {/* — Product options (sizes, grind, variants) — */}
+                                {itemProfile.productOptions ? (
+                                  <div className="md:col-span-2">
+                                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                      Variants & options
+                                    </p>
+                                    <MenuItemOptionsFields
+                                      idPrefix={`edit-${item.id}-`}
+                                      showStock
+                                      defaultGroups={normalizeOptionGroups(
+                                        item.option_label,
+                                        item.option_values,
+                                      )}
+                                      defaultVariantStock={parseVariantStockMap(
+                                        item.option_variant_stock,
+                                      )}
+                                    />
+                                  </div>
+                                ) : (
+                                  <>
+                                    <input type="hidden" name="option_label" value={item.option_label ?? ""} />
+                                    <input
+                                      type="hidden"
+                                      name="option_values"
+                                      value={JSON.stringify(
+                                        normalizeOptionGroups(item.option_label, item.option_values),
+                                      )}
+                                    />
+                                    <input
+                                      type="hidden"
+                                      name="option_variant_stock"
+                                      value={JSON.stringify(
+                                        parseVariantStockMap(item.option_variant_stock),
+                                      )}
+                                    />
+                                  </>
+                                )}
 
                                 {/* — Ingredient customization — only for categories where dish-style customization applies — */}
                                 {itemProfile.ingredientCustomization ? (

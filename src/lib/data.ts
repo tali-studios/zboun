@@ -94,7 +94,8 @@ export type CategoryWithItems = {
     removable_ingredients: Array<{ name: string }>;
     add_ingredients: Array<{ name: string; price: number }>;
     option_label?: string | null;
-    option_values?: Array<{ name: string; price: number }>;
+    option_values?: unknown;
+    option_variant_stock?: Record<string, number> | null;
     track_stock?: boolean;
     stock_quantity?: number | null;
     sale_price?: number | null;
@@ -260,9 +261,11 @@ function mapRestaurantMenuCategories(data: unknown[] | null | undefined, promoti
           removable_ingredients: (item.removable_ingredients as Array<{ name: string }>) ?? [],
           add_ingredients: (item.add_ingredients as Array<{ name: string; price: number }>) ?? [],
           option_label: (item.option_label as string | null) ?? null,
-          option_values: Array.isArray(item.option_values)
-            ? (item.option_values as Array<{ name: string; price: number }>)
-            : [],
+          option_values: Array.isArray(item.option_values) ? item.option_values : [],
+          option_variant_stock:
+            item.option_variant_stock && typeof item.option_variant_stock === "object"
+              ? (item.option_variant_stock as Record<string, number>)
+              : {},
           track_stock: Boolean(item.track_stock),
           stock_quantity: item.stock_quantity != null ? Number(item.stock_quantity) : null,
           image_url: (item.image_url as string | null) ?? null,
@@ -338,10 +341,12 @@ export async function getRestaurantMenu(restaurantId: string) {
   const supabase = await createServerSupabaseClient();
   const promotions = await getRestaurantMenuPromotions(restaurantId);
   const menuItemsSelectBase =
-    "id, name, brand_id, brand_name, menu_brands(id, name, logo_url), description, contents, grams, display_quantity, display_unit, price, sold_by_weight, price_per_kg, weight_step_kg, removable_ingredients, add_ingredients, option_label, option_values, image_url, is_available";
+    "id, name, brand_id, brand_name, menu_brands(id, name, logo_url), description, contents, grams, display_quantity, display_unit, price, sold_by_weight, price_per_kg, weight_step_kg, removable_ingredients, add_ingredients, option_label, option_values, option_variant_stock, image_url, is_available";
   const menuItemsSelectWithStock = `${menuItemsSelectBase}, track_stock, stock_quantity`;
   const menuItemsSelectWithNutrition = `${menuItemsSelectWithStock}, calories, protein_g`;
   const menuItemsSelectWithNutritionNoStock = `${menuItemsSelectBase}, calories, protein_g`;
+  const menuItemsSelectBaseNoVariantStock =
+    "id, name, brand_id, brand_name, menu_brands(id, name, logo_url), description, contents, grams, display_quantity, display_unit, price, sold_by_weight, price_per_kg, weight_step_kg, removable_ingredients, add_ingredients, option_label, option_values, image_url, is_available";
   const categorySelect = (menuItemsSelect: string) =>
     `id, name, position, menu_items(${menuItemsSelect})`;
 
@@ -356,6 +361,11 @@ export async function getRestaurantMenu(restaurantId: string) {
 
   let menuItemsSelect = menuItemsSelectWithNutrition;
   let { data, error } = await runQuery(menuItemsSelect);
+
+  if (error && /option_variant_stock/i.test(error.message ?? "")) {
+    menuItemsSelect = `${menuItemsSelectBaseNoVariantStock}, track_stock, stock_quantity, calories, protein_g`;
+    ({ data, error } = await runQuery(menuItemsSelect));
+  }
 
   if (error && isNutritionColumnMigrationError(error.message, error.code)) {
     menuItemsSelect = menuItemsSelectWithStock;

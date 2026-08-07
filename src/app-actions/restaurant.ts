@@ -27,6 +27,12 @@ function revalidateMenuAdminPaths() {
 }
 import { parseDisplayQuantityFromForm } from "@/lib/display-quantity";
 import {
+  parseOptionGroupsFromForm,
+  parseVariantStockFromForm,
+  primaryOptionLabel,
+  sumVariantStock,
+} from "@/lib/menu-item-options";
+import {
   DEFAULT_STOCK_ALERT_CRITICAL,
   DEFAULT_STOCK_ALERT_URGENT,
   DEFAULT_STOCK_ALERT_WARNING,
@@ -480,14 +486,22 @@ export async function createMenuItemAction(formData: FormData) {
     name: item.name,
     price: item.price ?? 0,
   }));
-  const optionLabel = String(formData.get("option_label") ?? "").trim();
-  const optionValues = parseIngredientJson(formData.get("option_values")).map((item) => ({
-    name: item.name,
-    price: item.price ?? 0,
-  }));
+  const optionGroups = parseOptionGroupsFromForm(
+    formData.get("option_label"),
+    formData.get("option_values"),
+  );
+  const optionLabel = primaryOptionLabel(optionGroups);
+  const optionValues = optionGroups;
+  let optionVariantStock = parseVariantStockFromForm(formData.get("option_variant_stock"));
   const stock = buildMenuItemStockPayload(formData);
   if ("error" in stock) {
     redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_stock_alerts_invalid`);
+  }
+  if (stock.track_stock && Object.keys(optionVariantStock).length > 0) {
+    stock.stock_quantity = sumVariantStock(optionVariantStock);
+    stock.is_available = stock.stock_quantity > 0;
+  } else if (!stock.track_stock) {
+    optionVariantStock = {};
   }
 
   const description = String(formData.get("description") ?? "").trim() || null;
@@ -523,8 +537,9 @@ export async function createMenuItemAction(formData: FormData) {
     contents: String(formData.get("contents") ?? "").trim() || null,
     removable_ingredients: removableIngredients,
     add_ingredients: addIngredients,
-    option_label: optionLabel || null,
+    option_label: optionLabel,
     option_values: optionValues,
+    option_variant_stock: optionVariantStock,
     ...stock,
     is_available: stock.track_stock ? stock.is_available! : true,
     sold_by_weight: soldByWeight,
@@ -644,14 +659,22 @@ export async function updateMenuItemAction(formData: FormData) {
     name: item.name,
     price: item.price ?? 0,
   }));
-  const optionLabel = String(formData.get("option_label") ?? "").trim();
-  const optionValues = parseIngredientJson(formData.get("option_values")).map((item) => ({
-    name: item.name,
-    price: item.price ?? 0,
-  }));
+  const optionGroups = parseOptionGroupsFromForm(
+    formData.get("option_label"),
+    formData.get("option_values"),
+  );
+  const optionLabel = primaryOptionLabel(optionGroups);
+  const optionValues = optionGroups;
+  let optionVariantStock = parseVariantStockFromForm(formData.get("option_variant_stock"));
   const stock = buildMenuItemStockPayload(formData);
   if ("error" in stock) {
     redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_stock_alerts_invalid`);
+  }
+  if (stock.track_stock && Object.keys(optionVariantStock).length > 0) {
+    stock.stock_quantity = sumVariantStock(optionVariantStock);
+    stock.is_available = stock.stock_quantity > 0;
+  } else if (!stock.track_stock) {
+    optionVariantStock = {};
   }
 
   if (!name || !categoryId) {
@@ -704,8 +727,9 @@ export async function updateMenuItemAction(formData: FormData) {
     contents: contents || null,
     removable_ingredients: removableIngredients,
     add_ingredients: addIngredients,
-    option_label: optionLabel || null,
+    option_label: optionLabel,
     option_values: optionValues,
+    option_variant_stock: optionVariantStock,
     ...stock,
     ...(stock.track_stock ? { is_available: stock.is_available! } : {}),
     sold_by_weight: soldByWeight,
@@ -718,6 +742,22 @@ export async function updateMenuItemAction(formData: FormData) {
     .update(updatePayload)
     .eq("id", id)
     .eq("restaurant_id", user.restaurant_id);
+
+  if (error && /option_variant_stock/i.test(error.message ?? "")) {
+    const { option_variant_stock: _ovs, ...withoutVariantStock } = updatePayload;
+    const retry = await supabase
+      .from("menu_items")
+      .update(withoutVariantStock)
+      .eq("id", id)
+      .eq("restaurant_id", user.restaurant_id);
+    if (!retry.error) {
+      void notifyStockAlertsForMenuItem(supabase, id, user.restaurant_id);
+      void pushOutboundStockUpdate(user.restaurant_id, id);
+      revalidateMenuAdminPaths();
+      redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_updated&item_name=${encodeURIComponent(name)}`);
+    }
+    error = retry.error;
+  }
 
   if (error && isStockAlertColumnMigrationError(error.message, error.code)) {
     const retry = await supabase

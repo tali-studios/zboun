@@ -8,8 +8,7 @@ import { IngredientListField } from "@/components/ingredient-list-field";
 import { ImageUploadField } from "@/components/image-upload-field";
 import { DisplayQuantityFields } from "@/components/display-quantity-fields";
 import { MenuNutritionFields } from "@/components/menu-nutrition-fields";
-// Temporarily hidden — option type / values UI
-// import { MenuItemOptionsFields } from "@/components/menu-item-options-fields";
+import { MenuItemOptionsFields } from "@/components/menu-item-options-fields";
 import { MenuItemStockFields } from "@/components/menu-item-stock-fields";
 import type { StoreItemProfile } from "@/lib/store-item-profile";
 
@@ -22,6 +21,7 @@ const DEFAULT_PROFILE: StoreItemProfile = {
   nutrition: false,
   contents: false,
   ingredientCustomization: false,
+  productOptions: false,
   isFoodLike: false,
 };
 
@@ -195,6 +195,7 @@ export function AddMenuItemForm({
   const canShowQty = profile.displayQuantity;
   const canShowNutritionSection = profile.nutrition || profile.contents;
   const canCustomizeIngredients = profile.ingredientCustomization;
+  const canUseProductOptions = profile.productOptions;
 
   async function handleCreate(formData: FormData) {
     if (submittingRef.current) return;
@@ -407,11 +408,28 @@ export function AddMenuItemForm({
         <input type="hidden" name="contents" value="" />
       )}
 
-      {/* Option type / values temporarily hidden */}
-      <input type="hidden" name="option_label" value="" />
-      <input type="hidden" name="option_values" value="[]" />
+      {/* ─── Product options (sizes, grind, variants) — selected store types ─ */}
+      {canUseProductOptions ? (
+        <ExpandSection
+          label="Variants & options"
+          defaultOpen
+          icon={
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5" aria-hidden>
+              <path d="M4 7h16M4 12h10M4 17h7" />
+            </svg>
+          }
+        >
+          <MenuItemOptionsFields idPrefix="add-item-" showStock />
+        </ExpandSection>
+      ) : (
+        <>
+          <input type="hidden" name="option_label" value="" />
+          <input type="hidden" name="option_values" value="[]" />
+          <input type="hidden" name="option_variant_stock" value="{}" />
+        </>
+      )}
 
-      {/* ─── STEP 4: Ingredient customization (options UI paused) ─────────── */}
+      {/* ─── STEP 4: Ingredient customization ─────────────────────────────── */}
       {canCustomizeIngredients ? (
         <ExpandSection
           label="Customization & options"
