@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { PasswordInput } from "@/components/password-input";
+import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { setPasswordAction } from "@/app-actions/set-password";
 
 type Status = "checking" | "confirm" | "verifying" | "ready" | "invalid";
@@ -343,12 +344,12 @@ function SetPasswordInner() {
                 autoComplete="new-password"
               />
             </div>
-            <button
-              type="submit"
+            <PendingSubmitButton
+              pendingLabel="Setting password…"
               className="mt-2 flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 py-3.5 text-sm font-bold text-white shadow-md shadow-violet-400/30 transition hover:brightness-110 active:scale-[0.98]"
             >
               Set Password & Continue
-            </button>
+            </PendingSubmitButton>
           </form>
 
           <div className="mt-5 rounded-xl border border-violet-100 bg-violet-50 px-4 py-3 text-xs text-violet-700">

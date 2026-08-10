@@ -4,6 +4,7 @@ import { changePasswordAction } from "@/app-actions/customer-auth";
 import { CustomerDesktopNav } from "@/components/customer-desktop-nav";
 import { CustomerMobileFooterNav } from "@/components/customer-mobile-footer-nav";
 import { CustomerMobileTopBar } from "@/components/customer-mobile-top-bar";
+import { PendingSubmitButton } from "@/components/pending-submit-button";
 
 export const dynamic = "force-dynamic";
 
@@ -92,12 +93,12 @@ export default async function ChangePasswordPage({ searchParams }: Props) {
               />
             </div>
 
-            <button
-              type="submit"
+            <PendingSubmitButton
+              pendingLabel="Updating…"
               className="mt-2 flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 py-3.5 text-sm font-bold text-white shadow-md shadow-violet-400/30 transition hover:brightness-110 active:scale-[0.98]"
             >
               Update password
-            </button>
+            </PendingSubmitButton>
           </form>
         </div>
 

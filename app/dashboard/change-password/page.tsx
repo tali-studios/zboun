@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { changeDashboardPasswordAction } from "@/app-actions/auth";
 import { PasswordInput } from "@/components/password-input";
+import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { StoreAdminHeader } from "@/components/store-admin-header";
 import { getCurrentUserRole } from "@/lib/data";
 import { loadStoreAdminHeaderContext } from "@/lib/store-admin-header-context";
@@ -115,9 +116,12 @@ export default async function ChangePasswordPage({ searchParams }: Props) {
                 autoComplete="new-password"
               />
             </div>
-            <button className="btn btn-primary mt-2 w-full rounded-2xl py-3.5 text-sm">
+            <PendingSubmitButton
+              pendingLabel="Updating…"
+              className="btn btn-primary mt-2 w-full rounded-2xl py-3.5 text-sm"
+            >
               Update password
-            </button>
+            </PendingSubmitButton>
           </form>
         </div>
       </div>
