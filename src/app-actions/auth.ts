@@ -67,7 +67,6 @@ function normalizeRole(role: string | null | undefined) {
     .replace(/[_\s-]+/g, "");
 }
 
-/** Single login for customers, store admins, and super admins. */
 export async function signInAction(formData: FormData) {
   const email = String(formData.get("email") ?? "")
     .trim()
@@ -102,6 +101,7 @@ export async function signInAction(formData: FormData) {
   const profile = await loadAppUserProfile(supabase, user.id);
   if (profile) {
     const normalizedRole = normalizeRole(profile.role);
+    
     if (normalizedRole === "superadmin") {
       redirect("/dashboard/super-admin");
     }

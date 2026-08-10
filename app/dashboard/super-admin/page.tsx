@@ -15,16 +15,18 @@ import { backfillMissingSubscriptions } from "@/lib/subscription-billing";
 import type { PlatformOpsReminderKind } from "@/lib/platform-ops-payments-shared";
 import type { PlatformOpsPaymentItem } from "@/components/super-admin-ops-payments-panel";
 
+import { getPublicAppUrl } from "@/lib/public-app-url";
+
 export const dynamic = "force-dynamic";
 
 type PlatformUserRole = "superadmin" | "restaurant_admin" | "customer" | "unknown";
 
 type Props = {
-  searchParams: Promise<{ success?: string; error?: string }>;
+  searchParams: Promise<{ success?: string; error?: string; invite_link?: string; email?: string }>;
 };
 
 export default async function SuperAdminPage({ searchParams }: Props) {
-  const { success, error } = await searchParams;
+  const { success, error, invite_link, email } = await searchParams;
   const appUser = await getCurrentUserRole();
   if (!appUser || appUser.role !== "superadmin") {
     redirect("/dashboard/login");
@@ -399,6 +401,64 @@ export default async function SuperAdminPage({ searchParams }: Props) {
           </div>
         </section>
 
+        {success === "restaurant_created" && (
+          <p className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-medium text-emerald-700">
+            Business created successfully. Admin invite email has been sent.
+          </p>
+        )}
+        {success === "restaurant_created_invite_email_failed" && invite_link && email && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 space-y-2">
+            <p className="text-sm font-medium text-amber-700">
+              Business was created, but the invite email failed to send.
+            </p>
+            <div className="rounded-lg border border-amber-300 bg-white p-3 text-sm">
+              <p className="font-semibold text-amber-900">Share this invite link manually:</p>
+              <p className="mt-2"><strong>Email:</strong> {email}</p>
+              <p className="mt-2"><strong>Invite Link:</strong></p>
+              <input
+                type="text"
+                readOnly
+                value={invite_link}
+                className="mt-1 w-full rounded border border-amber-300 bg-amber-50 px-2 py-1 text-xs font-mono text-amber-900"
+                onClick={(e) => {
+                  e.currentTarget.select();
+                  navigator.clipboard.writeText(invite_link);
+                }}
+              />
+              <p className="mt-2 text-xs text-amber-700">⚠️ Admin will set their own password via this link. Link expires in 24 hours.</p>
+            </div>
+          </div>
+        )}
+        {success === "restaurant_created_emails_failed" && invite_link && email && (
+          <div className="rounded-xl border border-red-200 bg-red-50 p-4 space-y-2">
+            <p className="text-sm font-medium text-red-700">
+              Business was created, but both emails failed to send.
+            </p>
+            <div className="rounded-lg border border-red-300 bg-white p-3 text-sm">
+              <p className="font-semibold text-red-900">Share this invite link manually:</p>
+              <p className="mt-2"><strong>Email:</strong> {email}</p>
+              <p className="mt-2"><strong>Invite Link:</strong></p>
+              <input
+                type="text"
+                readOnly
+                value={invite_link}
+                className="mt-1 w-full rounded border border-red-300 bg-red-50 px-2 py-1 text-xs font-mono text-red-900"
+                onClick={(e) => {
+                  e.currentTarget.select();
+                  navigator.clipboard.writeText(invite_link);
+                }}
+              />
+              <p className="mt-2"><strong>Login:</strong> {getPublicAppUrl()}/login</p>
+              <p className="mt-2 text-xs text-red-700">⚠️ Admin will set their own password via this link. Link expires in 24 hours.</p>
+            </div>
+          </div>
+        )}
+        {success === "restaurant_created_email_failed" && (
+          <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-medium text-amber-700">
+            Business was created, but the onboarding email could not be sent. Share the login details
+            manually.
+          </p>
+        )}
         {success === "subscription_renewed" && (
           <p className="rounded-xl border border-violet-200 bg-violet-50 p-3 text-sm font-medium text-violet-700">
             Subscription renewed. The store received a confirmation email with the service
@@ -466,6 +526,11 @@ export default async function SuperAdminPage({ searchParams }: Props) {
             User account deleted successfully.
           </p>
         )}
+        {success === "password_changed" && (
+          <p className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-medium text-emerald-700">
+            Password changed successfully.
+          </p>
+        )}
         {success === "user_password_updated" && (
           <p className="rounded-xl border border-violet-200 bg-violet-50 p-3 text-sm font-medium text-violet-700">
             User password updated successfully.
@@ -476,24 +541,19 @@ export default async function SuperAdminPage({ searchParams }: Props) {
             Store admin password updated successfully.
           </p>
         )}
+        {error === "duplicate_business_name" && (
+          <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700">
+            A business with this name already exists. Choose a different name.
+          </p>
+        )}
+        {error === "duplicate_business_email" && (
+          <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700">
+            This email is already in use. Choose a different admin email.
+          </p>
+        )}
         {error === "missing_browse_categories" && (
           <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700">
             Pick at least one business category when creating a business.
-          </p>
-        )}
-        {error === "password_too_short" && (
-          <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700">
-            Password must be at least 8 characters.
-          </p>
-        )}
-        {error === "password_mismatch" && (
-          <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700">
-            Passwords do not match.
-          </p>
-        )}
-        {error === "missing_password" && (
-          <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700">
-            Please enter a new password.
           </p>
         )}
         {error === "no_restaurant_admin" && (
@@ -502,12 +562,11 @@ export default async function SuperAdminPage({ searchParams }: Props) {
           </p>
         )}
         {error &&
-          error !== "password_too_short" &&
-          error !== "password_mismatch" &&
-          error !== "missing_password" &&
           error !== "no_restaurant_admin" &&
           error !== "missing_restaurant_id" &&
-          error !== "missing_browse_categories" && (
+          error !== "missing_browse_categories" &&
+          error !== "duplicate_business_name" &&
+          error !== "duplicate_business_email" && (
           <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700">
             {decodeURIComponent(error)}
           </p>

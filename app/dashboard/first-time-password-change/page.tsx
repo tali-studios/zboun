@@ -1,33 +1,32 @@
 import { redirect } from "next/navigation";
+import { changeFirstTimePasswordAction } from "@/app-actions/first-time-password";
 import { PasswordInput } from "@/components/password-input";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { setPasswordAction } from "@/app-actions/set-password";
+import { getCurrentUserRole } from "@/lib/data";
+import { getSafeRedirectPath } from "@/lib/auth-redirect";
 
 type Props = {
-  searchParams: Promise<{ error?: string; type?: string }>;
+  searchParams: Promise<{ error?: string; next?: string }>;
 };
 
 const ERROR_MESSAGES: Record<string, string> = {
   missing_fields: "Please fill in all fields.",
   password_too_short: "Password must be at least 8 characters.",
   password_mismatch: "Passwords do not match.",
-  invalid_token: "This invite link is invalid or has expired. Please contact your administrator.",
-  update_failed: "Failed to set password. Please try again.",
 };
 
 export const dynamic = "force-dynamic";
 
-export default async function SetPasswordPage({ searchParams }: Props) {
-  const { error, type } = await searchParams;
-  
-  // Verify we have a valid session from the magic link
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) {
-    redirect("/login?error=invalid_token");
+export default async function FirstTimePasswordChangePage({ searchParams }: Props) {
+  const appUser = await getCurrentUserRole();
+  if (!appUser) {
+    redirect("/login");
+  }
+  if (appUser.role !== "restaurant_admin" && appUser.role !== "superadmin") {
+    redirect("/login");
   }
 
+  const { error, next: nextRaw } = await searchParams;
+  const next = getSafeRedirectPath(nextRaw, "/");
   const errorMessage =
     error && ERROR_MESSAGES[error]
       ? ERROR_MESSAGES[error]
@@ -50,13 +49,13 @@ export default async function SetPasswordPage({ searchParams }: Props) {
         <div className="rounded-[28px] border border-violet-100/80 bg-white p-8 shadow-[0_24px_64px_rgba(120,84,255,0.18)]">
           <div className="mb-6">
             <p className="text-[10px] font-bold uppercase tracking-widest text-violet-600">
-              Welcome
+              Required
             </p>
             <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">
-              Set Your Password
+              Change Your Password
             </h1>
             <p className="mt-2 text-sm text-slate-500">
-              Choose a secure password for your Zboun dashboard.
+              For security reasons, you must change your temporary password before continuing.
             </p>
           </div>
 
@@ -66,7 +65,8 @@ export default async function SetPasswordPage({ searchParams }: Props) {
             </div>
           ) : null}
 
-          <form action={setPasswordAction} className="space-y-3">
+          <form action={changeFirstTimePasswordAction} className="space-y-3">
+            <input type="hidden" name="next" value={next} />
             <div>
               <label htmlFor="password" className="mb-1.5 block text-xs font-semibold text-slate-600">
                 New password
@@ -85,7 +85,7 @@ export default async function SetPasswordPage({ searchParams }: Props) {
                 htmlFor="confirm_password"
                 className="mb-1.5 block text-xs font-semibold text-slate-600"
               >
-                Confirm password
+                Confirm new password
               </label>
               <PasswordInput
                 id="confirm_password"
@@ -99,12 +99,13 @@ export default async function SetPasswordPage({ searchParams }: Props) {
               type="submit"
               className="mt-2 flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 py-3.5 text-sm font-bold text-white shadow-md shadow-violet-400/30 transition hover:brightness-110 active:scale-[0.98]"
             >
-              Set Password & Continue
+              Change Password & Continue
             </button>
           </form>
 
-          <div className="mt-5 rounded-xl border border-violet-100 bg-violet-50 px-4 py-3 text-xs text-violet-700">
-            <strong>Tip:</strong> Use a strong, unique password that you don't use elsewhere.
+          <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
+            <strong>Important:</strong> After changing your password, you will be redirected to your dashboard.
+            Please delete the email containing your temporary password.
           </div>
         </div>
       </div>

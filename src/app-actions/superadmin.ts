@@ -1,5 +1,6 @@
 "use server";
 
+import crypto from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
@@ -16,6 +17,7 @@ import { deactivateRestaurantManually } from "@/lib/subscription-lifecycle";
 import {
   sendRestaurantOnboardingEmail,
   sendSubscriptionRenewalEmail,
+  sendAdminInviteEmail,
 } from "@/lib/subscription-emails";
 import {
   formatBrowseSectionsLabel,
@@ -78,6 +80,37 @@ function getAppBaseUrl() {
   return getPublicAppUrl();
 }
 
+/**
+ * Generate a secure random password for new admin accounts.
+ * 16 characters with uppercase, lowercase, numbers, and symbols.
+ */
+function generateSecurePassword(): string {
+  const length = 16;
+  const uppercase = "ABCDEFGHJKLMNPQRSTUVWXYZ"; // Exclude I, O for clarity
+  const lowercase = "abcdefghijkmnpqrstuvwxyz"; // Exclude l, o for clarity
+  const numbers = "23456789"; // Exclude 0, 1 for clarity
+  const symbols = "!@#$%^&*";
+  const allChars = uppercase + lowercase + numbers + symbols;
+
+  // Ensure at least one of each type
+  let password = "";
+  password += uppercase[crypto.randomInt(uppercase.length)];
+  password += lowercase[crypto.randomInt(lowercase.length)];
+  password += numbers[crypto.randomInt(numbers.length)];
+  password += symbols[crypto.randomInt(symbols.length)];
+
+  // Fill remaining with random chars
+  for (let i = password.length; i < length; i++) {
+    password += allChars[crypto.randomInt(allChars.length)];
+  }
+
+  // Shuffle the password
+  return password
+    .split("")
+    .sort(() => crypto.randomInt(3) - 1)
+    .join("");
+}
+
 export async function createRestaurantAction(formData: FormData) {
   await requireSuperAdmin();
   const name = String(formData.get("name") ?? "").trim();
@@ -98,24 +131,55 @@ export async function createRestaurantAction(formData: FormData) {
     ? null
     : parseSubscriptionInterval(formData.get("subscription_interval"));
 
-  const adminPassword = String(formData.get("admin_password") ?? "");
-
   if (!name || !phone || !email) {
     redirect("/dashboard/super-admin?error=missing_restaurant_fields");
-  }
-  if (!adminPassword) {
-    redirect("/dashboard/super-admin?error=missing_password");
-  }
-  if (adminPassword.length < 8) {
-    redirect("/dashboard/super-admin?error=password_too_short");
   }
 
   const businessType = inferBusinessTypeFromBrowseSections(browseSections);
   const categoryLabel = formatBrowseSectionsLabel(browseSelection);
 
   try {
-    const slug = await getUniqueSlug(name);
     const adminClient = getAdminClient();
+
+    // Case-insensitive exact name match (escape ILIKE wildcards)
+    const escapedName = name.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
+    const { data: nameMatches, error: nameLookupError } = await adminClient
+      .from("restaurants")
+      .select("id, name")
+      .ilike("name", escapedName)
+      .limit(20);
+    if (nameLookupError) throw nameLookupError;
+    const nameTaken = (nameMatches ?? []).some(
+      (row) => String(row.name ?? "").trim().toLowerCase() === name.toLowerCase(),
+    );
+    if (nameTaken) {
+      redirect("/dashboard/super-admin?error=duplicate_business_name");
+    }
+
+    // Email must be unique across app users + customer profiles
+    const { data: existingAppUser, error: appUserLookupError } = await adminClient
+      .from("users")
+      .select("id")
+      .eq("email", email)
+      .maybeSingle();
+    if (appUserLookupError) throw appUserLookupError;
+    if (existingAppUser) {
+      redirect("/dashboard/super-admin?error=duplicate_business_email");
+    }
+
+    const { data: existingCustomer, error: customerLookupError } = await adminClient
+      .from("customer_profiles")
+      .select("id")
+      .eq("email", email)
+      .maybeSingle();
+    if (customerLookupError && !/relation|does not exist|schema cache/i.test(customerLookupError.message ?? "")) {
+      throw customerLookupError;
+    }
+    if (existingCustomer) {
+      redirect("/dashboard/super-admin?error=duplicate_business_email");
+    }
+
+    const slug = await getUniqueSlug(name);
     const appUrl = getAppBaseUrl();
 
     const { data: restaurantData, error: restaurantError } = await adminClient
@@ -154,31 +218,29 @@ export async function createRestaurantAction(formData: FormData) {
     const inviteAdminName = `${name} Admin`;
     let userId: string | null = null;
 
+    // Create user account and generate a secure invite link for password setup
     const { data: created, error: createError } = await adminClient.auth.admin.createUser({
       email,
-      password: adminPassword,
       email_confirm: true,
     });
 
     if (createError) {
-      const { data: usersList, error: listError } = await adminClient.auth.admin.listUsers({
-        page: 1,
-        perPage: 1000,
-      });
-      if (listError) throw listError;
-      userId = usersList.users.find((user) => user.email?.toLowerCase() === email)?.id ?? null;
-      if (!userId) throw new Error("Could not create or locate restaurant admin user.");
-
-      const { error: updateError } = await adminClient.auth.admin.updateUserById(userId, {
-        password: adminPassword,
-        email_confirm: true,
-      });
-      if (updateError) throw updateError;
-    } else {
-      userId = created.user?.id ?? null;
+      // Auth already has this email (or another hard failure) — don't reuse accounts for a new store
+      const isDuplicateEmail = /already|registered|exists|duplicate/i.test(createError.message ?? "");
+      if (isDuplicateEmail) {
+        await adminClient.from("restaurants").delete().eq("id", restaurantData.id);
+        redirect("/dashboard/super-admin?error=duplicate_business_email");
+      }
+      await adminClient.from("restaurants").delete().eq("id", restaurantData.id);
+      throw createError;
     }
 
-    if (!userId) throw new Error("Invite created but no user id returned.");
+    userId = created.user?.id ?? null;
+
+    if (!userId) {
+      await adminClient.from("restaurants").delete().eq("id", restaurantData.id);
+      throw new Error("Invite created but no user id returned.");
+    }
 
     const { error: upsertError } = await adminClient.from("users").upsert(
       {
@@ -190,7 +252,10 @@ export async function createRestaurantAction(formData: FormData) {
       },
       { onConflict: "id" },
     );
-    if (upsertError) throw upsertError;
+    if (upsertError) {
+      await adminClient.from("restaurants").delete().eq("id", restaurantData.id);
+      throw upsertError;
+    }
 
     const subscription = complimentaryPeriod
       ? await createComplimentarySubscription(adminClient, restaurantData.id, complimentaryPeriod)
@@ -200,9 +265,38 @@ export async function createRestaurantAction(formData: FormData) {
           subscriptionInterval ?? "monthly",
         );
 
-    // Credentials are set by superadmin and shared out-of-band (e.g. WhatsApp).
-    // Onboarding email has no password and no magic links (those land in spam).
-    let emailSent = false;
+    // Generate secure invite link for admin to set password
+    const { data: inviteLink, error: inviteLinkError } = await adminClient.auth.admin.generateLink({
+      type: 'magiclink',
+      email,
+      options: {
+        redirectTo: `${appUrl}/auth/set-password?type=invite`,
+      },
+    });
+
+    if (inviteLinkError) {
+      console.error("Failed to generate invite link:", inviteLinkError);
+    }
+
+    // Send invite email with set-password link
+    let inviteEmailSent = false;
+    let inviteEmailError: string | null = null;
+    try {
+      await sendAdminInviteEmail({
+        to: email,
+        businessName: name,
+        inviteLink: inviteLink?.properties?.action_link ?? `${appUrl}/login`,
+        categoryLabel,
+      });
+      inviteEmailSent = true;
+    } catch (error) {
+      inviteEmailSent = false;
+      inviteEmailError = error instanceof Error ? error.message : "unknown_error";
+      console.error("Failed to send invite email:", inviteEmailError);
+    }
+
+    // Send onboarding email (without password)
+    let onboardingEmailSent = false;
     try {
       await sendRestaurantOnboardingEmail({
         to: email,
@@ -218,14 +312,17 @@ export async function createRestaurantAction(formData: FormData) {
           ? complimentaryPeriodLabel(complimentaryPeriod)
           : undefined,
       });
-      emailSent = true;
+      onboardingEmailSent = true;
     } catch {
-      emailSent = false;
+      onboardingEmailSent = false;
     }
 
     revalidatePath("/dashboard/super-admin");
-    if (!emailSent) {
-      redirect("/dashboard/super-admin?success=restaurant_created_email_failed");
+    if (!inviteEmailSent && !onboardingEmailSent) {
+      redirect(`/dashboard/super-admin?success=restaurant_created_emails_failed&email=${encodeURIComponent(email)}&invite_link=${encodeURIComponent(inviteLink?.properties?.action_link ?? "")}`);
+    }
+    if (!inviteEmailSent) {
+      redirect(`/dashboard/super-admin?success=restaurant_created_invite_email_failed&email=${encodeURIComponent(email)}&invite_link=${encodeURIComponent(inviteLink?.properties?.action_link ?? "")}`);
     }
     redirect("/dashboard/super-admin?success=restaurant_created");
   } catch (error) {

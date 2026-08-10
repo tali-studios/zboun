@@ -330,6 +330,117 @@ export async function sendSubscriptionDeactivatedEmail(params: {
   });
 }
 
+export async function sendAdminInviteEmail(params: {
+  to: string;
+  businessName: string;
+  inviteLink: string;
+  categoryLabel: string;
+}) {
+  if (!isSmtpConfigured()) return;
+
+  const safeName = escapeHtml(params.businessName);
+  const safeEmail = escapeHtml(params.to);
+  const safeLink = escapeHtml(params.inviteLink);
+  const safeCategory = escapeHtml(params.categoryLabel);
+
+  const text = [
+    `Hello,`,
+    ``,
+    `You've been invited to manage ${params.businessName} on Zboun.`,
+    ``,
+    `Business: ${params.businessName}`,
+    `Category: ${params.categoryLabel}`,
+    `Email: ${params.to}`,
+    ``,
+    `Click the link below to set your password and access your dashboard:`,
+    params.inviteLink,
+    ``,
+    `This link expires in 24 hours.`,
+    ``,
+    `— Zboun Team`,
+  ].join("\n");
+
+  const html = welcomeEmailShell(`
+      <h1 style="margin:0 0 16px;font-size:22px;font-weight:600;letter-spacing:-0.02em;color:#18181b;">You're invited!</h1>
+      <p style="margin:0 0 16px;">You've been invited to manage <strong>${safeName}</strong> on Zboun.</p>
+      <p style="margin:0 0 20px;color:#52525b;">
+        <strong>Business:</strong> ${safeName}<br>
+        <strong>Category:</strong> ${safeCategory}<br>
+        <strong>Email:</strong> ${safeEmail}
+      </p>
+      <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+        <tr><td style="background:#18181b;border-radius:6px;">
+          <a href="${safeLink}" style="display:inline-block;padding:12px 20px;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;">Set Password & Login</a>
+        </td></tr>
+      </table>
+      <p style="margin:0 0 8px;font-size:13px;color:#71717a;">
+        This link expires in 24 hours. If you didn't expect this invitation, you can safely ignore this email.
+      </p>
+  `);
+
+  await sendMail({
+    to: params.to,
+    subject: `You're invited to manage ${params.businessName} on Zboun`,
+    text,
+    html,
+  });
+}
+
+export async function sendAdminPasswordEmail(params: {
+  to: string;
+  businessName: string;
+  password: string;
+  dashboardUrl: string;
+}) {
+  if (!isSmtpConfigured()) return;
+
+  const safeName = escapeHtml(params.businessName);
+  const safeEmail = escapeHtml(params.to);
+  const safePassword = escapeHtml(params.password);
+  const safeLogin = escapeHtml(params.dashboardUrl);
+
+  const text = [
+    `Hello,`,
+    ``,
+    `Your Zboun admin account has been created for ${params.businessName}.`,
+    ``,
+    `Login: ${params.dashboardUrl}`,
+    `Email: ${params.to}`,
+    `Temporary password: ${params.password}`,
+    ``,
+    `IMPORTANT: You will be required to change this password upon your first login.`,
+    ``,
+    `— Zboun`,
+  ].join("\n");
+
+  const html = emailShell(
+    "Your Zboun Account",
+    `
+      <p>Hello,</p>
+      <p>Your Zboun admin account has been created for <strong>${safeName}</strong>.</p>
+      <p style="margin:20px 0;padding:16px;background:#fef3c7;border-radius:8px;border:1px solid #fcd34d;">
+        <strong>Login Credentials</strong><br>
+        Email: ${safeEmail}<br>
+        Temporary password: <code style="font-size:14px;background:#fff;padding:2px 6px;border-radius:4px;">${safePassword}</code>
+      </p>
+      <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+        <tr><td style="background:#4c1d95;border-radius:6px;">
+          <a href="${safeLogin}" style="display:inline-block;padding:12px 20px;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;">Login to Dashboard</a>
+        </td></tr>
+      </table>
+      <p style="color:#dc2626;font-weight:600;">⚠️ IMPORTANT: You will be required to change this password upon your first login.</p>
+      <p style="color:#71717a;font-size:14px;">Please keep this email secure and delete it after changing your password.</p>
+    `,
+  );
+
+  await sendMail({
+    to: params.to,
+    subject: `Your Zboun Admin Account — ${params.businessName}`,
+    text,
+    html,
+  });
+}
+
 export function getDefaultMonthlyPrice() {
   return ZBOUN_PRICING.monthly;
 }

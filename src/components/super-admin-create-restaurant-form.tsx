@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useFormStatus } from "react-dom";
 import dynamic from "next/dynamic";
 import { MapPin, Loader2, Map, ChevronDown } from "lucide-react";
 import { BrowseSectionsCheckboxes } from "@/components/browse-sections-checkboxes";
@@ -22,6 +23,27 @@ const GoogleMapPicker = dynamic(
 
 const BEIRUT = { lat: 33.8938, lng: 35.5018 };
 
+function CreateBusinessSubmitButton() {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      aria-busy={pending}
+      className="btn btn-success rounded-xl disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      {pending ? (
+        <span className="inline-flex items-center gap-2">
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+          Creating…
+        </span>
+      ) : (
+        "Create business"
+      )}
+    </button>
+  );
+}
+
 export function SuperAdminCreateRestaurantForm() {
   const [showLocationSection, setShowLocationSection] = useState(false);
   const [showMap, setShowMap] = useState(false);
@@ -32,21 +54,22 @@ export function SuperAdminCreateRestaurantForm() {
   const [complimentaryFree, setComplimentaryFree] = useState(false);
 
   return (
-    <form id="super-admin-create-restaurant-form" action={createRestaurantAction} className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
-      <input name="name" required placeholder="Business name" className="ui-input" />
-      <input name="email" type="email" required placeholder="Admin email" className="ui-input" />
-      <input name="phone" type="tel" required placeholder="WhatsApp number" className="ui-input" />
-      <input
-        name="admin_password"
-        type="password"
-        required
-        minLength={8}
-        autoComplete="new-password"
-        placeholder="Admin password (min 8)"
-        className="ui-input"
-      />
+    <form
+      id="super-admin-create-restaurant-form"
+      action={createRestaurantAction}
+      className="mt-3 space-y-3"
+    >
+      <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+        <input name="name" required placeholder="Business name" className="ui-input" autoComplete="organization" />
+        <input name="email" type="email" required placeholder="Admin email" className="ui-input" />
+        <input name="phone" type="tel" required placeholder="WhatsApp number" className="ui-input" />
+      </div>
 
-      <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 md:col-span-2 xl:col-span-4">
+      <div className="rounded-xl border border-violet-100 bg-violet-50 px-4 py-2.5 text-xs text-violet-700">
+        <strong>Note:</strong> A secure temporary password will be auto-generated and emailed to the admin. They'll be required to change it on first login.
+      </div>
+
+      <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Business category</p>
         <p className="mt-1 text-xs text-slate-500">
           Pick one category where this business appears on the home page. That category needs at
@@ -60,7 +83,7 @@ export function SuperAdminCreateRestaurantForm() {
       </div>
 
       {/* Optional first location */}
-      <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 md:col-span-2 xl:col-span-4">
+      <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
         <button
           type="button"
           onClick={() => setShowLocationSection(!showLocationSection)}
@@ -134,15 +157,11 @@ export function SuperAdminCreateRestaurantForm() {
         ) : null}
       </div>
 
-      <div className="md:col-span-2 xl:col-span-4">
-        <SubscriptionPlanFields disabled={complimentaryFree} />
-      </div>
+      <SubscriptionPlanFields disabled={complimentaryFree} />
 
-      <div className="md:col-span-2 xl:col-span-4">
-        <ComplimentaryBillingFields onEnabledChange={setComplimentaryFree} />
-      </div>
+      <ComplimentaryBillingFields onEnabledChange={setComplimentaryFree} />
 
-      <button className="btn btn-success rounded-xl">Create business</button>
+      <CreateBusinessSubmitButton />
     </form>
   );
 }

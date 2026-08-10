@@ -220,6 +220,9 @@ export function RestaurantDashboardToast({ toast, sectionName, sectionsCount, it
   } else if (toast === "stock_sync_secret_rotated") {
     heading = "Webhook secret regenerated";
     message = "Update your website's signature check with the new secret.";
+  } else if (toast === "password_changed") {
+    heading = "Password changed";
+    message = "Your password was updated successfully.";
   } else {
     return null;
   }
