@@ -15,6 +15,11 @@ const ERROR_MESSAGES: Record<string, string> = {
   update_failed: "Failed to set password. Please try again.",
 };
 
+function parseHashParams(): URLSearchParams {
+  if (typeof window === "undefined") return new URLSearchParams();
+  return new URLSearchParams(window.location.hash.replace(/^#/, ""));
+}
+
 function SetPasswordShell({ children }: { children: ReactNode }) {
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-slate-50 via-white to-violet-50 px-4 py-12">
@@ -73,19 +78,32 @@ export default function SetPasswordPage() {
 function SetPasswordInner() {
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<Status>("checking");
+  const [linkErrorDetail, setLinkErrorDetail] = useState<string | null>(null);
 
-  const linkError = searchParams.get("error") || searchParams.get("error_code");
+  // Supabase can report a failed verify (expired/used link) via either the
+  // query string or the URL hash fragment, depending on flow type.
+  const queryLinkError = searchParams.get("error") || searchParams.get("error_code");
   const formError = searchParams.get("error");
   const errorMessage =
     formError && ERROR_MESSAGES[formError]
       ? ERROR_MESSAGES[formError]
-      : formError && !linkError
+      : formError && !queryLinkError
         ? decodeURIComponent(formError).replaceAll("_", " ")
         : null;
 
   useEffect(() => {
-    // If Supabase already redirected back with an error (e.g. expired/used link), don't bother checking.
-    if (linkError) {
+    const hashParams = parseHashParams();
+    const hashError = hashParams.get("error") || hashParams.get("error_code");
+    const description =
+      hashParams.get("error_description") || searchParams.get("error_description");
+
+    if (queryLinkError || hashError) {
+      console.error("[set-password] invite link rejected:", {
+        error: queryLinkError || hashParams.get("error"),
+        error_code: hashParams.get("error_code") || searchParams.get("error_code"),
+        error_description: description,
+      });
+      setLinkErrorDetail(description ? decodeURIComponent(description).replaceAll("+", " ") : null);
       setStatus("invalid");
       return;
     }
@@ -120,7 +138,7 @@ function SetPasswordInner() {
       if (fallbackTimer) clearTimeout(fallbackTimer);
       sub.subscription.unsubscribe();
     };
-  }, [linkError]);
+  }, [queryLinkError, searchParams]);
 
   return (
     <SetPasswordShell>
@@ -131,6 +149,9 @@ function SetPasswordInner() {
           <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
             This link is invalid or has expired. Please ask your administrator to send a new
             invite, or use “Forgot password” from the login page.
+            {linkErrorDetail ? (
+              <p className="mt-1.5 text-xs font-normal text-red-500">Reason: {linkErrorDetail}</p>
+            ) : null}
           </div>
           <a
             href="/login"
