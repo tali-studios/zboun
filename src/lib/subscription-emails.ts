@@ -335,6 +335,12 @@ export async function sendAdminInviteEmail(params: {
   businessName: string;
   inviteLink: string;
   categoryLabel: string;
+  subscriptionEndsAt: Date;
+  monthlyPrice: number;
+  billingInterval?: SubscriptionInterval;
+  lifetimeFree?: boolean;
+  complimentaryLabel?: string;
+  publicUrl: string | null;
 }) {
   if (!isSmtpConfigured()) return;
 
@@ -342,15 +348,27 @@ export async function sendAdminInviteEmail(params: {
   const safeEmail = escapeHtml(params.to);
   const safeLink = escapeHtml(params.inviteLink);
   const safeCategory = escapeHtml(params.categoryLabel);
+  const safeStore = params.publicUrl ? escapeHtml(params.publicUrl) : null;
+
+  const endLabel = formatDateLong(params.subscriptionEndsAt);
+  const interval = params.billingInterval ?? inferSubscriptionInterval(params.monthlyPrice);
+  const priceLabel = billingCycleLabel(params.monthlyPrice, interval);
+  const planLine = params.lifetimeFree
+    ? "Plan: complimentary (lifetime)"
+    : params.complimentaryLabel && params.monthlyPrice === 0
+      ? `Plan: complimentary until ${endLabel}`
+      : `Plan: ${priceLabel}, active until ${endLabel}`;
 
   const text = [
-    `Hello,`,
+    `Welcome to Zboun!`,
     ``,
     `You've been invited to manage ${params.businessName} on Zboun.`,
     ``,
     `Business: ${params.businessName}`,
     `Category: ${params.categoryLabel}`,
     `Email: ${params.to}`,
+    planLine,
+    ...(params.publicUrl ? [`Store: ${params.publicUrl}`] : []),
     ``,
     `Click the link below to set your password and access your dashboard:`,
     params.inviteLink,
@@ -361,26 +379,31 @@ export async function sendAdminInviteEmail(params: {
   ].join("\n");
 
   const html = welcomeEmailShell(`
-      <h1 style="margin:0 0 16px;font-size:22px;font-weight:600;letter-spacing:-0.02em;color:#18181b;">You're invited!</h1>
-      <p style="margin:0 0 16px;">You've been invited to manage <strong>${safeName}</strong> on Zboun.</p>
+      <h1 style="margin:0 0 16px;font-size:22px;font-weight:600;letter-spacing:-0.02em;color:#18181b;">Welcome to Zboun</h1>
+      <p style="margin:0 0 16px;"><strong>${safeName}</strong> is now on Zboun.</p>
       <p style="margin:0 0 20px;color:#52525b;">
-        <strong>Business:</strong> ${safeName}<br>
-        <strong>Category:</strong> ${safeCategory}<br>
-        <strong>Email:</strong> ${safeEmail}
+        <span style="color:#18181b;">Category</span> · ${safeCategory}<br>
+        <span style="color:#18181b;">Email</span> · ${safeEmail}<br>
+        ${escapeHtml(planLine)}
       </p>
-      <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+      ${
+        safeStore
+          ? `<p style="margin:0 0 12px;font-size:14px;color:#52525b;"><span style="color:#18181b;">Your Store</span> · <a href="${safeStore}" style="color:#18181b;">${safeStore}</a></p>`
+          : ""
+      }
+      <table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0;">
         <tr><td style="background:#18181b;border-radius:6px;">
-          <a href="${safeLink}" style="display:inline-block;padding:12px 20px;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;">Set Password & Login</a>
+          <a href="${safeLink}" style="display:inline-block;padding:12px 20px;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;">Set Password & Get Started</a>
         </td></tr>
       </table>
       <p style="margin:0 0 8px;font-size:13px;color:#71717a;">
-        This link expires in 24 hours. If you didn't expect this invitation, you can safely ignore this email.
+        This link expires in 24 hours. Click the button above to set your password and access your dashboard.
       </p>
   `);
 
   await sendMail({
     to: params.to,
-    subject: `You're invited to manage ${params.businessName} on Zboun`,
+    subject: `Welcome to Zboun — ${params.businessName}`,
     text,
     html,
   });

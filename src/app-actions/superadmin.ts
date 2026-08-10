@@ -278,7 +278,7 @@ export async function createRestaurantAction(formData: FormData) {
       console.error("Failed to generate invite link:", inviteLinkError);
     }
 
-    // Send invite email with set-password link
+    // Send invite email with set-password link (includes all onboarding info)
     let inviteEmailSent = false;
     let inviteEmailError: string | null = null;
     try {
@@ -287,6 +287,14 @@ export async function createRestaurantAction(formData: FormData) {
         businessName: name,
         inviteLink: inviteLink?.properties?.action_link ?? `${appUrl}/login`,
         categoryLabel,
+        subscriptionEndsAt: subscription.periodEnd,
+        monthlyPrice: subscription.billingPrice,
+        billingInterval: subscriptionInterval ?? undefined,
+        lifetimeFree,
+        complimentaryLabel: complimentaryPeriod
+          ? complimentaryPeriodLabel(complimentaryPeriod)
+          : undefined,
+        publicUrl: hasCatalogDashboard(businessType) ? `${appUrl}/${slug}` : null,
       });
       inviteEmailSent = true;
     } catch (error) {
@@ -295,32 +303,7 @@ export async function createRestaurantAction(formData: FormData) {
       console.error("Failed to send invite email:", inviteEmailError);
     }
 
-    // Send onboarding email (without password)
-    let onboardingEmailSent = false;
-    try {
-      await sendRestaurantOnboardingEmail({
-        to: email,
-        businessName: name,
-        businessTypeLabel: categoryLabel,
-        publicUrl: hasCatalogDashboard(businessType) ? `${appUrl}/${slug}` : null,
-        dashboardUrl: `${appUrl}/login`,
-        subscriptionEndsAt: subscription.periodEnd,
-        monthlyPrice: subscription.billingPrice,
-        billingInterval: subscriptionInterval ?? undefined,
-        lifetimeFree,
-        complimentaryLabel: complimentaryPeriod
-          ? complimentaryPeriodLabel(complimentaryPeriod)
-          : undefined,
-      });
-      onboardingEmailSent = true;
-    } catch {
-      onboardingEmailSent = false;
-    }
-
     revalidatePath("/dashboard/super-admin");
-    if (!inviteEmailSent && !onboardingEmailSent) {
-      redirect(`/dashboard/super-admin?success=restaurant_created_emails_failed&email=${encodeURIComponent(email)}&invite_link=${encodeURIComponent(inviteLink?.properties?.action_link ?? "")}`);
-    }
     if (!inviteEmailSent) {
       redirect(`/dashboard/super-admin?success=restaurant_created_invite_email_failed&email=${encodeURIComponent(email)}&invite_link=${encodeURIComponent(inviteLink?.properties?.action_link ?? "")}`);
     }

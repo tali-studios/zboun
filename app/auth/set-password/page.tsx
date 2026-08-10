@@ -77,7 +77,6 @@ export default async function SetPasswordPage({ searchParams }: Props) {
                 required
                 placeholder="At least 8 characters"
                 autoComplete="new-password"
-                autoFocus
               />
             </div>
             <div>
