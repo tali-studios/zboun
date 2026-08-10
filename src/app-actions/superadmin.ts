@@ -27,6 +27,7 @@ import {
 } from "@/lib/browse-sections";
 import {
   hasCatalogDashboard,
+  parseBusinessType,
 } from "@/lib/business-types";
 import { parseSubscriptionInterval } from "@/lib/pricing";
 import { toSlug } from "@/lib/slug";
@@ -315,6 +316,83 @@ export async function createRestaurantAction(formData: FormData) {
     const message = error instanceof Error ? error.message : "unknown_error";
     redirect(`/dashboard/super-admin?error=${encodeURIComponent(message)}`);
   }
+}
+
+export async function resendAdminInviteAction(formData: FormData) {
+  await requireSuperAdmin();
+  const restaurantId = String(formData.get("restaurant_id") ?? "").trim();
+  if (!restaurantId) {
+    redirect("/dashboard/super-admin?error=missing_restaurant_id");
+  }
+
+  const adminClient = getAdminClient();
+
+  const { data: restaurant, error: restaurantError } = await adminClient
+    .from("restaurants")
+    .select("id, name, slug, business_type, browse_sections, billing_exempt")
+    .eq("id", restaurantId)
+    .single();
+  if (restaurantError || !restaurant) {
+    redirect("/dashboard/super-admin?error=restaurant_not_found");
+  }
+
+  const { data: adminUser } = await adminClient
+    .from("users")
+    .select("id, email")
+    .eq("restaurant_id", restaurantId)
+    .eq("role", "restaurant_admin")
+    .maybeSingle();
+
+  if (!adminUser?.email) {
+    redirect("/dashboard/super-admin?error=no_restaurant_admin");
+  }
+
+  const appUrl = getAppBaseUrl();
+  const categoryLabel = formatBrowseSectionsLabel(normalizeBrowseSections(restaurant.browse_sections ?? []));
+  const subscription = await getLatestSubscription(adminClient, restaurantId);
+
+  const { data: inviteLinkData, error: inviteLinkError } = await adminClient.auth.admin.generateLink({
+    type: "magiclink",
+    email: adminUser.email,
+    options: {
+      redirectTo: `${appUrl}/auth/set-password?type=invite`,
+    },
+  });
+
+  if (inviteLinkError || !inviteLinkData?.properties?.action_link) {
+    redirect(
+      `/dashboard/super-admin?error=${encodeURIComponent(inviteLinkError?.message ?? "invite_link_failed")}`,
+    );
+  }
+
+  const inviteLink = inviteLinkData.properties.action_link;
+
+  let inviteEmailSent = false;
+  try {
+    await sendAdminInviteEmail({
+      to: adminUser.email,
+      businessName: restaurant.name,
+      inviteLink,
+      categoryLabel,
+      subscriptionEndsAt: subscription?.next_due_at ? new Date(subscription.next_due_at) : new Date(),
+      monthlyPrice: Number(subscription?.billing_cycle_price ?? 0),
+      lifetimeFree: restaurant.billing_exempt,
+      publicUrl: hasCatalogDashboard(parseBusinessType(restaurant.business_type))
+        ? `${appUrl}/${restaurant.slug}`
+        : null,
+    });
+    inviteEmailSent = true;
+  } catch (error) {
+    console.error("Failed to resend invite email:", error instanceof Error ? error.message : error);
+  }
+
+  revalidatePath("/dashboard/super-admin");
+  if (!inviteEmailSent) {
+    redirect(
+      `/dashboard/super-admin?success=invite_resent_email_failed&email=${encodeURIComponent(adminUser.email)}&invite_link=${encodeURIComponent(inviteLink)}`,
+    );
+  }
+  redirect(`/dashboard/super-admin?success=invite_resent&email=${encodeURIComponent(adminUser.email)}`);
 }
 
 export async function updateRestaurantBrowseSectionsAction(formData: FormData) {

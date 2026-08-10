@@ -8,6 +8,7 @@ import {
   enableAddonAction,
   grantComplimentaryBillingAction,
   renewSubscriptionAction,
+  resendAdminInviteAction,
   setNextDueDateAction,
   setRestaurantAdminPasswordAction,
   toggleRestaurantActiveAction,
@@ -496,6 +497,15 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
     return Boolean(restaurant.admin_email && restaurant.admin_email !== "No admin linked");
   }
 
+  function resendInvite(restaurant: RestaurantRow) {
+    startTransition(async () => {
+      const formData = new FormData();
+      formData.set("restaurant_id", restaurant.id);
+      await resendAdminInviteAction(formData);
+      router.refresh();
+    });
+  }
+
   return (
     <section className="panel p-5">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -661,14 +671,24 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                 onClick={() => setInfoRestaurant(restaurant)}
               />
               {canResetPassword(restaurant) ? (
-                <ActionIconButton
-                  label="Reset admin password"
-                  shortLabel="Password"
-                  icon="🔑"
-                  className="bg-violet-600 hover:bg-violet-500"
-                  disabled={isPending}
-                  onClick={() => setPasswordRestaurant(restaurant)}
-                />
+                <>
+                  <ActionIconButton
+                    label="Resend invite email"
+                    shortLabel="Resend invite"
+                    icon="✉"
+                    className="bg-emerald-600 hover:bg-emerald-500"
+                    disabled={isPending}
+                    onClick={() => resendInvite(restaurant)}
+                  />
+                  <ActionIconButton
+                    label="Reset admin password"
+                    shortLabel="Password"
+                    icon="🔑"
+                    className="bg-violet-600 hover:bg-violet-500"
+                    disabled={isPending}
+                    onClick={() => setPasswordRestaurant(restaurant)}
+                  />
+                </>
               ) : null}
               <ActionIconButton
                 label="Manage add-ons"
@@ -873,14 +893,24 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
                       onClick={() => setInfoRestaurant(restaurant)}
                     />
                     {canResetPassword(restaurant) ? (
-                      <ActionIconButton
-                        tableRow
-                        label="Reset admin password"
-                        icon="🔑"
-                        className="bg-violet-600"
-                        disabled={isPending}
-                        onClick={() => setPasswordRestaurant(restaurant)}
-                      />
+                      <>
+                        <ActionIconButton
+                          tableRow
+                          label="Resend invite email"
+                          icon="✉"
+                          className="bg-emerald-600"
+                          disabled={isPending}
+                          onClick={() => resendInvite(restaurant)}
+                        />
+                        <ActionIconButton
+                          tableRow
+                          label="Reset admin password"
+                          icon="🔑"
+                          className="bg-violet-600"
+                          disabled={isPending}
+                          onClick={() => setPasswordRestaurant(restaurant)}
+                        />
+                      </>
                     ) : null}
                     <ActionIconButton
                       tableRow

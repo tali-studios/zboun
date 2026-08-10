@@ -373,7 +373,7 @@ export async function sendAdminInviteEmail(params: {
     `Click the link below to set your password and access your dashboard:`,
     params.inviteLink,
     ``,
-    `This link expires in 24 hours.`,
+    `This link will expire soon, so please use it shortly. If it expires, ask your administrator to resend the invite.`,
     ``,
     `— Zboun Team`,
   ].join("\n");
@@ -397,7 +397,7 @@ export async function sendAdminInviteEmail(params: {
         </td></tr>
       </table>
       <p style="margin:0 0 8px;font-size:13px;color:#71717a;">
-        This link expires in 24 hours. Click the button above to set your password and access your dashboard.
+        This link will expire soon, so please use it shortly. If it expires, ask your administrator to resend the invite.
       </p>
   `);
 

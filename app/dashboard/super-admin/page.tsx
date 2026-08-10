@@ -16,6 +16,7 @@ import type { PlatformOpsReminderKind } from "@/lib/platform-ops-payments-shared
 import type { PlatformOpsPaymentItem } from "@/components/super-admin-ops-payments-panel";
 
 import { getPublicAppUrl } from "@/lib/public-app-url";
+import { CopyableInviteLink } from "@/components/copyable-invite-link";
 
 export const dynamic = "force-dynamic";
 
@@ -415,17 +416,8 @@ export default async function SuperAdminPage({ searchParams }: Props) {
               <p className="font-semibold text-amber-900">Share this invite link manually:</p>
               <p className="mt-2"><strong>Email:</strong> {email}</p>
               <p className="mt-2"><strong>Invite Link:</strong></p>
-              <input
-                type="text"
-                readOnly
-                value={invite_link}
-                className="mt-1 w-full rounded border border-amber-300 bg-amber-50 px-2 py-1 text-xs font-mono text-amber-900"
-                onClick={(e) => {
-                  e.currentTarget.select();
-                  navigator.clipboard.writeText(invite_link);
-                }}
-              />
-              <p className="mt-2 text-xs text-amber-700">⚠️ Admin will set their own password via this link. Link expires in 24 hours.</p>
+              <CopyableInviteLink link={invite_link} tone="amber" />
+              <p className="mt-2 text-xs text-amber-700">⚠️ Admin will set their own password via this link. It expires soon (~1 hour by default) — use “Resend invite” from the list below if it dies.</p>
             </div>
           </div>
         )}
@@ -438,18 +430,28 @@ export default async function SuperAdminPage({ searchParams }: Props) {
               <p className="font-semibold text-red-900">Share this invite link manually:</p>
               <p className="mt-2"><strong>Email:</strong> {email}</p>
               <p className="mt-2"><strong>Invite Link:</strong></p>
-              <input
-                type="text"
-                readOnly
-                value={invite_link}
-                className="mt-1 w-full rounded border border-red-300 bg-red-50 px-2 py-1 text-xs font-mono text-red-900"
-                onClick={(e) => {
-                  e.currentTarget.select();
-                  navigator.clipboard.writeText(invite_link);
-                }}
-              />
+              <CopyableInviteLink link={invite_link} tone="red" />
               <p className="mt-2"><strong>Login:</strong> {getPublicAppUrl()}/login</p>
-              <p className="mt-2 text-xs text-red-700">⚠️ Admin will set their own password via this link. Link expires in 24 hours.</p>
+              <p className="mt-2 text-xs text-red-700">⚠️ Admin will set their own password via this link. It expires soon (~1 hour by default) — use “Resend invite” from the list below if it dies.</p>
+            </div>
+          </div>
+        )}
+        {success === "invite_resent" && email && (
+          <p className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-medium text-emerald-700">
+            A fresh invite link was emailed to {email}.
+          </p>
+        )}
+        {success === "invite_resent_email_failed" && invite_link && email && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 space-y-2">
+            <p className="text-sm font-medium text-amber-700">
+              A new invite link was generated, but the email failed to send.
+            </p>
+            <div className="rounded-lg border border-amber-300 bg-white p-3 text-sm">
+              <p className="font-semibold text-amber-900">Share this invite link manually:</p>
+              <p className="mt-2"><strong>Email:</strong> {email}</p>
+              <p className="mt-2"><strong>Invite Link:</strong></p>
+              <CopyableInviteLink link={invite_link} tone="amber" />
+              <p className="mt-2 text-xs text-amber-700">⚠️ It expires soon (~1 hour by default).</p>
             </div>
           </div>
         )}
