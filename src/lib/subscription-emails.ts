@@ -393,7 +393,7 @@ export async function sendAdminInviteEmail(params: {
       }
       <table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0;">
         <tr><td style="background:#18181b;border-radius:6px;">
-          <a href="${safeLink}" style="display:inline-block;padding:12px 20px;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;">Set Password & Get Started</a>
+          <a href="${safeLink}" style="display:inline-block;padding:12px 20px;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;">Login</a>
         </td></tr>
       </table>
       <p style="margin:0 0 8px;font-size:13px;color:#71717a;">
