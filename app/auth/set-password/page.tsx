@@ -21,6 +21,40 @@ function parseHashParams(): URLSearchParams {
   return new URLSearchParams(window.location.hash.replace(/^#/, ""));
 }
 
+type LinkErrorInfo = {
+  source: "hash" | "query" | "verifyOtp";
+  error?: string | null;
+  code?: string | null;
+  status?: number | null;
+  description?: string | null;
+  message?: string | null;
+  tokenHashPreview?: string | null;
+  otpType?: string | null;
+  timestamp: string;
+};
+
+function CopyDetailsButton({ info }: { info: LinkErrorInfo }) {
+  const [copied, setCopied] = useState(false);
+  const text = JSON.stringify(info, null, 2);
+  return (
+    <button
+      type="button"
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(text);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1500);
+        } catch {
+          setCopied(false);
+        }
+      }}
+      className="mt-2 rounded-lg border border-red-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-red-600 transition hover:bg-red-50"
+    >
+      {copied ? "Copied!" : "Copy details"}
+    </button>
+  );
+}
+
 function SetPasswordShell({ children }: { children: ReactNode }) {
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-slate-50 via-white to-violet-50 px-4 py-12">
@@ -79,7 +113,7 @@ export default function SetPasswordPage() {
 function SetPasswordInner() {
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<Status>("checking");
-  const [linkErrorDetail, setLinkErrorDetail] = useState<string | null>(null);
+  const [linkErrorInfo, setLinkErrorInfo] = useState<LinkErrorInfo | null>(null);
 
   // Supabase can report a failed verify (expired/used link) via either the
   // query string or the URL hash fragment, depending on flow type.
@@ -109,12 +143,17 @@ function SetPasswordInner() {
       hashParams.get("error_description") || searchParams.get("error_description");
 
     if (queryLinkError || hashError) {
-      console.error("[set-password] invite link rejected:", {
+      const info: LinkErrorInfo = {
+        source: hashError ? "hash" : "query",
         error: queryLinkError || hashParams.get("error"),
-        error_code: hashParams.get("error_code") || searchParams.get("error_code"),
-        error_description: description,
-      });
-      setLinkErrorDetail(description ? decodeURIComponent(description).replaceAll("+", " ") : null);
+        code: hashParams.get("error_code") || searchParams.get("error_code"),
+        description: description ? decodeURIComponent(description).replaceAll("+", " ") : null,
+        tokenHashPreview: tokenHash ? `${tokenHash.slice(0, 8)}…` : null,
+        otpType,
+        timestamp: new Date().toISOString(),
+      };
+      console.error("[set-password] invite link rejected:", info);
+      setLinkErrorInfo(info);
       setStatus("invalid");
       return;
     }
@@ -156,7 +195,7 @@ function SetPasswordInner() {
       if (fallbackTimer) clearTimeout(fallbackTimer);
       sub.subscription.unsubscribe();
     };
-  }, [queryLinkError, searchParams, tokenHash]);
+  }, [queryLinkError, searchParams, tokenHash, otpType]);
 
   async function handleConfirm() {
     if (!tokenHash) return;
@@ -164,8 +203,18 @@ function SetPasswordInner() {
     const supabase = createClient();
     const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: otpType });
     if (error) {
-      console.error("[set-password] verifyOtp failed:", error);
-      setLinkErrorDetail(error.message);
+      const info: LinkErrorInfo = {
+        source: "verifyOtp",
+        error: error.name,
+        code: (error as { code?: string }).code ?? null,
+        status: (error as { status?: number }).status ?? null,
+        message: error.message,
+        tokenHashPreview: `${tokenHash.slice(0, 8)}…`,
+        otpType,
+        timestamp: new Date().toISOString(),
+      };
+      console.error("[set-password] verifyOtp failed:", info, error);
+      setLinkErrorInfo(info);
       setStatus("invalid");
       return;
     }
@@ -196,10 +245,61 @@ function SetPasswordInner() {
           <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
             This link is invalid or has expired. Please ask your administrator to send a new
             invite, or use “Forgot password” from the login page.
-            {linkErrorDetail ? (
-              <p className="mt-1.5 text-xs font-normal text-red-500">Reason: {linkErrorDetail}</p>
-            ) : null}
           </div>
+          {linkErrorInfo ? (
+            <div className="rounded-2xl border border-red-100 bg-red-50/60 px-4 py-3">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-red-400">
+                Technical details
+              </p>
+              <dl className="mt-1.5 space-y-1 text-xs text-red-600">
+                {linkErrorInfo.description ? (
+                  <div>
+                    <dt className="inline font-semibold">Reason: </dt>
+                    <dd className="inline">{linkErrorInfo.description}</dd>
+                  </div>
+                ) : null}
+                {linkErrorInfo.message ? (
+                  <div>
+                    <dt className="inline font-semibold">Message: </dt>
+                    <dd className="inline">{linkErrorInfo.message}</dd>
+                  </div>
+                ) : null}
+                {linkErrorInfo.code ? (
+                  <div>
+                    <dt className="inline font-semibold">Code: </dt>
+                    <dd className="inline font-mono">{linkErrorInfo.code}</dd>
+                  </div>
+                ) : null}
+                {linkErrorInfo.status ? (
+                  <div>
+                    <dt className="inline font-semibold">HTTP status: </dt>
+                    <dd className="inline font-mono">{linkErrorInfo.status}</dd>
+                  </div>
+                ) : null}
+                <div>
+                  <dt className="inline font-semibold">Source: </dt>
+                  <dd className="inline font-mono">{linkErrorInfo.source}</dd>
+                </div>
+                {linkErrorInfo.otpType ? (
+                  <div>
+                    <dt className="inline font-semibold">Link type: </dt>
+                    <dd className="inline font-mono">{linkErrorInfo.otpType}</dd>
+                  </div>
+                ) : null}
+                {linkErrorInfo.tokenHashPreview ? (
+                  <div>
+                    <dt className="inline font-semibold">Token: </dt>
+                    <dd className="inline font-mono">{linkErrorInfo.tokenHashPreview}</dd>
+                  </div>
+                ) : null}
+                <div>
+                  <dt className="inline font-semibold">Time: </dt>
+                  <dd className="inline font-mono">{linkErrorInfo.timestamp}</dd>
+                </div>
+              </dl>
+              <CopyDetailsButton info={linkErrorInfo} />
+            </div>
+          ) : null}
           <a
             href="/login"
             className="flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 py-3.5 text-sm font-bold text-white shadow-md shadow-violet-400/30 transition hover:brightness-110 active:scale-[0.98]"
