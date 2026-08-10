@@ -2,11 +2,12 @@
 
 import { Suspense, useEffect, useState, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
+import type { EmailOtpType } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { PasswordInput } from "@/components/password-input";
 import { setPasswordAction } from "@/app-actions/set-password";
 
-type Status = "checking" | "ready" | "invalid";
+type Status = "checking" | "confirm" | "verifying" | "ready" | "invalid";
 
 const ERROR_MESSAGES: Record<string, string> = {
   missing_fields: "Please fill in all fields.",
@@ -52,11 +53,11 @@ function SetPasswordShell({ children }: { children: ReactNode }) {
   );
 }
 
-function CheckingState() {
+function CheckingState({ label = "Verifying your invite link…" }: { label?: string }) {
   return (
     <div className="flex flex-col items-center gap-3 py-10 text-sm text-slate-500">
       <div className="h-6 w-6 animate-spin rounded-full border-2 border-violet-200 border-t-violet-600" />
-      Verifying your invite link…
+      {label}
     </div>
   );
 }
@@ -91,6 +92,16 @@ function SetPasswordInner() {
         ? decodeURIComponent(formError).replaceAll("_", " ")
         : null;
 
+  // Newer invite links point straight at our own page with a token_hash instead
+  // of Supabase's /auth/v1/verify endpoint. This is intentional: linking directly
+  // to Supabase's verify endpoint gets the single-use token silently consumed by
+  // corporate email security scanners (e.g. Outlook Safe Links) that prefetch every
+  // URL in an incoming email within seconds — before the real user ever clicks.
+  // Requiring an explicit button click here before redeeming the token means an
+  // automated GET request to this page (which never clicks anything) can't burn it.
+  const tokenHash = searchParams.get("token_hash");
+  const otpType = (searchParams.get("type") as EmailOtpType | null) ?? "magiclink";
+
   useEffect(() => {
     const hashParams = parseHashParams();
     const hashError = hashParams.get("error") || hashParams.get("error_code");
@@ -108,6 +119,14 @@ function SetPasswordInner() {
       return;
     }
 
+    // New-style link: wait for the user to click "Continue" before redeeming.
+    if (tokenHash) {
+      setStatus("confirm");
+      return;
+    }
+
+    // Old-style link: Supabase already redeemed the token server-side and
+    // redirected back here with session tokens in the URL hash.
     const supabase = createClient();
     let cancelled = false;
     let fallbackTimer: ReturnType<typeof setTimeout> | undefined;
@@ -123,7 +142,6 @@ function SetPasswordInner() {
         setStatus("ready");
         return;
       }
-      // The PKCE code exchange (from the ?code= param) can take a moment on first load.
       fallbackTimer = setTimeout(() => {
         if (cancelled) return;
         supabase.auth.getSession().then(({ data: retryData }) => {
@@ -138,12 +156,41 @@ function SetPasswordInner() {
       if (fallbackTimer) clearTimeout(fallbackTimer);
       sub.subscription.unsubscribe();
     };
-  }, [queryLinkError, searchParams]);
+  }, [queryLinkError, searchParams, tokenHash]);
+
+  async function handleConfirm() {
+    if (!tokenHash) return;
+    setStatus("verifying");
+    const supabase = createClient();
+    const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: otpType });
+    if (error) {
+      console.error("[set-password] verifyOtp failed:", error);
+      setLinkErrorDetail(error.message);
+      setStatus("invalid");
+      return;
+    }
+    setStatus("ready");
+  }
 
   return (
     <SetPasswordShell>
       {status === "checking" ? (
         <CheckingState />
+      ) : status === "verifying" ? (
+        <CheckingState label="Confirming your invite…" />
+      ) : status === "confirm" ? (
+        <div className="space-y-4">
+          <p className="text-sm text-slate-500">
+            Click below to confirm your invite and continue to set your password.
+          </p>
+          <button
+            type="button"
+            onClick={handleConfirm}
+            className="flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 py-3.5 text-sm font-bold text-white shadow-md shadow-violet-400/30 transition hover:brightness-110 active:scale-[0.98]"
+          >
+            Continue
+          </button>
+        </div>
       ) : status === "invalid" ? (
         <div className="space-y-4">
           <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">

@@ -82,6 +82,26 @@ function getAppBaseUrl() {
 }
 
 /**
+ * Build an invite link that points at OUR OWN set-password page with a token_hash,
+ * instead of Supabase's `/auth/v1/verify` endpoint directly. Linking straight to
+ * Supabase's verify endpoint gets the single-use token silently consumed by
+ * corporate email security scanners (Outlook Safe Links, etc.) that prefetch every
+ * URL in an incoming email — before the real recipient ever clicks it. Our page
+ * requires an explicit button click before redeeming the token, which prefetch
+ * bots never trigger.
+ */
+function buildInviteLink(
+  appUrl: string,
+  linkData: { properties?: { hashed_token?: string; action_link?: string } | null } | null | undefined,
+) {
+  const hashedToken = linkData?.properties?.hashed_token;
+  if (hashedToken) {
+    return `${appUrl}/auth/set-password?token_hash=${encodeURIComponent(hashedToken)}&type=magiclink`;
+  }
+  return linkData?.properties?.action_link ?? `${appUrl}/login`;
+}
+
+/**
  * Generate a secure random password for new admin accounts.
  * 16 characters with uppercase, lowercase, numbers, and symbols.
  */
@@ -279,6 +299,8 @@ export async function createRestaurantAction(formData: FormData) {
       console.error("Failed to generate invite link:", inviteLinkError);
     }
 
+    const inviteLinkUrl = buildInviteLink(appUrl, inviteLink);
+
     // Send invite email with set-password link (includes all onboarding info)
     let inviteEmailSent = false;
     let inviteEmailError: string | null = null;
@@ -286,7 +308,7 @@ export async function createRestaurantAction(formData: FormData) {
       await sendAdminInviteEmail({
         to: email,
         businessName: name,
-        inviteLink: inviteLink?.properties?.action_link ?? `${appUrl}/login`,
+        inviteLink: inviteLinkUrl,
         categoryLabel,
         subscriptionEndsAt: subscription.periodEnd,
         monthlyPrice: subscription.billingPrice,
@@ -306,7 +328,7 @@ export async function createRestaurantAction(formData: FormData) {
 
     revalidatePath("/dashboard/super-admin");
     if (!inviteEmailSent) {
-      redirect(`/dashboard/super-admin?success=restaurant_created_invite_email_failed&email=${encodeURIComponent(email)}&invite_link=${encodeURIComponent(inviteLink?.properties?.action_link ?? "")}`);
+      redirect(`/dashboard/super-admin?success=restaurant_created_invite_email_failed&email=${encodeURIComponent(email)}&invite_link=${encodeURIComponent(inviteLinkUrl)}`);
     }
     redirect("/dashboard/super-admin?success=restaurant_created");
   } catch (error) {
@@ -359,13 +381,13 @@ export async function resendAdminInviteAction(formData: FormData) {
     },
   });
 
-  if (inviteLinkError || !inviteLinkData?.properties?.action_link) {
+  if (inviteLinkError || !inviteLinkData?.properties) {
     redirect(
       `/dashboard/super-admin?error=${encodeURIComponent(inviteLinkError?.message ?? "invite_link_failed")}`,
     );
   }
 
-  const inviteLink = inviteLinkData.properties.action_link;
+  const inviteLink = buildInviteLink(appUrl, inviteLinkData);
 
   let inviteEmailSent = false;
   try {
