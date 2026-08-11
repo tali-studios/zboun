@@ -46,43 +46,41 @@ export function normalizeOptionGroups(
   if (!Array.isArray(optionValues) || optionValues.length === 0) return [];
 
   if (isGroupShape(optionValues[0])) {
-    return optionValues
-      .map((raw) => {
-        if (!isGroupShape(raw)) return null;
-        const label = String(raw.label ?? "").trim();
-        if (!label) return null;
-        const values = (Array.isArray(raw.values) ? raw.values : [])
-          .map((v) => {
-            if (!isPlainObject(v)) return null;
-            const name = String(v.name ?? "").trim();
-            if (!name) return null;
-            return {
-              name,
-              price: asPrice(v.price),
-              image_url: typeof v.image_url === "string" && v.image_url.trim() ? v.image_url.trim() : null,
-            };
-          })
-          .filter((v): v is MenuOptionValue => Boolean(v));
-        if (values.length === 0) return null;
-        return { label, values };
-      })
-      .filter((g): g is MenuOptionGroup => Boolean(g));
+    const groups: MenuOptionGroup[] = [];
+    for (const raw of optionValues) {
+      if (!isGroupShape(raw)) continue;
+      const label = String(raw.label ?? "").trim();
+      if (!label) continue;
+      const values: MenuOptionValue[] = [];
+      for (const v of Array.isArray(raw.values) ? raw.values : []) {
+        if (!isPlainObject(v)) continue;
+        const name = String(v.name ?? "").trim();
+        if (!name) continue;
+        values.push({
+          name,
+          price: asPrice(v.price),
+          image_url: typeof v.image_url === "string" && v.image_url.trim() ? v.image_url.trim() : null,
+        });
+      }
+      if (values.length === 0) continue;
+      groups.push({ label, values });
+    }
+    return groups;
   }
 
   // Legacy flat list
   const label = String(optionLabel ?? "").trim() || "Option";
-  const values = optionValues
-    .map((v) => {
-      if (!isPlainObject(v)) return null;
-      const name = String(v.name ?? "").trim();
-      if (!name) return null;
-      return {
-        name,
-        price: asPrice(v.price),
-        image_url: typeof v.image_url === "string" && v.image_url.trim() ? v.image_url.trim() : null,
-      };
-    })
-    .filter((v): v is MenuOptionValue => Boolean(v));
+  const values: MenuOptionValue[] = [];
+  for (const v of optionValues) {
+    if (!isPlainObject(v)) continue;
+    const name = String(v.name ?? "").trim();
+    if (!name) continue;
+    values.push({
+      name,
+      price: asPrice(v.price),
+      image_url: typeof v.image_url === "string" && v.image_url.trim() ? v.image_url.trim() : null,
+    });
+  }
   return values.length > 0 ? [{ label, values }] : [];
 }
 

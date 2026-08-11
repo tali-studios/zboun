@@ -97,6 +97,7 @@ export function StoreSettingsForm({
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isPending) return;
     const form = event.currentTarget;
     const formData = new FormData(form);
 
@@ -113,7 +114,12 @@ export function StoreSettingsForm({
 
   return (
     <PendingContext.Provider value={isPending}>
-      <form id="restaurant-store-settings-form" onSubmit={handleSubmit} className={className}>
+      <form
+        id="restaurant-store-settings-form"
+        onSubmit={handleSubmit}
+        className={className}
+        aria-busy={isPending}
+      >
         {children}
       </form>
       {footer}
@@ -132,16 +138,24 @@ export function StoreSettingsSubmitButton({
   children,
   className,
   form,
+  pendingLabel = "Saving…",
 }: {
   children: ReactNode;
   className?: string;
   /** Associate with a form when the button sits outside it. */
   form?: string;
+  pendingLabel?: string;
 }) {
   const pending = useStoreSettingsPending();
   return (
-    <button type="submit" form={form} disabled={pending} className={className} aria-busy={pending}>
-      {children}
+    <button
+      type="submit"
+      form={form}
+      disabled={pending}
+      aria-busy={pending}
+      className={`${className ?? ""} disabled:cursor-wait disabled:opacity-70`}
+    >
+      {pending ? pendingLabel : children}
     </button>
   );
 }
