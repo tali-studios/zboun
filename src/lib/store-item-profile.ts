@@ -6,6 +6,15 @@ import type { BrowseSection } from "@/lib/browse-sections";
  * categories (e.g. a supermarket = Groceries + Drinks + Beauty & Pharmacy) —
  * in that case we show the union of everything those categories need.
  */
+export type ProductOptionHints = {
+  typePrimary: string;
+  typeSecondary: string;
+  value: string;
+  addAnother: string;
+  /** Enables one-tap Size/Color presets for fashion stores. */
+  presetMode?: "fashion";
+};
+
 export type StoreItemProfile = {
   /** "Sold by weight" toggle + price-per-kg fields (produce, meat, bulk foods). */
   weightPricing: boolean;
@@ -13,15 +22,67 @@ export type StoreItemProfile = {
   displayQuantity: boolean;
   /** Calories / protein nutrition facts. */
   nutrition: boolean;
-  /** Contains / ingredients / key-contents free text field. */
+  /** Contains / ingredients / materials free text field (stored in `contents`). */
   contents: boolean;
   /** Dish-level customization: "remove onions", "add cheese (+$1)". */
   ingredientCustomization: boolean;
   /** Product variants: Size, Color, etc. (customers must pick one). */
   productOptions: boolean;
+  /** Placeholder copy for the variants UI (tailored to the store category). */
+  optionHints: ProductOptionHints;
   /** Copy tone: "menu"/"dish" wording vs generic "product" wording. */
   isFoodLike: boolean;
+  /** Fashion stores — materials/fabric labeling + branding emphasis. */
+  isFashionLike: boolean;
+  /** Require choosing a brand when brands exist (e.g. fashion boutique). */
+  brandRequired: boolean;
+  /** Example placeholder for the item name field. */
+  namePlaceholder: string;
 };
+
+const FASHION_OPTION_HINTS: ProductOptionHints = {
+  typePrimary: "Size",
+  typeSecondary: "Color",
+  value: "Custom size",
+  addAnother: "+ Add colors",
+  presetMode: "fashion",
+};
+
+const ELECTRONICS_OPTION_HINTS: ProductOptionHints = {
+  typePrimary: "e.g. Storage, Color",
+  typeSecondary: "e.g. Color",
+  value: "Value (e.g. 128GB, 256GB, Black)",
+  addAnother: "+ Add another option type (e.g. Color)",
+};
+
+const SMOKE_OPTION_HINTS: ProductOptionHints = {
+  typePrimary: "e.g. Nicotine, Flavor",
+  typeSecondary: "e.g. Flavor",
+  value: "Value (e.g. 3mg, 6mg, Mint)",
+  addAnother: "+ Add another option type (e.g. Flavor)",
+};
+
+const GROCERIES_OPTION_HINTS: ProductOptionHints = {
+  typePrimary: "e.g. Grind, Roast, Size",
+  typeSecondary: "e.g. Roast",
+  value: "Value (e.g. Whole bean, Espresso, 250g)",
+  addAnother: "+ Add another option type (e.g. Roast)",
+};
+
+const DEFAULT_OPTION_HINTS: ProductOptionHints = {
+  typePrimary: "e.g. Size, Color, Style",
+  typeSecondary: "e.g. Color",
+  value: "Value (e.g. Large, Red)",
+  addAnother: "+ Add another option type (e.g. Color)",
+};
+
+function resolveOptionHints(sections: readonly BrowseSection[]): ProductOptionHints {
+  if (sections.includes("Fashion & Apparel")) return FASHION_OPTION_HINTS;
+  if (sections.includes("Electronics & Tech")) return ELECTRONICS_OPTION_HINTS;
+  if (sections.includes("Smoke & Tobacco")) return SMOKE_OPTION_HINTS;
+  if (sections.includes("Groceries")) return GROCERIES_OPTION_HINTS;
+  return DEFAULT_OPTION_HINTS;
+}
 
 const WEIGHT_PRICING_SECTIONS = new Set<BrowseSection>([
   "Food & Restaurants",
@@ -38,7 +99,7 @@ const DISPLAY_QUANTITY_SECTIONS = new Set<BrowseSection>([
   "Pets & Supplies",
   "Sports & Outdoors",
   "Smoke & Tobacco",
-  "Fashion & Apparel",
+  // Fashion uses Product options (S/M/L, etc.) — not weight/volume labels.
   "Automotive",
   "Gifts & Lifestyle",
 ]);
@@ -59,7 +120,7 @@ const CONTENTS_SECTIONS = new Set<BrowseSection>([
   "Pets & Supplies",
   "Sports & Outdoors",
   "Smoke & Tobacco",
-  "Fashion & Apparel",
+  "Fashion & Apparel", // materials / fabric (not food nutrition)
   "Automotive",
   "Gifts & Lifestyle",
 ]);
@@ -87,13 +148,25 @@ const NO_EXTRAS_PROFILE: StoreItemProfile = {
   contents: false,
   ingredientCustomization: false,
   productOptions: false,
+  optionHints: DEFAULT_OPTION_HINTS,
   isFoodLike: false,
+  isFashionLike: false,
+  brandRequired: false,
+  namePlaceholder: "e.g. iPhone 15 Case – Black",
 };
+
+function resolveNamePlaceholder(sections: readonly BrowseSection[]): string {
+  if (sections.includes("Fashion & Apparel")) return "e.g. Linen Midi Skirt – Blue Stripe";
+  if (sections.includes("Food & Restaurants")) return "e.g. Grilled Chicken Burger";
+  if (sections.includes("Electronics & Tech")) return "e.g. iPhone 15 Case – Black";
+  return "e.g. Product name";
+}
 
 export function resolveStoreItemProfile(sections: readonly BrowseSection[]): StoreItemProfile {
   if (!sections || sections.length === 0) return { ...NO_EXTRAS_PROFILE };
 
   const has = (set: Set<BrowseSection>) => sections.some((section) => set.has(section));
+  const isFashionLike = sections.includes("Fashion & Apparel");
 
   return {
     weightPricing: has(WEIGHT_PRICING_SECTIONS),
@@ -102,6 +175,10 @@ export function resolveStoreItemProfile(sections: readonly BrowseSection[]): Sto
     contents: has(CONTENTS_SECTIONS),
     ingredientCustomization: has(INGREDIENT_CUSTOMIZATION_SECTIONS),
     productOptions: has(PRODUCT_OPTIONS_SECTIONS),
+    optionHints: resolveOptionHints(sections),
     isFoodLike: sections.includes("Food & Restaurants"),
+    isFashionLike,
+    brandRequired: isFashionLike,
+    namePlaceholder: resolveNamePlaceholder(sections),
   };
 }

@@ -14,6 +14,7 @@ import type { RestaurantLocationRow } from "@/app-actions/restaurant";
 import { DeliveryFeeSettings } from "@/components/delivery-fee-settings";
 import { DeliveryTiersPanel } from "@/components/delivery-tiers-panel";
 import { MenuThemePicker } from "@/components/menu-theme-picker";
+import { StoreSocialLinksFields } from "@/components/store-social-links-fields";
 import {
   loadRestaurantForAdminDashboard,
   resolveRestaurantLocationLabel,
@@ -400,6 +401,16 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                 />
                 <p className="text-xs text-slate-500">Example: Fresh pasta and handmade sauces since 2015.</p>
               </label>
+              <StoreSocialLinksFields
+                wide
+                defaults={{
+                  instagram_url: restaurant?.instagram_url,
+                  tiktok_url: restaurant?.tiktok_url,
+                  facebook_url: restaurant?.facebook_url,
+                  twitter_url: restaurant?.twitter_url,
+                  youtube_url: restaurant?.youtube_url,
+                }}
+              />
               {rawBrowseSections.map((value) => (
                 <input key={value} type="hidden" name="browse_sections" value={value} />
               ))}
@@ -495,6 +506,15 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                   className="ui-input min-h-24"
                 />
               </label>
+              <StoreSocialLinksFields
+                defaults={{
+                  instagram_url: restaurant?.instagram_url,
+                  tiktok_url: restaurant?.tiktok_url,
+                  facebook_url: restaurant?.facebook_url,
+                  twitter_url: restaurant?.twitter_url,
+                  youtube_url: restaurant?.youtube_url,
+                }}
+              />
               <label className="space-y-1">
                 <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Location</span>
                 <input

@@ -1,7 +1,9 @@
 import Image from "next/image";
 import { Gift, Zap } from "lucide-react";
+import { RestaurantSocialLinks } from "@/components/restaurant-social-links";
 import type { MenuTheme } from "@/lib/menu-theme";
 import { resolveMenuTheme } from "@/lib/menu-theme";
+import type { SocialLinks } from "@/lib/social-links";
 
 type RestaurantHeroData = {
   name: string;
@@ -15,7 +17,7 @@ type RestaurantHeroData = {
   user_rating_count: number | null;
   free_delivery?: boolean;
   fast_delivery_enabled?: boolean;
-};
+} & Partial<SocialLinks>;
 
 type Props = {
   restaurant: RestaurantHeroData;
@@ -138,6 +140,7 @@ export function RestaurantMenuHero({ restaurant, tagline, menuThemeColor, modeBa
                 </p>
               ) : null}
               {heroPills}
+              <RestaurantSocialLinks links={restaurant} onDark />
             </div>
           </div>
         </div>

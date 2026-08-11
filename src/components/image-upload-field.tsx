@@ -64,7 +64,11 @@ export function ImageUploadField({
       {label ? (
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           {label}
-          {optional ? <span className="ml-1 font-normal normal-case text-slate-500">(optional)</span> : null}
+          {optional ? (
+            <span className="ml-1 font-normal normal-case text-slate-500">(optional)</span>
+          ) : (
+            <span className="ml-1 text-red-500">*</span>
+          )}
         </p>
       ) : null}
 
@@ -129,7 +133,11 @@ export function ImageUploadField({
                   : "truncate text-sm font-semibold text-slate-800"
             }
           >
-            {compact ? "Click to change logo" : inline ? "Click to upload brand logo" : "Drag & drop or click to upload"}
+            {compact
+              ? "Click to change"
+              : inline
+                ? "Click to upload photo"
+                : "Drag & drop or click to upload"}
           </p>
           {!compact && !inline ? (
             <p className="truncate text-xs text-slate-500">PNG/JPG/WebP, max 5MB</p>
@@ -149,6 +157,7 @@ export function ImageUploadField({
           accept="image/*"
           className="hidden"
           form={formId}
+          required={!optional && !initialImageUrl && !file}
           onChange={(event) => validateAndSet(event.target.files?.[0] ?? null)}
         />
       </label>

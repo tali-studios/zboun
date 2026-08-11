@@ -13,6 +13,12 @@ import {
 } from "@/lib/menu-promotions";
 import { isMenuCouponCodesMigrationError } from "@/lib/menu-coupon-codes";
 import { matchesBrowseFilter } from "@/lib/browse-sections";
+import {
+  emptySocialLinks,
+  SOCIAL_SELECT_COLUMNS,
+  socialColumnsMissing,
+  type SocialLinks,
+} from "@/lib/social-links";
 
 type RatingAgg = { avgRating: number; ratingCount: number };
 
@@ -52,7 +58,7 @@ export type RestaurantForMenuPage = {
   user_rating_count: number;
   menu_theme_color: string | null;
   allow_guest_checkout: boolean;
-};
+} & SocialLinks;
 
 async function loadRatingStatsMap(supabase: SupabaseClient, ids: string[]): Promise<Map<string, RatingAgg>> {
   const out = new Map<string, RatingAgg>();
@@ -143,13 +149,25 @@ type RestaurantRowCore = {
   menu_theme_color?: string | null;
   allow_guest_checkout?: boolean;
   driver_management_enabled?: boolean;
-};
+} & Partial<SocialLinks>;
 
 export async function getRestaurantBySlug(slug: string): Promise<RestaurantForMenuPage | null> {
   const supabase = await createServerSupabaseClient();
   const fullSelect =
-    "id, name, slug, phone, logo_url, banner_url, description, lbp_rate, is_active, browse_sections, location, eta_label, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd, delivery_radius_km, latitude, longitude, delivers_nationwide, menu_theme_color, allow_guest_checkout, driver_management_enabled";
+    `id, name, slug, phone, logo_url, banner_url, description, lbp_rate, is_active, browse_sections, location, eta_label, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd, delivery_radius_km, latitude, longitude, delivers_nationwide, menu_theme_color, allow_guest_checkout, driver_management_enabled, ${SOCIAL_SELECT_COLUMNS}`;
   let { data, error } = await supabase.from("restaurants").select(fullSelect).eq("slug", slug).single();
+
+  if (error && socialColumnsMissing(error.message)) {
+    const retry = await supabase
+      .from("restaurants")
+      .select(
+        "id, name, slug, phone, logo_url, banner_url, description, lbp_rate, is_active, browse_sections, location, eta_label, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd, delivery_radius_km, latitude, longitude, delivers_nationwide, menu_theme_color, allow_guest_checkout, driver_management_enabled",
+      )
+      .eq("slug", slug)
+      .single();
+    data = retry.data ? { ...retry.data, ...emptySocialLinks() } : null;
+    error = retry.error;
+  }
 
   if (error && /(allow_guest_checkout|driver_management_enabled)/i.test(error.message ?? "")) {
     const retry = await supabase
@@ -159,7 +177,9 @@ export async function getRestaurantBySlug(slug: string): Promise<RestaurantForMe
       )
       .eq("slug", slug)
       .single();
-    data = retry.data ? { ...retry.data, allow_guest_checkout: false, driver_management_enabled: false } : null;
+    data = retry.data
+      ? { ...retry.data, allow_guest_checkout: false, driver_management_enabled: false, ...emptySocialLinks() }
+      : null;
     error = retry.error;
   }
 
@@ -227,6 +247,12 @@ export async function getRestaurantBySlug(slug: string): Promise<RestaurantForMe
     allow_guest_checkout: row.allow_guest_checkout ?? false,
     user_avg_rating: agg?.avgRating ?? null,
     user_rating_count: agg?.ratingCount ?? 0,
+    ...emptySocialLinks(),
+    instagram_url: row.instagram_url ?? null,
+    tiktok_url: row.tiktok_url ?? null,
+    facebook_url: row.facebook_url ?? null,
+    twitter_url: row.twitter_url ?? null,
+    youtube_url: row.youtube_url ?? null,
   };
 }
 

@@ -22,7 +22,16 @@ const DEFAULT_PROFILE: StoreItemProfile = {
   contents: false,
   ingredientCustomization: false,
   productOptions: false,
+  optionHints: {
+    typePrimary: "e.g. Size, Color, Style",
+    typeSecondary: "e.g. Color",
+    value: "Value (e.g. Large, Red)",
+    addAnother: "+ Add another option type (e.g. Color)",
+  },
   isFoodLike: false,
+  isFashionLike: false,
+  brandRequired: false,
+  namePlaceholder: "e.g. Product name",
 };
 
 // ─── Shared sub-components ────────────────────────────────────────────────────
@@ -191,11 +200,14 @@ export function AddMenuItemForm({
     setSoldByWeight(false);
   }
   const isFood = profile.isFoodLike;
+  const isFashion = profile.isFashionLike;
   const canWeighByWeight = profile.weightPricing;
   const canShowQty = profile.displayQuantity;
-  const canShowNutritionSection = profile.nutrition || profile.contents;
+  const canShowNutritionSection = profile.nutrition || (profile.contents && !isFashion);
+  const canShowMaterials = profile.contents && isFashion;
   const canCustomizeIngredients = profile.ingredientCustomization;
   const canUseProductOptions = profile.productOptions;
+  const brandRequired = profile.brandRequired && brands.length > 0;
 
   async function handleCreate(formData: FormData) {
     if (submittingRef.current) return;
@@ -238,11 +250,48 @@ export function AddMenuItemForm({
               id="add-name"
               name="name"
               required
-              placeholder={isFood ? "e.g. Grilled Chicken Burger" : "e.g. iPhone 15 Case – Black"}
+              placeholder={profile.namePlaceholder}
               className="ui-input w-full"
               autoComplete="off"
             />
           </div>
+
+          {/* Brand — essential for fashion (required when brands exist) */}
+          {brands.length > 0 ? (
+            <div>
+              <FieldLabel htmlFor="add-brand_id" required={brandRequired} optional={!brandRequired}>
+                Brand
+              </FieldLabel>
+              <select
+                id="add-brand_id"
+                name="brand_id"
+                required={brandRequired}
+                className="ui-select w-full"
+                defaultValue=""
+              >
+                <option value="">{brandRequired ? "Choose brand…" : "No brand"}</option>
+                {brands.map((brand) => (
+                  <option key={brand.id} value={brand.id}>{brand.name}</option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <input type="hidden" name="brand_id" value="" />
+          )}
+
+          {/* Materials / fabric — fashion only (stored in contents) */}
+          {canShowMaterials ? (
+            <div className={brands.length > 0 ? "sm:col-span-2" : "sm:col-span-3"}>
+              <FieldLabel htmlFor="add-contents" optional>Materials / fabric</FieldLabel>
+              <input
+                id="add-contents"
+                name="contents"
+                placeholder="e.g. 100% cotton, Linen blend, Polyester"
+                className="ui-input w-full"
+              />
+              <p className="mt-1 text-xs text-slate-400">Shown on the product page for shoppers.</p>
+            </div>
+          ) : null}
 
           {/* Price */}
           {!soldByWeight && (
@@ -344,33 +393,31 @@ export function AddMenuItemForm({
       >
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="min-w-0 space-y-3">
-            {brands.length > 0 && (
-              <div>
-                <FieldLabel htmlFor="add-brand_id" optional>Brand</FieldLabel>
-                <select id="add-brand_id" name="brand_id" className="ui-select w-full max-w-full">
-                  <option value="">No brand</option>
-                  {brands.map((brand) => (
-                    <option key={brand.id} value={brand.id}>{brand.name}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-            {brands.length === 0 && (
-              <input type="hidden" name="brand_id" value="" />
-            )}
             <div className="min-w-0">
               <FieldLabel htmlFor="add-description" optional>Description</FieldLabel>
               <textarea
                 id="add-description"
                 name="description"
-                placeholder={isFood ? "Describe this dish…" : "Describe this product…"}
+                placeholder={
+                  isFashion
+                    ? "Fit, length, occasion, care tips…"
+                    : isFood
+                      ? "Describe this dish…"
+                      : "Describe this product…"
+                }
                 rows={3}
                 className="ui-textarea w-full max-w-full resize-none"
               />
+              {isFashion ? (
+                <p className="mt-1 text-xs text-slate-400">
+                  Main photo is required. You can also upload one photo per color under Sizes & colors —
+                  sizes of the same color share that photo.
+                </p>
+              ) : null}
             </div>
           </div>
           <div className="min-w-0">
-            <ImageUploadField name="image_file" optional />
+            <ImageUploadField name="image_file" />
           </div>
         </div>
       </ExpandSection>
@@ -378,7 +425,13 @@ export function AddMenuItemForm({
       {/* ─── STEP 3: Contents & nutrition — only for categories where this applies ── */}
       {canShowNutritionSection ? (
         <ExpandSection
-          label={isFood ? "Allergens & nutrition" : "Contents & nutrition (optional)"}
+          label={
+            isFood
+              ? "Allergens & nutrition"
+              : profile.nutrition
+                ? "Contents & nutrition (optional)"
+                : "Contents (optional)"
+          }
           icon={
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5" aria-hidden>
               <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
@@ -404,14 +457,14 @@ export function AddMenuItemForm({
           {!profile.contents && <input type="hidden" name="contents" value="" />}
           {profile.nutrition && <MenuNutritionFields idPrefix="add-item-nutrition" />}
         </ExpandSection>
-      ) : (
+      ) : !canShowMaterials ? (
         <input type="hidden" name="contents" value="" />
-      )}
+      ) : null}
 
       {/* ─── Product options (sizes, grind, variants) — selected store types ─ */}
       {canUseProductOptions ? (
         <ExpandSection
-          label="Variants & options"
+          label={isFashion ? "Sizes & colors" : "Variants & options"}
           defaultOpen
           icon={
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5" aria-hidden>
@@ -419,7 +472,7 @@ export function AddMenuItemForm({
             </svg>
           }
         >
-          <MenuItemOptionsFields idPrefix="add-item-" showStock />
+          <MenuItemOptionsFields idPrefix="add-item-" showStock hints={profile.optionHints} />
         </ExpandSection>
       ) : (
         <>

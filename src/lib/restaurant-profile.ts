@@ -1,4 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  emptySocialLinks,
+  SOCIAL_SELECT_COLUMNS,
+  socialColumnsMissing,
+  type SocialLinks,
+} from "@/lib/social-links";
 
 export type RestaurantBranchLike = {
   name: string;
@@ -12,7 +18,7 @@ export type RestaurantBranchLike = {
 const GENERIC_BRANCH_NAMES = new Set(["main branch", "branch", "main"]);
 
 const RESTAURANT_ADMIN_SELECT_FULL =
-  "name, slug, phone, logo_url, banner_url, description, lbp_rate, browse_sections, location, eta_label, business_type, latitude, longitude, delivers_nationwide, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd, delivery_radius_km, menu_theme_color, allow_guest_checkout, driver_management_enabled";
+  `name, slug, phone, logo_url, banner_url, description, lbp_rate, browse_sections, location, eta_label, business_type, latitude, longitude, delivers_nationwide, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd, delivery_radius_km, menu_theme_color, allow_guest_checkout, driver_management_enabled, ${SOCIAL_SELECT_COLUMNS}`;
 
 const RESTAURANT_ADMIN_SELECT_CORE =
   "name, slug, phone, logo_url, banner_url, description, lbp_rate, browse_sections, location, eta_label, business_type, latitude, longitude, delivers_nationwide, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd, delivery_radius_km, allow_guest_checkout, driver_management_enabled";
@@ -42,7 +48,7 @@ export type RestaurantAdminProfile = {
   menu_theme_color: string | null;
   allow_guest_checkout: boolean;
   driver_management_enabled: boolean;
-};
+} & SocialLinks;
 
 export function pickMainBranch<T extends RestaurantBranchLike>(branches: T[]): T | null {
   if (branches.length === 0) return null;
@@ -81,11 +87,33 @@ export async function loadRestaurantForAdminDashboard(
 
   if (!full.error && full.data) {
     return {
+      ...emptySocialLinks(),
       ...(full.data as RestaurantAdminProfile),
       allow_guest_checkout: (full.data as { allow_guest_checkout?: boolean }).allow_guest_checkout ?? false,
       driver_management_enabled:
         (full.data as { driver_management_enabled?: boolean }).driver_management_enabled ?? false,
     };
+  }
+
+  if (socialColumnsMissing(full.error?.message)) {
+    const withoutSocial = await supabase
+      .from("restaurants")
+      .select(
+        "name, slug, phone, logo_url, banner_url, description, lbp_rate, browse_sections, location, eta_label, business_type, latitude, longitude, delivers_nationwide, opening_hours, is_temporarily_closed, free_delivery, delivery_fee_usd, fast_delivery_enabled, fast_delivery_fee_usd, delivery_radius_km, menu_theme_color, allow_guest_checkout, driver_management_enabled",
+      )
+      .eq("id", restaurantId)
+      .single();
+    if (!withoutSocial.error && withoutSocial.data) {
+      return {
+        ...(withoutSocial.data as Omit<RestaurantAdminProfile, keyof SocialLinks>),
+        ...emptySocialLinks(),
+        allow_guest_checkout:
+          (withoutSocial.data as { allow_guest_checkout?: boolean }).allow_guest_checkout ?? false,
+        driver_management_enabled:
+          (withoutSocial.data as { driver_management_enabled?: boolean }).driver_management_enabled ??
+          false,
+      };
+    }
   }
 
   const core = await supabase
@@ -97,13 +125,14 @@ export async function loadRestaurantForAdminDashboard(
   if (!core.error && core.data) {
     const row = core.data as unknown as Omit<
       RestaurantAdminProfile,
-      "menu_theme_color" | "allow_guest_checkout" | "driver_management_enabled"
+      "menu_theme_color" | "allow_guest_checkout" | "driver_management_enabled" | keyof SocialLinks
     >;
     return {
       ...row,
       menu_theme_color: null,
       allow_guest_checkout: false,
       driver_management_enabled: false,
+      ...emptySocialLinks(),
     };
   }
 

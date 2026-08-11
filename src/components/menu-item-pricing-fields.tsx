@@ -14,6 +14,10 @@ type Props = {
   defaultPricePerKg?: number | string | null;
   defaultWeightStepKg?: number | string | null;
   idPrefix?: string;
+  /** Hide g/kg/mL/L field (e.g. fashion uses Product options for sizes). Default true. */
+  showDisplayQuantity?: boolean;
+  /** Show the "Sold by weight" toggle. Default true. */
+  showWeightPricing?: boolean;
 };
 
 /**
@@ -30,8 +34,12 @@ export function MenuItemPricingFields({
   defaultPricePerKg = "",
   defaultWeightStepKg = 0.1,
   idPrefix = "edit-item-qty",
+  showDisplayQuantity = true,
+  showWeightPricing = true,
 }: Props) {
-  const [soldByWeight, setSoldByWeight] = useState(defaultSoldByWeight);
+  const [soldByWeight, setSoldByWeight] = useState(
+    showWeightPricing ? defaultSoldByWeight : false,
+  );
   const [price, setPrice] = useState(
     defaultPrice !== "" && defaultPrice != null ? String(defaultPrice) : "",
   );
@@ -80,6 +88,7 @@ export function MenuItemPricingFields({
             />
             <p className="text-xs text-slate-500">US dollars ($). Base price before optional add-ons.</p>
           </label>
+          {showDisplayQuantity ? (
             <div className="min-w-0">
               <DisplayQuantityFields
                 idPrefix={idPrefix}
@@ -87,6 +96,12 @@ export function MenuItemPricingFields({
                 defaultUnit={resolvedDisplay.unit}
               />
             </div>
+          ) : (
+            <>
+              <input type="hidden" name="display_quantity" value="" />
+              <input type="hidden" name="display_unit" value="g" />
+            </>
+          )}
         </>
       ) : (
         <>
@@ -98,84 +113,92 @@ export function MenuItemPricingFields({
       )}
 
       {/* ── Weight-based pricing section ── */}
-      <div
-        className={`rounded-xl border p-3 md:col-span-2 ${
-          soldByWeight
-            ? "border-violet-300 bg-violet-50"
-            : "border-slate-200 bg-slate-50"
-        }`}
-      >
-        <div className="flex items-start gap-3">
-          <label className="flex cursor-pointer items-start gap-2 rounded-xl border border-slate-200 bg-white p-3 text-sm flex-1">
-            <input
-              type="checkbox"
-              name="sold_by_weight"
-              value="true"
-              checked={soldByWeight}
-              onChange={(e) => onSoldByWeightChange(e.target.checked)}
-              className="mt-0.5 h-4 w-4 accent-violet-600"
-            />
-            <div>
-              <p className="font-semibold text-slate-800">Sold by weight</p>
-              <p className="text-xs text-slate-500">
-                {soldByWeight
-                  ? "Customers choose kg/grams and price is calculated automatically."
-                  : "Enable for groceries: potatoes, meat, cheese, etc."}
-              </p>
-            </div>
-          </label>
-        </div>
-
-        {soldByWeight ? (
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            <label className="space-y-1">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Price per KG ($/kg) <span className="text-red-600" aria-hidden="true">*</span>
-              </span>
+      {showWeightPricing ? (
+        <div
+          className={`rounded-xl border p-3 md:col-span-2 ${
+            soldByWeight
+              ? "border-violet-300 bg-violet-50"
+              : "border-slate-200 bg-slate-50"
+          }`}
+        >
+          <div className="flex items-start gap-3">
+            <label className="flex cursor-pointer items-start gap-2 rounded-xl border border-slate-200 bg-white p-3 text-sm flex-1">
               <input
-                name="price_per_kg"
-                placeholder="e.g. 2.80"
-                type="number"
-                step="0.01"
-                min={0}
-                required={soldByWeight}
-                value={pricePerKg}
-                onChange={(event) => setPricePerKg(event.target.value)}
-                className="ui-input"
-                autoFocus
+                type="checkbox"
+                name="sold_by_weight"
+                value="true"
+                checked={soldByWeight}
+                onChange={(e) => onSoldByWeightChange(e.target.checked)}
+                className="mt-0.5 h-4 w-4 accent-violet-600"
               />
-              <p className="text-xs text-slate-500">
-                e.g. $2.80/kg → 750g costs $2.10
-              </p>
-            </label>
-            <label className="space-y-1">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Weight step (kg) <span className="ml-1 font-normal normal-case text-slate-500">(optional)</span>
-              </span>
-              <input
-                name="weight_step_kg"
-                placeholder="0.1"
-                type="number"
-                step="0.01"
-                min={0.01}
-                defaultValue={
-                  defaultWeightStepKg !== null && defaultWeightStepKg !== ""
-                    ? String(defaultWeightStepKg)
-                    : "0.1"
-                }
-                className="ui-input"
-              />
-              <p className="text-xs text-slate-500">0.1 = 100g steps · 0.05 = 50g steps</p>
+              <div>
+                <p className="font-semibold text-slate-800">Sold by weight</p>
+                <p className="text-xs text-slate-500">
+                  {soldByWeight
+                    ? "Customers choose kg/grams and price is calculated automatically."
+                    : "Enable for groceries: potatoes, meat, cheese, etc."}
+                </p>
+              </div>
             </label>
           </div>
-        ) : (
-          <>
-            {/* hidden fields so the server action doesn't fail on missing values */}
-            <input type="hidden" name="price_per_kg" value="" />
-            <input type="hidden" name="weight_step_kg" value="0.1" />
-          </>
-        )}
-      </div>
+
+          {soldByWeight ? (
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <label className="space-y-1">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Price per KG ($/kg) <span className="text-red-600" aria-hidden="true">*</span>
+                </span>
+                <input
+                  name="price_per_kg"
+                  placeholder="e.g. 2.80"
+                  type="number"
+                  step="0.01"
+                  min={0}
+                  required={soldByWeight}
+                  value={pricePerKg}
+                  onChange={(event) => setPricePerKg(event.target.value)}
+                  className="ui-input"
+                  autoFocus
+                />
+                <p className="text-xs text-slate-500">
+                  e.g. $2.80/kg → 750g costs $2.10
+                </p>
+              </label>
+              <label className="space-y-1">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Weight step (kg) <span className="ml-1 font-normal normal-case text-slate-500">(optional)</span>
+                </span>
+                <input
+                  name="weight_step_kg"
+                  placeholder="0.1"
+                  type="number"
+                  step="0.01"
+                  min={0.01}
+                  defaultValue={
+                    defaultWeightStepKg !== null && defaultWeightStepKg !== ""
+                      ? String(defaultWeightStepKg)
+                      : "0.1"
+                  }
+                  className="ui-input"
+                />
+                <p className="text-xs text-slate-500">0.1 = 100g steps · 0.05 = 50g steps</p>
+              </label>
+            </div>
+          ) : (
+            <>
+              {/* hidden fields so the server action doesn't fail on missing values */}
+              <input type="hidden" name="price_per_kg" value="" />
+              <input type="hidden" name="weight_step_kg" value="0.1" />
+            </>
+          )}
+        </div>
+      ) : (
+        <>
+          <input type="hidden" name="sold_by_weight" value="false" />
+          <input type="hidden" name="price_per_kg" value="" />
+          <input type="hidden" name="weight_step_kg" value="0.1" />
+        </>
+      )}
     </>
   );
 }

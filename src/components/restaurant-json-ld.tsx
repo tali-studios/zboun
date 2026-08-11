@@ -1,4 +1,5 @@
 import { getSiteUrl } from "@/lib/site";
+import { listConfiguredSocialLinks, type SocialLinks } from "@/lib/social-links";
 
 type RestaurantForJsonLd = {
   name: string;
@@ -7,12 +8,13 @@ type RestaurantForJsonLd = {
   phone: string | null;
   logo_url: string | null;
   location: string | null;
-};
+} & Partial<SocialLinks>;
 
 /** Restaurant / store structured data for menu pages. */
 export function RestaurantJsonLd({ restaurant }: { restaurant: RestaurantForJsonLd }) {
   const base = getSiteUrl();
   const url = `${base}/${restaurant.slug}`;
+  const sameAs = listConfiguredSocialLinks(restaurant).map((link) => link.url);
   const payload = {
     "@context": "https://schema.org",
     "@type": "Restaurant",
@@ -21,6 +23,7 @@ export function RestaurantJsonLd({ restaurant }: { restaurant: RestaurantForJson
     ...(restaurant.description?.trim() ? { description: restaurant.description.trim() } : {}),
     ...(restaurant.logo_url ? { image: restaurant.logo_url } : {}),
     ...(restaurant.phone ? { telephone: restaurant.phone } : {}),
+    ...(sameAs.length > 0 ? { sameAs } : {}),
     ...(restaurant.location?.trim()
       ? {
           address: {

@@ -11,6 +11,8 @@
 export type MenuOptionValue = {
   name: string;
   price: number;
+  /** Optional image for this option value (used for Color — one photo per color). */
+  image_url?: string | null;
 };
 
 export type MenuOptionGroup = {
@@ -54,7 +56,11 @@ export function normalizeOptionGroups(
             if (!isPlainObject(v)) return null;
             const name = String(v.name ?? "").trim();
             if (!name) return null;
-            return { name, price: asPrice(v.price) };
+            return {
+              name,
+              price: asPrice(v.price),
+              image_url: typeof v.image_url === "string" && v.image_url.trim() ? v.image_url.trim() : null,
+            };
           })
           .filter((v): v is MenuOptionValue => Boolean(v));
         if (values.length === 0) return null;
@@ -70,7 +76,11 @@ export function normalizeOptionGroups(
       if (!isPlainObject(v)) return null;
       const name = String(v.name ?? "").trim();
       if (!name) return null;
-      return { name, price: asPrice(v.price) };
+      return {
+        name,
+        price: asPrice(v.price),
+        image_url: typeof v.image_url === "string" && v.image_url.trim() ? v.image_url.trim() : null,
+      };
     })
     .filter((v): v is MenuOptionValue => Boolean(v));
   return values.length > 0 ? [{ label, values }] : [];
@@ -96,10 +106,66 @@ export function serializeOptionGroups(groups: MenuOptionGroup[]): MenuOptionGrou
         .map((v) => ({
           name: v.name.trim(),
           price: asPrice(v.price),
+          ...(v.image_url?.trim() ? { image_url: v.image_url.trim() } : {}),
         }))
         .filter((v) => v.name),
     }))
     .filter((g) => g.label && g.values.length > 0);
+}
+
+export function isColorLikeOptionLabel(label: string) {
+  return /\b(color|colour|colors|colours|shade|tone)\b/i.test(label.trim());
+}
+
+export function findColorOptionGroup(groups: MenuOptionGroup[]): MenuOptionGroup | null {
+  return groups.find((g) => isColorLikeOptionLabel(g.label)) ?? null;
+}
+
+/** Resolve the photo for a selected color (falls back to item default image). */
+export function resolveOptionColorImageUrl(
+  groups: MenuOptionGroup[],
+  selections: OptionSelections,
+  fallbackImageUrl?: string | null,
+): string | null {
+  const colorGroup = findColorOptionGroup(groups);
+  if (!colorGroup) return fallbackImageUrl ?? null;
+  const selected = String(selections[colorGroup.label] ?? "").trim();
+  if (!selected) {
+    const firstWithImage = colorGroup.values.find((v) => v.image_url?.trim());
+    return firstWithImage?.image_url?.trim() || fallbackImageUrl || null;
+  }
+  const match = colorGroup.values.find((v) => v.name === selected);
+  return match?.image_url?.trim() || fallbackImageUrl || null;
+}
+
+/** First color image found — useful as the product cover when no main image is set. */
+export function firstColorOptionImageUrl(groups: MenuOptionGroup[]): string | null {
+  const colorGroup = findColorOptionGroup(groups);
+  if (!colorGroup) return null;
+  for (const value of colorGroup.values) {
+    const url = value.image_url?.trim();
+    if (url) return url;
+  }
+  return null;
+}
+
+/** Merge uploaded/kept color image URLs into Color group values. */
+export function applyColorImagesToGroups(
+  groups: MenuOptionGroup[],
+  colorImages: Record<string, string>,
+): MenuOptionGroup[] {
+  if (Object.keys(colorImages).length === 0) return groups;
+  return groups.map((group) => {
+    if (!isColorLikeOptionLabel(group.label)) return group;
+    return {
+      ...group,
+      values: group.values.map((value) => {
+        const next = colorImages[value.name];
+        if (!next) return value;
+        return { ...value, image_url: next };
+      }),
+    };
+  });
 }
 
 export function buildVariantKey(groups: MenuOptionGroup[], selections: OptionSelections): string | null {

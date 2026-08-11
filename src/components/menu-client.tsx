@@ -44,6 +44,7 @@ import {
   itemHasActiveSale,
 } from "@/lib/menu-promotions";
 import { getMenuItemStockState } from "@/lib/menu-item-stock";
+import { resolveColorSwatch } from "@/lib/color-swatches";
 import {
   buildVariantKey,
   formatOptionLabelsDisplay,
@@ -51,6 +52,7 @@ import {
   getVariantStockQty,
   itemUsesVariantStock,
   normalizeOptionGroups,
+  resolveOptionColorImageUrl,
   selectionsComplete,
   selectionsFromDisplayString,
   snapshotSelectedOptions,
@@ -137,6 +139,24 @@ function getItemOptionGroups(item: MenuItemRow) {
 
 function itemHasOptions(item: MenuItemRow) {
   return getItemOptionGroups(item).length > 0;
+}
+
+function isSizeLikeOptionLabel(label: string) {
+  return /\b(size|sizes|taille|talla|fit)\b/i.test(label.trim());
+}
+
+function isColorLikeOptionLabel(label: string) {
+  return /\b(color|colour|colors|colours|shade|tone)\b/i.test(label.trim());
+}
+
+/** Options/variants only — no food extras or weight. Opens as a fashion-style picker. */
+function isOptionsOnlyItem(item: MenuItemRow) {
+  return (
+    itemHasOptions(item) &&
+    !isSoldByWeight(item) &&
+    (item.removable_ingredients?.length ?? 0) === 0 &&
+    (item.add_ingredients?.length ?? 0) === 0
+  );
 }
 
 function needsCustomizationModal(item: MenuItemRow) {
@@ -476,17 +496,18 @@ export function MenuClient({
     setCustomizing(null);
   }
 
-  function addCustomizedItem() {
+  function addCustomizedItem(overrides?: { selectedOptions?: OptionSelections }) {
     if (!customizing) return;
+    const selectedOptions = overrides?.selectedOptions ?? customizing.selectedOptions;
     const groups = getItemOptionGroups(customizing.item);
-    if (itemHasOptions(customizing.item) && !selectionsComplete(groups, customizing.selectedOptions)) {
+    if (itemHasOptions(customizing.item) && !selectionsComplete(groups, selectedOptions)) {
       return;
     }
 
     const stock = getMenuItemStockState(customizing.item);
     if (!stock.available) return;
 
-    const snapshot = snapshotSelectedOptions(groups, customizing.selectedOptions);
+    const snapshot = snapshotSelectedOptions(groups, selectedOptions);
     const maxForVariant = getVariantMaxQty(customizing.item, snapshot.variantKey);
 
     const addOptions = normalizeAddIngredients(customizing.item.add_ingredients);
@@ -501,8 +522,12 @@ export function MenuClient({
     const baseUnitPrice = soldByWeight ? getEffectivePricePerKg(customizing.item) : getEffectiveFlatPrice(customizing.item);
     const unitPrice = Math.max(
       0,
-      baseUnitPrice + addCost + getOptionExtraPrice(customizing.item, customizing.selectedOptions),
+      baseUnitPrice + addCost + getCombinedOptionExtraPrice(groups, selectedOptions),
     );
+    const lineImageUrl =
+      resolveOptionColorImageUrl(groups, selectedOptions, customizing.item.image_url) ??
+      customizing.item.image_url ??
+      null;
     const lineKey = [
       customizing.item.id,
       snapshot.variantKey ?? snapshot.selectedOption ?? "",
@@ -542,14 +567,14 @@ export function MenuClient({
           [lineKey]: {
             ...existing,
             qty: customizing.editingKey ? customizing.qty : existing.qty + customizing.qty,
-            imageUrl: customizing.item.image_url ?? existing.imageUrl ?? null,
+            imageUrl: lineImageUrl ?? existing.imageUrl ?? null,
             specialInstructions: customizing.note.trim(),
             removedIngredients: [...customizing.remove],
             addedIngredients: selectedAdd,
             unitPrice,
             unit: soldByWeight ? "kg" : "each",
             selectedOption: snapshot.selectedOption,
-            selectedOptions: { ...customizing.selectedOptions },
+            selectedOptions: { ...selectedOptions },
             variantKey: snapshot.variantKey,
           },
         };
@@ -560,7 +585,7 @@ export function MenuClient({
           key: lineKey,
           itemId: customizing.item.id,
           name: customizing.item.name,
-          imageUrl: customizing.item.image_url ?? null,
+          imageUrl: lineImageUrl,
           qty: customizing.qty,
           unit: soldByWeight ? "kg" : "each",
           unitPrice,
@@ -568,13 +593,43 @@ export function MenuClient({
           addedIngredients: selectedAdd,
           specialInstructions: customizing.note.trim(),
           selectedOption: snapshot.selectedOption,
-          selectedOptions: { ...customizing.selectedOptions },
+          selectedOptions: { ...selectedOptions },
           variantKey: snapshot.variantKey,
         },
       };
     });
 
     closeCustomization();
+  }
+
+  function selectOptionValue(groupLabel: string, valueName: string) {
+    if (!customizing) return;
+    const nextSelections: OptionSelections = {
+      ...customizing.selectedOptions,
+      [groupLabel]: valueName,
+    };
+    const groups = getItemOptionGroups(customizing.item);
+    const fashionQuickAdd =
+      isOptionsOnlyItem(customizing.item) &&
+      !customizing.editingKey &&
+      selectionsComplete(groups, nextSelections);
+
+    if (fashionQuickAdd) {
+      addCustomizedItem({ selectedOptions: nextSelections });
+      return;
+    }
+
+    setCustomizing((prev) =>
+      prev
+        ? {
+            ...prev,
+            selectedOptions: {
+              ...prev.selectedOptions,
+              [groupLabel]: valueName,
+            },
+          }
+        : prev,
+    );
   }
 
   function removeCartLine(key: string) {
@@ -1732,7 +1787,28 @@ export function MenuClient({
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/50 backdrop-blur-sm p-0 sm:items-center sm:p-4">
           <div className="w-full max-h-[95dvh] overflow-y-auto rounded-t-3xl bg-white px-5 pb-6 pt-5 shadow-2xl sm:max-h-[90vh] sm:max-w-xl sm:rounded-3xl sm:px-6 sm:pb-6 sm:pt-5">
             {/* Header */}
+            {(() => {
+              const previewGroups = getItemOptionGroups(customizing.item);
+              const previewImage =
+                resolveOptionColorImageUrl(
+                  previewGroups,
+                  customizing.selectedOptions,
+                  customizing.item.image_url,
+                ) ?? customizing.item.image_url;
+              return (
             <div className="flex items-start justify-between gap-3">
+              {previewImage ? (
+                <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-slate-100 ring-1 ring-slate-200">
+                  <Image
+                    src={previewImage}
+                    alt={customizing.item.name}
+                    fill
+                    className="object-cover"
+                    sizes="80px"
+                    unoptimized
+                  />
+                </div>
+              ) : null}
               <div className="min-w-0 flex-1">
                 <h3 className="text-xl font-bold tracking-tight text-slate-900">{customizing.item.name}</h3>
                 {customizing.item.description ? (
@@ -1773,70 +1849,177 @@ export function MenuClient({
                 ×
               </button>
             </div>
+              );
+            })()}
+
+            {customizing.item.contents ? (
+              <p className="mt-2 text-xs text-slate-500">
+                <span className="font-semibold text-slate-600">Materials · </span>
+                {customizing.item.contents}
+              </p>
+            ) : null}
 
             {itemHasOptions(customizing.item) ? (
-              <div className="mt-5 space-y-4 border-t border-slate-100 pt-4">
-                {getItemOptionGroups(customizing.item).map((group) => (
-                  <div key={group.label}>
-                    <h4 className="text-sm font-bold text-slate-900">
-                      {group.label}
-                      <span className="ml-1 text-red-500">*</span>
-                    </h4>
-                    <div className="mt-2.5 flex flex-wrap gap-2">
-                      {group.values.map((option) => {
-                        const selected = customizing.selectedOptions[group.label] === option.name;
-                        const extra = Number(option.price ?? 0);
-                        const tentative: OptionSelections = {
-                          ...customizing.selectedOptions,
-                          [group.label]: option.name,
-                        };
-                        const variantKey = buildVariantKey(
-                          getItemOptionGroups(customizing.item),
-                          tentative,
-                        );
-                        const stocks = customizing.item.option_variant_stock ?? {};
-                        const variantQty =
-                          customizing.item.track_stock &&
-                          itemUsesVariantStock(stocks) &&
-                          selectionsComplete(getItemOptionGroups(customizing.item), tentative)
-                            ? getVariantStockQty(stocks, variantKey)
-                            : null;
-                        const soldOut = variantQty === 0;
-                        return (
-                          <button
-                            key={`${group.label}-${option.name}`}
-                            type="button"
-                            disabled={soldOut}
-                            onClick={() =>
-                              setCustomizing((prev) =>
-                                prev
-                                  ? {
-                                      ...prev,
-                                      selectedOptions: {
-                                        ...prev.selectedOptions,
-                                        [group.label]: option.name,
-                                      },
-                                    }
-                                  : prev,
-                              )
-                            }
-                            className={`rounded-full border px-3 py-1.5 text-sm font-semibold transition ${
-                              soldOut
-                                ? "cursor-not-allowed border-slate-100 bg-slate-50 text-slate-300"
-                                : selected
-                                  ? "border-violet-500 bg-violet-50 text-violet-800"
-                                  : "border-slate-200 bg-white text-slate-700 hover:border-violet-200"
-                            }`}
-                          >
-                            {option.name}
-                            {extra > 0 ? ` +${formatUsd(extra)}` : ""}
-                            {soldOut ? " · sold out" : ""}
-                          </button>
-                        );
-                      })}
+              <div className="mt-5 space-y-5 border-t border-slate-100 pt-4">
+                {isOptionsOnlyItem(customizing.item) && !customizing.editingKey ? (
+                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
+                    Choose your options
+                  </p>
+                ) : null}
+                {getItemOptionGroups(customizing.item)
+                  .slice()
+                  .sort((a, b) => {
+                    const rank = (label: string) =>
+                      isColorLikeOptionLabel(label) ? 0 : isSizeLikeOptionLabel(label) ? 1 : 2;
+                    return rank(a.label) - rank(b.label);
+                  })
+                  .map((group) => {
+                  const sizeLike = isSizeLikeOptionLabel(group.label);
+                  const colorLike = isColorLikeOptionLabel(group.label);
+                  return (
+                    <div key={group.label}>
+                      <h4 className="text-sm font-bold uppercase tracking-wide text-slate-900">
+                        {colorLike && customizing.selectedOptions[group.label]
+                          ? customizing.selectedOptions[group.label]
+                          : group.label}
+                        {!customizing.selectedOptions[group.label] ? (
+                          <span className="ml-1 text-red-500">*</span>
+                        ) : null}
+                      </h4>
+                      <div
+                        className={
+                          sizeLike
+                            ? "mt-2 divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200"
+                            : colorLike
+                              ? "mt-2.5 flex flex-wrap gap-2.5"
+                              : "mt-2.5 flex flex-wrap gap-2"
+                        }
+                      >
+                        {group.values.map((option) => {
+                          const selected = customizing.selectedOptions[group.label] === option.name;
+                          const extra = Number(option.price ?? 0);
+                          const tentative: OptionSelections = {
+                            ...customizing.selectedOptions,
+                            [group.label]: option.name,
+                          };
+                          const variantKey = buildVariantKey(
+                            getItemOptionGroups(customizing.item),
+                            tentative,
+                          );
+                          const stocks = customizing.item.option_variant_stock ?? {};
+                          const variantQty =
+                            customizing.item.track_stock &&
+                            itemUsesVariantStock(stocks) &&
+                            selectionsComplete(getItemOptionGroups(customizing.item), tentative)
+                              ? getVariantStockQty(stocks, variantKey)
+                              : null;
+                          const soldOut = variantQty === 0;
+
+                          if (sizeLike) {
+                            return (
+                              <button
+                                key={`${group.label}-${option.name}`}
+                                type="button"
+                                disabled={soldOut}
+                                onClick={() => selectOptionValue(group.label, option.name)}
+                                className={`flex w-full items-center justify-between px-4 py-3.5 text-left text-sm transition ${
+                                  soldOut
+                                    ? "cursor-not-allowed bg-slate-50 text-slate-300 line-through"
+                                    : selected
+                                      ? "bg-slate-900 text-white"
+                                      : "bg-white text-slate-800 hover:bg-slate-50"
+                                }`}
+                              >
+                                <span className="font-semibold tracking-wide">{option.name}</span>
+                                <span className="text-xs opacity-70">
+                                  {soldOut
+                                    ? "Sold out"
+                                    : extra > 0
+                                      ? `+${formatUsd(extra)}`
+                                      : selected
+                                        ? "Selected"
+                                        : ""}
+                                </span>
+                              </button>
+                            );
+                          }
+
+                          if (colorLike) {
+                            const swatch = resolveColorSwatch(option.name);
+                            const photo = option.image_url?.trim() || null;
+                            return (
+                              <button
+                                key={`${group.label}-${option.name}`}
+                                type="button"
+                                disabled={soldOut}
+                                title={soldOut ? `${option.name} · sold out` : option.name}
+                                onClick={() => selectOptionValue(group.label, option.name)}
+                                className={`relative h-9 w-9 shrink-0 overflow-hidden rounded-[4px] border transition ${
+                                  soldOut
+                                    ? "cursor-not-allowed opacity-35"
+                                    : selected
+                                      ? "border-2 border-slate-900 ring-1 ring-slate-900 ring-offset-2"
+                                      : "border border-slate-300 hover:border-slate-500"
+                                }`}
+                                aria-label={option.name}
+                                aria-pressed={selected}
+                              >
+                                {photo ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img
+                                    src={photo}
+                                    alt=""
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  <span
+                                    className="absolute inset-0"
+                                    style={{ background: swatch.background }}
+                                  />
+                                )}
+                                {!photo && !swatch.known ? (
+                                  <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold uppercase text-slate-600">
+                                    {option.name.slice(0, 1)}
+                                  </span>
+                                ) : null}
+                                {soldOut ? (
+                                  <span className="absolute inset-0 flex items-center justify-center">
+                                    <span className="h-px w-full rotate-[-28deg] bg-slate-500" />
+                                  </span>
+                                ) : null}
+                              </button>
+                            );
+                          }
+
+                          return (
+                            <button
+                              key={`${group.label}-${option.name}`}
+                              type="button"
+                              disabled={soldOut}
+                              onClick={() => selectOptionValue(group.label, option.name)}
+                              className={`rounded-full border px-3 py-1.5 text-sm font-semibold transition ${
+                                soldOut
+                                  ? "cursor-not-allowed border-slate-100 bg-slate-50 text-slate-300"
+                                  : selected
+                                    ? "border-violet-500 bg-violet-50 text-violet-800"
+                                    : "border-slate-200 bg-white text-slate-700 hover:border-violet-200"
+                              }`}
+                            >
+                              {option.name}
+                              {extra > 0 ? ` +${formatUsd(extra)}` : ""}
+                              {soldOut ? " · sold out" : ""}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
+                {isOptionsOnlyItem(customizing.item) && !customizing.editingKey ? (
+                  <p className="text-xs text-slate-400">
+                    Tap an available size to add it to your cart.
+                  </p>
+                ) : null}
               </div>
             ) : null}
 
@@ -1931,21 +2114,24 @@ export function MenuClient({
               </div>
             ) : null}
 
-            {/* Special instructions */}
-            <div className="mt-5 border-t border-slate-100 pt-4">
-              <h4 className="text-sm font-bold text-slate-900">Special instructions</h4>
-              <textarea
-                value={customizing.note}
-                onChange={(e) =>
-                  setCustomizing((prev) => (prev ? { ...prev, note: e.target.value } : prev))
-                }
-                rows={2}
-                placeholder="Any special requests?"
-                className="ui-textarea mt-2"
-              />
-            </div>
+            {/* Special instructions — skip for quick size/color picks */}
+            {!(isOptionsOnlyItem(customizing.item) && !customizing.editingKey) ? (
+              <div className="mt-5 border-t border-slate-100 pt-4">
+                <h4 className="text-sm font-bold text-slate-900">Special instructions</h4>
+                <textarea
+                  value={customizing.note}
+                  onChange={(e) =>
+                    setCustomizing((prev) => (prev ? { ...prev, note: e.target.value } : prev))
+                  }
+                  rows={2}
+                  placeholder="Any special requests?"
+                  className="ui-textarea mt-2"
+                />
+              </div>
+            ) : null}
 
-            {/* Quantity + Add to cart */}
+            {/* Quantity + Add to cart — hidden when tapping a size already adds */}
+            {!(isOptionsOnlyItem(customizing.item) && !customizing.editingKey) ? (
             <div className="mt-5 flex items-center justify-between gap-3 border-t border-slate-100 pt-4">
               {isSoldByWeight(customizing.item) ? (
                 <div className="flex items-center gap-3">
@@ -2015,7 +2201,7 @@ export function MenuClient({
               )}
               <button
                 type="button"
-                onClick={addCustomizedItem}
+                onClick={() => addCustomizedItem()}
                 disabled={
                   itemHasOptions(customizing.item) &&
                   !selectionsComplete(
@@ -2043,6 +2229,7 @@ export function MenuClient({
                 )}
               </button>
             </div>
+            ) : null}
           </div>
         </div>
       ) : null}

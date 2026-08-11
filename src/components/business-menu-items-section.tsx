@@ -286,9 +286,18 @@ export function BusinessMenuItemsSection({
                                   <input name="name" required defaultValue={item.name} placeholder="Item name" className="ui-input" />
                                 </label>
                                 <label className="space-y-1">
-                                  <FormFieldLabel optional>Brand</FormFieldLabel>
-                                  <select name="brand_id" defaultValue={resolveMenuItemBrandId(item, menuBrands)} className="ui-select">
-                                    <option value="">No brand</option>
+                                  <FormFieldLabel required={itemProfile.brandRequired && menuBrands.length > 0} optional={!(itemProfile.brandRequired && menuBrands.length > 0)}>
+                                    Brand
+                                  </FormFieldLabel>
+                                  <select
+                                    name="brand_id"
+                                    required={itemProfile.brandRequired && menuBrands.length > 0}
+                                    defaultValue={resolveMenuItemBrandId(item, menuBrands)}
+                                    className="ui-select"
+                                  >
+                                    <option value="">
+                                      {itemProfile.brandRequired && menuBrands.length > 0 ? "Choose brand…" : "No brand"}
+                                    </option>
                                     {menuBrands.map((brand) => (
                                       <option key={brand.id} value={brand.id}>{brand.name}</option>
                                     ))}
@@ -310,18 +319,33 @@ export function BusinessMenuItemsSection({
                                     defaultSoldByWeight={Boolean((item as { sold_by_weight?: boolean }).sold_by_weight)}
                                     defaultPricePerKg={(item as { price_per_kg?: number | null }).price_per_kg}
                                     defaultWeightStepKg={(item as { weight_step_kg?: number | null }).weight_step_kg}
+                                    showDisplayQuantity={itemProfile.displayQuantity}
+                                    showWeightPricing={itemProfile.weightPricing}
                                   />
                                 </div>
 
-                                {/* — Contents & nutrition — only for categories where it applies — */}
+                                {/* — Contents / materials / nutrition — */}
                                 {(itemProfile.contents || itemProfile.nutrition) ? (
                                   <>
                                     {itemProfile.contents ? (
                                       <label className="space-y-1 md:col-span-2">
                                         <FormFieldLabel optional>
-                                          {itemProfile.isFoodLike ? "Contains / ingredients" : "Ingredients / contents"}
+                                          {itemProfile.isFashionLike
+                                            ? "Materials / fabric"
+                                            : itemProfile.isFoodLike
+                                              ? "Contains / ingredients"
+                                              : "Ingredients / contents"}
                                         </FormFieldLabel>
-                                        <input name="contents" defaultValue={item.contents ?? ""} placeholder="e.g. wheat, milk, sesame" className="ui-input" />
+                                        <input
+                                          name="contents"
+                                          defaultValue={item.contents ?? ""}
+                                          placeholder={
+                                            itemProfile.isFashionLike
+                                              ? "e.g. 100% cotton, Linen blend"
+                                              : "e.g. wheat, milk, sesame"
+                                          }
+                                          className="ui-input"
+                                        />
                                       </label>
                                     ) : (
                                       <input type="hidden" name="contents" value={item.contents ?? ""} />
@@ -356,11 +380,12 @@ export function BusinessMenuItemsSection({
                                 {itemProfile.productOptions ? (
                                   <div className="md:col-span-2">
                                     <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                      Variants & options
+                                      {itemProfile.isFashionLike ? "Sizes & colors" : "Variants & options"}
                                     </p>
                                     <MenuItemOptionsFields
                                       idPrefix={`edit-${item.id}-`}
                                       showStock
+                                      hints={itemProfile.optionHints}
                                       defaultGroups={normalizeOptionGroups(
                                         item.option_label,
                                         item.option_values,
@@ -423,7 +448,11 @@ export function BusinessMenuItemsSection({
 
                                 {/* — Image — */}
                                 <div className="md:col-span-2">
-                                  <ImageUploadField name="image_file" initialImageUrl={item.image_url} label="Update image" optional />
+                                  <ImageUploadField
+                                    name="image_file"
+                                    initialImageUrl={item.image_url}
+                                    label="Item image"
+                                  />
                                 </div>
                                 <div className="md:col-span-2 space-y-2 border-t border-slate-100 pt-3">
                                   <button type="submit" className="btn btn-primary w-full rounded-xl py-3">

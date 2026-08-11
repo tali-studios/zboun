@@ -135,6 +135,9 @@ export function RestaurantDashboardToast({ toast, sectionName, sectionsCount, it
   } else if (toast === "item_create_invalid") {
     heading = "Check the form";
     message = "Choose a section, enter an item name, and set a valid price (0 or more) before saving.";
+  } else if (toast === "item_image_required") {
+    heading = "Image required";
+    message = "Every item needs a photo. Upload an image, then save again.";
   } else if (toast === "item_create_failed") {
     heading = "Could not save item";
     message =
@@ -254,7 +257,9 @@ export function RestaurantDashboardToast({ toast, sectionName, sectionsCount, it
               background:
                 toast === "section_name_required" ||
                 toast === "item_create_invalid" ||
+                toast === "item_image_required" ||
                 toast === "item_create_failed" ||
+                toast === "item_update_invalid" ||
                 toast === "invalid_delivery_fee" ||
                 toast === "invalid_fast_delivery_fee" ||
                 toast === "invalid_delivery_radius" ||
@@ -266,7 +271,9 @@ export function RestaurantDashboardToast({ toast, sectionName, sectionsCount, it
           >
             {toast === "section_name_required" ||
             toast === "item_create_invalid" ||
+            toast === "item_image_required" ||
             toast === "item_create_failed" ||
+            toast === "item_update_invalid" ||
             toast === "invalid_delivery_fee" ||
             toast === "invalid_fast_delivery_fee" ||
             toast === "invalid_delivery_radius" ? (

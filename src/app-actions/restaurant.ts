@@ -20,6 +20,7 @@ import {
 import { deriveLocationLabelFromBranch } from "@/lib/restaurant-profile";
 import { MENU_ITEMS_ADMIN_PATH } from "@/lib/menu-items-admin-data";
 import { HOURS_ADMIN_PATH } from "@/lib/hours-admin-path";
+import { parseSocialLinksFromForm, socialColumnsMissing } from "@/lib/social-links";
 
 function revalidateMenuAdminPaths() {
   revalidatePath("/dashboard/business");
@@ -27,10 +28,13 @@ function revalidateMenuAdminPaths() {
 }
 import { parseDisplayQuantityFromForm } from "@/lib/display-quantity";
 import {
+  applyColorImagesToGroups,
+  firstColorOptionImageUrl,
   parseOptionGroupsFromForm,
   parseVariantStockFromForm,
   primaryOptionLabel,
   sumVariantStock,
+  type MenuOptionGroup,
 } from "@/lib/menu-item-options";
 import {
   DEFAULT_STOCK_ALERT_CRITICAL,
@@ -170,6 +174,42 @@ async function uploadMenuItemImage(file: File, restaurantId: string) {
 
   const { data } = adminClient.storage.from(bucket).getPublicUrl(filePath);
   return data.publicUrl;
+}
+
+/**
+ * Fashion: one photo per Color value. Form fields:
+ * - color_image__${encodeURIComponent(colorName)} → new File
+ * - color_image_current__${encodeURIComponent(colorName)} → existing URL
+ */
+async function mergeColorImagesFromForm(
+  formData: FormData,
+  restaurantId: string,
+  groups: MenuOptionGroup[],
+): Promise<MenuOptionGroup[]> {
+  const colorImages: Record<string, string> = {};
+
+  for (const [key, value] of formData.entries()) {
+    if (!key.startsWith("color_image_current__")) continue;
+    const colorName = decodeURIComponent(key.slice("color_image_current__".length)).trim();
+    const url = String(value ?? "").trim();
+    if (colorName && url) colorImages[colorName] = url;
+  }
+
+  const uploadTasks: Array<Promise<void>> = [];
+  for (const [key, value] of formData.entries()) {
+    if (!key.startsWith("color_image__") || key.startsWith("color_image_current__")) continue;
+    if (!(value instanceof File) || value.size === 0) continue;
+    const colorName = decodeURIComponent(key.slice("color_image__".length)).trim();
+    if (!colorName) continue;
+    uploadTasks.push(
+      uploadMenuItemImage(value, restaurantId).then((url) => {
+        if (url) colorImages[colorName] = url;
+      }),
+    );
+  }
+  await Promise.all(uploadTasks);
+
+  return applyColorImagesToGroups(groups, colorImages);
 }
 
 async function uploadRestaurantLogo(file: File, restaurantId: string) {
@@ -486,9 +526,14 @@ export async function createMenuItemAction(formData: FormData) {
     name: item.name,
     price: item.price ?? 0,
   }));
-  const optionGroups = parseOptionGroupsFromForm(
+  const optionGroupsRaw = parseOptionGroupsFromForm(
     formData.get("option_label"),
     formData.get("option_values"),
+  );
+  const optionGroups = await mergeColorImagesFromForm(
+    formData,
+    user.restaurant_id,
+    optionGroupsRaw,
   );
   const optionLabel = primaryOptionLabel(optionGroups);
   const optionValues = optionGroups;
@@ -509,16 +554,21 @@ export async function createMenuItemAction(formData: FormData) {
   const proteinG = parseOptionalProteinGrams(formData.get("protein_g"));
 
   const imageFile = formData.get("image_file");
-  const [imageUrl, { brandId, brandName }] = await Promise.all([
-    imageFile instanceof File && imageFile.size > 0
-      ? uploadMenuItemImage(imageFile, user.restaurant_id)
-      : Promise.resolve(null),
+  if (!(imageFile instanceof File) || imageFile.size === 0) {
+    redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_image_required`);
+  }
+  const [uploadedImageUrl, { brandId, brandName }] = await Promise.all([
+    uploadMenuItemImage(imageFile, user.restaurant_id),
     resolveMenuBrandForItem(
       supabase,
       user.restaurant_id,
       String(formData.get("brand_id") ?? ""),
     ),
   ]);
+  const imageUrl = uploadedImageUrl || firstColorOptionImageUrl(optionGroups) || null;
+  if (!imageUrl) {
+    redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_image_required`);
+  }
 
   const { data: createdItem, error } = await supabase.from("menu_items").insert({
     restaurant_id: user.restaurant_id,
@@ -659,9 +709,14 @@ export async function updateMenuItemAction(formData: FormData) {
     name: item.name,
     price: item.price ?? 0,
   }));
-  const optionGroups = parseOptionGroupsFromForm(
+  const optionGroupsRaw = parseOptionGroupsFromForm(
     formData.get("option_label"),
     formData.get("option_values"),
+  );
+  const optionGroups = await mergeColorImagesFromForm(
+    formData,
+    user.restaurant_id,
+    optionGroupsRaw,
   );
   const optionLabel = primaryOptionLabel(optionGroups);
   const optionValues = optionGroups;
@@ -702,6 +757,14 @@ export async function updateMenuItemAction(formData: FormData) {
     }
   }
 
+  const nextImageUrl =
+    uploadedImageUrl ??
+    (currentImageUrl || null) ??
+    firstColorOptionImageUrl(optionGroups);
+  if (!nextImageUrl) {
+    redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_image_required`);
+  }
+
   const supabase = await createServerSupabaseClient();
   const { brandId, brandName } = await resolveMenuBrandForItem(
     supabase,
@@ -718,7 +781,7 @@ export async function updateMenuItemAction(formData: FormData) {
     description: description || null,
     price,
     category_id: categoryId,
-    image_url: uploadedImageUrl ?? (currentImageUrl || null),
+    image_url: nextImageUrl,
     grams: displayQty.grams,
     display_quantity: displayQty.display_quantity,
     display_unit: displayQty.display_unit,
@@ -995,6 +1058,11 @@ export async function updateRestaurantSettingsAction(
     formData.get("driver_management_enabled") === "true" ||
     formData.get("driver_management_enabled") === "on";
 
+  const socialParsed = parseSocialLinksFromForm(formData);
+  if (!socialParsed.ok) {
+    return { ok: false, toast: "invalid_social_url", message: socialParsed.message };
+  }
+
   const supabase = await createServerSupabaseClient();
   const menuThemeColor = parseMenuThemeColor(formData.get("menu_theme_color"));
   const browseSelection = browseValidated.selection;
@@ -1002,9 +1070,7 @@ export async function updateRestaurantSettingsAction(
   const businessType =
     browseSections.length > 0 ? inferBusinessTypeFromBrowseSections(browseSections) : null;
 
-  const { data: restaurantRow, error: updateError } = await supabase
-    .from("restaurants")
-    .update({
+  const updateBody = {
       // Store name is managed by platform admins only — ignore any submitted name.
       description: String(formData.get("description") ?? "").trim() || null,
       phone: String(formData.get("phone")),
@@ -1026,10 +1092,24 @@ export async function updateRestaurantSettingsAction(
       menu_theme_color: menuThemeColor,
       allow_guest_checkout: allowGuestCheckout,
       driver_management_enabled: driverManagementEnabled,
-    })
+      ...socialParsed.links,
+  };
+
+  let { data: restaurantRow, error: updateError } = await supabase
+    .from("restaurants")
+    .update(updateBody)
     .eq("id", user.restaurant_id)
     .select("slug")
     .maybeSingle();
+
+  if (updateError && socialColumnsMissing(updateError.message)) {
+    return {
+      ok: false,
+      toast: "settings_save_failed",
+      message:
+        "Social links need a database update. Run supabase/add-restaurant-social-links.sql in Supabase, then try again.",
+    };
+  }
 
   if (updateError) {
     return { ok: false, toast: "settings_save_failed", message: updateError.message };

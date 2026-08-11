@@ -70,6 +70,15 @@ function resultToAlert(result: UpdateRestaurantSettingsResult): AlertState | nul
       variant: "warning",
     };
   }
+  if (result.toast === "invalid_social_url") {
+    return {
+      heading: "Check social links",
+      message:
+        result.message ??
+        "Each social link must match its platform (Instagram for Instagram, TikTok for TikTok, and so on).",
+      variant: "warning",
+    };
+  }
   return {
     heading: "Could not save",
     message: result.message ?? "Something went wrong. Please try again.",
