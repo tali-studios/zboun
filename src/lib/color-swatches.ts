@@ -1,6 +1,6 @@
 /**
  * Map fashion color names → CSS swatch colors for the customer picker.
- * Unknown names fall back to a neutral chip (letter initial).
+ * Unknown names try fuzzy match (e.g. "faded pink" → pink), then letter chip.
  */
 const COLOR_SWATCH_MAP: Record<string, string> = {
   black: "#111111",
@@ -32,7 +32,12 @@ const COLOR_SWATCH_MAP: Record<string, string> = {
   maroon: "#800000",
   wine: "#722f37",
   pink: "#e89bb5",
+  "faded pink": "#e8b4b8",
   "dusty pink": "#d4a5a5",
+  "pale pink": "#f9c5d1",
+  "baby pink": "#f4c2c2",
+  "hot pink": "#ff69b4",
+  blush: "#de98ab",
   rose: "#e8a0bf",
   coral: "#ff7f50",
   orange: "#e67e22",
@@ -53,27 +58,65 @@ const COLOR_SWATCH_MAP: Record<string, string> = {
   multi: "linear-gradient(135deg,#ef4444,#eab308,#22c55e,#3b82f6,#a855f7)",
 };
 
+function isLightSwatchKey(key: string): boolean {
+  return (
+    key.includes("white") ||
+    key.includes("cream") ||
+    key.includes("ivory") ||
+    key.includes("beige") ||
+    key.includes("mint") ||
+    key.includes("yellow") ||
+    key.includes("light") ||
+    key.includes("pink") ||
+    key.includes("blush") ||
+    key.includes("ivory") ||
+    key.includes("silver")
+  );
+}
+
+function matchMappedColorKey(name: string): string | null {
+  const key = name.trim().toLowerCase().replace(/\s+/g, " ");
+  if (!key) return null;
+  if (COLOR_SWATCH_MAP[key]) return key;
+
+  // Prefer longest phrase: "faded pink" before "pink"
+  const words = key.split(/[\s/_-]+/).filter(Boolean);
+  for (let start = 0; start < words.length; start++) {
+    for (let end = words.length; end > start; end--) {
+      const chunk = words.slice(start, end).join(" ");
+      if (COLOR_SWATCH_MAP[chunk]) return chunk;
+    }
+  }
+
+  // Containment fallback (e.g. "soft faded pink tone")
+  let best: string | null = null;
+  for (const mapKey of Object.keys(COLOR_SWATCH_MAP)) {
+    if (key.includes(mapKey) && (!best || mapKey.length > best.length)) {
+      best = mapKey;
+    }
+  }
+  return best;
+}
+
 export function resolveColorSwatch(name: string): {
   background: string;
   isLight: boolean;
   known: boolean;
 } {
   const key = name.trim().toLowerCase();
-  const mapped = COLOR_SWATCH_MAP[key];
-  if (mapped) {
-    const isLight =
-      key.includes("white") ||
-      key.includes("cream") ||
-      key.includes("ivory") ||
-      key.includes("beige") ||
-      key.includes("mint") ||
-      key.includes("yellow") ||
-      key.includes("light");
-    return { background: mapped, isLight, known: true };
-  }
-  // Try bare hex (#fff / #ffffff)
+  // Bare hex (#fff / #ffffff)
   if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(key)) {
     return { background: key, isLight: false, known: true };
   }
+
+  const matched = matchMappedColorKey(name);
+  if (matched) {
+    return {
+      background: COLOR_SWATCH_MAP[matched],
+      isLight: isLightSwatchKey(matched) || isLightSwatchKey(key),
+      known: true,
+    };
+  }
+
   return { background: "#e5e7eb", isLight: true, known: false };
 }

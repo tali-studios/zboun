@@ -1623,10 +1623,77 @@ export function MenuClient({
                       )}
                     </div>
 
-                    {/* Info */}
+                    {/* Info — tap to open details (full description + options) */}
                     <div
                       className={`flex min-h-[88px] min-w-0 flex-1 flex-col ${canShop ? "pr-12" : ""}`}
                     >
+                      {canShop && stock.available ? (
+                        <button
+                          type="button"
+                          onClick={() => openCustomization(item)}
+                          className="min-w-0 flex-1 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2 rounded-lg"
+                          aria-label={`View details for ${item.name}`}
+                        >
+                          <h3 className="text-[15px] font-bold leading-snug text-slate-900 sm:text-base">
+                            {brand ? (
+                              <span className="mb-1 flex items-center gap-1.5">
+                                {brand.logo_url ? (
+                                  <Image
+                                    src={brand.logo_url}
+                                    alt=""
+                                    width={18}
+                                    height={18}
+                                    className="h-[18px] w-[18px] rounded object-contain"
+                                    unoptimized
+                                  />
+                                ) : null}
+                                <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                                  {brand.name}
+                                </span>
+                              </span>
+                            ) : null}
+                            {item.name}
+                          </h3>
+                          {stock.label && !usesVariantStock ? (
+                            <p className="mt-0.5 text-[11px] font-semibold text-amber-700">{stock.label}</p>
+                          ) : null}
+                          {item.description ? (
+                            <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-slate-500 sm:text-sm">
+                              {item.description}
+                            </p>
+                          ) : item.contents ? (
+                            <p className="mt-1 line-clamp-2 text-xs text-slate-500 sm:text-sm">{item.contents}</p>
+                          ) : null}
+                          {sizeLabel ? (
+                            <p className="mt-0.5 text-[11px] text-slate-400">{sizeLabel}</p>
+                          ) : null}
+                          <MenuNutritionBadges
+                            calories={item.calories}
+                            proteinG={item.protein_g}
+                            className="mt-1"
+                          />
+                          {hasSale ? (
+                            <span className="mt-1 inline-flex w-fit rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-rose-700">
+                              {item.promotion_label ?? `-${Math.round(item.percent_off ?? 0)}%`}
+                            </span>
+                          ) : null}
+                          <div className="mt-auto flex flex-wrap items-end gap-x-2 pt-2">
+                            {hasSale ? (
+                              <span className="text-sm font-semibold text-slate-400 line-through">
+                                {soldByWeight ? `From ${formatUsd(listBudgetPriceUsd)}` : formatUsd(listBudgetPriceUsd)}
+                              </span>
+                            ) : null}
+                            <span className="text-base font-bold" style={{ color: theme.primary }}>
+                              {soldByWeight ? `From ${formatUsd(budgetPriceUsd)}` : formatUsd(budgetPriceUsd)}
+                            </span>
+                            <span className="text-xs text-slate-400">{formatLbp(budgetPriceUsd)}</span>
+                            {soldByWeight ? (
+                              <span className="text-[10px] text-slate-400">per minimum weight</span>
+                            ) : null}
+                          </div>
+                        </button>
+                      ) : (
+                        <>
                       <h3 className="text-[15px] font-bold leading-snug text-slate-900 sm:text-base">
                         {brand ? (
                           <span className="mb-1 flex items-center gap-1.5">
@@ -1689,6 +1756,8 @@ export function MenuClient({
                           <span className="text-[10px] text-slate-400">per minimum weight</span>
                         ) : null}
                       </div>
+                        </>
+                      )}
                     </div>
 
                     {canShop ? (
@@ -1824,7 +1893,9 @@ export function MenuClient({
               <div className="min-w-0 flex-1">
                 <h3 className="text-xl font-bold tracking-tight text-slate-900">{customizing.item.name}</h3>
                 {customizing.item.description ? (
-                  <p className="mt-0.5 text-sm text-slate-500">{customizing.item.description}</p>
+                  <p className="mt-2 text-[15px] leading-relaxed text-slate-600">
+                    {customizing.item.description}
+                  </p>
                 ) : null}
                 <div className="mt-1.5 flex flex-wrap items-baseline gap-2">
                   {itemHasActiveSale(customizing.item) ? (
@@ -1865,8 +1936,8 @@ export function MenuClient({
             })()}
 
             {customizing.item.contents ? (
-              <p className="mt-2 text-xs text-slate-500">
-                <span className="font-semibold text-slate-600">Materials · </span>
+              <p className="mt-3 text-[13px] leading-relaxed text-slate-600">
+                <span className="font-semibold text-slate-800">Materials · </span>
                 {customizing.item.contents}
               </p>
             ) : null}
