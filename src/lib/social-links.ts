@@ -113,7 +113,14 @@ export function parseSocialLink(
   platform: SocialPlatform,
   raw: unknown,
 ): { ok: true; url: string | null } | { ok: false; message: string } {
-  const input = String(raw ?? "").trim();
+  // Strip copy/paste junk (zero-width chars, smart quotes, trailing punctuation).
+  const input = String(raw ?? "")
+    .replace(/[\u200B-\u200D\uFEFF]/g, "")
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .trim()
+    .replace(/[.,;:!]+$/g, "")
+    .trim();
   if (!input) return { ok: true, url: null };
 
   const label = SOCIAL_PLATFORMS.find((p) => p.id === platform)?.label ?? platform;

@@ -83,14 +83,26 @@ export function ImageUploadField({
         className={`flex w-full min-w-0 cursor-pointer overflow-hidden transition ${
           compact
             ? `flex-col items-center gap-2 rounded-xl border border-dashed p-2.5 text-center ${
-                isDragging ? "border-violet-500 bg-violet-50" : "border-slate-200 bg-slate-50/80"
+                error
+                  ? "border-red-400 bg-red-50"
+                  : isDragging
+                    ? "border-violet-500 bg-violet-50"
+                    : "border-slate-200 bg-slate-50/80"
               }`
             : inline
               ? `min-h-[3rem] items-center gap-3 rounded-xl border px-3 py-2 shadow-sm ${
-                  isDragging ? "border-violet-400 bg-violet-50 ring-2 ring-violet-100" : "border-slate-200 bg-white"
+                  error
+                    ? "border-red-400 bg-red-50 ring-2 ring-red-100"
+                    : isDragging
+                      ? "border-violet-400 bg-violet-50 ring-2 ring-violet-100"
+                      : "border-slate-200 bg-white"
                 }`
             : `items-center gap-3 rounded-xl border-2 border-dashed p-3 ${
-                isDragging ? "border-violet-500 bg-violet-50" : "border-slate-300 bg-white"
+                error
+                  ? "border-red-400 bg-red-50"
+                  : isDragging
+                    ? "border-violet-500 bg-violet-50"
+                    : "border-slate-300 bg-white"
               }`
         }`}
       >
@@ -155,9 +167,19 @@ export function ImageUploadField({
           name={name}
           type="file"
           accept="image/*"
-          className="hidden"
+          // `hidden` + required is silently blocked by browsers (no focusable control).
+          // Use sr-only when an upload is required so validation can surface.
+          className={!optional && !previewUrl ? "sr-only" : "hidden"}
           form={formId}
-          required={!optional && !initialImageUrl && !file}
+          required={!optional && !previewUrl}
+          onInvalid={(event) => {
+            event.preventDefault();
+            setError("Please upload an image before saving.");
+            (event.currentTarget as HTMLInputElement).closest("div")?.scrollIntoView({
+              behavior: "smooth",
+              block: "center",
+            });
+          }}
           onChange={(event) => validateAndSet(event.target.files?.[0] ?? null)}
         />
       </label>

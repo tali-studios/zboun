@@ -33,6 +33,15 @@ type Props = {
 
 function resultToAlert(result: UpdateRestaurantSettingsResult): AlertState | null {
   if (result.ok) {
+    if (result.toast === "social_links_pending_migration") {
+      return {
+        heading: "Settings saved — social links pending",
+        message:
+          result.message ??
+          "Run supabase/add-restaurant-social-links.sql in Supabase, then save your Instagram and other social links again.",
+        variant: "warning",
+      };
+    }
     return { heading: "All set", message: "Your settings were saved.", variant: "success" };
   }
   if (result.toast === "browse_tags_required") {
@@ -76,6 +85,13 @@ function resultToAlert(result: UpdateRestaurantSettingsResult): AlertState | nul
       message:
         result.message ??
         "Each social link must match its platform (Instagram for Instagram, TikTok for TikTok, and so on).",
+      variant: "warning",
+    };
+  }
+  if (result.toast === "store_images_required") {
+    return {
+      heading: "Logo & banner required",
+      message: result.message ?? "Upload a store logo and banner image, then save again.",
       variant: "warning",
     };
   }

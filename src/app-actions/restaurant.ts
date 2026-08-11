@@ -981,7 +981,7 @@ export async function deleteMenuItemAction(formData: FormData) {
 }
 
 export type UpdateRestaurantSettingsResult =
-  | { ok: true }
+  | { ok: true; toast?: string; message?: string }
   | { ok: false; toast: string; message?: string };
 
 export async function updateRestaurantSettingsAction(
@@ -1042,6 +1042,15 @@ export async function updateRestaurantSettingsAction(
     bannerFile instanceof File && bannerFile.size > 0
       ? await uploadRestaurantBanner(bannerFile, user.restaurant_id)
       : null;
+  const nextLogoUrl = uploadedLogoUrl ?? (currentLogoUrl || null);
+  const nextBannerUrl = uploadedBannerUrl ?? (currentBannerUrl || null);
+  if (!nextLogoUrl || !nextBannerUrl) {
+    return {
+      ok: false,
+      toast: "store_images_required",
+      message: "Store logo and banner image are required before saving.",
+    };
+  }
   const location = String(formData.get("location") ?? "").trim() || null;
   const eta_label = String(formData.get("eta_label") ?? "").trim() || null;
   const latRaw = String(formData.get("latitude") ?? "").trim();
@@ -1077,8 +1086,8 @@ export async function updateRestaurantSettingsAction(
       lbp_rate: Math.round(lbpRate * 100) / 100,
       browse_sections: browseSelection,
       ...(businessType ? { business_type: businessType } : {}),
-      logo_url: uploadedLogoUrl ?? (currentLogoUrl || null),
-      banner_url: uploadedBannerUrl ?? (currentBannerUrl || null),
+      logo_url: nextLogoUrl,
+      banner_url: nextBannerUrl,
       location,
       eta_label,
       latitude,
@@ -1102,13 +1111,20 @@ export async function updateRestaurantSettingsAction(
     .select("slug")
     .maybeSingle();
 
+  let socialLinksDeferred = false;
   if (updateError && socialColumnsMissing(updateError.message)) {
-    return {
-      ok: false,
-      toast: "settings_save_failed",
-      message:
-        "Social links need a database update. Run supabase/add-restaurant-social-links.sql in Supabase, then try again.",
-    };
+    // Migration not applied yet — still save the rest of the settings.
+    const { instagram_url: _i, tiktok_url: _t, facebook_url: _f, twitter_url: _x, youtube_url: _y, ...withoutSocial } =
+      updateBody;
+    const retry = await supabase
+      .from("restaurants")
+      .update(withoutSocial)
+      .eq("id", user.restaurant_id)
+      .select("slug")
+      .maybeSingle();
+    restaurantRow = retry.data;
+    updateError = retry.error;
+    socialLinksDeferred = !retry.error;
   }
 
   if (updateError) {
@@ -1257,6 +1273,14 @@ export async function updateRestaurantSettingsAction(
   if (restaurantRow?.slug) {
     revalidatePath(`/${restaurantRow.slug}`);
     revalidatePath(`/${restaurantRow.slug}/menu`);
+  }
+  if (socialLinksDeferred) {
+    return {
+      ok: true,
+      toast: "social_links_pending_migration",
+      message:
+        "Other settings were saved, but social links need a database update. Run supabase/add-restaurant-social-links.sql in Supabase, then save again.",
+    };
   }
   return { ok: true };
 }
