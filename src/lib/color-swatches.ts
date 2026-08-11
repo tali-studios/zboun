@@ -1,6 +1,6 @@
 /**
  * Map fashion color names → CSS swatch colors for the customer picker.
- * Unknown names fall back to the color photo (if any) or a neutral chip.
+ * Unknown names fall back to a neutral chip (letter initial).
  */
 const COLOR_SWATCH_MAP: Record<string, string> = {
   black: "#111111",

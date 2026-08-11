@@ -2,10 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { ImageUploadField } from "@/components/image-upload-field";
+import { MenuItemStockFields } from "@/components/menu-item-stock-fields";
 import {
   buildVariantKey,
   formatSelectedOptionsDisplay,
   listVariantCombinations,
+  sumVariantStock,
   type MenuOptionGroup,
   type MenuOptionValue,
   type OptionSelections,
@@ -16,8 +18,18 @@ type Props = {
   idPrefix?: string;
   defaultGroups?: MenuOptionGroup[];
   defaultVariantStock?: Record<string, number>;
-  /** When true, show stock inputs per value (1 group) or per combination (2+ groups). */
+  /**
+   * @deprecated Prefer includeStockPanel — keeps a separate always-on matrix.
+   * When includeStockPanel is true, this is ignored.
+   */
   showStock?: boolean;
+  /** Unified inventory: toggle + matrix (when variants) or simple qty + alerts. */
+  includeStockPanel?: boolean;
+  defaultTrackStock?: boolean;
+  defaultStockQuantity?: number | null;
+  defaultWarningQty?: number | null;
+  defaultUrgentQty?: number | null;
+  defaultCriticalQty?: number | null;
   /** Category-specific placeholder examples (Size/Color for fashion, etc.). */
   hints?: ProductOptionHints;
 };
@@ -121,6 +133,8 @@ function FashionStockEditor({
   combinations,
   stocks,
   onStockChange,
+  onRemoveSize,
+  onRemoveColor,
   tooMany,
   totalCombinations,
 }: {
@@ -128,6 +142,8 @@ function FashionStockEditor({
   combinations: OptionSelections[];
   stocks: Record<string, number>;
   onStockChange: (key: string, qty: number) => void;
+  onRemoveSize?: (sizeName: string) => void;
+  onRemoveColor?: (colorName: string) => void;
   tooMany: boolean;
   totalCombinations: number;
 }) {
@@ -136,12 +152,9 @@ function FashionStockEditor({
   const useMatrix = Boolean(sizeGroup && colorGroup && sizeGroup.values.length && colorGroup.values.length);
 
   return (
-    <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-4">
-      <p className="text-sm font-semibold text-amber-950">
-        Stock by {sizeGroup && colorGroup ? "size & color" : sizeGroup ? "size" : "option"}
-      </p>
-      <p className="mt-0.5 text-xs text-amber-900/80">
-        Enter quantity for each combination customers can order.
+    <div className="rounded-xl border border-slate-200 bg-white p-3">
+      <p className="text-xs text-slate-500">
+        Use × to remove a size or color added by mistake.
       </p>
       {tooMany ? (
         <p className="mt-2 text-xs font-semibold text-red-700">
@@ -150,7 +163,7 @@ function FashionStockEditor({
       ) : null}
 
       {useMatrix ? (
-        <div className="mt-3 max-h-80 overflow-auto rounded-xl border border-amber-100 bg-white">
+        <div className="mt-3 max-h-80 overflow-auto rounded-xl border border-slate-100">
           <table className="min-w-full border-collapse text-sm">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/80">
@@ -162,9 +175,27 @@ function FashionStockEditor({
                     key={color.name}
                     className="px-2 py-2 text-center text-[11px] font-bold uppercase tracking-wide text-slate-500"
                   >
-                    {color.name}
+                    <span className="inline-flex items-center justify-center gap-1">
+                      {color.name}
+                      {onRemoveColor ? (
+                        <button
+                          type="button"
+                          onClick={() => onRemoveColor(color.name)}
+                          className="rounded p-0.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700"
+                          aria-label={`Remove color ${color.name}`}
+                          title={`Remove ${color.name}`}
+                        >
+                          ×
+                        </button>
+                      ) : null}
+                    </span>
                   </th>
                 ))}
+                {onRemoveSize ? (
+                  <th className="w-10 px-2 py-2 text-center text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                    <span className="sr-only">Remove</span>
+                  </th>
+                ) : null}
               </tr>
             </thead>
             <tbody>
@@ -189,6 +220,19 @@ function FashionStockEditor({
                       </td>
                     );
                   })}
+                  {onRemoveSize ? (
+                    <td className="px-2 py-1.5 text-center">
+                      <button
+                        type="button"
+                        onClick={() => onRemoveSize(size.name)}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
+                        aria-label={`Remove size ${size.name}`}
+                        title={`Remove ${size.name}`}
+                      >
+                        ×
+                      </button>
+                    </td>
+                  ) : null}
                 </tr>
               ))}
             </tbody>
@@ -199,10 +243,11 @@ function FashionStockEditor({
           {combinations.map((combo) => {
             const key = buildVariantKey(groups, combo) ?? "";
             const label = formatSelectedOptionsDisplay(groups, combo);
+            const sizeName = sizeGroup ? String(combo[sizeGroup.label] ?? "") : "";
             return (
               <div
                 key={key}
-                className="flex items-center gap-3 rounded-xl border border-amber-100 bg-white px-3 py-2"
+                className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/50 px-3 py-2"
               >
                 <span className="min-w-0 flex-1 text-sm font-medium text-slate-800">{label}</span>
                 <StockQtyInput
@@ -210,6 +255,17 @@ function FashionStockEditor({
                   onChange={(qty) => onStockChange(key, qty)}
                   ariaLabel={`Stock for ${label}`}
                 />
+                {onRemoveSize && sizeName ? (
+                  <button
+                    type="button"
+                    onClick={() => onRemoveSize(sizeName)}
+                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
+                    aria-label={`Remove size ${sizeName}`}
+                    title={`Remove ${sizeName}`}
+                  >
+                    ×
+                  </button>
+                ) : null}
               </div>
             );
           })}
@@ -224,6 +280,12 @@ export function MenuItemOptionsFields({
   defaultGroups = [],
   defaultVariantStock = {},
   showStock = false,
+  includeStockPanel = false,
+  defaultTrackStock = false,
+  defaultStockQuantity = null,
+  defaultWarningQty = null,
+  defaultUrgentQty = null,
+  defaultCriticalQty = null,
   hints = DEFAULT_HINTS,
 }: Props) {
   const isFashion = hints.presetMode === "fashion";
@@ -233,6 +295,7 @@ export function MenuItemOptionsFields({
   const [draftNames, setDraftNames] = useState<Record<number, string>>({});
   const [draftPrices, setDraftPrices] = useState<Record<number, string>>({});
   const [stocks, setStocks] = useState<Record<string, number>>(defaultVariantStock);
+  const [trackStock, setTrackStock] = useState(defaultTrackStock);
 
   const cleanGroups = useMemo(
     () =>
@@ -254,9 +317,12 @@ export function MenuItemOptionsFields({
   const optionValuesJson = useMemo(() => JSON.stringify(cleanGroups), [cleanGroups]);
   const primaryLabel = cleanGroups[0]?.label ?? "";
   const combinations = useMemo(() => listVariantCombinations(cleanGroups), [cleanGroups]);
+  const hasVariants = cleanGroups.length > 0 && combinations.length > 0;
+  const variantMode = includeStockPanel && hasVariants;
+  const stockEnabled = includeStockPanel ? trackStock : showStock;
 
   const stockJson = useMemo(() => {
-    if (!showStock || cleanGroups.length === 0) return "{}";
+    if (!stockEnabled || !hasVariants) return "{}";
     const next: Record<string, number> = {};
     for (const combo of combinations) {
       const key = buildVariantKey(cleanGroups, combo);
@@ -264,13 +330,103 @@ export function MenuItemOptionsFields({
       next[key] = Math.max(0, Math.floor(Number(stocks[key] ?? 0)));
     }
     return JSON.stringify(next);
-  }, [showStock, cleanGroups, combinations, stocks]);
+  }, [stockEnabled, hasVariants, cleanGroups, combinations, stocks]);
+
+  const variantTotal = useMemo(() => {
+    if (!hasVariants) return 0;
+    const next: Record<string, number> = {};
+    for (const combo of combinations) {
+      const key = buildVariantKey(cleanGroups, combo);
+      if (!key) continue;
+      next[key] = Math.max(0, Math.floor(Number(stocks[key] ?? 0)));
+    }
+    return sumVariantStock(next);
+  }, [hasVariants, cleanGroups, combinations, stocks]);
 
   const fieldId = (name: string) => `${idPrefix}${name}`;
   const sizeGroupIndex = groups.findIndex((g) => /^size$/i.test(g.label.trim()));
   const colorGroupIndex = groups.findIndex((g) => /^colou?r$/i.test(g.label.trim()));
   const sizeGroup = sizeGroupIndex >= 0 ? groups[sizeGroupIndex] : null;
   const colorGroup = colorGroupIndex >= 0 ? groups[colorGroupIndex] : null;
+
+  function purgeStockKeys(predicate: (key: string) => boolean) {
+    setStocks((prev) => {
+      const next = { ...prev };
+      for (const key of Object.keys(next)) {
+        if (predicate(key)) delete next[key];
+      }
+      return next;
+    });
+  }
+
+  function renderVariantEditor() {
+    return (
+      <FashionStockEditor
+        groups={cleanGroups}
+        combinations={combinations.slice(0, 80)}
+        stocks={stocks}
+        onStockChange={(key, qty) => setStocks((prev) => ({ ...prev, [key]: qty }))}
+        onRemoveSize={
+          sizeGroupIndex >= 0
+            ? (sizeName) => {
+                removeValue(sizeGroupIndex, sizeName);
+                purgeStockKeys(
+                  (key) =>
+                    key === sizeName ||
+                    key.startsWith(`${sizeName}||`) ||
+                    key.endsWith(`||${sizeName}`) ||
+                    key.includes(`||${sizeName}||`),
+                );
+              }
+            : undefined
+        }
+        onRemoveColor={
+          colorGroupIndex >= 0
+            ? (colorName) => {
+                removeValue(colorGroupIndex, colorName);
+                purgeStockKeys(
+                  (key) =>
+                    key === colorName ||
+                    key.startsWith(`${colorName}||`) ||
+                    key.endsWith(`||${colorName}`) ||
+                    key.includes(`||${colorName}||`),
+                );
+              }
+            : undefined
+        }
+        tooMany={combinations.length > 80}
+        totalCombinations={combinations.length}
+      />
+    );
+  }
+
+  function renderStockPanel() {
+    if (!includeStockPanel) return null;
+    return (
+      <div className="rounded-2xl border border-slate-200 bg-white p-4">
+        <p className="mb-1 text-sm font-semibold text-slate-900">Inventory</p>
+        <p className="mb-3 text-xs text-slate-500">
+          {hasVariants
+            ? "One place for stock: set units per size & color. Total updates automatically."
+            : "Track a single quantity, or add sizes/colors above to manage stock per variant."}
+        </p>
+        <MenuItemStockFields
+          idPrefix={idPrefix}
+          defaultTrackStock={defaultTrackStock}
+          trackStock={trackStock}
+          onTrackStockChange={setTrackStock}
+          defaultStockQuantity={defaultStockQuantity}
+          defaultWarningQty={defaultWarningQty}
+          defaultUrgentQty={defaultUrgentQty}
+          defaultCriticalQty={defaultCriticalQty}
+          variantMode={variantMode}
+          variantTotal={variantTotal}
+        >
+          {variantMode ? renderVariantEditor() : null}
+        </MenuItemStockFields>
+      </div>
+    );
+  }
 
   function updateGroupLabel(index: number, label: string) {
     setGroups((prev) => prev.map((g, i) => (i === index ? { ...g, label } : g)));
@@ -377,7 +533,7 @@ export function MenuItemOptionsFields({
             <div>
               <p className="text-sm font-semibold text-slate-900">Sizes</p>
               <p className="mt-0.5 text-xs text-slate-500">
-                Tap to select. Customers pick one size when ordering.
+                Tap to select. Tap again or use × to remove a mistake.
               </p>
             </div>
             <div className="flex flex-wrap gap-1.5">
@@ -452,6 +608,33 @@ export function MenuItemOptionsFields({
               Add size
             </button>
           </div>
+
+          {sizeGroup && sizeGroup.values.length > 0 ? (
+            <div>
+              <p className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                Selected
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {sizeGroup.values.map((sizeValue) => (
+                  <span
+                    key={sizeValue.name}
+                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-800"
+                  >
+                    {sizeValue.name}
+                    <button
+                      type="button"
+                      onClick={() => removeValue(sizeIdx, sizeValue.name)}
+                      className="text-slate-400 hover:text-rose-600"
+                      aria-label={`Remove size ${sizeValue.name}`}
+                      title={`Remove ${sizeValue.name}`}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
 
         {/* Color */}
@@ -460,7 +643,7 @@ export function MenuItemOptionsFields({
             <div>
               <p className="text-sm font-semibold text-slate-900">Colors</p>
               <p className="mt-0.5 text-xs text-slate-500">
-                Optional. Add any color names you sell — not limited to the suggestions below.
+                Optional. Leave empty for one look, or add colors shoppers can pick from.
               </p>
             </div>
             {colorGroup ? (
@@ -547,12 +730,35 @@ export function MenuItemOptionsFields({
                 </div>
               </details>
 
-              {colorGroup.values.length > 0 ? (
+              {colorGroup.values.length === 1 ? (
+                <div className="rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5">
+                  <p className="text-xs font-semibold text-slate-800">Product photo</p>
+                  <p className="mt-0.5 text-[11px] leading-relaxed text-slate-500">
+                    One color selected — shoppers will see your main product photo for every size.
+                    Add another color below if each color needs its own photo.
+                  </p>
+                  {/* Preserve any existing per-color URLs when re-saving. */}
+                  {colorGroup.values.map((colorValue) => {
+                    const enc = encodeURIComponent(colorValue.name);
+                    return (
+                      <input
+                        key={colorValue.name}
+                        type="hidden"
+                        name={`color_image_current__${enc}`}
+                        value={colorValue.image_url ?? ""}
+                      />
+                    );
+                  })}
+                </div>
+              ) : null}
+
+              {colorGroup.values.length >= 2 ? (
                 <div className="space-y-2 border-t border-slate-100 pt-3">
                   <div>
                     <p className="text-xs font-semibold text-slate-800">Photo per color</p>
-                    <p className="mt-0.5 text-[11px] text-slate-500">
-                      Upload one photo for each color. All sizes of that color share the same image.
+                    <p className="mt-0.5 text-[11px] leading-relaxed text-slate-500">
+                      Optional. Leave empty to use the main product photo. Upload only when a color
+                      needs a different shot — all sizes of that color share the same image.
                     </p>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
@@ -589,18 +795,9 @@ export function MenuItemOptionsFields({
           ) : null}
         </div>
 
-        {showStock && cleanGroups.length > 0 ? (
-          <FashionStockEditor
-            groups={cleanGroups}
-            combinations={combinations.slice(0, 80)}
-            stocks={stocks}
-            onStockChange={(key, qty) =>
-              setStocks((prev) => ({ ...prev, [key]: qty }))
-            }
-            tooMany={combinations.length > 80}
-            totalCombinations={combinations.length}
-          />
-        ) : null}
+        {includeStockPanel ? renderStockPanel() : null}
+
+        {!includeStockPanel && showStock && cleanGroups.length > 0 ? renderVariantEditor() : null}
       </div>
     );
   }
@@ -711,13 +908,15 @@ export function MenuItemOptionsFields({
         </button>
       ) : null}
 
-      {showStock && cleanGroups.length > 0 ? (
-        <div className="rounded-xl border border-amber-200 bg-amber-50/40 p-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-amber-900">
+      {includeStockPanel ? renderStockPanel() : null}
+
+      {!includeStockPanel && showStock && cleanGroups.length > 0 ? (
+        <div className="rounded-xl border border-slate-200 bg-white p-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
             Stock by variant
           </p>
-          <p className="mt-1 text-xs text-amber-800">
-            Set quantity for each combination customers can order. Item total stock is the sum.
+          <p className="mt-1 text-xs text-slate-500">
+            Set quantity for each combination. Item total stock is the sum.
           </p>
           {combinations.length > 80 ? (
             <p className="mt-2 text-xs font-semibold text-red-700">
@@ -731,7 +930,7 @@ export function MenuItemOptionsFields({
               return (
                 <div
                   key={key}
-                  className="flex items-center gap-3 rounded-lg border border-amber-100 bg-white px-3 py-2"
+                  className="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50/60 px-3 py-2"
                 >
                   <span className="min-w-0 flex-1 text-sm font-medium text-slate-800">{label}</span>
                   <StockQtyInput

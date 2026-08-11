@@ -17,6 +17,10 @@ type Props = {
   warningQty?: number | null;
   urgentQty?: number | null;
   criticalQty?: number | null;
+  /** When set, updates this size×color (or option) cell instead of flat item qty. */
+  variantKey?: string | null;
+  /** Hide “Stop tracking” (use on variant rows — only show on the first / product control). */
+  hideStopTracking?: boolean;
 };
 
 const LEVEL_COLORS = {
@@ -43,6 +47,8 @@ export function MenuItemStockQuickEdit({
   warningQty,
   urgentQty,
   criticalQty,
+  variantKey = null,
+  hideStopTracking = false,
 }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -50,7 +56,6 @@ export function MenuItemStockQuickEdit({
   const [editingQty, setEditingQty] = useState<string | null>(null);
   const [trackingLocal, setTrackingLocal] = useState(trackStock);
 
-  // Sync when server re-renders
   useEffect(() => {
     setLocalQty(stockQuantity ?? 0);
     setTrackingLocal(trackStock);
@@ -61,6 +66,7 @@ export function MenuItemStockQuickEdit({
     formData.set("id", itemId);
     formData.set("track_stock", track ? "true" : "false");
     formData.set("stock_quantity", String(Math.max(0, Math.floor(quantity))));
+    if (variantKey) formData.set("variant_key", variantKey);
     startTransition(async () => {
       const result = await updateMenuItemStockQuickAction(formData);
       if (result.ok) {
@@ -72,8 +78,9 @@ export function MenuItemStockQuickEdit({
 
   function handleEnableTracking() {
     setTrackingLocal(true);
-    setLocalQty(10);
-    submit(true, 10);
+    const seed = variantKey ? 0 : 10;
+    setLocalQty(seed);
+    submit(true, seed);
   }
 
   function handleStopTracking() {
@@ -102,7 +109,6 @@ export function MenuItemStockQuickEdit({
     if (parsed !== localQty) submit(true, parsed);
   }
 
-  // — NOT TRACKING —
   if (!trackingLocal) {
     return (
       <button
@@ -118,7 +124,6 @@ export function MenuItemStockQuickEdit({
     );
   }
 
-  // Compute alert level for visual feedback
   const fakeItem: MenuItemStockFields = {
     is_available: localQty > 0,
     track_stock: true,
@@ -130,16 +135,12 @@ export function MenuItemStockQuickEdit({
   const thresholds = resolveStockAlertThresholds(fakeItem);
   const level = getMenuItemStockAlertLevel(fakeItem) ?? "ok";
   const colors = LEVEL_COLORS[level];
-
-  // Bar fill percentage (cap warning threshold as 100%)
   const barMax = thresholds.warning_qty + Math.ceil(thresholds.warning_qty * 0.5);
   const barPct = Math.min(100, Math.round((localQty / barMax) * 100));
 
   return (
     <div className="flex min-w-[9rem] flex-col gap-2">
-      {/* Stepper row */}
       <div className="flex items-center gap-1">
-        {/* Decrement */}
         <button
           type="button"
           disabled={pending || localQty <= 0}
@@ -150,7 +151,6 @@ export function MenuItemStockQuickEdit({
           −
         </button>
 
-        {/* Quantity display / input */}
         {editingQty !== null ? (
           <input
             type="number"
@@ -160,8 +160,13 @@ export function MenuItemStockQuickEdit({
             onChange={(e) => setEditingQty(e.target.value)}
             onBlur={handleEditCommit}
             onKeyDown={(e) => {
-              if (e.key === "Enter") { e.preventDefault(); handleEditCommit(); }
-              if (e.key === "Escape") { setEditingQty(null); }
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleEditCommit();
+              }
+              if (e.key === "Escape") {
+                setEditingQty(null);
+              }
             }}
             autoFocus
             className="h-8 w-14 rounded-lg border-2 border-violet-400 bg-white px-1 text-center text-sm font-bold tabular-nums outline-none"
@@ -178,7 +183,6 @@ export function MenuItemStockQuickEdit({
           </button>
         )}
 
-        {/* Increment */}
         <button
           type="button"
           disabled={pending}
@@ -190,7 +194,6 @@ export function MenuItemStockQuickEdit({
         </button>
       </div>
 
-      {/* Mini progress bar */}
       <div className="flex items-center gap-1.5">
         <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100">
           <div
@@ -203,15 +206,16 @@ export function MenuItemStockQuickEdit({
         </span>
       </div>
 
-      {/* Stop tracking */}
-      <button
-        type="button"
-        disabled={pending}
-        onClick={handleStopTracking}
-        className="text-left text-[10px] font-medium text-slate-400 underline-offset-2 transition hover:text-red-500 hover:underline disabled:opacity-50"
-      >
-        Stop tracking
-      </button>
+      {!hideStopTracking ? (
+        <button
+          type="button"
+          disabled={pending}
+          onClick={handleStopTracking}
+          className="text-left text-[10px] font-medium text-slate-400 underline-offset-2 transition hover:text-red-500 hover:underline disabled:opacity-50"
+        >
+          Stop tracking
+        </button>
+      ) : null}
     </div>
   );
 }

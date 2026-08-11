@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { DisplayQuantityFields } from "@/components/display-quantity-fields";
+import { LinkedCurrencyPriceInput } from "@/components/linked-currency-price-input";
 import { resolveDisplayQuantityFields, type DisplayUnit } from "@/lib/display-quantity";
 
 type Props = {
@@ -18,6 +19,8 @@ type Props = {
   showDisplayQuantity?: boolean;
   /** Show the "Sold by weight" toggle. Default true. */
   showWeightPricing?: boolean;
+  /** Store dollar rate for USD ↔ LBP sync. */
+  lbpRate?: number;
 };
 
 /**
@@ -36,6 +39,7 @@ export function MenuItemPricingFields({
   idPrefix = "edit-item-qty",
   showDisplayQuantity = true,
   showWeightPricing = true,
+  lbpRate = 89500,
 }: Props) {
   const [soldByWeight, setSoldByWeight] = useState(
     showWeightPricing ? defaultSoldByWeight : false,
@@ -71,23 +75,18 @@ export function MenuItemPricingFields({
       {/* ── Flat price — hidden when sold by weight ── */}
       {!soldByWeight ? (
         <>
-          <label className="space-y-1">
-            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Price ($) <span className="text-red-600" aria-hidden="true">*</span>
-            </span>
-            <input
+          <div className="md:col-span-2">
+            <LinkedCurrencyPriceInput
+              lbpRate={lbpRate}
+              id={`${idPrefix}-price`}
               name="price"
               required
-              placeholder="e.g. 4.50"
-              type="number"
-              step="0.01"
-              min={0}
               value={price}
-              onChange={(event) => setPrice(event.target.value)}
-              className="ui-input"
+              onChange={setPrice}
+              usdLabel="Price (USD)"
+              lbpLabel="Price (LBP)"
             />
-            <p className="text-xs text-slate-500">US dollars ($). Base price before optional add-ons.</p>
-          </label>
+          </div>
           {showDisplayQuantity ? (
             <div className="min-w-0">
               <DisplayQuantityFields
@@ -144,26 +143,20 @@ export function MenuItemPricingFields({
 
           {soldByWeight ? (
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <label className="space-y-1">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Price per KG ($/kg) <span className="text-red-600" aria-hidden="true">*</span>
-                </span>
-                <input
+              <div className="sm:col-span-2">
+                <LinkedCurrencyPriceInput
+                  lbpRate={lbpRate}
+                  id={`${idPrefix}-price_per_kg`}
                   name="price_per_kg"
-                  placeholder="e.g. 2.80"
-                  type="number"
-                  step="0.01"
-                  min={0}
                   required={soldByWeight}
                   value={pricePerKg}
-                  onChange={(event) => setPricePerKg(event.target.value)}
-                  className="ui-input"
-                  autoFocus
+                  onChange={setPricePerKg}
+                  usdLabel="Price per KG (USD)"
+                  lbpLabel="Price per KG (LBP)"
+                  usdPlaceholder="2.80"
+                  hint={`Linked by your store rate: $1 = ${Number(lbpRate || 89500).toLocaleString("en-US")} LBP. e.g. $2.80/kg → 750g costs $2.10.`}
                 />
-                <p className="text-xs text-slate-500">
-                  e.g. $2.80/kg → 750g costs $2.10
-                </p>
-              </label>
+              </div>
               <label className="space-y-1">
                 <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Weight step (kg) <span className="ml-1 font-normal normal-case text-slate-500">(optional)</span>

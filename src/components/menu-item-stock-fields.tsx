@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
   DEFAULT_STOCK_ALERT_CRITICAL,
   DEFAULT_STOCK_ALERT_URGENT,
@@ -11,21 +11,46 @@ import {
 type Props = {
   idPrefix?: string;
   defaultTrackStock?: boolean;
+  /** Controlled tracking flag (preferred when parent needs variant stock JSON). */
+  trackStock?: boolean;
+  onTrackStockChange?: (enabled: boolean) => void;
   defaultStockQuantity?: number | null;
   defaultWarningQty?: number | null;
   defaultUrgentQty?: number | null;
   defaultCriticalQty?: number | null;
+  /**
+   * When true, quantity comes from size/color (or other variant) stock below —
+   * the flat quantity field is hidden and a total is shown instead.
+   */
+  variantMode?: boolean;
+  /** Sum of variant quantities (display only when variantMode + tracking). */
+  variantTotal?: number;
+  /** Optional editor rendered under the toggle when tracking is on (e.g. size×color matrix). */
+  children?: ReactNode;
 };
 
+/**
+ * Single stock panel for menu items.
+ * - Simple items: quantity + alerts
+ * - Variant items (sizes/colors): matrix/editor as children + alerts; total = sum
+ */
 export function MenuItemStockFields({
   idPrefix = "",
   defaultTrackStock = false,
+  trackStock: trackStockControlled,
+  onTrackStockChange,
   defaultStockQuantity = null,
   defaultWarningQty = null,
   defaultUrgentQty = null,
   defaultCriticalQty = null,
+  variantMode = false,
+  variantTotal = 0,
+  children,
 }: Props) {
-  const [trackStock, setTrackStock] = useState(defaultTrackStock);
+  const [trackStockUncontrolled, setTrackStockUncontrolled] = useState(defaultTrackStock);
+  const isControlled = typeof trackStockControlled === "boolean";
+  const trackStock = isControlled ? trackStockControlled : trackStockUncontrolled;
+
   const [warningQty, setWarningQty] = useState(String(defaultWarningQty ?? DEFAULT_STOCK_ALERT_WARNING));
   const [urgentQty, setUrgentQty] = useState(String(defaultUrgentQty ?? DEFAULT_STOCK_ALERT_URGENT));
   const [criticalQty, setCriticalQty] = useState(String(defaultCriticalQty ?? DEFAULT_STOCK_ALERT_CRITICAL));
@@ -46,21 +71,32 @@ export function MenuItemStockFields({
     });
   }, [trackStock, warningQty, urgentQty, criticalQty]);
 
+  function toggleTrack() {
+    const next = !trackStock;
+    if (!isControlled) {
+      setTrackStockUncontrolled(next);
+    }
+    onTrackStockChange?.(next);
+  }
+
+  const displayTotal = variantMode ? Math.max(0, Math.floor(variantTotal)) : null;
+
   return (
     <div className="space-y-4">
       <input type="hidden" name="track_stock" value={trackStock ? "true" : "false"} />
 
-      {/* Enable / disable row */}
       <div className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
         <div>
-          <p className="text-sm font-semibold text-slate-800">Enable stock tracking</p>
+          <p className="text-sm font-semibold text-slate-800">Track inventory</p>
           <p className="text-xs text-slate-500">
-            Counts down with every order · shows availability · sends email alerts
+            {variantMode
+              ? "Counts down per size & color · hides sold-out options · email alerts"
+              : "Counts down with every order · shows availability · email alerts"}
           </p>
         </div>
         <button
           type="button"
-          onClick={() => setTrackStock((v) => !v)}
+          onClick={toggleTrack}
           aria-pressed={trackStock}
           className={`relative inline-flex h-7 w-12 shrink-0 items-center overflow-hidden rounded-full p-0.5 transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2 ${
             trackStock ? "bg-violet-600 justify-end" : "bg-slate-300 justify-start"
@@ -71,39 +107,62 @@ export function MenuItemStockFields({
         </button>
       </div>
 
-      {/* Quantity */}
-      <div>
-        <label
-          htmlFor={fieldId("stock_quantity")}
-          className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500"
-        >
-          Quantity in stock{trackStock && <span className="ml-1 text-red-500">*</span>}
-        </label>
-        <div className="flex items-center gap-3">
-          <input
-            id={fieldId("stock_quantity")}
-            name="stock_quantity"
-            type="number"
-            min={0}
-            step={1}
-            defaultValue={defaultStockQuantity ?? 10}
-            disabled={!trackStock}
-            className={`ui-input w-28 tabular-nums ${!trackStock ? "opacity-40" : ""}`}
-            required={trackStock}
-          />
-          <p className="text-xs text-slate-400">units currently available</p>
+      {trackStock && variantMode ? (
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-end justify-between gap-2">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                Stock by variant
+              </p>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Enter units for each option customers can buy. Sold-out cells won’t be offered.
+              </p>
+            </div>
+            <p className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold tabular-nums text-slate-700">
+              Total {displayTotal ?? 0} unit{(displayTotal ?? 0) === 1 ? "" : "s"}
+            </p>
+          </div>
+          {children}
+          <input type="hidden" name="stock_quantity" value={String(displayTotal ?? 0)} />
         </div>
-      </div>
+      ) : null}
 
-      {/* Alert thresholds */}
-      <div>
+      {trackStock && !variantMode ? (
+        <div>
+          <label
+            htmlFor={fieldId("stock_quantity")}
+            className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500"
+          >
+            Quantity in stock<span className="ml-1 text-red-500">*</span>
+          </label>
+          <div className="flex items-center gap-3">
+            <input
+              id={fieldId("stock_quantity")}
+              name="stock_quantity"
+              type="number"
+              min={0}
+              step={1}
+              defaultValue={defaultStockQuantity ?? 10}
+              className="ui-input w-28 tabular-nums"
+              required
+            />
+            <p className="text-xs text-slate-400">units currently available</p>
+          </div>
+        </div>
+      ) : null}
+
+      {!trackStock ? <input type="hidden" name="stock_quantity" value="0" /> : null}
+
+      <div className={!trackStock ? "pointer-events-none opacity-40" : ""}>
         <p className="mb-0.5 text-xs font-bold uppercase tracking-wide text-slate-500">
           Email alert thresholds
         </p>
         <p className="mb-3 text-xs text-slate-400">
-          Get notified when stock drops to these levels. Warning → Urgent → Very urgent (e.g. 10 → 5 → 3).
+          {variantMode
+            ? "Alerts use the total across all variants (e.g. Warning 10 → Urgent 5 → Very urgent 3)."
+            : "Get notified when stock drops to these levels. Warning → Urgent → Very urgent (e.g. 10 → 5 → 3)."}
         </p>
-        <div className={`grid gap-3 sm:grid-cols-3 ${!trackStock ? "opacity-40 pointer-events-none" : ""}`}>
+        <div className="grid gap-3 sm:grid-cols-3">
           <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
             <div className="mb-1.5 flex items-center gap-1.5">
               <span className="text-amber-500">⚠</span>
@@ -162,11 +221,11 @@ export function MenuItemStockFields({
           </div>
         </div>
 
-        {thresholdError && (
+        {thresholdError ? (
           <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-600">
             ⚠ {thresholdError}
           </p>
-        )}
+        ) : null}
       </div>
     </div>
   );

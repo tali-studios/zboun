@@ -10,6 +10,7 @@ import { DisplayQuantityFields } from "@/components/display-quantity-fields";
 import { MenuNutritionFields } from "@/components/menu-nutrition-fields";
 import { MenuItemOptionsFields } from "@/components/menu-item-options-fields";
 import { MenuItemStockFields } from "@/components/menu-item-stock-fields";
+import { LinkedCurrencyPriceInput } from "@/components/linked-currency-price-input";
 import type { StoreItemProfile } from "@/lib/store-item-profile";
 
 type Category = { id: string; name: string };
@@ -56,43 +57,6 @@ function FieldLabel({
       {required && <span className="text-red-500">*</span>}
       {optional && <span className="ml-0.5 text-[10px] font-normal normal-case text-slate-400">(optional)</span>}
     </label>
-  );
-}
-
-function MoneyInput({
-  id,
-  name,
-  placeholder,
-  required,
-  autoFocus,
-  value,
-  onChange,
-}: {
-  id: string;
-  name: string;
-  placeholder: string;
-  required?: boolean;
-  autoFocus?: boolean;
-  value?: string;
-  onChange?: (value: string) => void;
-}) {
-  return (
-    <div className="flex min-h-[2.75rem] w-full items-center gap-2 rounded-[0.85rem] border-[1.5px] border-[#e2e5f5] bg-white px-3 transition focus-within:border-violet-400 focus-within:shadow-[0_0_0_3px_rgba(120,84,255,0.12)]">
-      <span className="shrink-0 text-sm font-semibold text-slate-400" aria-hidden>$</span>
-      <input
-        id={id}
-        name={name}
-        required={required}
-        placeholder={placeholder}
-        type="number"
-        step="0.01"
-        min={0}
-        autoFocus={autoFocus}
-        value={value}
-        onChange={onChange ? (event) => onChange(event.target.value) : undefined}
-        className="min-w-0 flex-1 border-0 bg-transparent py-2.5 text-[0.9375rem] text-slate-900 outline-none placeholder:text-slate-400"
-      />
-    </div>
   );
 }
 
@@ -178,10 +142,13 @@ export function AddMenuItemForm({
   categories,
   brands,
   profile = DEFAULT_PROFILE,
+  lbpRate = 89500,
 }: {
   categories: Category[];
   brands: Brand[];
   profile?: StoreItemProfile;
+  /** Store dollar rate used to sync USD ↔ LBP while typing. */
+  lbpRate?: number;
 }) {
   const [soldByWeight, setSoldByWeight] = useState(false);
   const [price, setPrice] = useState("");
@@ -293,17 +260,19 @@ export function AddMenuItemForm({
             </div>
           ) : null}
 
-          {/* Price */}
+          {/* Price — USD ↔ LBP (server saves USD) */}
           {!soldByWeight && (
-            <div>
-              <FieldLabel htmlFor="add-price" required>Price ($)</FieldLabel>
-              <MoneyInput
+            <div className="sm:col-span-2">
+              <LinkedCurrencyPriceInput
+                lbpRate={lbpRate}
                 id="add-price"
                 name="price"
-                placeholder="4.50"
                 required
                 value={price}
                 onChange={setPrice}
+                usdLabel="Price (USD)"
+                lbpLabel="Price (LBP)"
+                usdPlaceholder="30"
               />
               <input type="hidden" name="price_per_kg" value="" />
               <input type="hidden" name="weight_step_kg" value="0.1" />
@@ -356,17 +325,19 @@ export function AddMenuItemForm({
                   <input type="hidden" name="price" value="0" />
                   <input type="hidden" name="display_quantity" value="" />
                   <input type="hidden" name="display_unit" value="g" />
-                  <div>
-                    <FieldLabel htmlFor="add-price_per_kg" required>Price per KG ($/kg)</FieldLabel>
-                    <MoneyInput
+                  <div className="sm:col-span-2">
+                    <LinkedCurrencyPriceInput
+                      lbpRate={lbpRate}
                       id="add-price_per_kg"
                       name="price_per_kg"
-                      placeholder="2.80"
                       required
                       value={pricePerKg}
                       onChange={setPricePerKg}
+                      usdLabel="Price per KG (USD)"
+                      lbpLabel="Price per KG (LBP)"
+                      usdPlaceholder="2.80"
+                      hint={`Linked by your store rate: $1 = ${Number(lbpRate || 89500).toLocaleString("en-US")} LBP. e.g. $2.80/kg → 750g = $2.10.`}
                     />
-                    <p className="mt-1 text-xs text-slate-400">e.g. $2.80/kg → 750g = $2.10</p>
                   </div>
                   <div>
                     <FieldLabel htmlFor="add-weight_step_kg" optional>Weight step (kg)</FieldLabel>
@@ -409,9 +380,9 @@ export function AddMenuItemForm({
                 className="ui-textarea w-full max-w-full resize-none"
               />
               {isFashion ? (
-                <p className="mt-1 text-xs text-slate-400">
-                  Main photo is required. You can also upload one photo per color under Sizes & colors —
-                  sizes of the same color share that photo.
+                <p className="mt-1 text-xs leading-relaxed text-slate-400">
+                  One main photo is required for the product card. With a single color, all sizes use
+                  that photo. Add two or more colors to set a different photo for each.
                 </p>
               ) : null}
             </div>
@@ -461,10 +432,10 @@ export function AddMenuItemForm({
         <input type="hidden" name="contents" value="" />
       ) : null}
 
-      {/* ─── Product options (sizes, grind, variants) — selected store types ─ */}
+      {/* ─── Product options + inventory (sizes, grind, variants) ──────────── */}
       {canUseProductOptions ? (
         <ExpandSection
-          label={isFashion ? "Sizes & colors" : "Variants & options"}
+          label={isFashion ? "Sizes, colors & inventory" : "Variants & inventory"}
           defaultOpen
           icon={
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5" aria-hidden>
@@ -472,17 +443,31 @@ export function AddMenuItemForm({
             </svg>
           }
         >
-          <MenuItemOptionsFields idPrefix="add-item-" showStock hints={profile.optionHints} />
+          <MenuItemOptionsFields
+            idPrefix="add-item-"
+            includeStockPanel
+            hints={profile.optionHints}
+          />
         </ExpandSection>
       ) : (
         <>
           <input type="hidden" name="option_label" value="" />
           <input type="hidden" name="option_values" value="[]" />
           <input type="hidden" name="option_variant_stock" value="{}" />
+          <ExpandSection
+            label="Stock & availability"
+            icon={
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5" aria-hidden>
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+              </svg>
+            }
+          >
+            <MenuItemStockFields />
+          </ExpandSection>
         </>
       )}
 
-      {/* ─── STEP 4: Ingredient customization ─────────────────────────────── */}
+      {/* ─── Ingredient customization ─────────────────────────────────────── */}
       {canCustomizeIngredients ? (
         <ExpandSection
           label="Customization & options"
@@ -510,18 +495,6 @@ export function AddMenuItemForm({
           <input type="hidden" name="add_ingredients" value="[]" />
         </>
       )}
-
-      {/* ─── STEP 5: Stock ────────────────────────────────────────────────── */}
-      <ExpandSection
-        label="Stock & availability"
-        icon={
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5" aria-hidden>
-            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-          </svg>
-        }
-      >
-        <MenuItemStockFields />
-      </ExpandSection>
 
       {/* ─── Submit ───────────────────────────────────────────────────────── */}
       <AddItemSubmitButton isFood={isFood} />

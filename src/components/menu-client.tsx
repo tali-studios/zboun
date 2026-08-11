@@ -46,13 +46,12 @@ import {
 import { getMenuItemStockState } from "@/lib/menu-item-stock";
 import { resolveColorSwatch } from "@/lib/color-swatches";
 import {
-  buildVariantKey,
   formatOptionLabelsDisplay,
   getCombinedOptionExtraPrice,
   getVariantStockQty,
   itemUsesVariantStock,
   normalizeOptionGroups,
-  resolveOptionColorImageUrl,
+  optionHasRemainingStock,
   selectionsComplete,
   selectionsFromDisplayString,
   snapshotSelectedOptions,
@@ -524,10 +523,7 @@ export function MenuClient({
       0,
       baseUnitPrice + addCost + getCombinedOptionExtraPrice(groups, selectedOptions),
     );
-    const lineImageUrl =
-      resolveOptionColorImageUrl(groups, selectedOptions, customizing.item.image_url) ??
-      customizing.item.image_url ??
-      null;
+    const lineImageUrl = customizing.item.image_url ?? null;
     const lineKey = [
       customizing.item.id,
       snapshot.variantKey ?? snapshot.selectedOption ?? "",
@@ -604,11 +600,34 @@ export function MenuClient({
 
   function selectOptionValue(groupLabel: string, valueName: string) {
     if (!customizing) return;
+    const groups = getItemOptionGroups(customizing.item);
+    const stocks = customizing.item.option_variant_stock ?? {};
     const nextSelections: OptionSelections = {
       ...customizing.selectedOptions,
       [groupLabel]: valueName,
     };
-    const groups = getItemOptionGroups(customizing.item);
+
+    // Changing color (or another option) can invalidate a previously chosen size.
+    if (isColorLikeOptionLabel(groupLabel) || !isSizeLikeOptionLabel(groupLabel)) {
+      for (const group of groups) {
+        if (!isSizeLikeOptionLabel(group.label)) continue;
+        const sizeVal = String(nextSelections[group.label] ?? "").trim();
+        if (!sizeVal) continue;
+        if (
+          !optionHasRemainingStock(
+            groups,
+            stocks,
+            customizing.item.track_stock,
+            group.label,
+            sizeVal,
+            nextSelections,
+          )
+        ) {
+          delete nextSelections[group.label];
+        }
+      }
+    }
+
     const fashionQuickAdd =
       isOptionsOnlyItem(customizing.item) &&
       !customizing.editingKey &&
@@ -623,10 +642,7 @@ export function MenuClient({
       prev
         ? {
             ...prev,
-            selectedOptions: {
-              ...prev.selectedOptions,
-              [groupLabel]: valueName,
-            },
+            selectedOptions: nextSelections,
           }
         : prev,
     );
@@ -1571,6 +1587,8 @@ export function MenuClient({
                   const displaySize = resolveDisplayQuantityFields(item);
                   const sizeLabel = formatDisplayQuantity(displaySize.quantity, displaySize.unit);
                   const stock = getMenuItemStockState(item);
+                  const usesVariantStock =
+                    Boolean(item.track_stock) && itemUsesVariantStock(item.option_variant_stock);
                   return (
                   <article
                     key={item.id}
@@ -1634,7 +1652,7 @@ export function MenuClient({
                           </span>
                         ) : null}
                       </h3>
-                      {stock.label ? (
+                      {stock.label && !usesVariantStock ? (
                         <p className="mt-0.5 text-[11px] font-semibold text-amber-700">{stock.label}</p>
                       ) : null}
                       {item.description ? (
@@ -1788,13 +1806,7 @@ export function MenuClient({
           <div className="w-full max-h-[95dvh] overflow-y-auto rounded-t-3xl bg-white px-5 pb-6 pt-5 shadow-2xl sm:max-h-[90vh] sm:max-w-xl sm:rounded-3xl sm:px-6 sm:pb-6 sm:pt-5">
             {/* Header */}
             {(() => {
-              const previewGroups = getItemOptionGroups(customizing.item);
-              const previewImage =
-                resolveOptionColorImageUrl(
-                  previewGroups,
-                  customizing.selectedOptions,
-                  customizing.item.image_url,
-                ) ?? customizing.item.image_url;
+              const previewImage = customizing.item.image_url;
               return (
             <div className="flex items-start justify-between gap-3">
               {previewImage ? (
@@ -1876,6 +1888,44 @@ export function MenuClient({
                   .map((group) => {
                   const sizeLike = isSizeLikeOptionLabel(group.label);
                   const colorLike = isColorLikeOptionLabel(group.label);
+                  const allGroups = getItemOptionGroups(customizing.item);
+                  const stocks = customizing.item.option_variant_stock ?? {};
+                  const usesVariantStock =
+                    Boolean(customizing.item.track_stock) && itemUsesVariantStock(stocks);
+                  const colorGroups = allGroups.filter((g) => isColorLikeOptionLabel(g.label));
+                  const hasColorGroup = colorGroups.length > 0;
+                  const colorSelectionReady =
+                    !hasColorGroup ||
+                    colorGroups.every((g) =>
+                      Boolean(String(customizing.selectedOptions[g.label] ?? "").trim()),
+                    );
+
+                  if (sizeLike && usesVariantStock && hasColorGroup && !colorSelectionReady) {
+                    return (
+                      <div key={group.label}>
+                        <h4 className="text-sm font-bold uppercase tracking-wide text-slate-900">
+                          {group.label}
+                        </h4>
+                        <p className="mt-2 text-sm text-slate-500">Select a color to see available sizes.</p>
+                      </div>
+                    );
+                  }
+
+                  const visibleValues = group.values.filter((option) => {
+                    if (!usesVariantStock) return true;
+                    if (sizeLike && hasColorGroup && colorSelectionReady) {
+                      return optionHasRemainingStock(
+                        allGroups,
+                        stocks,
+                        customizing.item.track_stock,
+                        group.label,
+                        option.name,
+                        customizing.selectedOptions,
+                      );
+                    }
+                    return true;
+                  });
+
                   return (
                     <div key={group.label}>
                       <h4 className="text-sm font-bold uppercase tracking-wide text-slate-900">
@@ -1886,6 +1936,12 @@ export function MenuClient({
                           <span className="ml-1 text-red-500">*</span>
                         ) : null}
                       </h4>
+                      {sizeLike && usesVariantStock && colorSelectionReady && visibleValues.length === 0 ? (
+                        <p className="mt-2 text-sm font-semibold text-red-600">Out of stock</p>
+                      ) : null}
+                      {(sizeLike && usesVariantStock && hasColorGroup
+                        ? visibleValues.length > 0
+                        : true) ? (
                       <div
                         className={
                           sizeLike
@@ -1895,25 +1951,19 @@ export function MenuClient({
                               : "mt-2.5 flex flex-wrap gap-2"
                         }
                       >
-                        {group.values.map((option) => {
+                        {(sizeLike && usesVariantStock && hasColorGroup ? visibleValues : group.values).map(
+                          (option) => {
                           const selected = customizing.selectedOptions[group.label] === option.name;
                           const extra = Number(option.price ?? 0);
-                          const tentative: OptionSelections = {
-                            ...customizing.selectedOptions,
-                            [group.label]: option.name,
-                          };
-                          const variantKey = buildVariantKey(
-                            getItemOptionGroups(customizing.item),
-                            tentative,
+                          const available = optionHasRemainingStock(
+                            allGroups,
+                            stocks,
+                            customizing.item.track_stock,
+                            group.label,
+                            option.name,
+                            customizing.selectedOptions,
                           );
-                          const stocks = customizing.item.option_variant_stock ?? {};
-                          const variantQty =
-                            customizing.item.track_stock &&
-                            itemUsesVariantStock(stocks) &&
-                            selectionsComplete(getItemOptionGroups(customizing.item), tentative)
-                              ? getVariantStockQty(stocks, variantKey)
-                              : null;
-                          const soldOut = variantQty === 0;
+                          const soldOut = usesVariantStock && !available;
 
                           if (sizeLike) {
                             return (
@@ -1933,7 +1983,7 @@ export function MenuClient({
                                 <span className="font-semibold tracking-wide">{option.name}</span>
                                 <span className="text-xs opacity-70">
                                   {soldOut
-                                    ? "Sold out"
+                                    ? "Out of stock"
                                     : extra > 0
                                       ? `+${formatUsd(extra)}`
                                       : selected
@@ -1946,13 +1996,12 @@ export function MenuClient({
 
                           if (colorLike) {
                             const swatch = resolveColorSwatch(option.name);
-                            const photo = option.image_url?.trim() || null;
                             return (
                               <button
                                 key={`${group.label}-${option.name}`}
                                 type="button"
                                 disabled={soldOut}
-                                title={soldOut ? `${option.name} · sold out` : option.name}
+                                title={soldOut ? `${option.name} · out of stock` : option.name}
                                 onClick={() => selectOptionValue(group.label, option.name)}
                                 className={`relative h-9 w-9 shrink-0 overflow-hidden rounded-[4px] border transition ${
                                   soldOut
@@ -1961,23 +2010,17 @@ export function MenuClient({
                                       ? "border-2 border-slate-900 ring-1 ring-slate-900 ring-offset-2"
                                       : "border border-slate-300 hover:border-slate-500"
                                 }`}
-                                aria-label={option.name}
+                                aria-label={
+                                  soldOut ? `${option.name}, out of stock` : option.name
+                                }
                                 aria-pressed={selected}
+                                aria-disabled={soldOut}
                               >
-                                {photo ? (
-                                  // eslint-disable-next-line @next/next/no-img-element
-                                  <img
-                                    src={photo}
-                                    alt=""
-                                    className="h-full w-full object-cover"
-                                  />
-                                ) : (
-                                  <span
-                                    className="absolute inset-0"
-                                    style={{ background: swatch.background }}
-                                  />
-                                )}
-                                {!photo && !swatch.known ? (
+                                <span
+                                  className="absolute inset-0"
+                                  style={{ background: swatch.background }}
+                                />
+                                {!swatch.known ? (
                                   <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold uppercase text-slate-600">
                                     {option.name.slice(0, 1)}
                                   </span>
@@ -2007,11 +2050,12 @@ export function MenuClient({
                             >
                               {option.name}
                               {extra > 0 ? ` +${formatUsd(extra)}` : ""}
-                              {soldOut ? " · sold out" : ""}
+                              {soldOut ? " · out of stock" : ""}
                             </button>
                           );
                         })}
                       </div>
+                      ) : null}
                     </div>
                   );
                 })}

@@ -29,6 +29,7 @@ export function sortMenuItems<T extends {
   category_id: string | null;
   track_stock?: boolean;
   stock_quantity?: number | null;
+  option_variant_stock?: Record<string, number> | null;
   is_available: boolean;
 }>(
   items: T[],
@@ -55,15 +56,15 @@ export function sortMenuItems<T extends {
       case "price_desc":
         return b.price - a.price || a.name.localeCompare(b.name);
       case "stock_asc": {
-        const aQty = a.track_stock ? Number(a.stock_quantity ?? 0) : Number.POSITIVE_INFINITY;
-        const bQty = b.track_stock ? Number(b.stock_quantity ?? 0) : Number.POSITIVE_INFINITY;
+        const aQty = stockSortQuantity(a, "asc");
+        const bQty = stockSortQuantity(b, "asc");
         if (!a.is_available && b.is_available) return -1;
         if (a.is_available && !b.is_available) return 1;
         return aQty - bQty || a.name.localeCompare(b.name);
       }
       case "stock_desc": {
-        const aQty = a.track_stock ? Number(a.stock_quantity ?? 0) : -1;
-        const bQty = b.track_stock ? Number(b.stock_quantity ?? 0) : -1;
+        const aQty = stockSortQuantity(a, "desc");
+        const bQty = stockSortQuantity(b, "desc");
         return bQty - aQty || a.name.localeCompare(b.name);
       }
       case "name_asc":
@@ -72,4 +73,23 @@ export function sortMenuItems<T extends {
     }
   });
   return sorted;
+}
+
+/** For products with size×color stock: low→high uses the lowest variant; high→low uses the highest. */
+function stockSortQuantity(
+  item: {
+    track_stock?: boolean;
+    stock_quantity?: number | null;
+    option_variant_stock?: Record<string, number> | null;
+  },
+  mode: "asc" | "desc",
+): number {
+  if (!item.track_stock) return mode === "asc" ? Number.POSITIVE_INFINITY : -1;
+  const variantEntries = item.option_variant_stock
+    ? Object.values(item.option_variant_stock).map((n) => Math.max(0, Math.floor(Number(n) || 0)))
+    : [];
+  if (variantEntries.length > 0) {
+    return mode === "asc" ? Math.min(...variantEntries) : Math.max(...variantEntries);
+  }
+  return Math.max(0, Math.floor(Number(item.stock_quantity ?? 0)));
 }

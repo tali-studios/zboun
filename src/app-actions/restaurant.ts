@@ -29,9 +29,13 @@ function revalidateMenuAdminPaths() {
 import { parseDisplayQuantityFromForm } from "@/lib/display-quantity";
 import {
   applyColorImagesToGroups,
+  buildVariantKey,
   firstColorOptionImageUrl,
+  listVariantCombinations,
+  normalizeOptionGroups,
   parseOptionGroupsFromForm,
   parseVariantStockFromForm,
+  parseVariantStockMap,
   primaryOptionLabel,
   sumVariantStock,
   type MenuOptionGroup,
@@ -904,25 +908,54 @@ export async function updateMenuItemStockQuickAction(
   const id = String(formData.get("id") ?? "").trim();
   const trackStock = String(formData.get("track_stock") ?? "").trim() === "true";
   const stockQuantity = parseStockQuantityFromForm(formData);
+  const variantKey = String(formData.get("variant_key") ?? "").trim();
 
   if (!id) return { ok: false, error: "Item not found." };
 
   const supabase = await createServerSupabaseClient();
 
+  const { data: existing, error: loadError } = await supabase
+    .from("menu_items")
+    .select(
+      "stock_alert_warning_qty, stock_alert_urgent_qty, stock_alert_critical_qty, option_label, option_values, option_variant_stock, track_stock",
+    )
+    .eq("id", id)
+    .eq("restaurant_id", user.restaurant_id)
+    .maybeSingle();
+
+  if (loadError) return { ok: false, error: loadError.message };
+  if (!existing) return { ok: false, error: "Item not found." };
+
+  const groups = normalizeOptionGroups(existing.option_label, existing.option_values);
+  const combinations = listVariantCombinations(groups);
+  const hasVariants = groups.length > 0 && combinations.length > 0;
+  const existingVariantStock = parseVariantStockMap(existing.option_variant_stock);
+
   let payload: Record<string, unknown>;
   if (trackStock) {
-    const { data: existing } = await supabase
-      .from("menu_items")
-      .select("stock_alert_warning_qty, stock_alert_urgent_qty, stock_alert_critical_qty")
-      .eq("id", id)
-      .eq("restaurant_id", user.restaurant_id)
-      .maybeSingle();
+    let nextVariantStock = existingVariantStock;
+    let nextQty = stockQuantity;
+
+    if (hasVariants) {
+      if (variantKey) {
+        nextVariantStock = { ...existingVariantStock, [variantKey]: stockQuantity };
+      } else if (Object.keys(existingVariantStock).length === 0) {
+        // First enable: seed every size×color (or option combo) with the same qty.
+        nextVariantStock = {};
+        for (const combo of combinations) {
+          const key = buildVariantKey(groups, combo);
+          if (key) nextVariantStock[key] = stockQuantity;
+        }
+      }
+      nextQty = sumVariantStock(nextVariantStock);
+    }
 
     payload = {
       track_stock: true,
-      stock_quantity: stockQuantity,
-      is_available: stockQuantity > 0,
-      ...(existing?.stock_alert_warning_qty == null
+      stock_quantity: nextQty,
+      is_available: nextQty > 0,
+      ...(hasVariants ? { option_variant_stock: nextVariantStock } : {}),
+      ...(existing.stock_alert_warning_qty == null
         ? {
             stock_alert_warning_qty: DEFAULT_STOCK_ALERT_WARNING,
             stock_alert_urgent_qty: DEFAULT_STOCK_ALERT_URGENT,
@@ -937,6 +970,7 @@ export async function updateMenuItemStockQuickAction(
       stock_alert_warning_qty: null,
       stock_alert_urgent_qty: null,
       stock_alert_critical_qty: null,
+      ...(hasVariants ? { option_variant_stock: {} } : {}),
     };
   }
 
@@ -959,6 +993,13 @@ export async function updateMenuItemStockQuickAction(
     return {
       ok: false,
       error: "Stock columns are missing. Run add-menu-item-stock.sql in Supabase.",
+    };
+  }
+
+  if (error && /option_variant_stock/i.test(error.message ?? "")) {
+    return {
+      ok: false,
+      error: "Variant stock column missing. Run add-option-variant-stock.sql in Supabase.",
     };
   }
 

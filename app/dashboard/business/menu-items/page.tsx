@@ -206,6 +206,7 @@ export default async function BusinessMenuItemsPage({ searchParams }: Props) {
           itemsSafePage={itemsSafePage}
           itemsTotalPages={itemsTotalPages}
           listHrefBase={listHrefBase}
+          lbpRate={Number(header.restaurant?.lbp_rate ?? 89500)}
         />
       </div>
     </main>

@@ -257,6 +257,37 @@ export function getVariantStockQty(
 }
 
 /**
+ * Whether any size×color (etc.) combo that includes this option value still has stock,
+ * respecting options already chosen in `currentSelections`.
+ */
+export function optionHasRemainingStock(
+  groups: MenuOptionGroup[],
+  stocks: Record<string, number> | null | undefined,
+  trackStock: boolean | null | undefined,
+  optionLabel: string,
+  optionValue: string,
+  currentSelections: OptionSelections = {},
+): boolean {
+  if (!trackStock || !itemUsesVariantStock(stocks)) return true;
+
+  const constrained = listVariantCombinations(groups).filter((combo) => {
+    if (combo[optionLabel] !== optionValue) return false;
+    for (const group of groups) {
+      if (group.label === optionLabel) continue;
+      const selected = String(currentSelections[group.label] ?? "").trim();
+      if (selected && combo[group.label] !== selected) return false;
+    }
+    return true;
+  });
+
+  if (constrained.length === 0) return false;
+  return constrained.some((combo) => {
+    const key = buildVariantKey(groups, combo);
+    return (getVariantStockQty(stocks, key) ?? 0) > 0;
+  });
+}
+
+/**
  * Build a cart/order-friendly snapshot from selections.
  * selectedOption stays a single display string for older UIs.
  */

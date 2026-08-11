@@ -24,7 +24,8 @@ import {
 import { resolveMenuItemBrandId } from "@/lib/menu-brands";
 import { getMenuItemStockAlertLevel, isMenuItemLowStock } from "@/lib/menu-item-stock";
 import { stockAlertBadgeClass, stockAlertBadgeLabel } from "@/lib/menu-item-stock-alerts";
-import { normalizeOptionGroups, parseVariantStockMap } from "@/lib/menu-item-options";
+import { normalizeOptionGroups, parseVariantStockMap, buildVariantKey, listVariantCombinations, formatSelectedOptionsDisplay } from "@/lib/menu-item-options";
+import { resolveColorSwatch } from "@/lib/color-swatches";
 import type { MenuItemsSort } from "@/lib/menu-items-admin";
 import type { StoreItemProfile } from "@/lib/store-item-profile";
 
@@ -54,6 +55,76 @@ function FormFieldLabel({
 
 type Category = { id: string; name: string };
 
+type StockTableRow =
+  | { kind: "simple"; item: AdminMenuItemRow }
+  | {
+      kind: "variant";
+      item: AdminMenuItemRow;
+      variantKey: string;
+      variantLabel: string;
+      qty: number;
+      colorSwatch: string | null;
+      isFirst: boolean;
+    };
+
+function isColorLikeOptionLabel(label: string) {
+  return /\b(color|colour|colors|colours|shade|tone)\b/i.test(label.trim());
+}
+
+function buildStockTableRows(item: AdminMenuItemRow): StockTableRow[] {
+  const groups = normalizeOptionGroups(item.option_label, item.option_values);
+  const combos = listVariantCombinations(groups);
+  if (!item.track_stock || groups.length === 0 || combos.length === 0) {
+    return [{ kind: "simple", item }];
+  }
+  const stocks = parseVariantStockMap(item.option_variant_stock);
+  const colorGroup = groups.find((g) => isColorLikeOptionLabel(g.label));
+  return combos.map((combo, index) => {
+    const variantKey = buildVariantKey(groups, combo) ?? `${index}`;
+    const colorName = colorGroup ? String(combo[colorGroup.label] ?? "").trim() : "";
+    return {
+      kind: "variant" as const,
+      item,
+      variantKey,
+      variantLabel: formatSelectedOptionsDisplay(groups, combo) || variantKey,
+      qty: Math.max(0, Math.floor(Number(stocks[variantKey] ?? 0))),
+      colorSwatch: colorName ? resolveColorSwatch(colorName).background : null,
+      isFirst: index === 0,
+    };
+  });
+}
+
+function stockRowQuantity(row: StockTableRow): number {
+  if (row.kind === "variant") return row.qty;
+  if (!row.item.track_stock) return Number.POSITIVE_INFINITY;
+  return Math.max(0, Math.floor(Number(row.item.stock_quantity ?? 0)));
+}
+
+/** Flatten size×color rows; when sorting by stock, order by each row's qty (not product total). */
+function buildDisplayStockRows(items: AdminMenuItemRow[], sort: MenuItemsSort): StockTableRow[] {
+  const rows = items.flatMap((item) => buildStockTableRows(item));
+  if (sort === "stock_asc" || sort === "stock_desc") {
+    rows.sort((a, b) => {
+      const aQty = a.item.track_stock ? stockRowQuantity(a) : sort === "stock_asc" ? Number.POSITIVE_INFINITY : -1;
+      const bQty = b.item.track_stock ? stockRowQuantity(b) : sort === "stock_asc" ? Number.POSITIVE_INFINITY : -1;
+      if (sort === "stock_asc") {
+        if (!a.item.is_available && b.item.is_available) return -1;
+        if (a.item.is_available && !b.item.is_available) return 1;
+        return aQty - bQty || a.item.name.localeCompare(b.item.name);
+      }
+      return bQty - aQty || a.item.name.localeCompare(b.item.name);
+    });
+  }
+  // After reorder, show edit/delete only on the first visible row per product.
+  const seen = new Set<string>();
+  return rows.map((row) => {
+    const first = !seen.has(row.item.id);
+    seen.add(row.item.id);
+    if (row.kind === "variant") return { ...row, isFirst: first };
+    return row;
+  });
+}
+
 type Props = {
   categories: Category[];
   menuBrands: AdminMenuBrand[];
@@ -71,6 +142,7 @@ type Props = {
   itemsSafePage: number;
   itemsTotalPages: number;
   listHrefBase: { q: string; category: string; stock: string; sort: MenuItemsSort };
+  lbpRate?: number;
 };
 
 export function BusinessMenuItemsSection({
@@ -90,6 +162,7 @@ export function BusinessMenuItemsSection({
   itemsSafePage,
   itemsTotalPages,
   listHrefBase,
+  lbpRate = 89500,
 }: Props) {
   return (
     <>
@@ -118,6 +191,7 @@ export function BusinessMenuItemsSection({
             categories={categories.map((c) => ({ id: c.id, name: c.name }))}
             brands={menuBrands}
             profile={itemProfile}
+            lbpRate={lbpRate}
           />
         </section>
 
@@ -129,7 +203,7 @@ export function BusinessMenuItemsSection({
                   {itemProfile.isFoodLike ? "Menu items" : "Store items"}
                 </h2>
                 <p className="mt-0.5 text-sm text-slate-500">
-                  Search, filter, and update stock directly in the table — click any quantity to edit it.
+                  Search, filter, and update stock directly — each size & color appears on its own row.
                 </p>
               </div>
               <div className="flex flex-wrap gap-1.5">
@@ -175,14 +249,25 @@ export function BusinessMenuItemsSection({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {pagedItems.map((item, idx) => {
+                {buildDisplayStockRows(pagedItems, selectedSort).map((stockRow, rowIdx) => {
+                  const item = stockRow.item;
                   const alertLevel = getMenuItemStockAlertLevel(item);
-                  const rowBg = idx % 2 === 0 ? "bg-white" : "bg-slate-50/40";
+                  const rowBg = rowIdx % 2 === 0 ? "bg-white" : "bg-slate-50/40";
+                  const isVariant = stockRow.kind === "variant";
+                  const showProductActions = !isVariant || stockRow.isFirst;
+                  const rowKey = isVariant ? `${item.id}__${stockRow.variantKey}` : item.id;
                   return (
-                  <tr key={item.id} className={`${rowBg} transition-colors hover:bg-violet-50/30`}>
+                  <tr key={rowKey} className={`${rowBg} transition-colors hover:bg-violet-50/30`}>
                     <td className="px-5 py-4">
                       <div className="flex items-start gap-3">
-                        {item.image_url ? (
+                        {isVariant && stockRow.colorSwatch ? (
+                          <div
+                            className="h-10 w-10 shrink-0 rounded-xl border border-slate-200 shadow-sm"
+                            style={{ background: stockRow.colorSwatch }}
+                            title={stockRow.variantLabel}
+                            aria-hidden
+                          />
+                        ) : item.image_url ? (
                           <img
                             src={item.image_url}
                             alt=""
@@ -195,16 +280,21 @@ export function BusinessMenuItemsSection({
                         )}
                         <div className="min-w-0">
                           <p className="font-semibold text-slate-900 leading-snug">{item.name}</p>
+                          {isVariant ? (
+                            <span className="mt-0.5 inline-block rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-semibold text-violet-700">
+                              {stockRow.variantLabel}
+                            </span>
+                          ) : null}
                           {item.brand_name ? (
-                            <span className="mt-0.5 inline-block rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
+                            <span className="ml-1 mt-0.5 inline-block rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
                               {item.brand_name}
                             </span>
                           ) : null}
-                          {!item.is_available ? (
+                          {showProductActions && !item.is_available ? (
                             <span className="ml-1 mt-0.5 inline-block rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-600">
                               Out of stock
                             </span>
-                          ) : alertLevel && alertLevel !== "ok" ? (
+                          ) : showProductActions && alertLevel && alertLevel !== "ok" ? (
                             <span className={`ml-1 mt-0.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${stockAlertBadgeClass(alertLevel)}`}>
                               {stockAlertBadgeLabel(item)}
                             </span>
@@ -223,15 +313,18 @@ export function BusinessMenuItemsSection({
                     <td className="px-5 py-4">
                       <MenuItemStockQuickEdit
                         itemId={item.id}
-                        itemName={item.name}
+                        itemName={isVariant ? `${item.name} · ${stockRow.variantLabel}` : item.name}
                         trackStock={Boolean(item.track_stock)}
-                        stockQuantity={item.stock_quantity ?? null}
+                        stockQuantity={isVariant ? stockRow.qty : (item.stock_quantity ?? null)}
                         warningQty={item.stock_alert_warning_qty}
                         urgentQty={item.stock_alert_urgent_qty}
                         criticalQty={item.stock_alert_critical_qty}
+                        variantKey={isVariant ? stockRow.variantKey : null}
+                        hideStopTracking={isVariant && !stockRow.isFirst}
                       />
                     </td>
                     <td className="px-5 py-4">
+                      {showProductActions ? (
                       <div className="flex flex-nowrap items-center gap-1.5">
 
                         {/* EDIT */}
@@ -321,6 +414,7 @@ export function BusinessMenuItemsSection({
                                     defaultWeightStepKg={(item as { weight_step_kg?: number | null }).weight_step_kg}
                                     showDisplayQuantity={itemProfile.displayQuantity}
                                     showWeightPricing={itemProfile.weightPricing}
+                                    lbpRate={lbpRate}
                                   />
                                 </div>
 
@@ -364,27 +458,17 @@ export function BusinessMenuItemsSection({
                                   <input type="hidden" name="contents" value={item.contents ?? ""} />
                                 )}
 
-                                {/* — Stock — */}
-                                <div className="md:col-span-2">
-                                  <MenuItemStockFields
-                                    idPrefix={`edit-stock-${item.id}-`}
-                                    defaultTrackStock={Boolean(item.track_stock)}
-                                    defaultStockQuantity={item.stock_quantity}
-                                    defaultWarningQty={item.stock_alert_warning_qty}
-                                    defaultUrgentQty={item.stock_alert_urgent_qty}
-                                    defaultCriticalQty={item.stock_alert_critical_qty}
-                                  />
-                                </div>
-
-                                {/* — Product options (sizes, grind, variants) — */}
+                                {/* — Product options + inventory — */}
                                 {itemProfile.productOptions ? (
-                                  <div className="md:col-span-2">
-                                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                      {itemProfile.isFashionLike ? "Sizes & colors" : "Variants & options"}
+                                  <div className="md:col-span-2 space-y-3">
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                      {itemProfile.isFashionLike
+                                        ? "Sizes, colors & inventory"
+                                        : "Variants & inventory"}
                                     </p>
                                     <MenuItemOptionsFields
                                       idPrefix={`edit-${item.id}-`}
-                                      showStock
+                                      includeStockPanel
                                       hints={itemProfile.optionHints}
                                       defaultGroups={normalizeOptionGroups(
                                         item.option_label,
@@ -393,10 +477,25 @@ export function BusinessMenuItemsSection({
                                       defaultVariantStock={parseVariantStockMap(
                                         item.option_variant_stock,
                                       )}
+                                      defaultTrackStock={Boolean(item.track_stock)}
+                                      defaultStockQuantity={item.stock_quantity}
+                                      defaultWarningQty={item.stock_alert_warning_qty}
+                                      defaultUrgentQty={item.stock_alert_urgent_qty}
+                                      defaultCriticalQty={item.stock_alert_critical_qty}
                                     />
                                   </div>
                                 ) : (
                                   <>
+                                    <div className="md:col-span-2">
+                                      <MenuItemStockFields
+                                        idPrefix={`edit-stock-${item.id}-`}
+                                        defaultTrackStock={Boolean(item.track_stock)}
+                                        defaultStockQuantity={item.stock_quantity}
+                                        defaultWarningQty={item.stock_alert_warning_qty}
+                                        defaultUrgentQty={item.stock_alert_urgent_qty}
+                                        defaultCriticalQty={item.stock_alert_critical_qty}
+                                      />
+                                    </div>
                                     <input type="hidden" name="option_label" value={item.option_label ?? ""} />
                                     <input
                                       type="hidden"
@@ -552,6 +651,9 @@ export function BusinessMenuItemsSection({
                           </div>
                         </div>
                       </div>
+                      ) : (
+                        <span className="text-xs text-slate-300">—</span>
+                      )}
                     </td>
                   </tr>
                   );
