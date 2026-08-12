@@ -155,6 +155,12 @@ function isColorLikeOptionLabel(label: string) {
   return /\b(color|colour|colors|colours|shade|tone)\b/i.test(label.trim());
 }
 
+function findSizeOptionGroup(
+  groups: ReturnType<typeof getItemOptionGroups>,
+): ReturnType<typeof getItemOptionGroups>[number] | null {
+  return groups.find((g) => isSizeLikeOptionLabel(g.label)) ?? null;
+}
+
 /** Options/variants only — no food extras or weight. Opens as a fashion-style picker. */
 function isOptionsOnlyItem(item: MenuItemRow) {
   return (
@@ -260,6 +266,8 @@ export function MenuClient({
   const [customizing, setCustomizing] = useState<CustomizationState | null>(null);
   /** Color chosen on the menu card (updates thumb + preselects in the picker). */
   const [listColorByItemId, setListColorByItemId] = useState<Record<string, string>>({});
+  /** Size/volume chosen on the menu card (updates price + preselects in the picker). */
+  const [listSizeByItemId, setListSizeByItemId] = useState<Record<string, string>>({});
   const [previewImage, setPreviewImage] = useState<{ src: string; alt: string } | null>(null);
   const [query, setQuery] = useState("");
   const [menuCategoryFilter, setMenuCategoryFilter] = useState<string>("all");
@@ -452,11 +460,16 @@ export function MenuClient({
     const unitQty = isSoldByWeight(item) ? 1 : 1;
     const groups = getItemOptionGroups(item);
     const colorGroup = findColorOptionGroup(groups);
+    const sizeGroup = findSizeOptionGroup(groups);
     const listColor = colorGroup ? listColorByItemId[item.id] : undefined;
-    const fromList =
-      colorGroup && listColor && !initialSelections[colorGroup.label]
-        ? { [colorGroup.label]: listColor }
-        : {};
+    const listSize = sizeGroup ? listSizeByItemId[item.id] : undefined;
+    const fromList: OptionSelections = {};
+    if (colorGroup && listColor && !initialSelections[colorGroup.label]) {
+      fromList[colorGroup.label] = listColor;
+    }
+    if (sizeGroup && listSize && !initialSelections[sizeGroup.label]) {
+      fromList[sizeGroup.label] = listSize;
+    }
     setCustomizing({
       item,
       remove: [],
@@ -467,9 +480,36 @@ export function MenuClient({
     });
   }
 
-  /** Switch color on the menu card — updates the photo only; + / title opens size picker. */
+  /** Switch color on the menu card — updates the photo; clears size if that combo is sold out. */
   function pickListColor(item: MenuItemRow, _colorLabel: string, colorName: string) {
     setListColorByItemId((prev) => ({ ...prev, [item.id]: colorName }));
+    const groups = getItemOptionGroups(item);
+    const sizeGroup = findSizeOptionGroup(groups);
+    if (!sizeGroup) return;
+    const currentSize = listSizeByItemId[item.id];
+    if (!currentSize) return;
+    const colorGroup = findColorOptionGroup(groups);
+    if (!colorGroup) return;
+    const stillOk = optionHasRemainingStock(
+      groups,
+      item.option_variant_stock,
+      item.track_stock,
+      sizeGroup.label,
+      currentSize,
+      { [colorGroup.label]: colorName, [sizeGroup.label]: currentSize },
+    );
+    if (!stillOk) {
+      setListSizeByItemId((prev) => {
+        const next = { ...prev };
+        delete next[item.id];
+        return next;
+      });
+    }
+  }
+
+  /** Switch size/volume on the menu card — updates shown price + preselects in the picker. */
+  function pickListSize(item: MenuItemRow, _sizeLabel: string, sizeName: string) {
+    setListSizeByItemId((prev) => ({ ...prev, [item.id]: sizeName }));
   }
 
   function quickAddToCart(item: MenuItemRow) {
@@ -678,6 +718,9 @@ export function MenuClient({
     // Keep the menu-card color preview in sync when picking in the sheet.
     if (isColorLikeOptionLabel(groupLabel)) {
       setListColorByItemId((prev) => ({ ...prev, [customizing.item.id]: valueName }));
+    }
+    if (isSizeLikeOptionLabel(groupLabel)) {
+      setListSizeByItemId((prev) => ({ ...prev, [customizing.item.id]: valueName }));
     }
 
     const fashionQuickAdd =
@@ -1752,11 +1795,29 @@ export function MenuClient({
                     Boolean(item.track_stock) && itemUsesVariantStock(item.option_variant_stock);
                   const optionGroups = getItemOptionGroups(item);
                   const colorGroup = findColorOptionGroup(optionGroups);
+                  const sizeGroup = findSizeOptionGroup(optionGroups);
                   const listColorName = colorGroup ? listColorByItemId[item.id] ?? null : null;
+                  const listSizeName = sizeGroup ? listSizeByItemId[item.id] ?? null : null;
                   const listColorSelections =
                     colorGroup && listColorName
                       ? { [colorGroup.label]: listColorName }
                       : {};
+                  const listSizeSelections =
+                    sizeGroup && listSizeName
+                      ? { [sizeGroup.label]: listSizeName }
+                      : {};
+                  const listOptionSelections = {
+                    ...listColorSelections,
+                    ...listSizeSelections,
+                  };
+                  const listOptionExtra = getCombinedOptionExtraPrice(
+                    optionGroups,
+                    listOptionSelections,
+                  );
+                  const cardPriceUsd = Math.round((budgetPriceUsd + listOptionExtra) * 100) / 100;
+                  const cardListPriceUsd =
+                    Math.round((listBudgetPriceUsd + listOptionExtra) * 100) / 100;
+                  const showListSizes = Boolean(sizeGroup && sizeGroup.values.length >= 2);
                   const cardImageUrl =
                     resolveOptionColorImageUrl(
                       optionGroups,
@@ -1838,11 +1899,11 @@ export function MenuClient({
                             <p className="mt-0.5 text-[11px] font-semibold text-amber-700">{stock.label}</p>
                           ) : null}
                           {item.description ? (
-                            <p className={`mt-1 text-xs leading-relaxed text-slate-500 sm:text-sm ${colorGroup ? "line-clamp-1" : "line-clamp-2"}`}>
+                            <p className={`mt-1 text-xs leading-relaxed text-slate-500 sm:text-sm ${colorGroup || showListSizes ? "line-clamp-1" : "line-clamp-2"}`}>
                               {item.description}
                             </p>
                           ) : item.contents ? (
-                            <p className={`mt-1 text-xs text-slate-500 sm:text-sm ${colorGroup ? "line-clamp-1" : "line-clamp-2"}`}>{item.contents}</p>
+                            <p className={`mt-1 text-xs text-slate-500 sm:text-sm ${colorGroup || showListSizes ? "line-clamp-1" : "line-clamp-2"}`}>{item.contents}</p>
                           ) : null}
                           {sizeLabel ? (
                             <p className="mt-0.5 text-[11px] text-slate-400">{sizeLabel}</p>
@@ -1860,13 +1921,13 @@ export function MenuClient({
                           <div className="mt-auto flex flex-wrap items-end gap-x-2 pt-2">
                             {hasSale ? (
                               <span className="text-sm font-semibold text-slate-400 line-through">
-                                {soldByWeight ? `From ${formatUsd(listBudgetPriceUsd)}` : formatUsd(listBudgetPriceUsd)}
+                                {soldByWeight ? `From ${formatUsd(cardListPriceUsd)}` : formatUsd(cardListPriceUsd)}
                               </span>
                             ) : null}
                             <span className="text-base font-bold" style={{ color: theme.primary }}>
-                              {soldByWeight ? `From ${formatUsd(budgetPriceUsd)}` : formatUsd(budgetPriceUsd)}
+                              {soldByWeight ? `From ${formatUsd(cardPriceUsd)}` : formatUsd(cardPriceUsd)}
                             </span>
-                            <span className="text-xs text-slate-400">{formatLbp(budgetPriceUsd)}</span>
+                            <span className="text-xs text-slate-400">{formatLbp(cardPriceUsd)}</span>
                             {soldByWeight ? (
                               <span className="text-[10px] text-slate-400">per minimum weight</span>
                             ) : null}
@@ -1903,11 +1964,11 @@ export function MenuClient({
                         <p className="mt-0.5 text-[11px] font-semibold text-amber-700">{stock.label}</p>
                       ) : null}
                       {item.description ? (
-                        <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-slate-500 sm:text-sm">
+                        <p className={`mt-1 text-xs leading-relaxed text-slate-500 sm:text-sm ${showListSizes ? "line-clamp-1" : "line-clamp-2"}`}>
                           {item.description}
                         </p>
                       ) : item.contents ? (
-                        <p className="mt-1 line-clamp-2 text-xs text-slate-500 sm:text-sm">{item.contents}</p>
+                        <p className={`mt-1 text-xs text-slate-500 sm:text-sm ${showListSizes ? "line-clamp-1" : "line-clamp-2"}`}>{item.contents}</p>
                       ) : null}
                       {sizeLabel ? (
                         <p className="mt-0.5 text-[11px] text-slate-400">{sizeLabel}</p>
@@ -1925,19 +1986,72 @@ export function MenuClient({
                       <div className="mt-auto flex flex-wrap items-end gap-x-2 pt-2">
                         {hasSale ? (
                           <span className="text-sm font-semibold text-slate-400 line-through">
-                            {soldByWeight ? `From ${formatUsd(listBudgetPriceUsd)}` : formatUsd(listBudgetPriceUsd)}
+                            {soldByWeight ? `From ${formatUsd(cardListPriceUsd)}` : formatUsd(cardListPriceUsd)}
                           </span>
                         ) : null}
                         <span className="text-base font-bold" style={{ color: theme.primary }}>
-                          {soldByWeight ? `From ${formatUsd(budgetPriceUsd)}` : formatUsd(budgetPriceUsd)}
+                          {soldByWeight ? `From ${formatUsd(cardPriceUsd)}` : formatUsd(cardPriceUsd)}
                         </span>
-                        <span className="text-xs text-slate-400">{formatLbp(budgetPriceUsd)}</span>
+                        <span className="text-xs text-slate-400">{formatLbp(cardPriceUsd)}</span>
                         {soldByWeight ? (
                           <span className="text-[10px] text-slate-400">per minimum weight</span>
                         ) : null}
                       </div>
                         </>
                       )}
+
+                      {showListSizes && sizeGroup ? (
+                        <div
+                          className={`mt-2.5 flex flex-wrap gap-1.5 ${canShop ? "pr-1" : ""}`}
+                          role="list"
+                          aria-label={`Sizes for ${item.name}`}
+                        >
+                          {sizeGroup.values.map((option) => {
+                            const available = optionHasRemainingStock(
+                              optionGroups,
+                              item.option_variant_stock,
+                              item.track_stock,
+                              sizeGroup.label,
+                              option.name,
+                              listColorSelections,
+                            );
+                            const soldOut =
+                              Boolean(item.track_stock) &&
+                              itemUsesVariantStock(item.option_variant_stock) &&
+                              !available;
+                            const selected = listSizeName === option.name;
+                            return (
+                              <button
+                                key={`${item.id}-size-${option.name}`}
+                                type="button"
+                                role="listitem"
+                                disabled={soldOut || !stock.available || !canShop}
+                                title={
+                                  soldOut ? `${option.name} · out of stock` : option.name
+                                }
+                                onClick={() =>
+                                  pickListSize(item, sizeGroup.label, option.name)
+                                }
+                                className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition ${
+                                  soldOut || !stock.available
+                                    ? "cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400 line-through opacity-50"
+                                    : selected
+                                      ? "border-slate-900 bg-slate-900 text-white"
+                                      : "border-slate-200 bg-white text-slate-700 hover:border-slate-400"
+                                }`}
+                                aria-label={
+                                  soldOut
+                                    ? `${option.name}, out of stock`
+                                    : `Choose ${option.name}`
+                                }
+                                aria-pressed={selected}
+                              >
+                                {option.name}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : null}
 
                       {colorGroup && colorGroup.values.length > 0 ? (
                         <div

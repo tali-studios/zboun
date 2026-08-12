@@ -43,6 +43,7 @@ const DEFAULT_HINTS: ProductOptionHints = {
 
 const FASHION_LETTER_SIZES = ["XS", "S", "M", "L", "XL", "XXL"] as const;
 const FASHION_NUMERIC_SIZES = ["36", "38", "40", "42", "44", "46"] as const;
+const FASHION_VOLUME_SIZES = ["50mL", "75mL", "100mL", "150mL", "200mL"] as const;
 const FASHION_COLORS = [
   "Black",
   "White",
@@ -459,6 +460,22 @@ export function MenuItemOptionsFields({
     );
   }
 
+  function updateValuePrice(groupIndex: number, valueName: string, price: number) {
+    const nextPrice = Number.isFinite(price) && price > 0 ? price : 0;
+    setGroups((prev) =>
+      prev.map((g, i) =>
+        i === groupIndex
+          ? {
+              ...g,
+              values: g.values.map((v) =>
+                v.name === valueName ? { ...v, price: nextPrice } : v,
+              ),
+            }
+          : g,
+      ),
+    );
+  }
+
   function addGroup(prefillLabel = "") {
     if (groups.length >= 4) return;
     setGroups((prev) => [...prev, emptyGroup(prefillLabel)]);
@@ -663,51 +680,119 @@ export function MenuItemOptionsFields({
             </div>
           </div>
 
-          <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
-            <input
-              value={draftNames[sizeIdx] ?? ""}
-              onChange={(e) =>
-                setDraftNames((prev) => ({ ...prev, [sizeIdx]: e.target.value }))
-              }
-              placeholder="Custom size (e.g. One size, 28)"
-              className="ui-input"
-            />
-            <button
-              type="button"
-              onClick={() => {
-                const name = (draftNames[sizeIdx] ?? "").trim();
-                if (!name) return;
-                toggleSize(name);
-                setDraftNames((prev) => ({ ...prev, [sizeIdx]: "" }));
-              }}
-              className="btn btn-secondary rounded-xl"
-            >
-              Add size
-            </button>
+          <div>
+            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+              Volume (Perfumes & Fragrances)
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {FASHION_VOLUME_SIZES.map((size) => (
+                <PresetChip
+                  key={size}
+                  label={size}
+                  selected={selectedSizes.has(size)}
+                  onClick={() => toggleSize(size)}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+              Custom size or volume
+            </p>
+            <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto]">
+              <input
+                value={draftNames[sizeIdx] ?? ""}
+                onChange={(e) =>
+                  setDraftNames((prev) => ({ ...prev, [sizeIdx]: e.target.value }))
+                }
+                placeholder="e.g. One size, 50mL, 100mL"
+                className="ui-input"
+              />
+              <input
+                value={draftPrices[sizeIdx] ?? ""}
+                onChange={(e) =>
+                  setDraftPrices((prev) => ({ ...prev, [sizeIdx]: e.target.value }))
+                }
+                type="number"
+                min={0}
+                step="0.01"
+                placeholder="Extra $"
+                title="Optional: Add extra cost for this size"
+                className="ui-input w-24"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const name = (draftNames[sizeIdx] ?? "").trim();
+                  if (!name) return;
+                  const price = Number(draftPrices[sizeIdx] || 0);
+                  const value: MenuOptionValue = {
+                    name,
+                    price: Number.isFinite(price) && price > 0 ? price : 0,
+                  };
+                  setGroups((prev) =>
+                    prev.map((g, i) =>
+                      i === sizeIdx && !g.values.some((v) => v.name === name)
+                        ? { ...g, values: [...g.values, value] }
+                        : g,
+                    ),
+                  );
+                  setDraftNames((prev) => ({ ...prev, [sizeIdx]: "" }));
+                  setDraftPrices((prev) => ({ ...prev, [sizeIdx]: "" }));
+                }}
+                className="btn btn-secondary rounded-xl"
+              >
+                Add
+              </button>
+            </div>
+            <p className="mt-1.5 text-[10px] text-slate-500">
+              Tip: For perfumes or premium items, enter a size and set different prices (e.g. 50mL at base price, 100mL +$15).
+            </p>
           </div>
 
           {sizeGroup && sizeGroup.values.length > 0 ? (
             <div>
               <p className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                Selected
+                Selected — set extra price per size
               </p>
-              <div className="flex flex-wrap gap-2">
+              <p className="mb-2 text-[10px] text-slate-500">
+                Base item price applies to all. Extra $ is added when the customer picks that size (e.g. 50mL = $0, 100mL = +$15).
+              </p>
+              <div className="space-y-2">
                 {sizeGroup.values.map((sizeValue) => (
-                  <span
+                  <div
                     key={sizeValue.name}
-                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-800"
+                    className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2"
                   >
-                    {sizeValue.name}
+                    <span className="min-w-0 flex-1 text-sm font-semibold text-slate-800">
+                      {sizeValue.name}
+                    </span>
+                    <label className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                      Extra $
+                      <input
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        value={sizeValue.price > 0 ? sizeValue.price : ""}
+                        onChange={(e) =>
+                          updateValuePrice(sizeIdx, sizeValue.name, Number(e.target.value || 0))
+                        }
+                        placeholder="0"
+                        className="ui-input h-8 w-20 text-sm"
+                        aria-label={`Extra price for ${sizeValue.name}`}
+                      />
+                    </label>
                     <button
                       type="button"
                       onClick={() => removeValue(sizeIdx, sizeValue.name)}
-                      className="text-slate-400 hover:text-rose-600"
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600"
                       aria-label={`Remove size ${sizeValue.name}`}
                       title={`Remove ${sizeValue.name}`}
                     >
                       ×
                     </button>
-                  </span>
+                  </div>
                 ))}
               </div>
             </div>
