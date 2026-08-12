@@ -177,6 +177,7 @@ export default async function BusinessMenuItemsPage({ searchParams }: Props) {
         sectionName={sectionName}
         sectionsCount={Number.isFinite(sectionsCount) ? sectionsCount : null}
         brandName={brandName}
+        itemsLabel={itemProfile.isFoodLike ? "menu" : "catalog"}
       />
       <div className="mx-auto max-w-7xl space-y-5">
         <StoreAdminHeader

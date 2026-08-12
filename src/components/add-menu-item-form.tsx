@@ -167,7 +167,9 @@ export function AddMenuItemForm({
   const [soldByWeight, setSoldByWeight] = useState(false);
   const [price, setPrice] = useState("");
   const [pricePerKg, setPricePerKg] = useState("");
+  const [formError, setFormError] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  const errorRef = useRef<HTMLDivElement>(null);
   const submittingRef = useRef(false);
 
   function toggleSoldByWeight() {
@@ -193,18 +195,39 @@ export function AddMenuItemForm({
   async function handleCreate(formData: FormData) {
     if (submittingRef.current) return;
     submittingRef.current = true;
+    setFormError(null);
     try {
-      await createMenuItemAction(formData);
+      const result = await createMenuItemAction(formData);
+      // Success redirects; failures return so the filled form is kept.
+      if (result && result.ok === false) {
+        setFormError(result.error);
+        submittingRef.current = false;
+        queueMicrotask(() => {
+          errorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+        });
+      }
     } catch (error) {
       if (isRedirectError(error)) throw error;
       submittingRef.current = false;
-      throw error;
+      setFormError("Something went wrong. Your fields were kept — please try again.");
+      queueMicrotask(() => {
+        errorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
     }
   }
 
   return (
     <form ref={formRef} action={handleCreate} id="add-item" className="space-y-3">
-
+      {formError ? (
+        <div
+          ref={errorRef}
+          role="alert"
+          className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800"
+        >
+          <p className="font-semibold">Couldn’t save yet</p>
+          <p className="mt-0.5">{formError}</p>
+        </div>
+      ) : null}
       {/* ─── STEP 1: Essentials (always shown, fast-fill) ─────────────────── */}
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <p className="mb-4 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400">

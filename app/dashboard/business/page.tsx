@@ -5,7 +5,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { StoreAdminHeader } from "@/components/store-admin-header";
 import { BusinessCategoryDashboard } from "@/components/business-category-dashboard";
 import { ImageUploadField } from "@/components/image-upload-field";
-import { getRawBrowseSectionValues, formatBrowseSectionsLabel } from "@/lib/browse-sections";
+import { getRawBrowseSectionValues, formatBrowseSectionsLabel, isFoodMenuBusiness } from "@/lib/browse-sections";
 import { getBusinessTypeLabel, hasCatalogDashboard, parseBusinessType } from "@/lib/business-types";
 import { RestaurantDashboardToast } from "@/components/restaurant-dashboard-toast";
 import { DashboardSectionJump } from "@/components/dashboard-section-jump";
@@ -261,11 +261,12 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
   const categoryLabel = formatBrowseSectionsLabel(restaurant?.browse_sections);
   const isMenuBusiness = hasCatalogDashboard(businessType);
   const rawBrowseSections = getRawBrowseSectionValues(restaurant?.browse_sections ?? []);
+  const itemsLabel = isFoodMenuBusiness(restaurant?.browse_sections) ? "menu" : "catalog";
 
   if (!isMenuBusiness) {
     return (
       <>
-        <RestaurantDashboardToast toast={toast} sectionName={sectionName} sectionsCount={sectionsCount} itemName={itemName} brandName={brandName} />
+        <RestaurantDashboardToast toast={toast} sectionName={sectionName} sectionsCount={sectionsCount} itemName={itemName} brandName={brandName} itemsLabel={itemsLabel} />
         <BusinessCategoryDashboard
           businessType={businessType}
           businessTypeLabel={categoryLabel}
@@ -299,7 +300,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
   return (
     <main className="min-h-screen bg-[#f8f8ff] p-3 sm:p-4 md:p-8">
       <DashboardSectionJump target={jump} />
-      <RestaurantDashboardToast toast={toast} sectionName={sectionName} sectionsCount={sectionsCount} itemName={itemName} brandName={brandName} />
+      <RestaurantDashboardToast toast={toast} sectionName={sectionName} sectionsCount={sectionsCount} itemName={itemName} brandName={brandName} itemsLabel={itemsLabel} />
       <div className="mx-auto max-w-7xl space-y-5">
         <StoreAdminHeader
           restaurantName={restaurant?.name ?? "Store"}

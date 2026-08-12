@@ -487,7 +487,13 @@ export async function deleteBrandAction(formData: FormData) {
   revalidatePath("/dashboard/business");
 }
 
-export async function createMenuItemAction(formData: FormData) {
+export type CreateMenuItemResult =
+  | { ok: true }
+  | { ok: false; error: string };
+
+export async function createMenuItemAction(
+  formData: FormData,
+): Promise<CreateMenuItemResult> {
   const user = await requireRestaurantAdmin();
   const supabase = await createServerSupabaseClient();
 
@@ -507,21 +513,24 @@ export async function createMenuItemAction(formData: FormData) {
       );
 
   if (!categoryId || !name) {
-    redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_create_invalid`);
+    return {
+      ok: false,
+      error: "Choose a section and enter an item name before saving.",
+    };
   }
   if (!Number.isFinite(price) || price < 0) {
-    redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_create_invalid`);
+    return { ok: false, error: "Enter a valid price (0 or more)." };
   }
   if (soldByWeight) {
     if (pricePerKg === null || !Number.isFinite(pricePerKg) || pricePerKg < 0) {
-      redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_create_invalid`);
+      return { ok: false, error: "Enter a valid price per kg." };
     }
     if (!Number.isFinite(weightStepKg) || weightStepKg < 0.01) {
-      redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_create_invalid`);
+      return { ok: false, error: "Weight step must be at least 0.01 kg." };
     }
   }
   if (displayQty.display_quantity != null && displayQty.display_quantity < 0) {
-    redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_create_invalid`);
+    return { ok: false, error: "Display quantity cannot be negative." };
   }
 
   const removableIngredients = parseIngredientJson(formData.get("removable_ingredients")).map(
@@ -545,7 +554,10 @@ export async function createMenuItemAction(formData: FormData) {
   let optionVariantStock = parseVariantStockFromForm(formData.get("option_variant_stock"));
   const stock = buildMenuItemStockPayload(formData);
   if ("error" in stock) {
-    redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_stock_alerts_invalid`);
+    return {
+      ok: false,
+      error: "Check stock alerts: warning must be greater than urgent, and urgent greater than very urgent.",
+    };
   }
   if (stock.track_stock && Object.keys(optionVariantStock).length > 0) {
     stock.stock_quantity = sumVariantStock(optionVariantStock);
@@ -559,11 +571,11 @@ export async function createMenuItemAction(formData: FormData) {
   const proteinG = parseOptionalProteinGrams(formData.get("protein_g"));
 
   const imageFile = formData.get("image_file");
-  if (!(imageFile instanceof File) || imageFile.size === 0) {
-    redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_image_required`);
+  let uploadedImageUrl: string | null = null;
+  if (imageFile instanceof File && imageFile.size > 0) {
+    uploadedImageUrl = await uploadMenuItemImage(imageFile, user.restaurant_id);
   }
-  const [uploadedImageUrl, { brandId, brandName }] = await Promise.all([
-    uploadMenuItemImage(imageFile, user.restaurant_id),
+  const [{ brandId, brandName }] = await Promise.all([
     resolveMenuBrandForItem(
       supabase,
       user.restaurant_id,
@@ -572,7 +584,10 @@ export async function createMenuItemAction(formData: FormData) {
   ]);
   const imageUrl = uploadedImageUrl || firstColorOptionImageUrl(optionGroups) || null;
   if (!imageUrl) {
-    redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_image_required`);
+    return {
+      ok: false,
+      error: "Add a product photo before saving. Your other fields were kept — fix this and try again.",
+    };
   }
 
   const audience = parseItemAudienceFromForm(formData);
@@ -705,7 +720,10 @@ export async function createMenuItemAction(formData: FormData) {
 
   if (error) {
     console.error("[createMenuItemAction]", error.message, error.code, error.details);
-    redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_create_failed`);
+    return {
+      ok: false,
+      error: "Could not save this item. Check your fields and try again — nothing was cleared.",
+    };
   }
 
   if (createdItem?.id) {

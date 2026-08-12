@@ -9,12 +9,24 @@ type Props = {
   sectionsCount?: number | null;
   itemName?: string | undefined | null;
   brandName?: string | undefined | null;
+  /** Food restaurants: "menu". Fashion / retail: "catalog". */
+  itemsLabel?: "menu" | "catalog";
 };
 
-export function RestaurantDashboardToast({ toast, sectionName, sectionsCount, itemName, brandName }: Props) {
+export function RestaurantDashboardToast({
+  toast,
+  sectionName,
+  sectionsCount,
+  itemName,
+  brandName,
+  itemsLabel = "menu",
+}: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const [open, setOpen] = useState(Boolean(toast));
+  const collection = itemsLabel === "catalog" ? "catalog" : "menu";
+  const itemWord = itemsLabel === "catalog" ? "catalog item" : "menu item";
+  const itemsWord = itemsLabel === "catalog" ? "catalog items" : "menu items";
 
   const clearToastParams = useCallback(() => {
     const params = new URLSearchParams(window.location.search);
@@ -53,15 +65,15 @@ export function RestaurantDashboardToast({ toast, sectionName, sectionsCount, it
         Section <span className="font-semibold text-slate-900">“{sectionName}”</span> is ready.
       </>
     ) : (
-      "Your new menu section is ready."
+      `Your new ${collection} section is ready.`
     );
   } else if (toast === "sections_created") {
     heading = "Sections created";
     message =
       sectionsCount && sectionsCount > 1 ? (
         <>
-          <span className="font-semibold text-slate-900">{sectionsCount}</span> sections were added to your
-          menu.
+          <span className="font-semibold text-slate-900">{sectionsCount}</span> sections were added to your{" "}
+          {collection}.
         </>
       ) : (
         "Your new sections are ready."
@@ -73,10 +85,10 @@ export function RestaurantDashboardToast({ toast, sectionName, sectionsCount, it
     heading = "Brand added";
     message = brandName ? (
       <>
-        Brand <span className="font-semibold text-slate-900">“{brandName}”</span> is ready to use on menu items.
+        Brand <span className="font-semibold text-slate-900">“{brandName}”</span> is ready to use on {itemsWord}.
       </>
     ) : (
-      "Your new brand is ready to use on menu items."
+      `Your new brand is ready to use on ${itemsWord}.`
     );
   } else if (toast === "brand_name_required") {
     heading = "Brand name required";
@@ -127,10 +139,10 @@ export function RestaurantDashboardToast({ toast, sectionName, sectionsCount, it
     heading = "Item added";
     message = itemName ? (
       <>
-        <span className="font-semibold text-slate-900">“{itemName}”</span> is on your menu.
+        <span className="font-semibold text-slate-900">“{itemName}”</span> is in your {collection}.
       </>
     ) : (
-      "Your new menu item was saved."
+      `Your new ${itemWord} was saved.`
     );
   } else if (toast === "item_create_invalid") {
     heading = "Check the form";
@@ -158,7 +170,7 @@ export function RestaurantDashboardToast({ toast, sectionName, sectionsCount, it
         Updates to <span className="font-semibold text-slate-900">“{itemName}”</span> were saved.
       </>
     ) : (
-      "Your menu item was updated."
+      `Your ${itemWord} was updated.`
     );
   } else if (toast === "item_update_invalid") {
     heading = "Check the form";

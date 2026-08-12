@@ -7,7 +7,10 @@ function normalizeRate(rate: number) {
 }
 
 export function usdToLbpAmount(usd: number, lbpRate: number): number {
-  return Math.round(usd * normalizeRate(lbpRate));
+  const rate = normalizeRate(lbpRate);
+  // Convert via integer cents to reduce float noise (e.g. 7.26 * 89500).
+  const cents = Math.round(usd * 100);
+  return Math.round((cents * rate) / 100);
 }
 
 export function lbpToUsdAmount(lbp: number, lbpRate: number): number {
@@ -52,6 +55,10 @@ type Props = {
 /**
  * Dual USD / LBP price inputs synced with the store’s dollar rate.
  * Only the USD value is submitted (`name`); LBP is a convenience field.
+ *
+ * Important: when the user types LBP, we keep their exact digits and only
+ * update USD. Rewriting LBP from rounded USD cents caused jumps like
+ * 6,500,000 → 6,500,385.
  */
 export function LinkedCurrencyPriceInput({
   lbpRate,
@@ -82,14 +89,20 @@ export function LinkedCurrencyPriceInput({
       ? formatLbpInput(usdToLbpAmount(initialUsdNum, rate))
       : "",
   );
-  /** While typing LBP, don't overwrite it when tiny amounts round to $0. */
+  /** While typing LBP, don't overwrite it from the USD↔parent sync. */
   const editingLbpRef = useRef(false);
+  /** Skip one parent-driven LBP sync after we push USD from an LBP edit. */
+  const skipNextLbpSyncRef = useRef(false);
 
   // Keep in sync when parent controls USD (e.g. sold-by-weight toggle).
   useEffect(() => {
     if (value === undefined) return;
     setUsd(value);
     if (editingLbpRef.current) return;
+    if (skipNextLbpSyncRef.current) {
+      skipNextLbpSyncRef.current = false;
+      return;
+    }
     const n = Number(value);
     if (value.trim() === "" || !Number.isFinite(n)) {
       setLbp("");
@@ -100,6 +113,7 @@ export function LinkedCurrencyPriceInput({
 
   function updateUsd(next: string) {
     editingLbpRef.current = false;
+    skipNextLbpSyncRef.current = false;
     setUsd(next);
     onChange?.(next);
     const n = Number(next);
@@ -115,18 +129,21 @@ export function LinkedCurrencyPriceInput({
     const digits = sanitizeLbpDigits(next);
     setLbp(digits);
     if (digits === "") {
+      skipNextLbpSyncRef.current = true;
       setUsd("");
       onChange?.("");
       return;
     }
     const n = Number(digits);
     if (!Number.isFinite(n)) {
+      skipNextLbpSyncRef.current = true;
       setUsd("");
       onChange?.("");
       return;
     }
-    // Live preview in USD (may be 0 until LBP is large enough for $0.01).
+    // Live USD preview only — keep the LBP digits the user is typing.
     const nextUsd = formatUsdInput(lbpToUsdAmount(n, rate));
+    skipNextLbpSyncRef.current = true;
     setUsd(nextUsd);
     onChange?.(nextUsd);
   }
@@ -135,6 +152,7 @@ export function LinkedCurrencyPriceInput({
     editingLbpRef.current = false;
     const digits = sanitizeLbpDigits(lbp);
     if (digits === "") {
+      skipNextLbpSyncRef.current = true;
       setLbp("");
       setUsd("");
       onChange?.("");
@@ -143,15 +161,11 @@ export function LinkedCurrencyPriceInput({
     const n = Number(digits);
     if (!Number.isFinite(n)) return;
     const nextUsd = formatUsdInput(lbpToUsdAmount(n, rate));
+    // Keep exactly what the user typed in LBP — do not rewrite from rounded USD.
+    skipNextLbpSyncRef.current = true;
+    setLbp(digits);
     setUsd(nextUsd);
     onChange?.(nextUsd);
-    // Normalize LBP from the rounded USD so both sides match the saved price.
-    const usdNum = Number(nextUsd);
-    setLbp(
-      Number.isFinite(usdNum) && nextUsd !== ""
-        ? formatLbpInput(usdToLbpAmount(usdNum, rate))
-        : digits,
-    );
   }
 
   const rateHint =
