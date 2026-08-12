@@ -632,16 +632,31 @@ export function isFoodMenuBusiness(browseSections: unknown): boolean {
   return sections.includes("Food & Restaurants");
 }
 
-/** Dashboard / QR action labels — "menu" for food businesses, neutral "store" for retail. */
+/** Dashboard / QR action labels — "menu" for food businesses, neutral "store"/"catalog" for retail. */
 export function getStorefrontActionLabels(browseSections: unknown): {
   open: string;
   copyLink: string;
   slugLabel: string;
+  /** Admin nav: Menu (food) vs Catalog (retail). */
+  itemsNav: string;
+  itemsPageTitle: string;
 } {
   if (isFoodMenuBusiness(browseSections)) {
-    return { open: "Open menu", copyLink: "Copy menu link", slugLabel: "Menu" };
+    return {
+      open: "Open menu",
+      copyLink: "Copy menu link",
+      slugLabel: "Menu",
+      itemsNav: "Menu",
+      itemsPageTitle: "Menu items",
+    };
   }
-  return { open: "Open store", copyLink: "Copy store link", slugLabel: "Store" };
+  return {
+    open: "Open store",
+    copyLink: "Copy store link",
+    slugLabel: "Store",
+    itemsNav: "Catalog",
+    itemsPageTitle: "Catalog",
+  };
 }
 
 /** QR codes page — menu vs store wording. */

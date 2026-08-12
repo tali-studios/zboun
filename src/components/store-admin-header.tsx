@@ -110,7 +110,7 @@ export function StoreAdminHeader({
                 </Link>
               ) : null}
               <Link href="/dashboard/business/menu-items" className={navClass(currentPage === "menu-items")}>
-                Menu
+                {storefrontLabels.itemsNav}
               </Link>
               <Link href="/dashboard/business/sales" className={navClass(currentPage === "sales")}>
                 Sales

@@ -166,7 +166,7 @@ export function BusinessMenuItemsSection({
           <div className="mb-5 flex items-start justify-between gap-3">
             <div>
               <h2 className="text-base font-bold text-slate-900">
-                Add {itemProfile.isFoodLike ? "menu item" : "store item"}
+                Add {itemProfile.isFoodLike ? "menu item" : "catalog item"}
               </h2>
               <p className="mt-0.5 text-xs text-slate-500">
                 Fill in the essentials, then expand optional sections for more detail — fields below match your store&apos;s categories.
@@ -201,7 +201,7 @@ export function BusinessMenuItemsSection({
                       <path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z" />
                     </svg>
                   </span>
-                  {itemProfile.isFoodLike ? "Menu items" : "Store items"}
+                  {itemProfile.isFoodLike ? "Menu items" : "Catalog"}
                 </h2>
                 <p className="mt-1.5 text-sm text-slate-500">
                   Search, filter, and update stock directly — each size & color appears on its own row.

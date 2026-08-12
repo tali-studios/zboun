@@ -187,7 +187,7 @@ export default async function BusinessMenuItemsPage({ searchParams }: Props) {
           menuUrl={header.menuUrl}
           driverManagementEnabled={header.driverManagementEnabled}
           currentPage="menu-items"
-          title={itemProfile.isFoodLike ? "Menu items" : "Store items"}
+          title={itemProfile.isFoodLike ? "Menu items" : "Catalog"}
           subtitle="Manage sections and brands, then add and update items."
         />
 
