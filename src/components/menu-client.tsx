@@ -1817,7 +1817,7 @@ export function MenuClient({
                   const cardPriceUsd = Math.round((budgetPriceUsd + listOptionExtra) * 100) / 100;
                   const cardListPriceUsd =
                     Math.round((listBudgetPriceUsd + listOptionExtra) * 100) / 100;
-                  const showListSizes = Boolean(sizeGroup && sizeGroup.values.length >= 2);
+                  const showListSizes = Boolean(sizeGroup && sizeGroup.values.length >= 1);
                   const cardImageUrl =
                     resolveOptionColorImageUrl(
                       optionGroups,
