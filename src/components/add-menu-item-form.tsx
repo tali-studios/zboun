@@ -11,6 +11,7 @@ import { MenuNutritionFields } from "@/components/menu-nutrition-fields";
 import { MenuItemOptionsFields } from "@/components/menu-item-options-fields";
 import { MenuItemStockFields } from "@/components/menu-item-stock-fields";
 import { LinkedCurrencyPriceInput } from "@/components/linked-currency-price-input";
+import { ITEM_AUDIENCES, ITEM_AUDIENCE_LABELS } from "@/lib/item-audience";
 import type { StoreItemProfile } from "@/lib/store-item-profile";
 
 type Category = { id: string; name: string };
@@ -32,6 +33,7 @@ const DEFAULT_PROFILE: StoreItemProfile = {
   isFoodLike: false,
   isFashionLike: false,
   brandRequired: false,
+  audienceTag: false,
   namePlaceholder: "e.g. Product name",
 };
 
@@ -65,13 +67,25 @@ function ExpandSection({
   icon,
   children,
   defaultOpen = false,
+  color = "slate",
 }: {
   label: string;
   icon: React.ReactNode;
   children: React.ReactNode;
   defaultOpen?: boolean;
+  color?: "slate" | "blue" | "green" | "purple" | "orange" | "teal";
 }) {
   const [open, setOpen] = useState(defaultOpen);
+  
+  const colorClasses = {
+    slate: "bg-slate-100 text-slate-600",
+    blue: "bg-blue-100 text-blue-600",
+    green: "bg-emerald-100 text-emerald-600",
+    purple: "bg-purple-100 text-purple-600",
+    orange: "bg-orange-100 text-orange-600",
+    teal: "bg-teal-100 text-teal-600",
+  };
+
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
       <button
@@ -80,7 +94,7 @@ function ExpandSection({
         className="flex w-full items-center justify-between px-5 py-3.5 text-left transition hover:bg-slate-50/60"
       >
         <div className="flex items-center gap-2.5">
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
+          <span className={`flex h-7 w-7 items-center justify-center rounded-lg ${colorClasses[color]}`}>
             {icon}
           </span>
           <span className="text-sm font-semibold text-slate-800">{label}</span>
@@ -198,32 +212,33 @@ export function AddMenuItemForm({
           Essentials
         </p>
 
-        <div className="grid gap-3 sm:grid-cols-3">
-          {/* Section */}
-          <div>
-            <FieldLabel htmlFor="add-category_id" required>Section</FieldLabel>
-            <select id="add-category_id" name="category_id" required className="ui-select w-full">
-              <option value="">Choose…</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
+        <div className="space-y-4">
+          {/* Row 1: Section + Item Name */}
+          <div className="grid gap-3 sm:grid-cols-[200px_1fr]">
+            <div>
+              <FieldLabel htmlFor="add-category_id" required>Section</FieldLabel>
+              <select id="add-category_id" name="category_id" required className="ui-select w-full">
+                <option value="">Choose…</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <FieldLabel htmlFor="add-name" required>Item name</FieldLabel>
+              <input
+                id="add-name"
+                name="name"
+                required
+                placeholder={profile.namePlaceholder}
+                className="ui-input w-full"
+                autoComplete="off"
+              />
+            </div>
           </div>
 
-          {/* Name */}
-          <div className="sm:col-span-2">
-            <FieldLabel htmlFor="add-name" required>Item name</FieldLabel>
-            <input
-              id="add-name"
-              name="name"
-              required
-              placeholder={profile.namePlaceholder}
-              className="ui-input w-full"
-              autoComplete="off"
-            />
-          </div>
-
-          {/* Brand — essential for fashion (required when brands exist) */}
+          {/* Brand */}
           {brands.length > 0 ? (
             <div>
               <FieldLabel htmlFor="add-brand_id" required={brandRequired} optional={!brandRequired}>
@@ -246,9 +261,26 @@ export function AddMenuItemForm({
             <input type="hidden" name="brand_id" value="" />
           )}
 
-          {/* Materials / fabric — fashion only (stored in contents) */}
+          {/* Designed for — full width like materials */}
+          {profile.audienceTag ? (
+            <div>
+              <FieldLabel htmlFor="add-audience" optional>Designed for</FieldLabel>
+              <select id="add-audience" name="audience" className="ui-select w-full" defaultValue="">
+                <option value="">Anyone</option>
+                {ITEM_AUDIENCES.map((value) => (
+                  <option key={value} value={value}>
+                    {ITEM_AUDIENCE_LABELS[value]}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <input type="hidden" name="audience" value="" />
+          )}
+
+          {/* Materials / Fabric (if applicable) */}
           {canShowMaterials ? (
-            <div className={brands.length > 0 ? "sm:col-span-2" : "sm:col-span-3"}>
+            <div>
               <FieldLabel htmlFor="add-contents" optional>Materials / fabric</FieldLabel>
               <input
                 id="add-contents"
@@ -260,40 +292,41 @@ export function AddMenuItemForm({
             </div>
           ) : null}
 
-          {/* Price — USD ↔ LBP (server saves USD) */}
+          {/* Row 4: Price + Display Quantity */}
           {!soldByWeight && (
-            <div className="sm:col-span-2">
-              <LinkedCurrencyPriceInput
-                lbpRate={lbpRate}
-                id="add-price"
-                name="price"
-                required
-                value={price}
-                onChange={setPrice}
-                usdLabel="Price (USD)"
-                lbpLabel="Price (LBP)"
-                usdPlaceholder="30"
-              />
-              <input type="hidden" name="price_per_kg" value="" />
-              <input type="hidden" name="weight_step_kg" value="0.1" />
+            <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+              <div>
+                <LinkedCurrencyPriceInput
+                  lbpRate={lbpRate}
+                  id="add-price"
+                  name="price"
+                  required
+                  value={price}
+                  onChange={setPrice}
+                  usdLabel="Price (USD)"
+                  lbpLabel="Price (LBP)"
+                  usdPlaceholder="30"
+                />
+                <input type="hidden" name="price_per_kg" value="" />
+                <input type="hidden" name="weight_step_kg" value="0.1" />
+              </div>
+
+              {canShowQty ? (
+                <div className="min-w-[140px]">
+                  <DisplayQuantityFields idPrefix="add-item-qty" />
+                </div>
+              ) : (
+                <>
+                  <input type="hidden" name="display_quantity" value="" />
+                  <input type="hidden" name="display_unit" value="g" />
+                </>
+              )}
             </div>
           )}
 
-          {/* Display quantity — only for categories where a weight/volume label makes sense */}
-          {canShowQty && !soldByWeight ? (
-            <div className="min-w-0">
-              <DisplayQuantityFields idPrefix="add-item-qty" />
-            </div>
-          ) : !soldByWeight ? (
-            <>
-              <input type="hidden" name="display_quantity" value="" />
-              <input type="hidden" name="display_unit" value="g" />
-            </>
-          ) : null}
-
-          {/* Sold by weight — only for categories with bulk/scale-priced items (produce, meat, bulk pet food) */}
+          {/* Sold by weight — only for categories with bulk/scale-priced items */}
           {canWeighByWeight ? (
-            <div className="sm:col-span-3">
+            <div>
               <input type="hidden" name="sold_by_weight" value={soldByWeight ? "true" : "false"} />
               <button
                 type="button"
@@ -321,11 +354,11 @@ export function AddMenuItemForm({
               </button>
 
               {soldByWeight && (
-                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_140px]">
                   <input type="hidden" name="price" value="0" />
                   <input type="hidden" name="display_quantity" value="" />
                   <input type="hidden" name="display_unit" value="g" />
-                  <div className="sm:col-span-2">
+                  <div>
                     <LinkedCurrencyPriceInput
                       lbpRate={lbpRate}
                       id="add-price_per_kg"
@@ -355,41 +388,36 @@ export function AddMenuItemForm({
 
       {/* ─── STEP 2: Photo & Description ──────────────────────────────────── */}
       <ExpandSection
-        label="Photo & description"
+        label={canUseProductOptions && isFashion ? "Description" : "Photo & description"}
+        color="blue"
         icon={
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5" aria-hidden>
             <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
           </svg>
         }
       >
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="min-w-0 space-y-3">
-            <div className="min-w-0">
-              <FieldLabel htmlFor="add-description" optional>Description</FieldLabel>
-              <textarea
-                id="add-description"
-                name="description"
-                placeholder={
-                  isFashion
-                    ? "Fit, length, occasion, care tips…"
-                    : isFood
-                      ? "Describe this dish…"
-                      : "Describe this product…"
-                }
-                rows={3}
-                className="ui-textarea w-full max-w-full resize-none"
-              />
-              {isFashion ? (
-                <p className="mt-1 text-xs leading-relaxed text-slate-400">
-                  One main photo is required for the product card. With a single color, all sizes use
-                  that photo. Add two or more colors to set a different photo for each.
-                </p>
-              ) : null}
-            </div>
-          </div>
+        <div className={canUseProductOptions && isFashion ? "" : "grid gap-4 sm:grid-cols-2"}>
           <div className="min-w-0">
-            <ImageUploadField name="image_file" />
+            <FieldLabel htmlFor="add-description" optional>Description</FieldLabel>
+            <textarea
+              id="add-description"
+              name="description"
+              placeholder={
+                isFashion
+                  ? "Fit, length, occasion, care tips…"
+                  : isFood
+                    ? "Describe this dish…"
+                    : "Describe this product…"
+              }
+              rows={3}
+              className="ui-textarea w-full max-w-full resize-none"
+            />
           </div>
+          {!canUseProductOptions || !isFashion ? (
+            <div className="min-w-0">
+              <ImageUploadField name="image_file" />
+            </div>
+          ) : null}
         </div>
       </ExpandSection>
 
@@ -403,6 +431,7 @@ export function AddMenuItemForm({
                 ? "Contents & nutrition (optional)"
                 : "Contents (optional)"
           }
+          color="green"
           icon={
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5" aria-hidden>
               <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
@@ -437,6 +466,7 @@ export function AddMenuItemForm({
         <ExpandSection
           label={isFashion ? "Sizes, colors & inventory" : "Variants & inventory"}
           defaultOpen
+          color="purple"
           icon={
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5" aria-hidden>
               <path d="M4 7h16M4 12h10M4 17h7" />
@@ -456,6 +486,7 @@ export function AddMenuItemForm({
           <input type="hidden" name="option_variant_stock" value="{}" />
           <ExpandSection
             label="Stock & availability"
+            color="orange"
             icon={
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5" aria-hidden>
                 <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
@@ -471,6 +502,7 @@ export function AddMenuItemForm({
       {canCustomizeIngredients ? (
         <ExpandSection
           label="Customization & options"
+          color="teal"
           icon={
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5" aria-hidden>
               <circle cx="12" cy="12" r="3" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14" />

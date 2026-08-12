@@ -36,6 +36,8 @@ export type StoreItemProfile = {
   isFashionLike: boolean;
   /** Require choosing a brand when brands exist (e.g. fashion boutique). */
   brandRequired: boolean;
+  /** Men / Women / Kids audience tag + filters. */
+  audienceTag: boolean;
   /** Example placeholder for the item name field. */
   namePlaceholder: string;
 };
@@ -152,6 +154,7 @@ const NO_EXTRAS_PROFILE: StoreItemProfile = {
   isFoodLike: false,
   isFashionLike: false,
   brandRequired: false,
+  audienceTag: false,
   namePlaceholder: "e.g. iPhone 15 Case – Black",
 };
 
@@ -179,6 +182,8 @@ export function resolveStoreItemProfile(sections: readonly BrowseSection[]): Sto
     isFoodLike: sections.includes("Food & Restaurants"),
     isFashionLike,
     brandRequired: isFashionLike,
+    audienceTag:
+      isFashionLike || sections.includes("Sports & Outdoors"),
     namePlaceholder: resolveNamePlaceholder(sections),
   };
 }

@@ -102,6 +102,7 @@ export type CategoryWithItems = {
     option_label?: string | null;
     option_values?: unknown;
     option_variant_stock?: Record<string, number> | null;
+    audience?: string | null;
     track_stock?: boolean;
     stock_quantity?: number | null;
     sale_price?: number | null;
@@ -292,6 +293,7 @@ function mapRestaurantMenuCategories(data: unknown[] | null | undefined, promoti
             item.option_variant_stock && typeof item.option_variant_stock === "object"
               ? (item.option_variant_stock as Record<string, number>)
               : {},
+          audience: (item.audience as string | null) ?? null,
           track_stock: Boolean(item.track_stock),
           stock_quantity: item.stock_quantity != null ? Number(item.stock_quantity) : null,
           image_url: (item.image_url as string | null) ?? null,
@@ -367,7 +369,7 @@ export async function getRestaurantMenu(restaurantId: string) {
   const supabase = await createServerSupabaseClient();
   const promotions = await getRestaurantMenuPromotions(restaurantId);
   const menuItemsSelectBase =
-    "id, name, brand_id, brand_name, menu_brands(id, name, logo_url), description, contents, grams, display_quantity, display_unit, price, sold_by_weight, price_per_kg, weight_step_kg, removable_ingredients, add_ingredients, option_label, option_values, option_variant_stock, image_url, is_available";
+    "id, name, brand_id, brand_name, menu_brands(id, name, logo_url), description, contents, grams, display_quantity, display_unit, price, sold_by_weight, price_per_kg, weight_step_kg, removable_ingredients, add_ingredients, option_label, option_values, option_variant_stock, audience, image_url, is_available";
   const menuItemsSelectWithStock = `${menuItemsSelectBase}, track_stock, stock_quantity`;
   const menuItemsSelectWithNutrition = `${menuItemsSelectWithStock}, calories, protein_g`;
   const menuItemsSelectWithNutritionNoStock = `${menuItemsSelectBase}, calories, protein_g`;
@@ -387,6 +389,11 @@ export async function getRestaurantMenu(restaurantId: string) {
 
   let menuItemsSelect = menuItemsSelectWithNutrition;
   let { data, error } = await runQuery(menuItemsSelect);
+
+  if (error && /\baudience\b/i.test(error.message ?? "")) {
+    menuItemsSelect = menuItemsSelect.replace(", audience", "");
+    ({ data, error } = await runQuery(menuItemsSelect));
+  }
 
   if (error && /option_variant_stock/i.test(error.message ?? "")) {
     menuItemsSelect = `${menuItemsSelectBaseNoVariantStock}, track_stock, stock_quantity, calories, protein_g`;

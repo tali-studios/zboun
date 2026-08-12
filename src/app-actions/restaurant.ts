@@ -27,6 +27,7 @@ function revalidateMenuAdminPaths() {
   revalidatePath(MENU_ITEMS_ADMIN_PATH);
 }
 import { parseDisplayQuantityFromForm } from "@/lib/display-quantity";
+import { parseItemAudienceFromForm, isAudienceColumnMigrationError } from "@/lib/item-audience";
 import {
   applyColorImagesToGroups,
   buildVariantKey,
@@ -574,6 +575,8 @@ export async function createMenuItemAction(formData: FormData) {
     redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_image_required`);
   }
 
+  const audience = parseItemAudienceFromForm(formData);
+
   const { data: createdItem, error } = await supabase.from("menu_items").insert({
     restaurant_id: user.restaurant_id,
     category_id: categoryId,
@@ -594,12 +597,46 @@ export async function createMenuItemAction(formData: FormData) {
     option_label: optionLabel,
     option_values: optionValues,
     option_variant_stock: optionVariantStock,
+    audience,
     ...stock,
     is_available: stock.track_stock ? stock.is_available! : true,
     sold_by_weight: soldByWeight,
     price_per_kg: soldByWeight ? pricePerKg : null,
     weight_step_kg: soldByWeight ? weightStepKg : 0.1,
   }).select("id").single();
+
+  if (error && isAudienceColumnMigrationError(error.message, error.code)) {
+    const retry = await supabase.from("menu_items").insert({
+      restaurant_id: user.restaurant_id,
+      category_id: categoryId,
+      name,
+      brand_id: brandId,
+      brand_name: brandName,
+      description,
+      price,
+      image_url: imageUrl,
+      grams: displayQty.grams,
+      display_quantity: displayQty.display_quantity,
+      display_unit: displayQty.display_unit,
+      calories,
+      protein_g: proteinG,
+      contents: String(formData.get("contents") ?? "").trim() || null,
+      removable_ingredients: removableIngredients,
+      add_ingredients: addIngredients,
+      option_label: optionLabel,
+      option_values: optionValues,
+      option_variant_stock: optionVariantStock,
+      ...stock,
+      is_available: stock.track_stock ? stock.is_available! : true,
+      sold_by_weight: soldByWeight,
+      price_per_kg: soldByWeight ? pricePerKg : null,
+      weight_step_kg: soldByWeight ? weightStepKg : 0.1,
+    }).select("id").single();
+    if (!retry.error && retry.data?.id) {
+      revalidatePath(MENU_ITEMS_ADMIN_PATH);
+      redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_created&item_name=${encodeURIComponent(name)}`);
+    }
+  }
 
   if (error && isStockAlertColumnMigrationError(error.message, error.code)) {
     const { data: retryItem, error: retryError } = await supabase
@@ -777,6 +814,7 @@ export async function updateMenuItemAction(formData: FormData) {
   );
   const calories = parseOptionalCalories(formData.get("calories"));
   const proteinG = parseOptionalProteinGrams(formData.get("protein_g"));
+  const audience = parseItemAudienceFromForm(formData);
 
   const updatePayload = {
     name,
@@ -797,6 +835,7 @@ export async function updateMenuItemAction(formData: FormData) {
     option_label: optionLabel,
     option_values: optionValues,
     option_variant_stock: optionVariantStock,
+    audience,
     ...stock,
     ...(stock.track_stock ? { is_available: stock.is_available! } : {}),
     sold_by_weight: soldByWeight,
@@ -815,6 +854,22 @@ export async function updateMenuItemAction(formData: FormData) {
     const retry = await supabase
       .from("menu_items")
       .update(withoutVariantStock)
+      .eq("id", id)
+      .eq("restaurant_id", user.restaurant_id);
+    if (!retry.error) {
+      void notifyStockAlertsForMenuItem(supabase, id, user.restaurant_id);
+      void pushOutboundStockUpdate(user.restaurant_id, id);
+      revalidateMenuAdminPaths();
+      redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_updated&item_name=${encodeURIComponent(name)}`);
+    }
+    error = retry.error;
+  }
+
+  if (error && isAudienceColumnMigrationError(error.message, error.code)) {
+    const { audience: _audience, ...withoutAudience } = updatePayload;
+    const retry = await supabase
+      .from("menu_items")
+      .update(withoutAudience)
       .eq("id", id)
       .eq("restaurant_id", user.restaurant_id);
     if (!retry.error) {

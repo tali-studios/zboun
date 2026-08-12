@@ -9,12 +9,14 @@ export function buildMenuItemsListHref(opts: {
   category?: string;
   stock?: string;
   sort?: string;
+  audience?: string;
   page?: number;
 }) {
   const params = new URLSearchParams();
   if (opts.q?.trim()) params.set("q", opts.q.trim());
   if (opts.category?.trim()) params.set("category", opts.category.trim());
   if (opts.stock?.trim()) params.set("stock", opts.stock.trim());
+  if (opts.audience?.trim()) params.set("audience", opts.audience.trim());
   if (opts.sort?.trim() && opts.sort !== "name_asc") params.set("sort", opts.sort.trim());
   if (opts.page && opts.page > 1) params.set("page", String(opts.page));
   const qs = params.toString();
@@ -44,6 +46,7 @@ export type AdminMenuItemRow = {
   option_label?: string | null;
   option_values?: unknown;
   option_variant_stock?: Record<string, number> | null;
+  audience?: string | null;
   track_stock?: boolean;
   stock_quantity?: number | null;
   stock_alert_warning_qty?: number | null;
@@ -65,7 +68,7 @@ export async function loadMenuItemsAdminData(
   restaurantId: string,
 ): Promise<{ items: AdminMenuItemRow[]; brands: AdminMenuBrand[] }> {
   const itemsSelectBase =
-    "id, name, brand_id, brand_name, description, price, image_url, grams, display_quantity, display_unit, contents, sold_by_weight, price_per_kg, weight_step_kg, removable_ingredients, add_ingredients, option_label, option_values, option_variant_stock, is_available, category_id, menu_brands(id, name, logo_url), categories(name)";
+    "id, name, brand_id, brand_name, description, price, image_url, grams, display_quantity, display_unit, contents, sold_by_weight, price_per_kg, weight_step_kg, removable_ingredients, add_ingredients, option_label, option_values, option_variant_stock, audience, is_available, category_id, menu_brands(id, name, logo_url), categories(name)";
   const itemsSelectWithStock = `${itemsSelectBase}, track_stock, stock_quantity`;
   const itemsSelectWithStockAlerts = `${itemsSelectWithStock}, stock_alert_warning_qty, stock_alert_urgent_qty, stock_alert_critical_qty`;
   const itemsSelectWithNutrition = `${itemsSelectWithStockAlerts}, calories, protein_g`;
@@ -80,6 +83,18 @@ export async function loadMenuItemsAdminData(
 
   let itemsRows: unknown[] | null = itemsWithOptions;
   let itemsQueryError = itemsWithOptionsError;
+
+  if (itemsQueryError && /\baudience\b/i.test(itemsQueryError.message ?? "")) {
+    const withoutAudience =
+      "id, name, brand_id, brand_name, description, price, image_url, grams, display_quantity, display_unit, contents, sold_by_weight, price_per_kg, weight_step_kg, removable_ingredients, add_ingredients, option_label, option_values, option_variant_stock, is_available, category_id, menu_brands(id, name, logo_url), categories(name), track_stock, stock_quantity, stock_alert_warning_qty, stock_alert_urgent_qty, stock_alert_critical_qty, calories, protein_g";
+    const retry = await supabase
+      .from("menu_items")
+      .select(withoutAudience)
+      .eq("restaurant_id", restaurantId)
+      .order("name");
+    itemsRows = retry.data;
+    itemsQueryError = retry.error;
+  }
 
   if (itemsQueryError && /option_variant_stock/i.test(itemsQueryError.message ?? "")) {
     const baseWithoutVariant =
@@ -169,6 +184,7 @@ export async function loadMenuItemsAdminData(
         item.option_variant_stock && typeof item.option_variant_stock === "object"
           ? (item.option_variant_stock as Record<string, number>)
           : {},
+      audience: item.audience ?? null,
     };
   });
 

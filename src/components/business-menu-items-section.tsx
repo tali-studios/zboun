@@ -26,6 +26,7 @@ import { getMenuItemStockAlertLevel, isMenuItemLowStock } from "@/lib/menu-item-
 import { stockAlertBadgeClass, stockAlertBadgeLabel } from "@/lib/menu-item-stock-alerts";
 import { normalizeOptionGroups, parseVariantStockMap, buildVariantKey, listVariantCombinations, formatSelectedOptionsDisplay, resolveOptionColorImageUrl } from "@/lib/menu-item-options";
 import { resolveColorSwatch } from "@/lib/color-swatches";
+import { ITEM_AUDIENCES, ITEM_AUDIENCE_LABELS, itemAudienceLabel } from "@/lib/item-audience";
 import type { MenuItemsSort } from "@/lib/menu-items-admin";
 import type { StoreItemProfile } from "@/lib/store-item-profile";
 
@@ -65,7 +66,6 @@ type StockTableRow =
       qty: number;
       imageUrl: string | null;
       colorSwatch: string | null;
-      isFirst: boolean;
     };
 
 function isColorLikeOptionLabel(label: string) {
@@ -91,7 +91,6 @@ function buildStockTableRows(item: AdminMenuItemRow): StockTableRow[] {
       qty: Math.max(0, Math.floor(Number(stocks[variantKey] ?? 0))),
       imageUrl: resolveOptionColorImageUrl(groups, combo, item.image_url) ?? item.image_url ?? null,
       colorSwatch: colorName ? resolveColorSwatch(colorName).background : null,
-      isFirst: index === 0,
     };
   });
 }
@@ -117,14 +116,7 @@ function buildDisplayStockRows(items: AdminMenuItemRow[], sort: MenuItemsSort): 
       return bQty - aQty || a.item.name.localeCompare(b.item.name);
     });
   }
-  // After reorder, show edit/delete only on the first visible row per product.
-  const seen = new Set<string>();
-  return rows.map((row) => {
-    const first = !seen.has(row.item.id);
-    seen.add(row.item.id);
-    if (row.kind === "variant") return { ...row, isFirst: first };
-    return row;
-  });
+  return rows;
 }
 
 type Props = {
@@ -139,11 +131,12 @@ type Props = {
   initialQ: string;
   selectedCategory: string;
   selectedStock: string;
+  selectedAudience?: string;
   selectedSort: MenuItemsSort;
   normalizedItemsCount: number;
   itemsSafePage: number;
   itemsTotalPages: number;
-  listHrefBase: { q: string; category: string; stock: string; sort: MenuItemsSort };
+  listHrefBase: { q: string; category: string; stock: string; audience?: string; sort: MenuItemsSort };
   lbpRate?: number;
 };
 
@@ -159,6 +152,7 @@ export function BusinessMenuItemsSection({
   initialQ,
   selectedCategory,
   selectedStock,
+  selectedAudience = "",
   selectedSort,
   normalizedItemsCount,
   itemsSafePage,
@@ -201,10 +195,15 @@ export function BusinessMenuItemsSection({
           <div className="border-b border-slate-200 px-4 py-4 md:px-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h2 className="panel-title" id="items-toolbar">
+                <h2 className="flex items-center gap-2.5 text-2xl font-bold text-slate-900" id="items-toolbar">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden>
+                      <path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z" />
+                    </svg>
+                  </span>
                   {itemProfile.isFoodLike ? "Menu items" : "Store items"}
                 </h2>
-                <p className="mt-0.5 text-sm text-slate-500">
+                <p className="mt-1.5 text-sm text-slate-500">
                   Search, filter, and update stock directly — each size & color appears on its own row.
                 </p>
               </div>
@@ -229,9 +228,11 @@ export function BusinessMenuItemsSection({
             initialQ={initialQ}
             initialCategory={selectedCategory}
             initialStock={selectedStock}
+            initialAudience={selectedAudience}
             initialSort={selectedSort}
             totalCount={normalizedItemsCount}
             filteredCount={sortedItems.length}
+            showAudienceFilter={itemProfile.audienceTag}
           />
 
           <div className="overflow-x-auto">
@@ -256,8 +257,8 @@ export function BusinessMenuItemsSection({
                   const alertLevel = getMenuItemStockAlertLevel(item);
                   const rowBg = rowIdx % 2 === 0 ? "bg-white" : "bg-slate-50/40";
                   const isVariant = stockRow.kind === "variant";
-                  const showProductActions = !isVariant || stockRow.isFirst;
                   const rowKey = isVariant ? `${item.id}__${stockRow.variantKey}` : item.id;
+                  const actionId = rowKey.replace(/[^a-zA-Z0-9_-]/g, "_");
                   const thumbUrl = isVariant ? stockRow.imageUrl : item.image_url;
                   return (
                   <tr key={rowKey} className={`${rowBg} transition-colors hover:bg-violet-50/30`}>
@@ -291,16 +292,21 @@ export function BusinessMenuItemsSection({
                               {stockRow.variantLabel}
                             </span>
                           ) : null}
+                          {itemAudienceLabel(item.audience) ? (
+                            <span className="ml-1 mt-0.5 inline-block rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-semibold text-sky-700">
+                              {itemAudienceLabel(item.audience)}
+                            </span>
+                          ) : null}
                           {item.brand_name ? (
                             <span className="ml-1 mt-0.5 inline-block rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
                               {item.brand_name}
                             </span>
                           ) : null}
-                          {showProductActions && !item.is_available ? (
+                          {!item.is_available ? (
                             <span className="ml-1 mt-0.5 inline-block rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-600">
                               Out of stock
                             </span>
-                          ) : showProductActions && alertLevel && alertLevel !== "ok" ? (
+                          ) : alertLevel && alertLevel !== "ok" ? (
                             <span className={`ml-1 mt-0.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${stockAlertBadgeClass(alertLevel)}`}>
                               {stockAlertBadgeLabel(item)}
                             </span>
@@ -326,18 +332,16 @@ export function BusinessMenuItemsSection({
                         urgentQty={item.stock_alert_urgent_qty}
                         criticalQty={item.stock_alert_critical_qty}
                         variantKey={isVariant ? stockRow.variantKey : null}
-                        hideStopTracking={isVariant && !stockRow.isFirst}
                       />
                     </td>
                     <td className="px-5 py-4">
-                      {showProductActions ? (
                       <div className="flex flex-nowrap items-center gap-1.5">
 
                         {/* EDIT */}
                         <div className="relative">
-                          <input id={`edit-${item.id}`} type="checkbox" className="peer hidden" />
+                          <input id={`edit-${actionId}`} type="checkbox" className="peer hidden" />
                           <label
-                            htmlFor={`edit-${item.id}`}
+                            htmlFor={`edit-${actionId}`}
                             aria-label="Edit item"
                             title="Edit this item"
                             className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-violet-200 bg-violet-50 text-violet-600 transition hover:bg-violet-100 hover:text-violet-800"
@@ -347,7 +351,7 @@ export function BusinessMenuItemsSection({
                             </svg>
                           </label>
                           <div className="pointer-events-none fixed inset-0 z-40 hidden items-center justify-center bg-slate-900/50 p-4 peer-checked:flex peer-checked:pointer-events-auto">
-                            <label htmlFor={`edit-${item.id}`} className="absolute inset-0 cursor-pointer" />
+                            <label htmlFor={`edit-${actionId}`} className="absolute inset-0 cursor-pointer" />
                             <div className="relative z-10 max-h-[90vh] w-full max-w-3xl overflow-auto rounded-2xl bg-white p-4 shadow-xl sm:p-5">
                               <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0 flex-1 pr-2">
@@ -357,7 +361,7 @@ export function BusinessMenuItemsSection({
                                   </p>
                                 </div>
                                 <label
-                                  htmlFor={`edit-${item.id}`}
+                                  htmlFor={`edit-${actionId}`}
                                   className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full text-slate-500 ring-1 ring-slate-200 transition hover:bg-slate-50 hover:text-slate-800"
                                   aria-label="Close"
                                   title="Close"
@@ -402,6 +406,25 @@ export function BusinessMenuItemsSection({
                                     ))}
                                   </select>
                                 </label>
+                                {itemProfile.audienceTag ? (
+                                  <label className="space-y-1">
+                                    <FormFieldLabel optional>Designed for</FormFieldLabel>
+                                    <select
+                                      name="audience"
+                                      defaultValue={item.audience ?? ""}
+                                      className="ui-select"
+                                    >
+                                      <option value="">Anyone</option>
+                                      {ITEM_AUDIENCES.map((value) => (
+                                        <option key={value} value={value}>
+                                          {ITEM_AUDIENCE_LABELS[value]}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </label>
+                                ) : (
+                                  <input type="hidden" name="audience" value="" />
+                                )}
                                 <label className="space-y-1 md:col-span-2">
                                   <FormFieldLabel optional>Description</FormFieldLabel>
                                   <input name="description" defaultValue={item.description ?? ""} placeholder="Description" className="ui-input" />
@@ -410,7 +433,7 @@ export function BusinessMenuItemsSection({
                                 {/* — Pricing — */}
                                 <div className="md:col-span-2">
                                   <MenuItemPricingFields
-                                    idPrefix={`edit-${item.id}-qty`}
+                                    idPrefix={`edit-${actionId}-qty`}
                                     defaultPrice={item.price}
                                     defaultGrams={item.grams}
                                     defaultDisplayQuantity={item.display_quantity}
@@ -453,7 +476,7 @@ export function BusinessMenuItemsSection({
                                     {itemProfile.nutrition && (
                                       <div className="md:col-span-2">
                                         <MenuNutritionFields
-                                          idPrefix={`edit-${item.id}-nutrition`}
+                                          idPrefix={`edit-${actionId}-nutrition`}
                                           defaultCalories={item.calories}
                                           defaultProteinG={item.protein_g}
                                         />
@@ -467,13 +490,18 @@ export function BusinessMenuItemsSection({
                                 {/* — Product options + inventory — */}
                                 {itemProfile.productOptions ? (
                                   <div className="md:col-span-2 space-y-3">
-                                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                    <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-700">
+                                      <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-purple-100 text-purple-600">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3" aria-hidden>
+                                          <path d="M4 7h16M4 12h10M4 17h7" />
+                                        </svg>
+                                      </span>
                                       {itemProfile.isFashionLike
                                         ? "Sizes, colors & inventory"
                                         : "Variants & inventory"}
                                     </p>
                                     <MenuItemOptionsFields
-                                      idPrefix={`edit-${item.id}-`}
+                                      idPrefix={`edit-${actionId}-`}
                                       includeStockPanel
                                       hints={itemProfile.optionHints}
                                       defaultGroups={normalizeOptionGroups(
@@ -494,7 +522,7 @@ export function BusinessMenuItemsSection({
                                   <>
                                     <div className="md:col-span-2">
                                       <MenuItemStockFields
-                                        idPrefix={`edit-stock-${item.id}-`}
+                                        idPrefix={`edit-stock-${actionId}-`}
                                         defaultTrackStock={Boolean(item.track_stock)}
                                         defaultStockQuantity={item.stock_quantity}
                                         defaultWarningQty={item.stock_alert_warning_qty}
@@ -552,19 +580,21 @@ export function BusinessMenuItemsSection({
                                 )}
 
                                 {/* — Image — */}
-                                <div className="md:col-span-2">
-                                  <ImageUploadField
-                                    name="image_file"
-                                    initialImageUrl={item.image_url}
-                                    label="Item image"
-                                  />
-                                </div>
+                                {!itemProfile.productOptions || !itemProfile.isFashionLike ? (
+                                  <div className="md:col-span-2">
+                                    <ImageUploadField
+                                      name="image_file"
+                                      initialImageUrl={item.image_url}
+                                      label="Item image"
+                                    />
+                                  </div>
+                                ) : null}
                                 <div className="md:col-span-2 space-y-2 border-t border-slate-100 pt-3">
                                   <button type="submit" className="btn btn-primary w-full rounded-xl py-3">
                                     Save changes
                                   </button>
                                   <label
-                                    htmlFor={`edit-${item.id}`}
+                                    htmlFor={`edit-${actionId}`}
                                     title="Close"
                                     className="btn btn-danger w-full cursor-pointer"
                                   >
@@ -577,9 +607,9 @@ export function BusinessMenuItemsSection({
                         </div>
 
                         <div className="relative">
-                          <input id={`delete-${item.id}`} type="checkbox" className="peer hidden" />
+                          <input id={`delete-${actionId}`} type="checkbox" className="peer hidden" />
                           <label
-                            htmlFor={`delete-${item.id}`}
+                            htmlFor={`delete-${actionId}`}
                             aria-label="Delete item"
                             title="Delete this item"
                             className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-500 transition hover:bg-red-100 hover:text-red-700"
@@ -589,14 +619,14 @@ export function BusinessMenuItemsSection({
                             </svg>
                           </label>
                           <div className="pointer-events-none fixed inset-0 z-40 hidden items-center justify-center bg-slate-900/50 p-4 peer-checked:flex peer-checked:pointer-events-auto">
-                            <label htmlFor={`delete-${item.id}`} className="absolute inset-0 cursor-pointer" />
+                            <label htmlFor={`delete-${actionId}`} className="absolute inset-0 cursor-pointer" />
                             <div className="relative z-10 w-full max-w-md rounded-2xl bg-white p-4 shadow-xl sm:p-5">
                               <h3 className="text-lg font-bold text-slate-900">Delete item?</h3>
                               <p className="mt-2 text-sm text-slate-600">
                                 Please confirm deleting <span className="font-semibold">{item.name}</span>. This cannot be undone.
                               </p>
                               <div className="mt-4 flex justify-end gap-2">
-                                <label htmlFor={`delete-${item.id}`} className="inline-flex cursor-pointer rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                                <label htmlFor={`delete-${actionId}`} className="inline-flex cursor-pointer rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
                                   Cancel
                                 </label>
                                 <form action={deleteMenuItemAction}>
@@ -611,9 +641,9 @@ export function BusinessMenuItemsSection({
                         </div>
 
                         <div className="relative">
-                          <input id={`stock-${item.id}`} type="checkbox" className="peer hidden" />
+                          <input id={`stock-${actionId}`} type="checkbox" className="peer hidden" />
                           <label
-                            htmlFor={`stock-${item.id}`}
+                            htmlFor={`stock-${actionId}`}
                             aria-label={item.is_available ? "Mark out of stock" : "Mark in stock"}
                             title={item.is_available ? "Mark as out of stock" : "Mark as in stock"}
                             className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg transition ${
@@ -633,7 +663,7 @@ export function BusinessMenuItemsSection({
                             )}
                           </label>
                           <div className="pointer-events-none fixed inset-0 z-40 hidden items-center justify-center bg-slate-900/50 p-4 peer-checked:flex peer-checked:pointer-events-auto">
-                            <label htmlFor={`stock-${item.id}`} className="absolute inset-0 cursor-pointer" />
+                            <label htmlFor={`stock-${actionId}`} className="absolute inset-0 cursor-pointer" />
                             <div className="relative z-10 w-full max-w-md rounded-2xl bg-white p-4 shadow-xl sm:p-5">
                               <h3 className="text-lg font-bold text-slate-900">Confirm stock change</h3>
                               <p className="mt-2 text-sm text-slate-600">
@@ -642,7 +672,7 @@ export function BusinessMenuItemsSection({
                                   : `Mark ${item.name} as in stock?`}
                               </p>
                               <div className="mt-4 flex justify-end gap-2">
-                                <label htmlFor={`stock-${item.id}`} className="inline-flex cursor-pointer rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                                <label htmlFor={`stock-${actionId}`} className="inline-flex cursor-pointer rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
                                   Cancel
                                 </label>
                                 <form action={toggleMenuItemAvailabilityAction}>
@@ -657,9 +687,6 @@ export function BusinessMenuItemsSection({
                           </div>
                         </div>
                       </div>
-                      ) : (
-                        <span className="text-xs text-slate-300">—</span>
-                      )}
                     </td>
                   </tr>
                   );

@@ -19,6 +19,7 @@ import {
 } from "@/lib/browse-sections";
 import type { BrowseSection } from "@/lib/browse-sections";
 import { hasCatalogDashboard, parseBusinessType } from "@/lib/business-types";
+import { parseAudienceFilter, itemAudienceLabel, itemMatchesAudienceFilter } from "@/lib/item-audience";
 import { resolveStoreItemProfile } from "@/lib/store-item-profile";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +29,7 @@ type Props = {
     q?: string;
     category?: string;
     stock?: string;
+    audience?: string;
     sort?: string;
     page?: string;
     jump?: string;
@@ -49,6 +51,7 @@ export default async function BusinessMenuItemsPage({ searchParams }: Props) {
     q,
     category,
     stock,
+    audience: audienceRaw,
     sort: sortRaw,
     page: pageRaw,
     jump,
@@ -115,10 +118,12 @@ export default async function BusinessMenuItemsPage({ searchParams }: Props) {
   const normalizedQuery = (q ?? "").trim().toLowerCase();
   const selectedCategory = (category ?? "").trim();
   const selectedStock = (stock ?? "").trim();
+  const selectedAudience = parseAudienceFilter(audienceRaw);
   const selectedSort = parseMenuItemsSort(sortRaw);
 
   const filteredItems = normalizedItems.filter((item) => {
     if (selectedCategory && item.category_id !== selectedCategory) return false;
+    if (selectedAudience && !itemMatchesAudienceFilter(item.audience, selectedAudience)) return false;
     if (selectedStock === "in" && !item.is_available) return false;
     if (selectedStock === "out" && item.is_available) return false;
     if (selectedStock === "low" && !isMenuItemLowStock(item)) return false;
@@ -132,6 +137,7 @@ export default async function BusinessMenuItemsPage({ searchParams }: Props) {
       (item.menu_brands?.name ?? "").toLowerCase().includes(normalizedQuery) ||
       (item.description ?? "").toLowerCase().includes(normalizedQuery) ||
       (item.contents ?? "").toLowerCase().includes(normalizedQuery) ||
+      (itemAudienceLabel(item.audience) ?? "").toLowerCase().includes(normalizedQuery) ||
       categoryName.toLowerCase().includes(normalizedQuery) ||
       optionText.includes(normalizedQuery)
     );
@@ -143,7 +149,13 @@ export default async function BusinessMenuItemsPage({ searchParams }: Props) {
   const itemsSafePage = Math.min(itemsPage, itemsTotalPages);
   const itemsPageStart = (itemsSafePage - 1) * MENU_ITEMS_ADMIN_PAGE_SIZE;
   const pagedItems = sortedItems.slice(itemsPageStart, itemsPageStart + MENU_ITEMS_ADMIN_PAGE_SIZE);
-  const listHrefBase = { q: q ?? "", category: selectedCategory, stock: selectedStock, sort: selectedSort };
+  const listHrefBase = {
+    q: q ?? "",
+    category: selectedCategory,
+    stock: selectedStock,
+    audience: selectedAudience,
+    sort: selectedSort,
+  };
   const menuItemsLowStockCount = normalizedItems.filter((item) => isMenuItemLowStock(item)).length;
 
   const rawBrowseSections = getRawBrowseSectionValues(restaurant?.browse_sections ?? []);
@@ -201,6 +213,7 @@ export default async function BusinessMenuItemsPage({ searchParams }: Props) {
           initialQ={q ?? ""}
           selectedCategory={selectedCategory}
           selectedStock={selectedStock}
+          selectedAudience={selectedAudience}
           selectedSort={selectedSort}
           normalizedItemsCount={normalizedItems.length}
           itemsSafePage={itemsSafePage}

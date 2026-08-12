@@ -360,7 +360,7 @@ export function MenuItemOptionsFields({
   }
 
   function renderVariantEditor() {
-    return (
+  return (
       <FashionStockEditor
         groups={cleanGroups}
         combinations={combinations.slice(0, 80)}
@@ -520,12 +520,89 @@ export function MenuItemOptionsFields({
     const selectedSizes = new Set((sizeGroup?.values ?? []).map((v) => v.name));
     const selectedColors = new Set((colorGroup?.values ?? []).map((v) => v.name));
     const sizeIdx = sizeGroupIndex >= 0 ? sizeGroupIndex : 0;
+    const hasMultipleColors = (colorGroup?.values.length ?? 0) >= 2;
+    const hasSingleColor = (colorGroup?.values.length ?? 0) === 1;
 
     return (
       <div className="space-y-4">
         <input type="hidden" name="option_label" value={primaryLabel} />
         <input type="hidden" name="option_values" value={optionValuesJson} />
         <input type="hidden" name="option_variant_stock" value={stockJson} />
+
+        {/* ─── Consolidated Image Management ───────────────────────────────── */}
+        <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4">
+          <div>
+            <p className="text-sm font-semibold text-slate-900">Product Photos</p>
+            <p className="mt-0.5 text-xs leading-relaxed text-slate-500">
+              {hasMultipleColors
+                ? "Upload one photo for each color. These will be shown to customers when they select a color."
+                : hasSingleColor
+                  ? "Upload one main photo — it will be used for all sizes of your single color."
+                  : "Upload one main photo for your product. Add colors below to enable per-color photos."}
+            </p>
+          </div>
+
+          {!colorGroup || (colorGroup.values.length === 0) ? (
+            <div className="rounded-xl border border-slate-200 bg-white p-4">
+              <ImageUploadField name="image_file" label="Main product photo" />
+              <p className="mt-2 text-xs text-slate-500">
+                This photo will be shown on the product card and detail view.
+              </p>
+            </div>
+          ) : hasSingleColor ? (
+            <div className="rounded-xl border border-slate-200 bg-white p-4">
+              <ImageUploadField name="image_file" label="Product photo" />
+              <p className="mt-2 text-xs text-slate-500">
+                All sizes of <strong>{colorGroup.values[0].name}</strong> will use this photo.
+              </p>
+              {colorGroup.values.map((colorValue) => {
+                const enc = encodeURIComponent(colorValue.name);
+                return (
+                  <input
+                    key={colorValue.name}
+                    type="hidden"
+                    name={`color_image_current__${enc}`}
+                    value={colorValue.image_url ?? ""}
+                  />
+                );
+              })}
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              <div className="grid gap-3 sm:grid-cols-2">
+                {colorGroup.values.map((colorValue) => {
+                  const enc = encodeURIComponent(colorValue.name);
+                  return (
+                    <div
+                      key={colorValue.name}
+                      className="rounded-xl border border-slate-200 bg-white p-4"
+                    >
+                      <p className="mb-2.5 text-xs font-bold uppercase tracking-wide text-slate-700">
+                        {colorValue.name}
+                      </p>
+                      <input
+                        type="hidden"
+                        name={`color_image_current__${enc}`}
+                        value={colorValue.image_url ?? ""}
+                      />
+                      <ImageUploadField
+                        name={`color_image__${enc}`}
+                        label=""
+                        initialImageUrl={colorValue.image_url}
+                        optional
+                        inline
+                        uploadAriaLabel={`Upload photo for ${colorValue.name}`}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="text-[11px] leading-relaxed text-slate-600">
+                Optional: Leave any color empty to use a placeholder. Upload only when you have a photo for that specific color.
+              </p>
+            </div>
+          )}
+        </div>
 
         {/* Size */}
         <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4">
@@ -729,68 +806,6 @@ export function MenuItemOptionsFields({
                   ))}
                 </div>
               </details>
-
-              {colorGroup.values.length === 1 ? (
-                <div className="rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5">
-                  <p className="text-xs font-semibold text-slate-800">Product photo</p>
-                  <p className="mt-0.5 text-[11px] leading-relaxed text-slate-500">
-                    One color selected — shoppers will see your main product photo for every size.
-                    Add another color below if each color needs its own photo.
-                  </p>
-                  {/* Preserve any existing per-color URLs when re-saving. */}
-                  {colorGroup.values.map((colorValue) => {
-                    const enc = encodeURIComponent(colorValue.name);
-                    return (
-                      <input
-                        key={colorValue.name}
-                        type="hidden"
-                        name={`color_image_current__${enc}`}
-                        value={colorValue.image_url ?? ""}
-                      />
-                    );
-                  })}
-                </div>
-              ) : null}
-
-              {colorGroup.values.length >= 2 ? (
-                <div className="space-y-2 border-t border-slate-100 pt-3">
-                  <div>
-                    <p className="text-xs font-semibold text-slate-800">Photo per color</p>
-                    <p className="mt-0.5 text-[11px] leading-relaxed text-slate-500">
-                      Optional. Leave empty to use the main product photo. Upload only when a color
-                      needs a different shot — all sizes of that color share the same image.
-                    </p>
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {colorGroup.values.map((colorValue) => {
-                      const enc = encodeURIComponent(colorValue.name);
-                      return (
-                        <div
-                          key={colorValue.name}
-                          className="rounded-xl border border-slate-200 bg-slate-50/80 p-3"
-                        >
-                          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-600">
-                            {colorValue.name}
-                          </p>
-                          <input
-                            type="hidden"
-                            name={`color_image_current__${enc}`}
-                            value={colorValue.image_url ?? ""}
-                          />
-                          <ImageUploadField
-                            name={`color_image__${enc}`}
-                            label=""
-                            initialImageUrl={colorValue.image_url}
-                            optional
-                            inline
-                            uploadAriaLabel={`Upload photo for ${colorValue.name}`}
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ) : null}
             </>
           ) : null}
         </div>
@@ -841,60 +856,60 @@ export function MenuItemOptionsFields({
           </div>
 
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
               {group.label.trim() ? `${group.label.trim()} values` : "Values"}
-            </p>
-            <div className="mt-2 flex flex-wrap gap-2">
+        </p>
+        <div className="mt-2 flex flex-wrap gap-2">
               {group.values.map((item) => (
-                <span
+            <span
                   key={`${groupIndex}-${item.name}`}
-                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-700"
-                >
-                  {item.name}
+              className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-700"
+            >
+              {item.name}
                   {item.price > 0 ? ` +$${item.price.toFixed(2)}` : ""}
-                  <button
-                    type="button"
+              <button
+                type="button"
                     onClick={() => removeValue(groupIndex, item.name)}
-                    className="text-slate-400 hover:text-slate-700"
-                    aria-label={`Remove ${item.name}`}
-                  >
-                    ×
-                  </button>
-                </span>
-              ))}
+                className="text-slate-400 hover:text-slate-700"
+                aria-label={`Remove ${item.name}`}
+              >
+                ×
+              </button>
+            </span>
+          ))}
               {group.values.length === 0 ? (
-                <p className="text-xs text-slate-500">No values yet — add below.</p>
-              ) : null}
-            </div>
-            <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_auto_auto]">
-              <input
+            <p className="text-xs text-slate-500">No values yet — add below.</p>
+          ) : null}
+        </div>
+        <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_auto_auto]">
+          <input
                 value={draftNames[groupIndex] ?? ""}
                 onChange={(e) =>
                   setDraftNames((prev) => ({ ...prev, [groupIndex]: e.target.value }))
                 }
                 placeholder={hints.value}
-                className="ui-input"
-              />
-              <input
+            className="ui-input"
+          />
+          <input
                 value={draftPrices[groupIndex] ?? ""}
                 onChange={(e) =>
                   setDraftPrices((prev) => ({ ...prev, [groupIndex]: e.target.value }))
                 }
-                type="number"
-                min={0}
-                step="0.01"
-                placeholder="Extra $"
-                className="ui-input"
-              />
+            type="number"
+            min={0}
+            step="0.01"
+            placeholder="Extra $"
+            className="ui-input"
+          />
               <button
                 type="button"
                 onClick={() => addValue(groupIndex)}
                 className="btn btn-secondary rounded-xl"
               >
-                Add
-              </button>
-            </div>
-          </div>
+            Add
+          </button>
+        </div>
+      </div>
         </div>
       ))}
 

@@ -11,9 +11,11 @@ type Props = {
   initialQ: string;
   initialCategory: string;
   initialStock: string;
+  initialAudience?: string;
   initialSort: MenuItemsSort;
   totalCount: number;
   filteredCount: number;
+  showAudienceFilter?: boolean;
 };
 
 function buildHref(
@@ -22,11 +24,13 @@ function buildHref(
   category: string,
   stock: string,
   sort: MenuItemsSort,
+  audience = "",
 ) {
   const params = new URLSearchParams();
   if (q.trim()) params.set("q", q.trim());
   if (category.trim()) params.set("category", category.trim());
   if (stock.trim()) params.set("stock", stock.trim());
+  if (audience.trim()) params.set("audience", audience.trim());
   if (sort !== "name_asc") params.set("sort", sort);
   const qs = params.toString();
   return qs ? `${pathname}?${qs}#items-toolbar` : `${pathname}#items-toolbar`;
@@ -37,20 +41,24 @@ export function BusinessMenuItemsToolbar({
   initialQ,
   initialCategory,
   initialStock,
+  initialAudience = "",
   initialSort,
   totalCount,
   filteredCount,
+  showAudienceFilter = false,
 }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const [q, setQ] = useState(initialQ);
   const [category, setCategory] = useState(initialCategory);
   const [stock, setStock] = useState(initialStock);
+  const [audience, setAudience] = useState(initialAudience);
   const [sort, setSort] = useState<MenuItemsSort>(initialSort);
   const latest = useRef({
     q: initialQ,
     category: initialCategory,
     stock: initialStock,
+    audience: initialAudience,
     sort: initialSort,
   });
   const debounceId = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -59,21 +67,24 @@ export function BusinessMenuItemsToolbar({
     setQ(initialQ);
     setCategory(initialCategory);
     setStock(initialStock);
+    setAudience(initialAudience);
     setSort(initialSort);
     latest.current = {
       q: initialQ,
       category: initialCategory,
       stock: initialStock,
+      audience: initialAudience,
       sort: initialSort,
     };
-  }, [initialQ, initialCategory, initialStock, initialSort]);
+  }, [initialQ, initialCategory, initialStock, initialAudience, initialSort]);
 
   const apply = useCallback(
-    (next: { q: string; category: string; stock: string; sort: MenuItemsSort }) => {
+    (next: { q: string; category: string; stock: string; audience: string; sort: MenuItemsSort }) => {
       latest.current = next;
-      router.replace(buildHref(pathname, next.q, next.category, next.stock, next.sort), {
-        scroll: false,
-      });
+      router.replace(
+        buildHref(pathname, next.q, next.category, next.stock, next.sort, next.audience),
+        { scroll: false },
+      );
     },
     [pathname, router],
   );
@@ -87,15 +98,15 @@ export function BusinessMenuItemsToolbar({
   function scheduleSearchPush(nextQ: string) {
     if (debounceId.current) clearTimeout(debounceId.current);
     debounceId.current = setTimeout(() => {
-      const { category: c, stock: s, sort: so } = latest.current;
-      apply({ q: nextQ, category: c, stock: s, sort: so });
+      const { category: c, stock: s, audience: a, sort: so } = latest.current;
+      apply({ q: nextQ, category: c, stock: s, audience: a, sort: so });
     }, 300);
   }
 
   function handleSearchSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (debounceId.current) clearTimeout(debounceId.current);
-    apply({ q, category, stock, sort });
+    apply({ q, category, stock, audience, sort });
   }
 
   return (
@@ -138,7 +149,13 @@ export function BusinessMenuItemsToolbar({
               const v = e.target.value;
               setCategory(v);
               if (debounceId.current) clearTimeout(debounceId.current);
-              apply({ q: latest.current.q, category: v, stock: latest.current.stock, sort: latest.current.sort });
+              apply({
+                q: latest.current.q,
+                category: v,
+                stock: latest.current.stock,
+                audience: latest.current.audience,
+                sort: latest.current.sort,
+              });
             }}
             className="ui-select w-full"
           >
@@ -160,7 +177,13 @@ export function BusinessMenuItemsToolbar({
               const v = e.target.value;
               setStock(v);
               if (debounceId.current) clearTimeout(debounceId.current);
-              apply({ q: latest.current.q, category: latest.current.category, stock: v, sort: latest.current.sort });
+              apply({
+                q: latest.current.q,
+                category: latest.current.category,
+                stock: v,
+                audience: latest.current.audience,
+                sort: latest.current.sort,
+              });
             }}
             className="ui-select w-full"
           >
@@ -172,6 +195,37 @@ export function BusinessMenuItemsToolbar({
           </select>
         </label>
 
+        {showAudienceFilter ? (
+          <label className="space-y-1 lg:w-36 lg:shrink-0">
+            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Designed for</span>
+            <select
+              name="audience"
+              value={audience}
+              onChange={(e) => {
+                const v = e.target.value;
+                setAudience(v);
+                if (debounceId.current) clearTimeout(debounceId.current);
+                apply({
+                  q: latest.current.q,
+                  category: latest.current.category,
+                  stock: latest.current.stock,
+                  audience: v,
+                  sort: latest.current.sort,
+                });
+              }}
+              className="ui-select w-full"
+            >
+              <option value="">Everyone</option>
+              <option value="women">Women</option>
+              <option value="men">Men</option>
+              <option value="unisex">Unisex</option>
+              <option value="kids">Kids</option>
+              <option value="boys">Boys</option>
+              <option value="girls">Girls</option>
+            </select>
+          </label>
+        ) : null}
+
         <label className="space-y-1 lg:w-44 lg:shrink-0">
           <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Sort by</span>
           <select
@@ -181,7 +235,13 @@ export function BusinessMenuItemsToolbar({
               const v = e.target.value as MenuItemsSort;
               setSort(v);
               if (debounceId.current) clearTimeout(debounceId.current);
-              apply({ q: latest.current.q, category: latest.current.category, stock: latest.current.stock, sort: v });
+              apply({
+                q: latest.current.q,
+                category: latest.current.category,
+                stock: latest.current.stock,
+                audience: latest.current.audience,
+                sort: v,
+              });
             }}
             className="ui-select w-full"
           >

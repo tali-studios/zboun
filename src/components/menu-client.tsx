@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { ArrowLeft, Gift, Minus, Plus, Trash2, Zap } from "lucide-react";
+import { ArrowLeft, Filter, Gift, Minus, Plus, Trash2, Zap } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { CategoryWithItems } from "@/lib/data";
@@ -45,6 +45,11 @@ import {
 } from "@/lib/menu-promotions";
 import { getMenuItemStockState } from "@/lib/menu-item-stock";
 import { resolveColorSwatch } from "@/lib/color-swatches";
+import {
+  itemMatchesAudienceFilter,
+  parseItemAudience,
+  type ItemAudience,
+} from "@/lib/item-audience";
 import {
   findColorOptionGroup,
   formatOptionLabelsDisplay,
@@ -258,6 +263,7 @@ export function MenuClient({
   const [previewImage, setPreviewImage] = useState<{ src: string; alt: string } | null>(null);
   const [query, setQuery] = useState("");
   const [menuCategoryFilter, setMenuCategoryFilter] = useState<string>("all");
+  const [menuAudienceFilter, setMenuAudienceFilter] = useState<string>("all");
   const [customerName, setCustomerName] = useState(defaultCustomerName);
   const effectiveCustomerName = useMemo(() => {
     if (isGuestCheckout) return "Guest";
@@ -318,13 +324,35 @@ export function MenuClient({
   }, [defaultCustomerPhone, isGuestCheckout, isLoggedIn, location, savedAddresses]);
 
   const items = useMemo(() => Object.values(cart), [cart]);
+  const audienceGroups = useMemo(() => {
+    const found = new Set<ItemAudience>();
+    for (const category of categories) {
+      for (const item of category.menu_items) {
+        const parsed = parseItemAudience(item.audience);
+        if (parsed) found.add(parsed);
+      }
+    }
+    const hasWomen = found.has("women") || found.has("unisex");
+    const hasMen = found.has("men") || found.has("unisex");
+    const hasBoys = found.has("boys");
+    const hasGirls = found.has("girls");
+    const hasKids = hasBoys || hasGirls;
+    return { found, hasWomen, hasMen, hasBoys, hasGirls, hasKids, showFilter: found.size > 0 };
+  }, [categories]);
+
+  const kidsFilterOpen =
+    menuAudienceFilter === "kids" ||
+    menuAudienceFilter === "boys" ||
+    menuAudienceFilter === "girls";
+
   const filteredCategories = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    if (!normalized) return categories;
     return categories
       .map((category) => ({
         ...category,
         menu_items: category.menu_items.filter((item) => {
+          if (!itemMatchesAudienceFilter(item.audience, menuAudienceFilter)) return false;
+          if (!normalized) return true;
           const brand = getMenuItemBrand(item);
           return (
             item.name.toLowerCase().includes(normalized) ||
@@ -335,7 +363,7 @@ export function MenuClient({
         }),
       }))
       .filter((category) => category.menu_items.length > 0);
-  }, [categories, query]);
+  }, [categories, query, menuAudienceFilter]);
 
   const displayCategories = useMemo(() => {
     if (menuCategoryFilter === "all") return filteredCategories;
@@ -1553,6 +1581,115 @@ export function MenuClient({
               className="ui-input ui-input-search box-border h-12 w-full max-w-full min-w-0 !rounded-full border border-slate-200 bg-white text-base shadow-sm"
             />
           </div>
+
+          {/* Audience filter — Women / Men / Kids (Boys & Girls under Kids) */}
+          {audienceGroups.showFilter ? (
+            <div className="space-y-2">
+              <div className="flex min-w-0 w-full max-w-full items-center gap-2">
+                <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                  <Filter className="h-3.5 w-3.5" aria-hidden />
+                  Filter
+                </span>
+                <div className="flex min-w-0 flex-1 flex-nowrap gap-2 overflow-x-auto overflow-y-hidden touch-pan-x pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:overflow-x-visible">
+                  <button
+                    type="button"
+                    onClick={() => setMenuAudienceFilter("all")}
+                    className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
+                      menuAudienceFilter === "all"
+                        ? "text-white shadow-md"
+                        : "bg-white text-slate-600 ring-1 ring-slate-200"
+                    }`}
+                    style={menuAudienceFilter === "all" ? { backgroundColor: theme.primary } : undefined}
+                  >
+                    All
+                  </button>
+                  {audienceGroups.hasWomen ? (
+                    <button
+                      type="button"
+                      onClick={() => setMenuAudienceFilter("women")}
+                      className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
+                        menuAudienceFilter === "women"
+                          ? "text-white shadow-md"
+                          : "bg-white text-slate-600 ring-1 ring-slate-200"
+                      }`}
+                      style={menuAudienceFilter === "women" ? { backgroundColor: theme.primary } : undefined}
+                    >
+                      Women
+                    </button>
+                  ) : null}
+                  {audienceGroups.hasMen ? (
+                    <button
+                      type="button"
+                      onClick={() => setMenuAudienceFilter("men")}
+                      className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
+                        menuAudienceFilter === "men"
+                          ? "text-white shadow-md"
+                          : "bg-white text-slate-600 ring-1 ring-slate-200"
+                      }`}
+                      style={menuAudienceFilter === "men" ? { backgroundColor: theme.primary } : undefined}
+                    >
+                      Men
+                    </button>
+                  ) : null}
+                  {audienceGroups.hasKids ? (
+                    <button
+                      type="button"
+                      onClick={() => setMenuAudienceFilter("kids")}
+                      className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
+                        kidsFilterOpen
+                          ? "text-white shadow-md"
+                          : "bg-white text-slate-600 ring-1 ring-slate-200"
+                      }`}
+                      style={kidsFilterOpen ? { backgroundColor: theme.primary } : undefined}
+                    >
+                      Kids
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+              {kidsFilterOpen && (audienceGroups.hasBoys || audienceGroups.hasGirls) ? (
+                <div className="flex flex-wrap items-center gap-2 pl-7">
+                  <button
+                    type="button"
+                    onClick={() => setMenuAudienceFilter("kids")}
+                    className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold transition ${
+                      menuAudienceFilter === "kids"
+                        ? "bg-slate-900 text-white"
+                        : "bg-slate-100 text-slate-600"
+                    }`}
+                  >
+                    All kids
+                  </button>
+                  {audienceGroups.hasBoys ? (
+                    <button
+                      type="button"
+                      onClick={() => setMenuAudienceFilter("boys")}
+                      className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold transition ${
+                        menuAudienceFilter === "boys"
+                          ? "bg-slate-900 text-white"
+                          : "bg-slate-100 text-slate-600"
+                      }`}
+                    >
+                      Boys
+                    </button>
+                  ) : null}
+                  {audienceGroups.hasGirls ? (
+                    <button
+                      type="button"
+                      onClick={() => setMenuAudienceFilter("girls")}
+                      className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold transition ${
+                        menuAudienceFilter === "girls"
+                          ? "bg-slate-900 text-white"
+                          : "bg-slate-100 text-slate-600"
+                      }`}
+                    >
+                      Girls
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
           {/* Category pills — phone: one row + swipe; sm+: wrap so every section is visible on laptop without hunting for horizontal scroll */}
           <div className="flex min-w-0 w-full max-w-full flex-nowrap gap-2 overflow-x-auto overflow-y-hidden touch-pan-x pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:overflow-x-visible sm:overflow-y-visible sm:touch-auto">
