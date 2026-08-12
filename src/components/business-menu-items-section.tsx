@@ -24,7 +24,7 @@ import {
 import { resolveMenuItemBrandId } from "@/lib/menu-brands";
 import { getMenuItemStockAlertLevel, isMenuItemLowStock } from "@/lib/menu-item-stock";
 import { stockAlertBadgeClass, stockAlertBadgeLabel } from "@/lib/menu-item-stock-alerts";
-import { normalizeOptionGroups, parseVariantStockMap, buildVariantKey, listVariantCombinations, formatSelectedOptionsDisplay } from "@/lib/menu-item-options";
+import { normalizeOptionGroups, parseVariantStockMap, buildVariantKey, listVariantCombinations, formatSelectedOptionsDisplay, resolveOptionColorImageUrl } from "@/lib/menu-item-options";
 import { resolveColorSwatch } from "@/lib/color-swatches";
 import type { MenuItemsSort } from "@/lib/menu-items-admin";
 import type { StoreItemProfile } from "@/lib/store-item-profile";
@@ -63,6 +63,7 @@ type StockTableRow =
       variantKey: string;
       variantLabel: string;
       qty: number;
+      imageUrl: string | null;
       colorSwatch: string | null;
       isFirst: boolean;
     };
@@ -88,6 +89,7 @@ function buildStockTableRows(item: AdminMenuItemRow): StockTableRow[] {
       variantKey,
       variantLabel: formatSelectedOptionsDisplay(groups, combo) || variantKey,
       qty: Math.max(0, Math.floor(Number(stocks[variantKey] ?? 0))),
+      imageUrl: resolveOptionColorImageUrl(groups, combo, item.image_url) ?? item.image_url ?? null,
       colorSwatch: colorName ? resolveColorSwatch(colorName).background : null,
       isFirst: index === 0,
     };
@@ -256,28 +258,32 @@ export function BusinessMenuItemsSection({
                   const isVariant = stockRow.kind === "variant";
                   const showProductActions = !isVariant || stockRow.isFirst;
                   const rowKey = isVariant ? `${item.id}__${stockRow.variantKey}` : item.id;
+                  const thumbUrl = isVariant ? stockRow.imageUrl : item.image_url;
                   return (
                   <tr key={rowKey} className={`${rowBg} transition-colors hover:bg-violet-50/30`}>
                     <td className="px-5 py-4">
                       <div className="flex items-start gap-3">
-                        {isVariant && stockRow.colorSwatch ? (
-                          <div
-                            className="h-10 w-10 shrink-0 rounded-xl border border-slate-200 shadow-sm"
-                            style={{ background: stockRow.colorSwatch }}
-                            title={stockRow.variantLabel}
-                            aria-hidden
-                          />
-                        ) : item.image_url ? (
-                          <img
-                            src={item.image_url}
-                            alt=""
-                            className="h-10 w-10 shrink-0 rounded-xl object-cover shadow-sm ring-1 ring-slate-200"
-                          />
-                        ) : (
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-lg">
-                            🍽️
-                          </div>
-                        )}
+                        <div className="relative h-10 w-10 shrink-0">
+                          {thumbUrl ? (
+                            <img
+                              src={thumbUrl}
+                              alt=""
+                              className="h-10 w-10 rounded-xl object-cover shadow-sm ring-1 ring-slate-200"
+                            />
+                          ) : (
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-lg">
+                              🍽️
+                            </div>
+                          )}
+                          {isVariant && stockRow.colorSwatch ? (
+                            <span
+                              className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-md border border-white shadow-sm ring-1 ring-slate-200"
+                              style={{ background: stockRow.colorSwatch }}
+                              title={stockRow.variantLabel}
+                              aria-hidden
+                            />
+                          ) : null}
+                        </div>
                         <div className="min-w-0">
                           <p className="font-semibold text-slate-900 leading-snug">{item.name}</p>
                           {isVariant ? (
