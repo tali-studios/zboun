@@ -843,7 +843,7 @@ export function RestaurantDirectory({
                               href={`/${restaurant.slug}`}
                               className="mt-3 inline-flex w-full items-center justify-center gap-1 rounded-full border-2 border-violet-500 py-2 text-xs font-bold text-violet-600 transition hover:bg-violet-50 md:text-sm"
                             >
-                              View menu
+                              View store
                               <ChevronRight className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
                             </Link>
                           </div>
