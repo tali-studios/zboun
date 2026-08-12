@@ -183,7 +183,7 @@ export function ImageLightbox({ src, alt = "", open, onClose }: Props) {
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[80] flex flex-col bg-black/92"
+      className="fixed inset-0 z-[100] flex flex-col bg-black/94"
       role="dialog"
       aria-modal="true"
       aria-label={alt || "Item image"}
@@ -245,9 +245,9 @@ export function ImageLightbox({ src, alt = "", open, onClose }: Props) {
           <Image
             src={src}
             alt={alt}
-            width={1200}
-            height={1200}
-            className="max-h-[min(88dvh,900px)] max-w-[min(96vw,900px)] object-contain select-none"
+            width={1600}
+            height={1600}
+            className="max-h-[min(92dvh,1100px)] max-w-[min(98vw,1100px)] object-contain select-none"
             draggable={false}
             unoptimized
             priority

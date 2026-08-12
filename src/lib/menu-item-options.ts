@@ -129,8 +129,7 @@ export function resolveOptionColorImageUrl(
   if (!colorGroup) return fallbackImageUrl ?? null;
   const selected = String(selections[colorGroup.label] ?? "").trim();
   if (!selected) {
-    const firstWithImage = colorGroup.values.find((v) => v.image_url?.trim());
-    return firstWithImage?.image_url?.trim() || fallbackImageUrl || null;
+    return fallbackImageUrl || null;
   }
   const match = colorGroup.values.find((v) => v.name === selected);
   return match?.image_url?.trim() || fallbackImageUrl || null;

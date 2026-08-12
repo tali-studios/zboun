@@ -46,12 +46,14 @@ import {
 import { getMenuItemStockState } from "@/lib/menu-item-stock";
 import { resolveColorSwatch } from "@/lib/color-swatches";
 import {
+  findColorOptionGroup,
   formatOptionLabelsDisplay,
   getCombinedOptionExtraPrice,
   getVariantStockQty,
   itemUsesVariantStock,
   normalizeOptionGroups,
   optionHasRemainingStock,
+  resolveOptionColorImageUrl,
   selectionsComplete,
   selectionsFromDisplayString,
   snapshotSelectedOptions,
@@ -251,6 +253,8 @@ export function MenuClient({
   const canShop = !viewOnly && !orderingBlocked;
   const [cart, setCart] = useState<Record<string, CartLine>>({});
   const [customizing, setCustomizing] = useState<CustomizationState | null>(null);
+  /** Color chosen on the menu card (updates thumb + preselects in the picker). */
+  const [listColorByItemId, setListColorByItemId] = useState<Record<string, string>>({});
   const [previewImage, setPreviewImage] = useState<{ src: string; alt: string } | null>(null);
   const [query, setQuery] = useState("");
   const [menuCategoryFilter, setMenuCategoryFilter] = useState<string>("all");
@@ -416,16 +420,28 @@ export function MenuClient({
       .filter((item) => item.name);
   }
 
-  function openCustomization(item: MenuItemRow) {
+  function openCustomization(item: MenuItemRow, initialSelections: OptionSelections = {}) {
     const unitQty = isSoldByWeight(item) ? 1 : 1;
+    const groups = getItemOptionGroups(item);
+    const colorGroup = findColorOptionGroup(groups);
+    const listColor = colorGroup ? listColorByItemId[item.id] : undefined;
+    const fromList =
+      colorGroup && listColor && !initialSelections[colorGroup.label]
+        ? { [colorGroup.label]: listColor }
+        : {};
     setCustomizing({
       item,
       remove: [],
       add: {},
       note: "",
       qty: unitQty,
-      selectedOptions: {},
+      selectedOptions: { ...fromList, ...initialSelections },
     });
+  }
+
+  /** Switch color on the menu card — updates the photo only; + / title opens size picker. */
+  function pickListColor(item: MenuItemRow, _colorLabel: string, colorName: string) {
+    setListColorByItemId((prev) => ({ ...prev, [item.id]: colorName }));
   }
 
   function quickAddToCart(item: MenuItemRow) {
@@ -523,7 +539,10 @@ export function MenuClient({
       0,
       baseUnitPrice + addCost + getCombinedOptionExtraPrice(groups, selectedOptions),
     );
-    const lineImageUrl = customizing.item.image_url ?? null;
+    const lineImageUrl =
+      resolveOptionColorImageUrl(groups, selectedOptions, customizing.item.image_url) ??
+      customizing.item.image_url ??
+      null;
     const lineKey = [
       customizing.item.id,
       snapshot.variantKey ?? snapshot.selectedOption ?? "",
@@ -626,6 +645,11 @@ export function MenuClient({
           delete nextSelections[group.label];
         }
       }
+    }
+
+    // Keep the menu-card color preview in sync when picking in the sheet.
+    if (isColorLikeOptionLabel(groupLabel)) {
+      setListColorByItemId((prev) => ({ ...prev, [customizing.item.id]: valueName }));
     }
 
     const fashionQuickAdd =
@@ -1589,6 +1613,19 @@ export function MenuClient({
                   const stock = getMenuItemStockState(item);
                   const usesVariantStock =
                     Boolean(item.track_stock) && itemUsesVariantStock(item.option_variant_stock);
+                  const optionGroups = getItemOptionGroups(item);
+                  const colorGroup = findColorOptionGroup(optionGroups);
+                  const listColorName = colorGroup ? listColorByItemId[item.id] ?? null : null;
+                  const listColorSelections =
+                    colorGroup && listColorName
+                      ? { [colorGroup.label]: listColorName }
+                      : {};
+                  const cardImageUrl =
+                    resolveOptionColorImageUrl(
+                      optionGroups,
+                      listColorSelections,
+                      item.image_url,
+                    ) ?? item.image_url;
                   return (
                   <article
                     key={item.id}
@@ -1596,25 +1633,31 @@ export function MenuClient({
                       stock.available ? "" : "opacity-60"
                     }`}
                   >
-                    {/* Image */}
-                    <div className="h-[88px] w-[88px] shrink-0 overflow-hidden rounded-2xl bg-slate-100">
-                      {item.image_url ? (
+                    {/* Image — tap to view large */}
+                    <div className="relative h-[104px] w-[104px] shrink-0 overflow-hidden rounded-2xl bg-slate-100 shadow-sm ring-1 ring-black/[0.06]">
+                      {cardImageUrl ? (
                         <button
                           type="button"
                           onClick={() =>
-                            setPreviewImage({ src: item.image_url!, alt: item.name })
+                            setPreviewImage({ src: cardImageUrl, alt: item.name })
                           }
-                          className="relative h-full w-full overflow-hidden rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400"
+                          className="group relative h-full w-full overflow-hidden rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400"
                           aria-label={`View larger photo of ${item.name}`}
                         >
                           <Image
-                            src={item.image_url}
+                            key={cardImageUrl}
+                            src={cardImageUrl}
                             alt=""
-                            width={88}
-                            height={88}
-                            className="h-full w-full object-cover transition hover:scale-105"
+                            width={208}
+                            height={208}
+                            className="h-full w-full object-cover transition duration-300 ease-out group-hover:scale-105"
                             unoptimized
                           />
+                          <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-center bg-gradient-to-t from-black/45 to-transparent pb-1.5 pt-5">
+                            <span className="rounded-full bg-white/90 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-slate-700 shadow-sm">
+                              View
+                            </span>
+                          </span>
                         </button>
                       ) : (
                         <div className="flex h-full w-full items-center justify-center text-2xl text-slate-300" aria-hidden>
@@ -1625,7 +1668,7 @@ export function MenuClient({
 
                     {/* Info — tap to open details (full description + options) */}
                     <div
-                      className={`flex min-h-[88px] min-w-0 flex-1 flex-col ${canShop ? "pr-12" : ""}`}
+                      className={`flex min-h-[104px] min-w-0 flex-1 flex-col ${canShop ? "pr-12" : ""}`}
                     >
                       {canShop && stock.available ? (
                         <button
@@ -1658,11 +1701,11 @@ export function MenuClient({
                             <p className="mt-0.5 text-[11px] font-semibold text-amber-700">{stock.label}</p>
                           ) : null}
                           {item.description ? (
-                            <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-slate-500 sm:text-sm">
+                            <p className={`mt-1 text-xs leading-relaxed text-slate-500 sm:text-sm ${colorGroup ? "line-clamp-1" : "line-clamp-2"}`}>
                               {item.description}
                             </p>
                           ) : item.contents ? (
-                            <p className="mt-1 line-clamp-2 text-xs text-slate-500 sm:text-sm">{item.contents}</p>
+                            <p className={`mt-1 text-xs text-slate-500 sm:text-sm ${colorGroup ? "line-clamp-1" : "line-clamp-2"}`}>{item.contents}</p>
                           ) : null}
                           {sizeLabel ? (
                             <p className="mt-0.5 text-[11px] text-slate-400">{sizeLabel}</p>
@@ -1758,6 +1801,73 @@ export function MenuClient({
                       </div>
                         </>
                       )}
+
+                      {colorGroup && colorGroup.values.length > 0 ? (
+                        <div
+                          className={`mt-2.5 flex flex-wrap gap-1.5 ${canShop ? "pr-1" : ""}`}
+                          role="list"
+                          aria-label={`Colors for ${item.name}`}
+                        >
+                          {colorGroup.values.map((option) => {
+                            const available = optionHasRemainingStock(
+                              optionGroups,
+                              item.option_variant_stock,
+                              item.track_stock,
+                              colorGroup.label,
+                              option.name,
+                              {},
+                            );
+                            const soldOut =
+                              Boolean(item.track_stock) &&
+                              itemUsesVariantStock(item.option_variant_stock) &&
+                              !available;
+                            const selected = listColorName === option.name;
+                            const swatch = resolveColorSwatch(option.name);
+                            return (
+                              <button
+                                key={`${item.id}-color-${option.name}`}
+                                type="button"
+                                role="listitem"
+                                disabled={soldOut || !stock.available || !canShop}
+                                title={
+                                  soldOut ? `${option.name} · out of stock` : option.name
+                                }
+                                onClick={() =>
+                                  pickListColor(item, colorGroup.label, option.name)
+                                }
+                                className={`relative h-7 w-7 shrink-0 overflow-hidden rounded-[4px] border transition ${
+                                  soldOut || !stock.available
+                                    ? "cursor-not-allowed opacity-35"
+                                    : selected
+                                      ? "border-2 border-slate-900 ring-1 ring-slate-900 ring-offset-1"
+                                      : "border border-slate-300 hover:border-slate-500"
+                                }`}
+                                aria-label={
+                                  soldOut
+                                    ? `${option.name}, out of stock`
+                                    : `Choose ${option.name}`
+                                }
+                                aria-pressed={selected}
+                              >
+                                <span
+                                  className="absolute inset-0"
+                                  style={{ background: swatch.background }}
+                                />
+                                {!swatch.known ? (
+                                  <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold uppercase text-slate-600">
+                                    {option.name.slice(0, 1)}
+                                  </span>
+                                ) : null}
+                                {soldOut ? (
+                                  <span className="absolute inset-0 flex items-center justify-center">
+                                    <span className="h-px w-full rotate-[-28deg] bg-slate-500" />
+                                  </span>
+                                ) : null}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : null}
                     </div>
 
                     {canShop ? (
@@ -1872,69 +1982,150 @@ export function MenuClient({
       {/* ── Customization modal ────────────────────────────────────────── */}
       {canShop && customizing ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/50 backdrop-blur-sm p-0 sm:items-center sm:p-4">
-          <div className="w-full max-h-[95dvh] overflow-y-auto rounded-t-3xl bg-white px-5 pb-6 pt-5 shadow-2xl sm:max-h-[90vh] sm:max-w-xl sm:rounded-3xl sm:px-6 sm:pb-6 sm:pt-5">
+          <div
+            className={`w-full max-h-[95dvh] overflow-y-auto rounded-t-3xl bg-white shadow-2xl sm:max-h-[90vh] sm:max-w-xl sm:rounded-3xl ${
+              isOptionsOnlyItem(customizing.item)
+                ? "px-0 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-0"
+                : "px-5 pb-6 pt-5 sm:px-6 sm:pb-6 sm:pt-5"
+            }`}
+          >
             {/* Header */}
             {(() => {
-              const previewImage = customizing.item.image_url;
-              return (
-            <div className="flex items-start justify-between gap-3">
-              {previewImage ? (
-                <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-slate-100 ring-1 ring-slate-200">
-                  <Image
-                    src={previewImage}
-                    alt={customizing.item.name}
-                    fill
-                    className="object-cover"
-                    sizes="80px"
-                    unoptimized
-                  />
-                </div>
-              ) : null}
-              <div className="min-w-0 flex-1">
-                <h3 className="text-xl font-bold tracking-tight text-slate-900">{customizing.item.name}</h3>
-                {customizing.item.description ? (
-                  <p className="mt-2 text-[15px] leading-relaxed text-slate-600">
-                    {customizing.item.description}
-                  </p>
-                ) : null}
-                <div className="mt-1.5 flex flex-wrap items-baseline gap-2">
-                  {itemHasActiveSale(customizing.item) ? (
-                    <span className="text-sm font-semibold text-slate-400 line-through">
+              const previewGroups = getItemOptionGroups(customizing.item);
+              const heroImage =
+                resolveOptionColorImageUrl(
+                  previewGroups,
+                  customizing.selectedOptions,
+                  customizing.item.image_url,
+                ) ?? customizing.item.image_url;
+              const fashionSheet = isOptionsOnlyItem(customizing.item);
+
+              const titleBlock = (
+                <>
+                  <h3 className="text-xl font-bold tracking-tight text-slate-900">
+                    {customizing.item.name}
+                  </h3>
+                  <div className="mt-1.5 flex flex-wrap items-baseline gap-2">
+                    {itemHasActiveSale(customizing.item) ? (
+                      <span className="text-sm font-semibold text-slate-400 line-through">
+                        {isSoldByWeight(customizing.item)
+                          ? `${formatUsd(getListPricePerKg(customizing.item))} / kg`
+                          : formatUsd(getListFlatPrice(customizing.item))}
+                      </span>
+                    ) : null}
+                    <span className="text-lg font-bold" style={{ color: theme.primary }}>
                       {isSoldByWeight(customizing.item)
-                        ? `${formatUsd(getListPricePerKg(customizing.item))} / kg`
-                        : formatUsd(getListFlatPrice(customizing.item))}
+                        ? `${formatUsd(getEffectivePricePerKg(customizing.item))} / kg`
+                        : formatUsd(getEffectiveFlatPrice(customizing.item))}
                     </span>
+                    <span className="text-sm text-slate-400">
+                      {isSoldByWeight(customizing.item)
+                        ? ""
+                        : formatLbp(getEffectiveFlatPrice(customizing.item))}
+                    </span>
+                  </div>
+                  {customizing.item.description ? (
+                    <p className="mt-3 text-[15px] leading-relaxed text-slate-600">
+                      {customizing.item.description}
+                    </p>
                   ) : null}
-                  <span className="text-base font-bold" style={{ color: theme.primary }}>
-                    {isSoldByWeight(customizing.item)
-                      ? `${formatUsd(getEffectivePricePerKg(customizing.item))} / kg`
-                      : formatUsd(getEffectiveFlatPrice(customizing.item))}
-                  </span>
-                  <span className="text-sm text-slate-400">
-                    {isSoldByWeight(customizing.item)
-                      ? ""
-                      : formatLbp(getEffectiveFlatPrice(customizing.item))}
-                  </span>
+                  <MenuNutritionBadges
+                    calories={customizing.item.calories}
+                    proteinG={customizing.item.protein_g}
+                    size="md"
+                    className="mt-2"
+                  />
+                </>
+              );
+
+              if (fashionSheet) {
+                return (
+                  <div>
+                    <div className="relative">
+                      {heroImage ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setPreviewImage({
+                              src: heroImage,
+                              alt: customizing.item.name,
+                            })
+                          }
+                          className="relative block h-[min(52vw,280px)] w-full overflow-hidden bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-400 sm:h-72 sm:rounded-t-3xl"
+                          aria-label={`View larger photo of ${customizing.item.name}`}
+                        >
+                          <Image
+                            key={heroImage}
+                            src={heroImage}
+                            alt={customizing.item.name}
+                            fill
+                            className="object-cover"
+                            sizes="(max-width: 640px) 100vw, 576px"
+                            unoptimized
+                            priority
+                          />
+                          <span className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-black/55 px-3 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
+                            Tap to enlarge
+                          </span>
+                        </button>
+                      ) : (
+                        <div className="flex h-40 items-center justify-center bg-slate-100 text-slate-300 sm:rounded-t-3xl">
+                          No photo
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={closeCustomization}
+                        className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full bg-white/95 text-slate-700 shadow-md ring-1 ring-black/5 transition hover:bg-white"
+                        aria-label="Close"
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <div className="px-5 pt-4 sm:px-6">{titleBlock}</div>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="flex items-start justify-between gap-3">
+                  {heroImage ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPreviewImage({
+                          src: heroImage,
+                          alt: customizing.item.name,
+                        })
+                      }
+                      className="relative h-28 w-28 shrink-0 overflow-hidden rounded-2xl bg-slate-100 ring-1 ring-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400"
+                      aria-label={`View larger photo of ${customizing.item.name}`}
+                    >
+                      <Image
+                        key={heroImage}
+                        src={heroImage}
+                        alt={customizing.item.name}
+                        fill
+                        className="object-cover"
+                        sizes="112px"
+                        unoptimized
+                      />
+                    </button>
+                  ) : null}
+                  <div className="min-w-0 flex-1">{titleBlock}</div>
+                  <button
+                    type="button"
+                    onClick={closeCustomization}
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200"
+                    aria-label="Close"
+                  >
+                    ×
+                  </button>
                 </div>
-                <MenuNutritionBadges
-                  calories={customizing.item.calories}
-                  proteinG={customizing.item.protein_g}
-                  size="md"
-                  className="mt-2"
-                />
-              </div>
-              <button
-                type="button"
-                onClick={closeCustomization}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200"
-                aria-label="Close"
-              >
-                ×
-              </button>
-            </div>
               );
             })()}
 
+            <div className={isOptionsOnlyItem(customizing.item) ? "px-5 sm:px-6" : undefined}>
             {customizing.item.contents ? (
               <p className="mt-3 text-[13px] leading-relaxed text-slate-600">
                 <span className="font-semibold text-slate-800">Materials · </span>
@@ -2345,6 +2536,7 @@ export function MenuClient({
               </button>
             </div>
             ) : null}
+            </div>
           </div>
         </div>
       ) : null}
