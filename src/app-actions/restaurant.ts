@@ -1228,8 +1228,15 @@ export async function updateRestaurantSettingsAction(
   let socialLinksDeferred = false;
   if (updateError && socialColumnsMissing(updateError.message)) {
     // Migration not applied yet — still save the rest of the settings.
-    const { instagram_url: _i, tiktok_url: _t, facebook_url: _f, twitter_url: _x, youtube_url: _y, ...withoutSocial } =
-      updateBody;
+    const {
+      instagram_url: _i,
+      tiktok_url: _t,
+      facebook_url: _f,
+      twitter_url: _x,
+      youtube_url: _y,
+      pinterest_url: _p,
+      ...withoutSocial
+    } = updateBody;
     const retry = await supabase
       .from("restaurants")
       .update(withoutSocial)

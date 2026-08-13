@@ -254,6 +254,7 @@ export async function getRestaurantBySlug(slug: string): Promise<RestaurantForMe
     facebook_url: row.facebook_url ?? null,
     twitter_url: row.twitter_url ?? null,
     youtube_url: row.youtube_url ?? null,
+    pinterest_url: row.pinterest_url ?? null,
   };
 }
 

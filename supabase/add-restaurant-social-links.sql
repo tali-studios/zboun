@@ -5,3 +5,4 @@ alter table public.restaurants add column if not exists tiktok_url text;
 alter table public.restaurants add column if not exists facebook_url text;
 alter table public.restaurants add column if not exists twitter_url text;
 alter table public.restaurants add column if not exists youtube_url text;
+alter table public.restaurants add column if not exists pinterest_url text;

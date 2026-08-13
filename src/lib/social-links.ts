@@ -1,4 +1,10 @@
-export type SocialPlatform = "instagram" | "tiktok" | "facebook" | "twitter" | "youtube";
+export type SocialPlatform =
+  | "instagram"
+  | "tiktok"
+  | "facebook"
+  | "twitter"
+  | "youtube"
+  | "pinterest";
 
 export type SocialLinks = {
   instagram_url: string | null;
@@ -6,6 +12,7 @@ export type SocialLinks = {
   facebook_url: string | null;
   twitter_url: string | null;
   youtube_url: string | null;
+  pinterest_url: string | null;
 };
 
 export const SOCIAL_PLATFORMS: {
@@ -44,6 +51,12 @@ export const SOCIAL_PLATFORMS: {
     label: "YouTube",
     placeholder: "https://youtube.com/@yourstore or @yourstore",
   },
+  {
+    id: "pinterest",
+    field: "pinterest_url",
+    label: "Pinterest",
+    placeholder: "https://pinterest.com/yourstore or @yourstore",
+  },
 ];
 
 const HOSTS: Record<SocialPlatform, string[]> = {
@@ -52,6 +65,13 @@ const HOSTS: Record<SocialPlatform, string[]> = {
   facebook: ["facebook.com", "www.facebook.com", "m.facebook.com", "fb.com", "www.fb.com", "fb.me"],
   twitter: ["twitter.com", "www.twitter.com", "mobile.twitter.com", "x.com", "www.x.com"],
   youtube: ["youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com", "youtu.be"],
+  pinterest: [
+    "pinterest.com",
+    "www.pinterest.com",
+    "pin.it",
+    "pinterest.co.uk",
+    "www.pinterest.co.uk",
+  ],
 };
 
 function isLikelyHandle(raw: string): boolean {
@@ -103,6 +123,8 @@ function urlFromHandle(platform: SocialPlatform, raw: string): string {
       return `https://www.youtube.com/@${handle}`;
     case "facebook":
       return `https://www.facebook.com/${handle}`;
+    case "pinterest":
+      return `https://www.pinterest.com/${handle}`;
   }
 }
 
@@ -174,6 +196,7 @@ export function emptySocialLinks(): SocialLinks {
     facebook_url: null,
     twitter_url: null,
     youtube_url: null,
+    pinterest_url: null,
   };
 }
 
@@ -184,6 +207,7 @@ export function pickSocialLinks(row: Partial<SocialLinks> | null | undefined): S
     facebook_url: row?.facebook_url?.trim() || null,
     twitter_url: row?.twitter_url?.trim() || null,
     youtube_url: row?.youtube_url?.trim() || null,
+    pinterest_url: row?.pinterest_url?.trim() || null,
   };
 }
 
@@ -201,8 +225,10 @@ export function listConfiguredSocialLinks(links: Partial<SocialLinks> | null | u
 }
 
 export const SOCIAL_SELECT_COLUMNS =
-  "instagram_url, tiktok_url, facebook_url, twitter_url, youtube_url";
+  "instagram_url, tiktok_url, facebook_url, twitter_url, youtube_url, pinterest_url";
 
 export function socialColumnsMissing(message: string | null | undefined): boolean {
-  return /(instagram_url|tiktok_url|facebook_url|twitter_url|youtube_url)/i.test(message ?? "");
+  return /(instagram_url|tiktok_url|facebook_url|twitter_url|youtube_url|pinterest_url)/i.test(
+    message ?? "",
+  );
 }
