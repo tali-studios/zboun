@@ -64,13 +64,20 @@ export function BrandManagePanel({ brands }: Props) {
 
       <form action={createBrandAction} className="mt-4 space-y-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 sm:p-5">
         <h3 className="text-sm font-bold text-slate-900">Add brand</h3>
-        <div className="grid gap-4 lg:grid-cols-2">
-          <div className="space-y-1">
-            <label className="block space-y-1">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Brand name</span>
-              <input name="name" required placeholder="Brand name" className="ui-input" />
+        <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+          <div className="space-y-1.5">
+            <label className="block space-y-1.5">
+              <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">
+                Brand name
+              </span>
+              <input
+                name="name"
+                required
+                placeholder="Brand name"
+                className="ui-input box-border h-11 !py-0 text-[0.9375rem] leading-none"
+              />
             </label>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-400">
               Examples: Häagen-Dazs, Nestlé, Cadbury. Use brands to group packaged grocery items.
             </p>
           </div>

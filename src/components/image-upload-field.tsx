@@ -60,12 +60,17 @@ export function ImageUploadField({
   }
 
   return (
-    <div className={compact ? "min-w-0 space-y-1.5" : inline ? "min-w-0 space-y-1" : "min-w-0 space-y-2"}>
+    <div className={compact ? "min-w-0 space-y-1.5" : inline ? "min-w-0 space-y-1.5" : "min-w-0 space-y-2"}>
       {label ? (
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <p className={inline
+          ? "text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500"
+          : "text-xs font-semibold uppercase tracking-wide text-slate-500"
+        }>
           {label}
           {optional ? (
-            <span className="ml-1 font-normal normal-case text-slate-500">(optional)</span>
+            <span className={`ml-1 font-normal normal-case ${inline ? "text-[10px] tracking-normal text-slate-400" : "text-slate-500"}`}>
+              (optional)
+            </span>
           ) : (
             <span className="ml-1 text-red-500">*</span>
           )}
@@ -90,12 +95,12 @@ export function ImageUploadField({
                     : "border-slate-200 bg-slate-50/80"
               }`
             : inline
-              ? `min-h-[3rem] items-center gap-3 rounded-xl border px-3 py-2 shadow-sm ${
+              ? `box-border h-11 items-center gap-2.5 rounded-[0.85rem] border-[1.5px] px-3 shadow-sm ${
                   error
                     ? "border-red-400 bg-red-50 ring-2 ring-red-100"
                     : isDragging
                       ? "border-violet-400 bg-violet-50 ring-2 ring-violet-100"
-                      : "border-slate-200 bg-white"
+                      : "border-[#e2e5f5] bg-white"
                 }`
             : `items-center gap-3 rounded-xl border-2 border-dashed p-3 ${
                 error
@@ -110,13 +115,13 @@ export function ImageUploadField({
           <Image
             src={previewUrl}
             alt="Preview"
-            width={compact ? 56 : 64}
-            height={compact ? 56 : 64}
+            width={compact ? 56 : inline ? 32 : 64}
+            height={compact ? 56 : inline ? 32 : 64}
             className={
               compact
                 ? "h-14 w-full max-w-[7rem] rounded-lg object-contain"
                 : inline
-                  ? "h-10 w-10 shrink-0 rounded-lg object-cover ring-1 ring-slate-200"
+                  ? "h-8 w-8 shrink-0 rounded-lg object-cover ring-1 ring-slate-200"
                 : "h-16 w-16 shrink-0 rounded-lg object-cover"
             }
             unoptimized
@@ -127,11 +132,11 @@ export function ImageUploadField({
               compact
                 ? "flex h-14 w-full max-w-[7rem] items-center justify-center rounded-lg bg-white text-[10px] text-slate-400 ring-1 ring-slate-200"
                 : inline
-                  ? "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-[10px] font-medium text-slate-400 ring-1 ring-slate-200"
+                  ? "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-[8px] font-medium leading-tight text-slate-400 ring-1 ring-slate-200"
                 : "flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-xs text-slate-500"
             }
           >
-            {compact || inline ? "No logo" : "No image"}
+            {compact ? "No logo" : inline ? "Logo" : "No image"}
           </div>
         )}
 
@@ -141,7 +146,7 @@ export function ImageUploadField({
               compact
                 ? "text-[11px] font-semibold text-slate-700"
                 : inline
-                  ? "truncate text-sm font-semibold text-slate-700"
+                  ? "truncate text-sm font-semibold leading-tight text-slate-700"
                   : "truncate text-sm font-semibold text-slate-800"
             }
           >
@@ -154,12 +159,12 @@ export function ImageUploadField({
           {!compact && !inline ? (
             <p className="truncate text-xs text-slate-500">PNG/JPG/WebP, max 5MB</p>
           ) : (
-            <p className={`truncate ${inline ? "text-xs text-slate-500" : "text-[10px] text-slate-400"}`}>
+            <p className={`truncate leading-tight ${inline ? "text-[11px] text-slate-500" : "text-[10px] text-slate-400"}`}>
               PNG/JPG/WebP · 5MB max
             </p>
           )}
           {file ? (
-            <p className={`mt-0.5 truncate text-violet-700 ${compact ? "text-[10px]" : "text-xs"}`}>{file.name}</p>
+            <p className={`mt-0.5 truncate text-violet-700 ${compact ? "text-[10px]" : inline ? "text-[11px]" : "text-xs"}`}>{file.name}</p>
           ) : null}
         </div>
 

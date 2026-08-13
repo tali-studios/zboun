@@ -22,12 +22,14 @@ export function DisplayQuantityFields({
     : "g";
 
   return (
-    <div className="space-y-1">
-      <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-        Size / amount{" "}
-        <span className="ml-1 font-normal normal-case text-slate-500">(optional)</span>
+    <div className="space-y-1.5">
+      <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">
+        Size / amount
+        <span className="ml-0.5 text-[10px] font-normal normal-case tracking-normal text-slate-400">
+          (optional)
+        </span>
       </span>
-      <div className="grid grid-cols-[minmax(0,1fr)_4.75rem] items-center gap-2 sm:grid-cols-[minmax(0,1fr)_5.5rem]">
+      <div className="grid grid-cols-[minmax(0,1fr)_4.75rem] items-stretch gap-2 sm:grid-cols-[minmax(0,1fr)_5.5rem]">
         <input
           id={`${idPrefix}-quantity`}
           name={quantityName}
@@ -38,13 +40,13 @@ export function DisplayQuantityFields({
           defaultValue={
             defaultQuantity !== null && defaultQuantity !== "" ? String(defaultQuantity) : undefined
           }
-          className="ui-input ui-input-quantity min-w-0 w-full"
+          className="ui-input ui-input-quantity box-border h-11 min-w-0 w-full !py-0 text-[0.9375rem] leading-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
         />
         <select
           id={`${idPrefix}-unit`}
           name={unitName}
           defaultValue={unit}
-          className="ui-select ui-select-unit min-w-0 w-full"
+          className="ui-select ui-select-unit box-border h-11 min-w-0 w-full !py-0 text-[0.9375rem] leading-none"
           aria-label="Unit"
         >
           {DISPLAY_UNIT_OPTIONS.map((option) => (
@@ -54,7 +56,7 @@ export function DisplayQuantityFields({
           ))}
         </select>
       </div>
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-slate-400">
         Weight: g or kg · Drinks: mL or L. Shown on the menu as a label (e.g. 330 mL, 1.5 L, 500 g).
       </p>
     </div>

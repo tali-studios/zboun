@@ -180,7 +180,7 @@ export function LinkedCurrencyPriceInput({
             {usdLabel}
             {required ? <span className="text-red-500">*</span> : null}
           </span>
-          <div className="flex min-h-[2.75rem] w-full items-center gap-2 rounded-[0.85rem] border-[1.5px] border-[#e2e5f5] bg-white px-3 transition focus-within:border-violet-400 focus-within:shadow-[0_0_0_3px_rgba(120,84,255,0.12)]">
+          <div className="flex h-11 w-full items-center gap-2 rounded-[0.85rem] border-[1.5px] border-[#e2e5f5] bg-white px-3 transition focus-within:border-violet-400 focus-within:shadow-[0_0_0_3px_rgba(120,84,255,0.12)]">
             <span className="shrink-0 text-sm font-semibold text-slate-400" aria-hidden>
               $
             </span>
@@ -194,7 +194,7 @@ export function LinkedCurrencyPriceInput({
               min={0}
               value={usd}
               onChange={(event) => updateUsd(event.target.value)}
-              className="min-w-0 flex-1 border-0 bg-transparent py-2.5 text-[0.9375rem] text-slate-900 outline-none placeholder:text-slate-400 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              className="min-w-0 flex-1 border-0 bg-transparent py-0 text-[0.9375rem] leading-none text-slate-900 outline-none placeholder:text-slate-400 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             />
           </div>
         </label>
@@ -204,7 +204,7 @@ export function LinkedCurrencyPriceInput({
             {lbpLabel}
             {required ? <span className="text-red-500">*</span> : null}
           </span>
-          <div className="flex min-h-[2.75rem] w-full items-center gap-2 rounded-[0.85rem] border-[1.5px] border-[#e2e5f5] bg-white px-3 transition focus-within:border-violet-400 focus-within:shadow-[0_0_0_3px_rgba(120,84,255,0.12)]">
+          <div className="flex h-11 w-full items-center gap-2 rounded-[0.85rem] border-[1.5px] border-[#e2e5f5] bg-white px-3 transition focus-within:border-violet-400 focus-within:shadow-[0_0_0_3px_rgba(120,84,255,0.12)]">
             <span className="shrink-0 text-sm font-semibold text-slate-400" aria-hidden>
               LBP
             </span>
@@ -217,7 +217,7 @@ export function LinkedCurrencyPriceInput({
               value={lbp}
               onChange={(event) => updateLbp(event.target.value)}
               onBlur={finishLbpEdit}
-              className="min-w-0 flex-1 border-0 bg-transparent py-2.5 text-[0.9375rem] text-slate-900 outline-none placeholder:text-slate-400"
+              className="min-w-0 flex-1 border-0 bg-transparent py-0 text-[0.9375rem] leading-none text-slate-900 outline-none placeholder:text-slate-400"
             />
           </div>
         </label>
