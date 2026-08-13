@@ -64,6 +64,14 @@ import {
   snapshotSelectedOptions,
   type OptionSelections,
 } from "@/lib/menu-item-options";
+import {
+  CatalogFilterSheet,
+  DEFAULT_CATALOG_FILTERS,
+  catalogFilterCount,
+  collectCatalogFacets,
+  itemMatchesCatalogFilters,
+  type CatalogFilterState,
+} from "@/components/catalog-filter-sheet";
 
 const WHATSAPP_GREEN = "#25D366";
 
@@ -264,6 +272,10 @@ export function MenuClient({
   const canShop = !viewOnly && !orderingBlocked;
   const [cart, setCart] = useState<Record<string, CartLine>>({});
   const [customizing, setCustomizing] = useState<CustomizationState | null>(null);
+  const [sheetDragY, setSheetDragY] = useState(0);
+  const [sheetDragging, setSheetDragging] = useState(false);
+  const sheetStartYRef = useRef(0);
+  const sheetDragYRef = useRef(0);
   /** Color chosen on the menu card (updates thumb + preselects in the picker). */
   const [listColorByItemId, setListColorByItemId] = useState<Record<string, string>>({});
   /** Size/volume chosen on the menu card (updates price + preselects in the picker). */
@@ -272,6 +284,9 @@ export function MenuClient({
   const [query, setQuery] = useState("");
   const [menuCategoryFilter, setMenuCategoryFilter] = useState<string>("all");
   const [menuAudienceFilter, setMenuAudienceFilter] = useState<string>("all");
+  const [showCatalogFilters, setShowCatalogFilters] = useState(false);
+  const [catalogFilters, setCatalogFilters] = useState<CatalogFilterState>(DEFAULT_CATALOG_FILTERS);
+  const [catalogFilterDraft, setCatalogFilterDraft] = useState<CatalogFilterState>(DEFAULT_CATALOG_FILTERS);
   const [customerName, setCustomerName] = useState(defaultCustomerName);
   const effectiveCustomerName = useMemo(() => {
     if (isGuestCheckout) return "Guest";
@@ -353,6 +368,18 @@ export function MenuClient({
     menuAudienceFilter === "boys" ||
     menuAudienceFilter === "girls";
 
+  const allCatalogItems = useMemo(
+    () => categories.flatMap((category) => category.menu_items),
+    [categories],
+  );
+  const catalogFacets = useMemo(
+    () => collectCatalogFacets(allCatalogItems),
+    [allCatalogItems],
+  );
+  const showCatalogFilterButton =
+    catalogFacets.sizes.length > 0 || catalogFacets.colors.length > 0;
+  const activeCatalogFilterCount = catalogFilterCount(catalogFilters, catalogFacets);
+
   const filteredCategories = useMemo(() => {
     const normalized = query.trim().toLowerCase();
     return categories
@@ -360,6 +387,7 @@ export function MenuClient({
         ...category,
         menu_items: category.menu_items.filter((item) => {
           if (!itemMatchesAudienceFilter(item.audience, menuAudienceFilter)) return false;
+          if (!itemMatchesCatalogFilters(item, catalogFilters, catalogFacets)) return false;
           if (!normalized) return true;
           const brand = getMenuItemBrand(item);
           return (
@@ -371,7 +399,23 @@ export function MenuClient({
         }),
       }))
       .filter((category) => category.menu_items.length > 0);
-  }, [categories, query, menuAudienceFilter]);
+  }, [categories, query, menuAudienceFilter, catalogFilters, catalogFacets]);
+
+  const catalogDraftResultCount = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    return allCatalogItems.filter((item) => {
+      if (!itemMatchesAudienceFilter(item.audience, menuAudienceFilter)) return false;
+      if (!itemMatchesCatalogFilters(item, catalogFilterDraft, catalogFacets)) return false;
+      if (!normalized) return true;
+      const brand = getMenuItemBrand(item);
+      return (
+        item.name.toLowerCase().includes(normalized) ||
+        (brand?.name ?? "").toLowerCase().includes(normalized) ||
+        (item.description ?? "").toLowerCase().includes(normalized) ||
+        (item.contents ?? "").toLowerCase().includes(normalized)
+      );
+    }).length;
+  }, [allCatalogItems, catalogFilterDraft, catalogFacets, menuAudienceFilter, query]);
 
   const displayCategories = useMemo(() => {
     if (menuCategoryFilter === "all") return filteredCategories;
@@ -464,12 +508,23 @@ export function MenuClient({
     const listColor = colorGroup ? listColorByItemId[item.id] : undefined;
     const listSize = sizeGroup ? listSizeByItemId[item.id] : undefined;
     const fromList: OptionSelections = {};
-    if (colorGroup && listColor && !initialSelections[colorGroup.label]) {
-      fromList[colorGroup.label] = listColor;
+
+    // Prefer list-card picks; otherwise auto-select when only one color/size exists
+    // (popup only — list cards stay unselected until the shopper taps).
+    const soleColor =
+      colorGroup && colorGroup.values.length === 1 ? colorGroup.values[0].name : null;
+    const soleSize =
+      sizeGroup && sizeGroup.values.length === 1 ? sizeGroup.values[0].name : null;
+    const resolvedColor = listColor || soleColor;
+    const resolvedSize = listSize || soleSize;
+
+    if (colorGroup && resolvedColor && !initialSelections[colorGroup.label]) {
+      fromList[colorGroup.label] = resolvedColor;
     }
-    if (sizeGroup && listSize && !initialSelections[sizeGroup.label]) {
-      fromList[sizeGroup.label] = listSize;
+    if (sizeGroup && resolvedSize && !initialSelections[sizeGroup.label]) {
+      fromList[sizeGroup.label] = resolvedSize;
     }
+
     setCustomizing({
       item,
       remove: [],
@@ -478,6 +533,9 @@ export function MenuClient({
       qty: unitQty,
       selectedOptions: { ...fromList, ...initialSelections },
     });
+    setSheetDragY(0);
+    sheetDragYRef.current = 0;
+    setSheetDragging(false);
   }
 
   /** Switch color on the menu card — updates the photo; clears size if that combo is sold out. */
@@ -576,7 +634,35 @@ export function MenuClient({
   }
 
   function closeCustomization() {
+    setSheetDragY(0);
+    sheetDragYRef.current = 0;
+    setSheetDragging(false);
     setCustomizing(null);
+  }
+
+  function onCustomizationSheetTouchStart(e: React.TouchEvent) {
+    sheetStartYRef.current = e.touches[0].clientY;
+    sheetDragYRef.current = 0;
+    setSheetDragging(true);
+  }
+
+  function onCustomizationSheetTouchMove(e: React.TouchEvent) {
+    if (!sheetDragging) return;
+    const dy = e.touches[0].clientY - sheetStartYRef.current;
+    const next = Math.max(0, dy);
+    sheetDragYRef.current = next;
+    setSheetDragY(next);
+  }
+
+  function onCustomizationSheetTouchEnd() {
+    if (!sheetDragging) return;
+    setSheetDragging(false);
+    if (sheetDragYRef.current >= 110) {
+      closeCustomization();
+      return;
+    }
+    setSheetDragY(0);
+    sheetDragYRef.current = 0;
   }
 
   function addCustomizedItem(overrides?: { selectedOptions?: OptionSelections }) {
@@ -1626,14 +1712,41 @@ export function MenuClient({
           </div>
 
           {/* Audience filter — Women / Men / Kids (Boys & Girls under Kids) */}
-          {audienceGroups.showFilter ? (
+          {audienceGroups.showFilter || showCatalogFilterButton ? (
             <div className="space-y-2">
               <div className="flex min-w-0 w-full max-w-full items-center gap-2">
-                <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">
-                  <Filter className="h-3.5 w-3.5" aria-hidden />
-                  Filter
-                </span>
+                {showCatalogFilterButton ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCatalogFilterDraft(catalogFilters);
+                      setShowCatalogFilters(true);
+                    }}
+                    className={`inline-flex shrink-0 items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide transition ${
+                      activeCatalogFilterCount > 0
+                        ? "text-slate-900"
+                        : "text-slate-400 hover:text-slate-700"
+                    }`}
+                    aria-haspopup="dialog"
+                    aria-expanded={showCatalogFilters}
+                  >
+                    <Filter className="h-3.5 w-3.5" aria-hidden />
+                    Filter
+                    {activeCatalogFilterCount > 0 ? (
+                      <span className="rounded-full bg-slate-900 px-1.5 py-0.5 text-[9px] font-bold leading-none text-white">
+                        {activeCatalogFilterCount}
+                      </span>
+                    ) : null}
+                  </button>
+                ) : (
+                  <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                    <Filter className="h-3.5 w-3.5" aria-hidden />
+                    Filter
+                  </span>
+                )}
                 <div className="flex min-w-0 flex-1 flex-nowrap gap-2 overflow-x-auto overflow-y-hidden touch-pan-x pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:overflow-x-visible">
+                  {audienceGroups.showFilter ? (
+                    <>
                   <button
                     type="button"
                     onClick={() => setMenuAudienceFilter("all")}
@@ -1687,6 +1800,8 @@ export function MenuClient({
                     >
                       Kids
                     </button>
+                  ) : null}
+                    </>
                   ) : null}
                 </div>
               </div>
@@ -2230,16 +2345,65 @@ export function MenuClient({
         ? createPortal(renderCheckoutSheet(), document.body)
         : null}
 
+      {showCatalogFilterButton && typeof document !== "undefined"
+        ? createPortal(
+            <CatalogFilterSheet
+              open={showCatalogFilters}
+              value={catalogFilters}
+              facets={catalogFacets}
+              lbpRate={lbpRate}
+              resultCount={catalogDraftResultCount}
+              onClose={() => setShowCatalogFilters(false)}
+              onApply={setCatalogFilters}
+              onDraftChange={setCatalogFilterDraft}
+            />,
+            document.body,
+          )
+        : null}
+
       {/* ── Customization modal ────────────────────────────────────────── */}
       {canShop && customizing ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/50 backdrop-blur-sm p-0 sm:items-center sm:p-4">
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4"
+          style={{
+            backgroundColor: `rgba(15, 23, 42, ${Math.max(0.15, 0.5 * (1 - sheetDragY / 320))})`,
+          }}
+        >
+          <button
+            type="button"
+            className="absolute inset-0 backdrop-blur-sm"
+            aria-label="Close"
+            onClick={closeCustomization}
+          />
           <div
-            className={`w-full max-h-[95dvh] overflow-y-auto rounded-t-3xl bg-white shadow-2xl sm:max-h-[90vh] sm:max-w-xl sm:rounded-3xl ${
+            className={`relative z-[1] flex w-full max-h-[95dvh] flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:max-h-[90vh] sm:max-w-xl sm:rounded-3xl ${
               isOptionsOnlyItem(customizing.item)
-                ? "px-0 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-0"
-                : "px-5 pb-6 pt-5 sm:px-6 sm:pb-6 sm:pt-5"
+                ? "pb-[max(1.25rem,env(safe-area-inset-bottom))]"
+                : "pb-6 sm:pb-6"
             }`}
+            style={{
+              transform: `translateY(${sheetDragY}px)`,
+              transition: sheetDragging ? "none" : "transform 200ms ease-out",
+            }}
+            role="dialog"
+            aria-modal="true"
+            aria-label={customizing.item.name}
           >
+            <div
+              className="h-3 shrink-0 touch-none sm:hidden"
+              onTouchStart={onCustomizationSheetTouchStart}
+              onTouchMove={onCustomizationSheetTouchMove}
+              onTouchEnd={onCustomizationSheetTouchEnd}
+              onTouchCancel={onCustomizationSheetTouchEnd}
+              aria-hidden
+            />
+            <div
+              className={`min-h-0 flex-1 overflow-y-auto ${
+                isOptionsOnlyItem(customizing.item)
+                  ? "px-0"
+                  : "px-5 pt-1 sm:px-6 sm:pt-5"
+              }`}
+            >
             {/* Header */}
             {(() => {
               const previewGroups = getItemOptionGroups(customizing.item);
@@ -2787,6 +2951,7 @@ export function MenuClient({
               </button>
             </div>
             ) : null}
+            </div>
             </div>
           </div>
         </div>
