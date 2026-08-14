@@ -97,7 +97,7 @@ export function BrandManagePanel({ brands }: Props) {
 
       {brands.length > 0 ? (
         <>
-          <div className="mt-4 max-w-md">
+          <div className="mt-4 w-full">
             <label htmlFor="brand-search" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
               Search brands
             </label>
@@ -110,7 +110,7 @@ export function BrandManagePanel({ brands }: Props) {
                 setPage(0);
               }}
               placeholder="Search by brand name…"
-              className="ui-input w-full max-w-full"
+              className="ui-input w-full"
             />
           </div>
 

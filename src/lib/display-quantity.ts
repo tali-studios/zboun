@@ -1,24 +1,32 @@
-export type DisplayUnit = "g" | "kg" | "ml" | "l";
+export type DisplayUnit = "mg" | "g" | "kg" | "ml" | "cl" | "l" | "pcs";
 
 export const DISPLAY_UNIT_OPTIONS: { value: DisplayUnit; label: string; hint: string }[] = [
+  { value: "mg", label: "mg", hint: "milligrams" },
   { value: "g", label: "g", hint: "grams" },
   { value: "kg", label: "kg", hint: "kilograms" },
   { value: "ml", label: "mL", hint: "milliliters" },
+  { value: "cl", label: "cL", hint: "centiliters" },
   { value: "l", label: "L", hint: "liters" },
+  { value: "pcs", label: "pcs", hint: "pieces" },
 ];
 
 const UNIT_LABELS: Record<DisplayUnit, string> = {
+  mg: "mg",
   g: "g",
   kg: "kg",
   ml: "mL",
+  cl: "cL",
   l: "L",
+  pcs: "pcs",
 };
+
+const UNIT_VALUES = new Set<string>(DISPLAY_UNIT_OPTIONS.map((o) => o.value));
 
 export function normalizeDisplayUnit(raw: string | null | undefined): DisplayUnit {
   const unit = String(raw ?? "g")
     .trim()
     .toLowerCase();
-  if (unit === "g" || unit === "kg" || unit === "ml" || unit === "l") return unit;
+  if (UNIT_VALUES.has(unit)) return unit as DisplayUnit;
   return "g";
 }
 
@@ -40,9 +48,14 @@ export function formatDisplayQuantity(
 export function toLegacyGramsValue(quantity: number, unit: DisplayUnit): number {
   switch (unit) {
     case "kg":
-      return Math.round(quantity * 1000);
     case "l":
       return Math.round(quantity * 1000);
+    case "cl":
+      return Math.round(quantity * 10);
+    case "mg":
+      return Math.round(quantity / 1000);
+    case "pcs":
+      return Math.round(quantity);
     default:
       return Math.round(quantity);
   }

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { useFormStatus } from "react-dom";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { createMenuItemAction } from "@/app-actions/restaurant";
 import { IngredientListField } from "@/components/ingredient-list-field";
@@ -12,6 +11,7 @@ import { MenuItemOptionsFields } from "@/components/menu-item-options-fields";
 import { MenuItemStockFields } from "@/components/menu-item-stock-fields";
 import { LinkedCurrencyPriceInput } from "@/components/linked-currency-price-input";
 import { ITEM_AUDIENCES, ITEM_AUDIENCE_LABELS } from "@/lib/item-audience";
+import { buildMenuItemStockPayload } from "@/lib/menu-item-stock";
 import type { StoreItemProfile } from "@/lib/store-item-profile";
 
 type Category = { id: string; name: string };
@@ -107,17 +107,18 @@ function ExpandSection({
           <path d="M6 9l6 6 6-6" />
         </svg>
       </button>
-      {open && (
-        <div className="border-t border-slate-100 px-5 pb-5 pt-4 space-y-4 overflow-x-hidden">
-          {children}
-        </div>
-      )}
+      <div
+        className={`border-t border-slate-100 px-5 pb-5 pt-4 space-y-4 overflow-x-hidden ${
+          open ? "" : "hidden"
+        }`}
+      >
+        {children}
+      </div>
     </div>
   );
 }
 
-function AddItemSubmitButton({ isFood }: { isFood: boolean }) {
-  const { pending } = useFormStatus();
+function AddItemSubmitButton({ isFood, pending }: { isFood: boolean; pending: boolean }) {
 
   return (
     <button
@@ -168,6 +169,7 @@ export function AddMenuItemForm({
   const [price, setPrice] = useState("");
   const [pricePerKg, setPricePerKg] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const errorRef = useRef<HTMLDivElement>(null);
   const submittingRef = useRef(false);
@@ -192,16 +194,32 @@ export function AddMenuItemForm({
   const canUseProductOptions = profile.productOptions;
   const brandRequired = profile.brandRequired && brands.length > 0;
 
-  async function handleCreate(formData: FormData) {
+  async function handleCreate(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
     if (submittingRef.current) return;
     submittingRef.current = true;
+    setPending(true);
     setFormError(null);
+    const formData = new FormData(event.currentTarget);
+    const stock = buildMenuItemStockPayload(formData);
+    if ("error" in stock) {
+      submittingRef.current = false;
+      setPending(false);
+      setFormError(
+        "Check stock alerts: warning must be greater than urgent, and urgent greater than very urgent.",
+      );
+      queueMicrotask(() => {
+        errorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+      return;
+    }
     try {
       const result = await createMenuItemAction(formData);
       // Success redirects; failures return so the filled form is kept.
       if (result && result.ok === false) {
         setFormError(result.error);
         submittingRef.current = false;
+        setPending(false);
         queueMicrotask(() => {
           errorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
         });
@@ -209,6 +227,7 @@ export function AddMenuItemForm({
     } catch (error) {
       if (isRedirectError(error)) throw error;
       submittingRef.current = false;
+      setPending(false);
       setFormError("Something went wrong. Your fields were kept — please try again.");
       queueMicrotask(() => {
         errorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -217,7 +236,7 @@ export function AddMenuItemForm({
   }
 
   return (
-    <form ref={formRef} action={handleCreate} id="add-item" className="space-y-3">
+    <form ref={formRef} onSubmit={handleCreate} id="add-item" className="space-y-3">
       {formError ? (
         <div
           ref={errorRef}
@@ -552,7 +571,7 @@ export function AddMenuItemForm({
       )}
 
       {/* ─── Submit ───────────────────────────────────────────────────────── */}
-      <AddItemSubmitButton isFood={isFood} />
+      <AddItemSubmitButton isFood={isFood} pending={pending} />
     </form>
   );
 }

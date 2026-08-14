@@ -29,7 +29,7 @@ export function DisplayQuantityFields({
           (optional)
         </span>
       </span>
-      <div className="grid grid-cols-[minmax(0,1fr)_4.75rem] items-stretch gap-2 sm:grid-cols-[minmax(0,1fr)_5.5rem]">
+      <div className="grid grid-cols-[minmax(0,1fr)_5rem] items-stretch gap-2 sm:grid-cols-[minmax(0,1fr)_5.75rem]">
         <input
           id={`${idPrefix}-quantity`}
           name={quantityName}
@@ -57,7 +57,7 @@ export function DisplayQuantityFields({
         </select>
       </div>
       <p className="text-xs text-slate-400">
-        Weight: g or kg · Drinks: mL or L. Shown on the menu as a label (e.g. 330 mL, 1.5 L, 500 g).
+        Weight: mg, g, kg · Drinks: mL, cL, L · Count: pcs. Shown as a label (e.g. 18 mg, 330 mL, 6 pcs).
       </p>
     </div>
   );
