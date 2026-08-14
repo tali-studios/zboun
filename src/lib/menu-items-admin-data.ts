@@ -10,6 +10,7 @@ export function buildMenuItemsListHref(opts: {
   stock?: string;
   sort?: string;
   audience?: string;
+  brand?: string;
   page?: number;
 }) {
   const params = new URLSearchParams();
@@ -17,6 +18,7 @@ export function buildMenuItemsListHref(opts: {
   if (opts.category?.trim()) params.set("category", opts.category.trim());
   if (opts.stock?.trim()) params.set("stock", opts.stock.trim());
   if (opts.audience?.trim()) params.set("audience", opts.audience.trim());
+  if (opts.brand?.trim()) params.set("brand", opts.brand.trim());
   if (opts.sort?.trim() && opts.sort !== "name_asc") params.set("sort", opts.sort.trim());
   if (opts.page && opts.page > 1) params.set("page", String(opts.page));
   const qs = params.toString();

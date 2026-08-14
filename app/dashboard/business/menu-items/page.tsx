@@ -30,6 +30,7 @@ type Props = {
     category?: string;
     stock?: string;
     audience?: string;
+    brand?: string;
     sort?: string;
     page?: string;
     jump?: string;
@@ -52,6 +53,7 @@ export default async function BusinessMenuItemsPage({ searchParams }: Props) {
     category,
     stock,
     audience: audienceRaw,
+    brand: brandRaw,
     sort: sortRaw,
     page: pageRaw,
     jump,
@@ -119,11 +121,14 @@ export default async function BusinessMenuItemsPage({ searchParams }: Props) {
   const selectedCategory = (category ?? "").trim();
   const selectedStock = (stock ?? "").trim();
   const selectedAudience = parseAudienceFilter(audienceRaw);
+  const requestedBrand = (brandRaw ?? "").trim();
+  const selectedBrand = menuBrands.some((b) => b.id === requestedBrand) ? requestedBrand : "";
   const selectedSort = parseMenuItemsSort(sortRaw);
 
   const filteredItems = normalizedItems.filter((item) => {
     if (selectedCategory && item.category_id !== selectedCategory) return false;
     if (selectedAudience && !itemMatchesAudienceFilter(item.audience, selectedAudience)) return false;
+    if (selectedBrand && item.brand_id !== selectedBrand) return false;
     if (selectedStock === "in" && !item.is_available) return false;
     if (selectedStock === "out" && item.is_available) return false;
     if (selectedStock === "low" && !isMenuItemLowStock(item)) return false;
@@ -154,6 +159,7 @@ export default async function BusinessMenuItemsPage({ searchParams }: Props) {
     category: selectedCategory,
     stock: selectedStock,
     audience: selectedAudience,
+    brand: selectedBrand,
     sort: selectedSort,
   };
   const menuItemsLowStockCount = normalizedItems.filter((item) => isMenuItemLowStock(item)).length;
@@ -215,6 +221,7 @@ export default async function BusinessMenuItemsPage({ searchParams }: Props) {
           selectedCategory={selectedCategory}
           selectedStock={selectedStock}
           selectedAudience={selectedAudience}
+          selectedBrand={selectedBrand}
           selectedSort={selectedSort}
           normalizedItemsCount={normalizedItems.length}
           itemsSafePage={itemsSafePage}

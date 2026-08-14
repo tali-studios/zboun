@@ -6,12 +6,25 @@ import type { MenuItemsSort } from "@/lib/menu-items-admin";
 
 type Category = { id: string; name: string };
 
+type Brand = { id: string; name: string };
+
+type ToolbarState = {
+  q: string;
+  category: string;
+  stock: string;
+  audience: string;
+  brand: string;
+  sort: MenuItemsSort;
+};
+
 type Props = {
   categories: Category[];
+  brands?: Brand[];
   initialQ: string;
   initialCategory: string;
   initialStock: string;
   initialAudience?: string;
+  initialBrand?: string;
   initialSort: MenuItemsSort;
   totalCount: number;
   filteredCount: number;
@@ -25,12 +38,14 @@ function buildHref(
   stock: string,
   sort: MenuItemsSort,
   audience = "",
+  brand = "",
 ) {
   const params = new URLSearchParams();
   if (q.trim()) params.set("q", q.trim());
   if (category.trim()) params.set("category", category.trim());
   if (stock.trim()) params.set("stock", stock.trim());
   if (audience.trim()) params.set("audience", audience.trim());
+  if (brand.trim()) params.set("brand", brand.trim());
   if (sort !== "name_asc") params.set("sort", sort);
   const qs = params.toString();
   return qs ? `${pathname}?${qs}#items-toolbar` : `${pathname}#items-toolbar`;
@@ -38,10 +53,12 @@ function buildHref(
 
 export function BusinessMenuItemsToolbar({
   categories,
+  brands = [],
   initialQ,
   initialCategory,
   initialStock,
   initialAudience = "",
+  initialBrand = "",
   initialSort,
   totalCount,
   filteredCount,
@@ -53,12 +70,14 @@ export function BusinessMenuItemsToolbar({
   const [category, setCategory] = useState(initialCategory);
   const [stock, setStock] = useState(initialStock);
   const [audience, setAudience] = useState(initialAudience);
+  const [brand, setBrand] = useState(initialBrand);
   const [sort, setSort] = useState<MenuItemsSort>(initialSort);
-  const latest = useRef({
+  const latest = useRef<ToolbarState>({
     q: initialQ,
     category: initialCategory,
     stock: initialStock,
     audience: initialAudience,
+    brand: initialBrand,
     sort: initialSort,
   });
   const debounceId = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -68,21 +87,23 @@ export function BusinessMenuItemsToolbar({
     setCategory(initialCategory);
     setStock(initialStock);
     setAudience(initialAudience);
+    setBrand(initialBrand);
     setSort(initialSort);
     latest.current = {
       q: initialQ,
       category: initialCategory,
       stock: initialStock,
       audience: initialAudience,
+      brand: initialBrand,
       sort: initialSort,
     };
-  }, [initialQ, initialCategory, initialStock, initialAudience, initialSort]);
+  }, [initialQ, initialCategory, initialStock, initialAudience, initialBrand, initialSort]);
 
   const apply = useCallback(
-    (next: { q: string; category: string; stock: string; audience: string; sort: MenuItemsSort }) => {
+    (next: ToolbarState) => {
       latest.current = next;
       router.replace(
-        buildHref(pathname, next.q, next.category, next.stock, next.sort, next.audience),
+        buildHref(pathname, next.q, next.category, next.stock, next.sort, next.audience, next.brand),
         { scroll: false },
       );
     },
@@ -98,15 +119,14 @@ export function BusinessMenuItemsToolbar({
   function scheduleSearchPush(nextQ: string) {
     if (debounceId.current) clearTimeout(debounceId.current);
     debounceId.current = setTimeout(() => {
-      const { category: c, stock: s, audience: a, sort: so } = latest.current;
-      apply({ q: nextQ, category: c, stock: s, audience: a, sort: so });
+      apply({ ...latest.current, q: nextQ });
     }, 300);
   }
 
   function handleSearchSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (debounceId.current) clearTimeout(debounceId.current);
-    apply({ q, category, stock, audience, sort });
+    apply({ q, category, stock, audience, brand, sort });
   }
 
   return (
@@ -149,13 +169,7 @@ export function BusinessMenuItemsToolbar({
               const v = e.target.value;
               setCategory(v);
               if (debounceId.current) clearTimeout(debounceId.current);
-              apply({
-                q: latest.current.q,
-                category: v,
-                stock: latest.current.stock,
-                audience: latest.current.audience,
-                sort: latest.current.sort,
-              });
+              apply({ ...latest.current, category: v });
             }}
             className="ui-select w-full"
           >
@@ -177,13 +191,7 @@ export function BusinessMenuItemsToolbar({
               const v = e.target.value;
               setStock(v);
               if (debounceId.current) clearTimeout(debounceId.current);
-              apply({
-                q: latest.current.q,
-                category: latest.current.category,
-                stock: v,
-                audience: latest.current.audience,
-                sort: latest.current.sort,
-              });
+              apply({ ...latest.current, stock: v });
             }}
             className="ui-select w-full"
           >
@@ -205,13 +213,7 @@ export function BusinessMenuItemsToolbar({
                 const v = e.target.value;
                 setAudience(v);
                 if (debounceId.current) clearTimeout(debounceId.current);
-                apply({
-                  q: latest.current.q,
-                  category: latest.current.category,
-                  stock: latest.current.stock,
-                  audience: v,
-                  sort: latest.current.sort,
-                });
+                apply({ ...latest.current, audience: v });
               }}
               className="ui-select w-full"
             >
@@ -226,6 +228,30 @@ export function BusinessMenuItemsToolbar({
           </label>
         ) : null}
 
+        {brands.length > 0 ? (
+          <label className="space-y-1 lg:w-44 lg:shrink-0">
+            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Brand</span>
+            <select
+              name="brand"
+              value={brand}
+              onChange={(e) => {
+                const v = e.target.value;
+                setBrand(v);
+                if (debounceId.current) clearTimeout(debounceId.current);
+                apply({ ...latest.current, brand: v });
+              }}
+              className="ui-select w-full"
+            >
+              <option value="">All brands</option>
+              {brands.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
+
         <label className="space-y-1 lg:w-44 lg:shrink-0">
           <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Sort by</span>
           <select
@@ -235,13 +261,7 @@ export function BusinessMenuItemsToolbar({
               const v = e.target.value as MenuItemsSort;
               setSort(v);
               if (debounceId.current) clearTimeout(debounceId.current);
-              apply({
-                q: latest.current.q,
-                category: latest.current.category,
-                stock: latest.current.stock,
-                audience: latest.current.audience,
-                sort: v,
-              });
+              apply({ ...latest.current, sort: v });
             }}
             className="ui-select w-full"
           >

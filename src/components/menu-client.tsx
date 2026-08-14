@@ -377,7 +377,9 @@ export function MenuClient({
     [allCatalogItems],
   );
   const showCatalogFilterButton =
-    catalogFacets.sizes.length > 0 || catalogFacets.colors.length > 0;
+    catalogFacets.brands.length >= 2 ||
+    catalogFacets.sizes.length > 0 ||
+    catalogFacets.colors.length > 0;
   const activeCatalogFilterCount = catalogFilterCount(catalogFilters, catalogFacets);
 
   const filteredCategories = useMemo(() => {

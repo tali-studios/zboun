@@ -132,11 +132,19 @@ type Props = {
   selectedCategory: string;
   selectedStock: string;
   selectedAudience?: string;
+  selectedBrand?: string;
   selectedSort: MenuItemsSort;
   normalizedItemsCount: number;
   itemsSafePage: number;
   itemsTotalPages: number;
-  listHrefBase: { q: string; category: string; stock: string; audience?: string; sort: MenuItemsSort };
+  listHrefBase: {
+    q: string;
+    category: string;
+    stock: string;
+    audience?: string;
+    brand?: string;
+    sort: MenuItemsSort;
+  };
   lbpRate?: number;
 };
 
@@ -153,6 +161,7 @@ export function BusinessMenuItemsSection({
   selectedCategory,
   selectedStock,
   selectedAudience = "",
+  selectedBrand = "",
   selectedSort,
   normalizedItemsCount,
   itemsSafePage,
@@ -225,10 +234,12 @@ export function BusinessMenuItemsSection({
 
           <BusinessMenuItemsToolbar
             categories={categories.map((c) => ({ id: c.id, name: c.name }))}
+            brands={menuBrands.map((b) => ({ id: b.id, name: b.name }))}
             initialQ={initialQ}
             initialCategory={selectedCategory}
             initialStock={selectedStock}
             initialAudience={selectedAudience}
+            initialBrand={selectedBrand}
             initialSort={selectedSort}
             totalCount={normalizedItemsCount}
             filteredCount={sortedItems.length}

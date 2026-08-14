@@ -10,6 +10,7 @@ import {
 } from "@/lib/menu-item-options";
 
 export type CatalogFilterState = {
+  brands: string[];
   sizes: string[];
   colors: string[];
   /** Inclusive USD bounds. Null = use the catalog min/max (no price filter). */
@@ -18,6 +19,7 @@ export type CatalogFilterState = {
 };
 
 export const DEFAULT_CATALOG_FILTERS: CatalogFilterState = {
+  brands: [],
   sizes: [],
   colors: [],
   priceMinUsd: null,
@@ -25,11 +27,14 @@ export const DEFAULT_CATALOG_FILTERS: CatalogFilterState = {
 };
 
 export type CatalogFacets = {
+  brands: string[];
   sizes: string[];
   colors: string[];
   minPriceUsd: number;
   maxPriceUsd: number;
 };
+
+type CatalogBrandEmbed = { id?: string; name?: string | null; logo_url?: string | null };
 
 type CatalogItem = {
   option_label?: string | null;
@@ -40,6 +45,9 @@ type CatalogItem = {
   weight_step_kg?: number | null;
   percent_off?: number | null;
   promotion_label?: string | null;
+  brand_id?: string | null;
+  brand_name?: string | null;
+  menu_brands?: CatalogBrandEmbed | CatalogBrandEmbed[] | null;
 };
 
 const LETTER_SIZE_ORDER = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL", "3XL", "4XL"];
@@ -55,6 +63,12 @@ function findSizeOptionGroup(groups: MenuOptionGroup[]): MenuOptionGroup | null 
 
 function itemGroups(item: CatalogItem): MenuOptionGroup[] {
   return normalizeOptionGroups(item.option_label, item.option_values);
+}
+
+function getCatalogBrandName(item: CatalogItem): string | null {
+  const nested = Array.isArray(item.menu_brands) ? item.menu_brands[0] : item.menu_brands;
+  const name = nested?.name?.trim() || item.brand_name?.trim() || "";
+  return name || null;
 }
 
 function itemPriceSpan(item: CatalogItem): { min: number; max: number } {
@@ -79,6 +93,7 @@ function sizeSortKey(name: string): [number, number, string] {
 export function collectCatalogFacets(items: CatalogItem[]): CatalogFacets {
   const sizes = new Set<string>();
   const colors = new Set<string>();
+  const brands = new Map<string, string>();
   let minPriceUsd = Number.POSITIVE_INFINITY;
   let maxPriceUsd = 0;
 
@@ -92,6 +107,11 @@ export function collectCatalogFacets(items: CatalogItem[]): CatalogFacets {
     for (const value of colorGroup?.values ?? []) {
       if (value.name.trim()) colors.add(value.name.trim());
     }
+    const brandName = getCatalogBrandName(item);
+    if (brandName) {
+      const key = brandName.toLowerCase();
+      if (!brands.has(key)) brands.set(key, brandName);
+    }
     const span = itemPriceSpan(item);
     minPriceUsd = Math.min(minPriceUsd, span.min);
     maxPriceUsd = Math.max(maxPriceUsd, span.max);
@@ -101,6 +121,9 @@ export function collectCatalogFacets(items: CatalogItem[]): CatalogFacets {
   if (maxPriceUsd < minPriceUsd) maxPriceUsd = minPriceUsd;
 
   return {
+    brands: [...brands.values()].sort((a, b) =>
+      a.localeCompare(b, undefined, { sensitivity: "base" }),
+    ),
     sizes: [...sizes].sort((a, b) => {
       const [ag, av, al] = sizeSortKey(a);
       const [bg, bv, bl] = sizeSortKey(b);
@@ -116,14 +139,14 @@ export function catalogFiltersAreActive(
   filters: CatalogFilterState,
   facets: CatalogFacets,
 ): boolean {
-  if (filters.sizes.length > 0 || filters.colors.length > 0) return true;
+  if (filters.brands.length > 0 || filters.sizes.length > 0 || filters.colors.length > 0) return true;
   const min = filters.priceMinUsd ?? facets.minPriceUsd;
   const max = filters.priceMaxUsd ?? facets.maxPriceUsd;
   return min > facets.minPriceUsd || max < facets.maxPriceUsd;
 }
 
 export function catalogFilterCount(filters: CatalogFilterState, facets: CatalogFacets): number {
-  let n = filters.sizes.length + filters.colors.length;
+  let n = filters.brands.length + filters.sizes.length + filters.colors.length;
   const min = filters.priceMinUsd ?? facets.minPriceUsd;
   const max = filters.priceMaxUsd ?? facets.maxPriceUsd;
   if (min > facets.minPriceUsd || max < facets.maxPriceUsd) n += 1;
@@ -135,6 +158,11 @@ export function itemMatchesCatalogFilters(
   filters: CatalogFilterState,
   facets: CatalogFacets,
 ): boolean {
+  if (filters.brands.length > 0) {
+    const brandName = getCatalogBrandName(item);
+    const selected = new Set(filters.brands.map((name) => name.toLowerCase()));
+    if (!brandName || !selected.has(brandName.toLowerCase())) return false;
+  }
   const groups = itemGroups(item);
   if (filters.sizes.length > 0) {
     const sizeGroup = findSizeOptionGroup(groups);
@@ -273,12 +301,13 @@ export function CatalogFilterSheet({
   const rightPct = ((draftMax - priceFloor) / span) * 100;
 
   const sections = useMemo(() => {
-    const list: Array<"size" | "colour" | "price"> = [];
+    const list: Array<"brand" | "size" | "colour" | "price"> = [];
+    if (facets.brands.length >= 2) list.push("brand");
     if (facets.sizes.length > 0) list.push("size");
     if (facets.colors.length > 0) list.push("colour");
     if (priceCeil > priceFloor) list.push("price");
     return list;
-  }, [facets.sizes.length, facets.colors.length, priceCeil, priceFloor]);
+  }, [facets.brands.length, facets.sizes.length, facets.colors.length, priceCeil, priceFloor]);
 
   if (!open) return null;
 
@@ -311,6 +340,7 @@ export function CatalogFilterSheet({
 
   function applyAndClose(next: CatalogFilterState) {
     const normalized: CatalogFilterState = {
+      brands: next.brands,
       sizes: next.sizes,
       colors: next.colors,
       priceMinUsd: (next.priceMinUsd ?? priceFloor) <= priceFloor ? null : next.priceMinUsd,
@@ -377,6 +407,34 @@ export function CatalogFilterSheet({
           <div className="space-y-10">
             {sections.map((section, i) => {
               const index = i + 1;
+              if (section === "brand") {
+                return (
+                  <FilterSection key="brand" index={index} title="Brand">
+                    <ExpandableList
+                      items={facets.brands}
+                      renderItem={(name) => {
+                        const selected = draft.brands.includes(name);
+                        return (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateDraft({ ...draft, brands: toggleValue(draft.brands, name) })
+                            }
+                            className={`block text-left text-[13px] tracking-[0.04em] transition ${
+                              selected
+                                ? "font-semibold text-slate-900 underline decoration-slate-900 underline-offset-4"
+                                : "font-normal text-slate-600 hover:text-slate-900"
+                            }`}
+                            aria-pressed={selected}
+                          >
+                            {name}
+                          </button>
+                        );
+                      }}
+                    />
+                  </FilterSection>
+                );
+              }
               if (section === "size") {
                 return (
                   <FilterSection key="size" index={index} title="Size">
