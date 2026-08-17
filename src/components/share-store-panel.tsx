@@ -68,9 +68,9 @@ export function ShareStorePanel({
   const [copied, setCopied] = useState<"link" | "caption" | "whatsapp" | null>(null);
   const [canNativeShare, setCanNativeShare] = useState(false);
 
-  const whatsappText = buildWhatsAppStoreShareText(storeName, displayUrl);
-  const instagramCaption = buildInstagramStoreShareCaption(storeName, displayUrl);
-  const whatsappHref = buildWhatsAppStoreShareHref(storeName, displayUrl);
+  const whatsappText = buildWhatsAppStoreShareText(storeName, absoluteUrl);
+  const instagramCaption = buildInstagramStoreShareCaption(storeName, absoluteUrl);
+  const whatsappHref = buildWhatsAppStoreShareHref(storeName, absoluteUrl);
   const noun = isFoodMenu ? "menu" : "store";
 
   useEffect(() => {
@@ -97,7 +97,7 @@ export function ShareStorePanel({
       });
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
-      await onCopy("link", displayUrl);
+      await onCopy("link", absoluteUrl);
     }
   }
 
@@ -116,11 +116,11 @@ export function ShareStorePanel({
 
       <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center">
         <p className="min-w-0 flex-1 truncate rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 font-mono text-sm text-slate-800">
-          {displayUrl}
+          {absoluteUrl}
         </p>
         <button
           type="button"
-          onClick={() => onCopy("link", displayUrl)}
+          onClick={() => onCopy("link", absoluteUrl)}
           className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-violet-700"
         >
           <Copy className="h-4 w-4" aria-hidden />

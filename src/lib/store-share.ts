@@ -1,13 +1,8 @@
-import {
-  getRestaurantSubdomainStoreUrl,
-  toAbsoluteStoreUrl,
-} from "@/lib/restaurant-menu-urls";
+import { getRestaurantMenuUrls } from "@/lib/restaurant-menu-urls";
 
 export function getStoreShareLinks(appUrl: string, slug: string) {
-  const host = getRestaurantSubdomainStoreUrl(appUrl, slug);
-  const absoluteUrl = toAbsoluteStoreUrl(host);
-  const displayUrl = host.replace(/^https?:\/\//i, "");
-  return { displayUrl, absoluteUrl };
+  const absoluteUrl = getRestaurantMenuUrls(appUrl, slug).order;
+  return { displayUrl: absoluteUrl, absoluteUrl };
 }
 
 export function buildWhatsAppStoreShareText(storeName: string, url: string) {
