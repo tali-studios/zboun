@@ -21,6 +21,8 @@ import {
   syncRestaurantProfileFromMainBranch,
 } from "@/lib/restaurant-profile";
 import { getRestaurantMenuUrls } from "@/lib/restaurant-menu-urls";
+import { getStoreShareLinks } from "@/lib/store-share";
+import { ShareStorePanel } from "@/components/share-store-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -257,6 +259,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const menuUrl = getRestaurantMenuUrls(appUrl, restaurant?.slug ?? "").order;
+  const shareLinks = getStoreShareLinks(appUrl, restaurant?.slug ?? "");
   const businessType = parseBusinessType(restaurant?.business_type ?? "retail_store");
   const categoryLabel = formatBrowseSectionsLabel(restaurant?.browse_sections);
   const isMenuBusiness = hasCatalogDashboard(businessType);
@@ -314,6 +317,13 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
 
         {isMenuBusiness ? (
         <>
+        <ShareStorePanel
+          storeName={restaurant?.name ?? "Store"}
+          displayUrl={shareLinks.displayUrl}
+          absoluteUrl={shareLinks.absoluteUrl}
+          isFoodMenu={isFoodMenuBusiness(restaurant?.browse_sections)}
+          compact
+        />
         <section className="panel divide-y divide-slate-100 overflow-hidden p-0">
           <StoreSettingsForm className="divide-y divide-slate-100">
           <div className="p-5">

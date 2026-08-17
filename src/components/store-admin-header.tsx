@@ -9,6 +9,7 @@ export type StoreAdminNavPage =
   | "drivers"
   | "qr"
   | "flyer"
+  | "share"
   | "stock-sync"
   | "menu-items"
   | "sales"
@@ -120,6 +121,9 @@ export function StoreAdminHeader({
               </Link>
               <Link href="/dashboard/business/hours" className={navClass(currentPage === "hours")}>
                 Hours
+              </Link>
+              <Link href="/dashboard/business/share" className={navClass(currentPage === "share")}>
+                Share
               </Link>
               <Link href="/dashboard/business/qr" className={navClass(currentPage === "qr")}>
                 QR
