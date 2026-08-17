@@ -184,24 +184,24 @@ export function ShareStorePanel({
       ) : null}
 
       {showTools ? (
-        <div className="mt-5 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
+        <div className="mt-5 flex gap-2 border-t border-slate-100 pt-4">
           {compact ? (
             <Link
               href="/dashboard/business/share"
-              className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-700 hover:bg-violet-100"
+              className="inline-flex min-w-0 flex-1 items-center justify-center rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-center text-xs font-semibold text-violet-700 hover:bg-violet-100"
             >
-              Open share pack
+              Share pack
             </Link>
           ) : null}
           <Link
             href="/dashboard/business/qr"
-            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+            className="inline-flex min-w-0 flex-1 items-center justify-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-center text-xs font-semibold text-slate-700 hover:bg-slate-50"
           >
             QR codes
           </Link>
           <Link
             href="/dashboard/business/flyer"
-            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+            className="inline-flex min-w-0 flex-1 items-center justify-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-center text-xs font-semibold text-slate-700 hover:bg-slate-50"
           >
             Print flyer
           </Link>
