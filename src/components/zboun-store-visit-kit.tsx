@@ -40,10 +40,12 @@ function PitchSheet({
   siteQr,
   whatsappQr,
   logoSrc,
+  iconSrc,
 }: {
   siteQr: string;
   whatsappQr: string;
   logoSrc: string;
+  iconSrc: string;
 }) {
   const p = ZBOUN_PRESENCE;
 
@@ -58,9 +60,11 @@ function PitchSheet({
         background: "#ffffff",
         color: "#0f172a",
         padding: "14mm 16mm 12mm",
-        fontFamily: "ui-sans-serif, system-ui, sans-serif",
+        fontFamily: "'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif",
       }}
     >
+      {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');`}</style>
       <div
         style={{
           display: "flex",
@@ -84,38 +88,35 @@ function PitchSheet({
           >
             For store owners
           </p>
-          {logoSrc ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={logoSrc}
-              alt="Zboun"
-              style={{
-                display: "block",
-                marginTop: 8,
-                height: 52,
-                width: "auto",
-                maxWidth: 280,
-                objectFit: "contain",
-                objectPosition: "left center",
-              }}
-            />
-          ) : (
-            <h1 style={{ margin: "4px 0 0", fontSize: 34, lineHeight: 1.05, fontWeight: 800 }}>
-              Zboun
-            </h1>
-          )}
+          <h1
+            style={{
+              margin: "4px 0 0",
+              fontSize: 38,
+              lineHeight: 1.05,
+              fontWeight: 800,
+              fontFamily: "'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif",
+              background: "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+              letterSpacing: "-0.02em",
+            }}
+          >
+            Zboun
+          </h1>
           <p style={{ margin: "8px 0 0", fontSize: 13, color: "#475569", maxWidth: 360 }}>
             Digital storefronts & WhatsApp ordering, built for Lebanon.
           </p>
         </div>
-        <div style={{ textAlign: "right", fontSize: 12, color: "#334155", lineHeight: 1.55 }}>
-          <p style={{ margin: 0, fontWeight: 700 }}>{p.siteHost}</p>
-          <p style={{ margin: 0 }}>{p.phoneDisplay}</p>
-          <p style={{ margin: 0 }}>
-            {ZBOUN_PRICING.symbol}
-            {ZBOUN_PRICING.monthly}/mo · {ZBOUN_PRICING.symbol}
-            {ZBOUN_PRICING.yearly}/yr
-          </p>
+        <div style={{ display: "flex", alignItems: "center" }}>
+          {iconSrc ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={iconSrc}
+              alt="Zboun"
+              style={{ display: "block", width: 72, height: 72, objectFit: "contain" }}
+            />
+          ) : null}
         </div>
       </div>
 
@@ -227,6 +228,29 @@ function PitchSheet({
         </div>
       </div>
 
+      {logoSrc ? (
+        <div
+          style={{
+            marginTop: 12,
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={logoSrc}
+            alt="Zboun"
+            style={{
+              display: "block",
+              width: "100%",
+              maxHeight: "64mm",
+              height: "auto",
+              objectFit: "contain",
+            }}
+          />
+        </div>
+      ) : null}
+
       <div style={{ marginTop: "auto", paddingTop: 14 }}>
         <p
           style={{
@@ -269,6 +293,7 @@ export function ZbounStoreVisitKit() {
   const [siteQr, setSiteQr] = useState("");
   const [whatsappQr, setWhatsappQr] = useState("");
   const [logoSrc, setLogoSrc] = useState("");
+  const [iconSrc, setIconSrc] = useState("");
   const [copied, setCopied] = useState<"message" | null>(null);
   const [exporting, setExporting] = useState(false);
   const exportRef = useRef<HTMLDivElement>(null);
@@ -278,18 +303,8 @@ export function ZbounStoreVisitKit() {
   useEffect(() => {
     let cancelled = false;
     async function make() {
-      const [site, wa, logo] = await Promise.all([
-        QRCode.toDataURL(ZBOUN_PRESENCE.siteUrl, {
-          width: 360,
-          margin: 1,
-          color: { dark: "#4c1d95", light: "#ffffff" },
-        }),
-        QRCode.toDataURL(ZBOUN_PRESENCE.whatsappQrUrl, {
-          width: 360,
-          margin: 1,
-          color: { dark: "#0f172a", light: "#ffffff" },
-        }),
-        fetch("/zbounbannernobackground.png")
+      function fetchAsDataUrl(path: string) {
+        return fetch(path)
           .then((res) => res.blob())
           .then(
             (blob) =>
@@ -300,12 +315,27 @@ export function ZbounStoreVisitKit() {
                 reader.readAsDataURL(blob);
               }),
           )
-          .catch(() => ""),
+          .catch(() => "");
+      }
+      const [site, wa, logo, icon] = await Promise.all([
+        QRCode.toDataURL(ZBOUN_PRESENCE.siteUrl, {
+          width: 360,
+          margin: 1,
+          color: { dark: "#4c1d95", light: "#ffffff" },
+        }),
+        QRCode.toDataURL(ZBOUN_PRESENCE.whatsappQrUrl, {
+          width: 360,
+          margin: 1,
+          color: { dark: "#0f172a", light: "#ffffff" },
+        }),
+        fetchAsDataUrl("/zbounbanner.png"),
+        fetchAsDataUrl("/zbounlogo.png"),
       ]);
       if (!cancelled) {
         setSiteQr(site);
         setWhatsappQr(wa);
         setLogoSrc(logo);
+        setIconSrc(icon);
       }
     }
     void make();
@@ -379,12 +409,12 @@ export function ZbounStoreVisitKit() {
       </div>
 
       <div className="flyer-a4 mx-auto w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg lg:w-[210mm] print:rounded-none print:border-0 print:shadow-none">
-        <PitchSheet siteQr={siteQr} whatsappQr={whatsappQr} logoSrc={logoSrc} />
+        <PitchSheet siteQr={siteQr} whatsappQr={whatsappQr} logoSrc={logoSrc} iconSrc={iconSrc} />
       </div>
 
       <div className="flyer-export-canvas pointer-events-none fixed -left-[9999px] top-0 print:hidden">
         <div ref={exportRef} style={{ width: "210mm", height: "297mm", background: "#fff" }}>
-          <PitchSheet siteQr={siteQr} whatsappQr={whatsappQr} logoSrc={logoSrc} />
+          <PitchSheet siteQr={siteQr} whatsappQr={whatsappQr} logoSrc={logoSrc} iconSrc={iconSrc} />
         </div>
       </div>
     </>

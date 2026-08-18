@@ -307,7 +307,7 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
     return { ok: false, error: insertError?.message ?? "Failed to place order" };
   }
 
-  void decrementMenuItemStockForOrder(insertClient, input.restaurantId, input.items);
+  await decrementMenuItemStockForOrder(insertClient, input.restaurantId, input.items);
   revalidatePath("/dashboard/business");
 
   revalidatePath(`/dashboard/business/orders`);

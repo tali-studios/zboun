@@ -316,7 +316,6 @@ export function MenuClient({
   const reorderAppliedRef = useRef(false);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [placedOrder, setPlacedOrder] = useState<{ orderId: string; whatsappUrl: string | null } | null>(null);
-  const [guestWhatsAppSent, setGuestWhatsAppSent] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
   const delivery = useDeliveryLocationOptional();
@@ -972,29 +971,6 @@ export function MenuClient({
 
   const orderLink = `https://wa.me/${restaurantPhone.replace(/\D/g, "")}?text=${createWhatsAppMessage()}`;
 
-  function handleGuestWhatsAppOrder() {
-    if (orderingBlocked) {
-      setOrderError("This store is closed and not accepting online orders right now.");
-      return;
-    }
-    if (deliveryTime.mode === "now" && !isOpenNow) {
-      setOrderError("The store is closed right now. Please schedule your delivery for later.");
-      return;
-    }
-    const blockReason = checkoutBlockReason();
-    if (blockReason) {
-      setOrderError(blockReason);
-      return;
-    }
-    setOrderError(null);
-    setCart({});
-    setShowCheckout(false);
-    setCheckoutStep("review");
-    setCheckoutBackToCart(false);
-    setGuestWhatsAppSent(true);
-    orderTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
   async function handleOrderClick() {
     if (orderingBlocked) {
       setOrderError("This store is closed and not accepting online orders right now.");
@@ -1011,6 +987,9 @@ export function MenuClient({
     }
     setOrderError(null);
     setIsPlacingOrder(true);
+    const guestWhatsAppLink = isGuestCheckout ? orderLink : null;
+    // Open synchronously so the browser still treats it as a user gesture after await.
+    const waWindow = guestWhatsAppLink ? window.open("about:blank", "_blank") : null;
     try {
       const result = await placeOrderAction({
         restaurantId,
@@ -1049,10 +1028,21 @@ export function MenuClient({
         deliverySpeed: fastDeliveryEnabled ? deliverySpeed : "standard",
       });
       if (!result.ok) {
+        waWindow?.close();
         setOrderError(result.error);
         return;
       }
-      setPlacedOrder({ orderId: result.orderId, whatsappUrl: result.whatsappNotifyUrl });
+      if (guestWhatsAppLink) {
+        if (waWindow) {
+          waWindow.location.href = guestWhatsAppLink;
+        } else {
+          window.open(guestWhatsAppLink, "_blank");
+        }
+      }
+      setPlacedOrder({
+        orderId: result.orderId,
+        whatsappUrl: guestWhatsAppLink ?? result.whatsappNotifyUrl,
+      });
       setAppliedCoupon(null);
       setCart({});
       setShowCheckout(false);
@@ -1060,6 +1050,7 @@ export function MenuClient({
       setCheckoutBackToCart(false);
       orderTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (err) {
+      waWindow?.close();
       setOrderError(err instanceof Error ? err.message : "Failed to place order. Please try again.");
     } finally {
       setIsPlacingOrder(false);
@@ -1397,7 +1388,6 @@ export function MenuClient({
                 isPlacingOrder={isPlacingOrder}
                 theme={theme}
                 whatsappOrderUrl={isGuestCheckout ? orderLink : null}
-                onWhatsAppOrder={handleGuestWhatsAppOrder}
               />
               {orderError ? (
                 <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-xs font-medium text-red-600">{orderError}</p>
@@ -1567,8 +1557,14 @@ export function MenuClient({
 
         {placedOrder.whatsappUrl ? (
           <div className="mt-6 rounded-2xl border border-green-100 bg-white p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Also notify via WhatsApp</p>
-            <p className="mt-1 text-xs text-slate-500">Tap below to also send your order details directly to the restaurant on WhatsApp.</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              {isGuestCheckout ? "Send on WhatsApp" : "Also notify via WhatsApp"}
+            </p>
+            <p className="mt-1 text-xs text-slate-500">
+              {isGuestCheckout
+                ? "If WhatsApp did not open, tap below, then tap Send in the chat to notify the store."
+                : "Tap below to also send your order details directly to the restaurant on WhatsApp."}
+            </p>
             <a
               href={placedOrder.whatsappUrl}
               target="_blank"
@@ -1580,7 +1576,7 @@ export function MenuClient({
                 <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
                 <path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.124 1.532 5.859L.054 23.285a.75.75 0 00.916.916l5.437-1.478A11.954 11.954 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.89 0-3.67-.5-5.21-1.374l-.374-.213-3.867 1.051 1.052-3.843-.226-.386A9.956 9.956 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" />
               </svg>
-              Also notify on WhatsApp
+              {isGuestCheckout ? "Open WhatsApp" : "Also notify on WhatsApp"}
             </a>
           </div>
         ) : null}
@@ -1600,23 +1596,6 @@ export function MenuClient({
     <div style={themeVars}>
     <>
       <div ref={orderTopRef} />
-      {guestWhatsAppSent ? (
-        <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-          <p className="font-semibold">Order opened in WhatsApp</p>
-          <p className="mt-0.5 text-xs leading-relaxed text-emerald-800">
-            Tap <span className="font-semibold">Send</span> in WhatsApp to notify{" "}
-            <span className="font-semibold">{restaurantName}</span>. You can add your name and delivery address in the
-            chat.
-          </p>
-          <button
-            type="button"
-            onClick={() => setGuestWhatsAppSent(false)}
-            className="mt-2 text-xs font-semibold text-emerald-700 underline underline-offset-2 hover:text-emerald-900"
-          >
-            Dismiss
-          </button>
-        </div>
-      ) : null}
       {placedOrder ? (
         <div className="py-8">{renderOrderConfirmation()}</div>
       ) : null}

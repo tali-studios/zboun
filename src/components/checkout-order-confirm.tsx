@@ -17,9 +17,8 @@ type Props = {
   isPlacingOrder: boolean;
   durationSeconds?: number;
   theme: MenuTheme;
-  /** Guest checkout: open WhatsApp instead of placing through Zboun. */
+  /** Guest checkout: WhatsApp-style confirm (order is still placed in Zboun first). */
   whatsappOrderUrl?: string | null;
-  onWhatsAppOrder?: () => void;
 };
 
 function OrderSummaryCard({
@@ -65,7 +64,6 @@ export function CheckoutOrderConfirm({
   durationSeconds = DEFAULT_SECONDS,
   theme,
   whatsappOrderUrl = null,
-  onWhatsAppOrder,
 }: Props) {
   const isWhatsAppGuest = Boolean(whatsappOrderUrl);
   const [secondsLeft, setSecondsLeft] = useState(durationSeconds);
@@ -149,7 +147,7 @@ export function CheckoutOrderConfirm({
     </div>
   );
 
-  if (isWhatsAppGuest && whatsappOrderUrl) {
+  if (isWhatsAppGuest) {
     return (
       <div className="flex min-h-0 flex-1 flex-col gap-4">
         {summary}
@@ -157,19 +155,28 @@ export function CheckoutOrderConfirm({
         <div className="rounded-2xl border border-[#25D366]/25 bg-[#25D366]/[0.06] p-4">
           <p className="text-center text-sm font-semibold text-slate-900">Ready to notify {restaurantName}</p>
           <p className="mt-1 text-center text-xs leading-relaxed text-slate-600">
-            Open WhatsApp with your order prefilled, then tap Send in the chat.
+            Your order is saved first, then WhatsApp opens with it prefilled. Tap Send in the chat.
           </p>
-          <a
-            href={whatsappOrderUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => onWhatsAppOrder?.()}
-            className="mt-4 flex w-full items-center justify-center gap-2.5 rounded-2xl py-4 text-base font-bold text-white shadow-md transition hover:brightness-110"
-            style={{ backgroundColor: "#25D366" }}
-          >
-            {whatsappIcon}
-            Place order on WhatsApp
-          </a>
+          {isPlacingOrder ? (
+            <div className="mt-4 flex flex-col items-center gap-2 py-2">
+              <div
+                className="h-8 w-8 animate-spin rounded-full border-[3px] border-slate-200"
+                style={{ borderTopColor: "#25D366" }}
+                aria-hidden
+              />
+              <p className="text-sm font-medium text-slate-600">Placing your order…</p>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={placeOrderNow}
+              className="mt-4 flex w-full items-center justify-center gap-2.5 rounded-2xl py-4 text-base font-bold text-white shadow-md transition hover:brightness-110"
+              style={{ backgroundColor: "#25D366" }}
+            >
+              {whatsappIcon}
+              Place order on WhatsApp
+            </button>
+          )}
         </div>
 
         {backButton}
