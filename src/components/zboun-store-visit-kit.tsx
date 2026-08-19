@@ -83,10 +83,7 @@ function PitchSheet({
               lineHeight: 1.05,
               fontWeight: 800,
               fontFamily: "'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif",
-              background: "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              backgroundClip: "text",
+              color: "#7c3aed",
               letterSpacing: "-0.02em",
             }}
           >
@@ -110,7 +107,7 @@ function PitchSheet({
 
       <p
         style={{
-          margin: "10px 0 5px",
+          margin: "12px 0 6px",
           fontSize: 11,
           fontWeight: 800,
           letterSpacing: "0.14em",
@@ -127,7 +124,7 @@ function PitchSheet({
           listStyle: "none",
           display: "grid",
           gridTemplateColumns: "1fr 1fr",
-          gap: "3px 14px",
+          gap: "4px 14px",
         }}
       >
         {ZBOUN_STORE_PITCH_BENEFITS.map((line) => (
@@ -140,7 +137,7 @@ function PitchSheet({
 
       <p
         style={{
-          margin: "10px 0 5px",
+          margin: "12px 0 6px",
           fontSize: 11,
           fontWeight: 800,
           letterSpacing: "0.14em",
@@ -150,7 +147,7 @@ function PitchSheet({
       >
         What you get
       </p>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px 14px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "5px 14px" }}>
         {ZBOUN_STORE_PITCH_FEATURES.map((item) => (
           <div key={item.title}>
             <p style={{ margin: 0, fontSize: 12, fontWeight: 800 }}>{item.title}</p>
@@ -163,7 +160,7 @@ function PitchSheet({
 
       <div
         style={{
-          marginTop: 20,
+          marginTop: 16,
           display: "grid",
           gridTemplateColumns: "1.2fr 1fr",
           gap: 12,
@@ -216,12 +213,17 @@ function PitchSheet({
         </div>
       </div>
 
+      {/* Logo fills remaining space between pricing box and footer */}
       {logoSrc ? (
         <div
           style={{
-            marginTop: 12,
+            flex: 1,
             display: "flex",
+            alignItems: "center",
             justifyContent: "center",
+            minHeight: 0,
+            paddingTop: 10,
+            paddingBottom: 10,
           }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -230,8 +232,9 @@ function PitchSheet({
             alt="Zboun"
             style={{
               display: "block",
-              width: "90%",
-              maxHeight: "64mm",
+              maxWidth: "62%",
+              maxHeight: "28mm",
+              width: "auto",
               height: "auto",
               objectFit: "contain",
             }}
@@ -239,7 +242,12 @@ function PitchSheet({
         </div>
       ) : null}
 
-      <div style={{ marginTop: "auto", paddingTop: 8 }}>
+      <div
+        style={{
+          borderTop: "1px solid #e2e8f0",
+          paddingTop: 10,
+        }}
+      >
         <p
           style={{
             margin: 0,
@@ -316,8 +324,8 @@ export function ZbounStoreVisitKit() {
           margin: 1,
           color: { dark: "#0f172a", light: "#ffffff" },
         }),
-        fetchAsDataUrl("/zbounbanner.png"),
-        fetchAsDataUrl("/zbounlogo.png"),
+        fetchAsDataUrl("/zbounbanner-transparent.png"),
+        fetchAsDataUrl("/zbounlogo-transparent.png"),
       ]);
       if (!cancelled) {
         setSiteQr(site);
