@@ -64,45 +64,56 @@ function PitchSheet({
       }}
     >
       {/* eslint-disable-next-line @next/next/no-page-custom-font */}
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');`}</style>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          gap: 16,
-          borderBottom: "2px solid #7c3aed",
-          paddingBottom: 12,
-        }}
-      >
-        <div>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');`}</style>
+      <div style={{ paddingBottom: 14, borderBottom: "2px solid #7c3aed" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 16,
+          }}
+        >
           <h1
             style={{
-              margin: "4px 0 0",
-              fontSize: 38,
-              lineHeight: 1.05,
-              fontWeight: 800,
-              fontFamily: "'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif",
-              color: "#7c3aed",
-              letterSpacing: "-0.02em",
+              margin: 0,
+              fontSize: 40,
+              lineHeight: 1,
+              fontFamily: "'Outfit', ui-sans-serif, system-ui, sans-serif",
+              fontWeight: 700,
+              color: "#6d28d9",
+              letterSpacing: "-0.04em",
             }}
           >
             Zboun
           </h1>
-          <p style={{ margin: "8px 0 0", fontSize: 13, color: "#475569", maxWidth: 360 }}>
-            Your own website & online store, built for shops in Lebanon.
-          </p>
-        </div>
-        <div style={{ display: "flex", alignItems: "center" }}>
           {iconSrc ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={iconSrc}
               alt="Zboun"
-              style={{ display: "block", width: 72, height: 72, objectFit: "contain" }}
+              style={{
+                display: "block",
+                width: 64,
+                height: 64,
+                flexShrink: 0,
+                objectFit: "contain",
+              }}
             />
           ) : null}
         </div>
+        <p
+          style={{
+            margin: "8px 0 0",
+            fontSize: 15,
+            lineHeight: 1.5,
+            fontWeight: 500,
+            color: "#475569",
+            maxWidth: 400,
+          }}
+        >
+          Your own website & online store, built for shops in Lebanon.
+        </p>
       </div>
 
       <p
