@@ -850,6 +850,62 @@ export function MenuClient({
     return step > 0 ? step : 0.25;
   }
 
+  function canIncrementCartLine(line: CartLine): boolean {
+    const menuItem = getMenuItemById(line.itemId);
+    if (!menuItem?.track_stock) return true;
+    const maxQty = getVariantMaxQty(menuItem, line.variantKey);
+    if (maxQty == null) return true;
+    const inCart = getCartQtyForVariant(cart, line.itemId, line.variantKey);
+    return inCart < maxQty;
+  }
+
+  function getCartLineStockHint(line: CartLine): string | null {
+    if (canIncrementCartLine(line)) return null;
+    const menuItem = getMenuItemById(line.itemId);
+    const maxQty = menuItem ? getVariantMaxQty(menuItem, line.variantKey) : null;
+    if (maxQty === 1) return "Only 1 available";
+    if (maxQty != null) return `All ${maxQty} available`;
+    return null;
+  }
+
+  function getCartLineStockTooltip(line: CartLine): string | undefined {
+    const hint = getCartLineStockHint(line);
+    return hint ? `Can't add more — ${hint.toLowerCase()}` : undefined;
+  }
+
+  function getCustomizingQtyLimit(
+    state: NonNullable<typeof customizing> = customizing!,
+  ): { maxQty: number | null; atMax: boolean; hint: string | null } {
+    if (isSoldByWeight(state.item)) {
+      return { maxQty: null, atMax: false, hint: null };
+    }
+    const item = state.item;
+    if (!item.track_stock) return { maxQty: null, atMax: false, hint: null };
+
+    const groups = getItemOptionGroups(item);
+    const snapshot = snapshotSelectedOptions(groups, state.selectedOptions);
+    const maxForVariant = getVariantMaxQty(item, snapshot.variantKey);
+    if (maxForVariant == null) return { maxQty: null, atMax: false, hint: null };
+
+    const inCartOthers = Object.entries(cart)
+      .filter(([key, line]) => {
+        if (key === state.editingKey) return false;
+        if (line.itemId !== item.id || line.unit === "kg") return false;
+        if (snapshot.variantKey) return line.variantKey === snapshot.variantKey;
+        return true;
+      })
+      .reduce((sum, [, line]) => sum + line.qty, 0);
+
+    const maxAllowed = Math.max(0, maxForVariant - inCartOthers);
+    const atMax = state.qty >= maxAllowed;
+    const hint = atMax
+      ? maxAllowed === 1
+        ? "Only 1 available"
+        : `All ${maxAllowed} available`
+      : null;
+    return { maxQty: maxAllowed, atMax, hint };
+  }
+
   function incrementCartLine(key: string) {
     setCart((prev) => {
       const line = prev[key];
@@ -1132,6 +1188,8 @@ export function MenuClient({
               {items.map((item) => {
                 const lineTotal = item.qty * item.unitPrice;
                 const imageUrl = getLineImageUrl(item);
+                const canIncrement = canIncrementCartLine(item);
+                const stockTooltip = getCartLineStockTooltip(item);
                 const hasModifiers =
                   item.removedIngredients.length > 0 ||
                   item.addedIngredients.length > 0 ||
@@ -1187,36 +1245,46 @@ export function MenuClient({
                     </button>
 
                     <div className="flex shrink-0 items-center rounded-full bg-slate-100 px-1 py-1">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          canDecrementCartLine(item) ? decrementCartLine(item.key) : removeCartLine(item.key)
-                        }
-                        className="flex h-8 w-8 items-center justify-center rounded-full text-slate-500 transition hover:bg-white hover:text-slate-800"
-                        aria-label={
-                          canDecrementCartLine(item)
-                            ? `Decrease quantity of ${item.name}`
-                            : `Remove ${item.name}`
-                        }
-                      >
-                        {canDecrementCartLine(item) ? (
-                          <Minus className="h-4 w-4" strokeWidth={2.5} />
-                        ) : (
-                          <Trash2 className="h-4 w-4" strokeWidth={2} />
-                        )}
-                      </button>
-                      <span className="min-w-[1.75rem] px-1 text-center text-sm font-bold tabular-nums text-slate-900">
-                        {displayCartQty(item)}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => incrementCartLine(item.key)}
-                        className="flex h-8 w-8 items-center justify-center rounded-full text-slate-700 transition hover:bg-white"
-                        aria-label={`Add one more ${item.name}`}
-                      >
-                        <Plus className="h-4 w-4" strokeWidth={2.5} />
-                      </button>
-                    </div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            canDecrementCartLine(item) ? decrementCartLine(item.key) : removeCartLine(item.key)
+                          }
+                          className="flex h-8 w-8 items-center justify-center rounded-full text-slate-500 transition hover:bg-white hover:text-slate-800"
+                          aria-label={
+                            canDecrementCartLine(item)
+                              ? `Decrease quantity of ${item.name}`
+                              : `Remove ${item.name}`
+                          }
+                        >
+                          {canDecrementCartLine(item) ? (
+                            <Minus className="h-4 w-4" strokeWidth={2.5} />
+                          ) : (
+                            <Trash2 className="h-4 w-4" strokeWidth={2} />
+                          )}
+                        </button>
+                        <span className="min-w-[1.75rem] px-1 text-center text-sm font-bold tabular-nums text-slate-900">
+                          {displayCartQty(item)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => incrementCartLine(item.key)}
+                          disabled={!canIncrement}
+                          title={stockTooltip}
+                          className={`flex h-8 w-8 items-center justify-center rounded-full transition ${
+                            canIncrement
+                              ? "text-slate-700 hover:bg-white"
+                              : "cursor-not-allowed text-slate-300"
+                          }`}
+                          aria-label={
+                            canIncrement
+                              ? `Add one more ${item.name}`
+                              : stockTooltip ?? `Maximum quantity of ${item.name} reached`
+                          }
+                        >
+                          <Plus className="h-4 w-4" strokeWidth={2.5} />
+                        </button>
+                      </div>
                   </div>
                 );
               })}
@@ -2875,31 +2943,48 @@ export function MenuClient({
                   </div>
                 </div>
               ) : (
+                (() => {
+                  const qtyLimit = getCustomizingQtyLimit(customizing);
+                  return (
                 <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    className="btn btn-secondary h-10 w-10 rounded-full p-0 text-lg"
-                    onClick={() =>
-                      setCustomizing((prev) =>
-                        prev ? { ...prev, qty: Math.max(1, prev.qty - 1) } : prev,
-                      )
-                    }
-                  >
-                    −
-                  </button>
-                  <span className="w-6 text-center text-base font-bold text-slate-900">
-                    {customizing.qty}
-                  </span>
-                  <button
-                    type="button"
-                    className="btn btn-secondary h-10 w-10 rounded-full p-0 text-lg"
-                    onClick={() =>
-                      setCustomizing((prev) => (prev ? { ...prev, qty: prev.qty + 1 } : prev))
-                    }
-                  >
-                    +
-                  </button>
-                </div>
+                    <button
+                      type="button"
+                      className="btn btn-secondary h-10 w-10 rounded-full p-0 text-lg"
+                      onClick={() =>
+                        setCustomizing((prev) =>
+                          prev ? { ...prev, qty: Math.max(1, prev.qty - 1) } : prev,
+                        )
+                      }
+                    >
+                      −
+                    </button>
+                    <span className="w-6 text-center text-base font-bold text-slate-900">
+                      {customizing.qty}
+                    </span>
+                    <button
+                      type="button"
+                      className="btn btn-secondary h-10 w-10 rounded-full p-0 text-lg disabled:cursor-not-allowed disabled:opacity-40"
+                      disabled={qtyLimit.atMax}
+                      title={
+                        qtyLimit.hint ? `Can't add more — ${qtyLimit.hint.toLowerCase()}` : undefined
+                      }
+                      onClick={() =>
+                        setCustomizing((prev) => {
+                          if (!prev || getCustomizingQtyLimit(prev).atMax) return prev;
+                          return { ...prev, qty: prev.qty + 1 };
+                        })
+                      }
+                      aria-label={
+                        qtyLimit.atMax
+                          ? qtyLimit.hint ?? "Maximum quantity reached"
+                          : "Increase quantity"
+                      }
+                    >
+                      +
+                    </button>
+                  </div>
+                  );
+                })()
               )}
               <button
                 type="button"
