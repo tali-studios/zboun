@@ -100,7 +100,11 @@ export function parseOpeningHours(
   options?: { fallbackToDefault?: boolean },
 ): DayHours[] {
   const fallbackToDefault = options?.fallbackToDefault !== false;
-  if (!Array.isArray(raw) || raw.length === 0) {
+  // Explicit empty array = admin chose "Always open (24/7)"
+  if (Array.isArray(raw) && raw.length === 0) {
+    return [];
+  }
+  if (!Array.isArray(raw)) {
     return fallbackToDefault ? DEFAULT_OPENING_HOURS : [];
   }
   const byDay = new Map<number, DayHours>();
