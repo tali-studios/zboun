@@ -76,18 +76,6 @@ function PitchSheet({
         }}
       >
         <div>
-          <p
-            style={{
-              margin: 0,
-              fontSize: 11,
-              fontWeight: 800,
-              letterSpacing: "0.18em",
-              textTransform: "uppercase",
-              color: "#7c3aed",
-            }}
-          >
-            For store owners
-          </p>
           <h1
             style={{
               margin: "4px 0 0",
@@ -105,7 +93,7 @@ function PitchSheet({
             Zboun
           </h1>
           <p style={{ margin: "8px 0 0", fontSize: 13, color: "#475569", maxWidth: 360 }}>
-            Digital storefronts & WhatsApp ordering, built for Lebanon.
+            Your own website & online store, built for shops in Lebanon.
           </p>
         </div>
         <div style={{ display: "flex", alignItems: "center" }}>
@@ -122,7 +110,7 @@ function PitchSheet({
 
       <p
         style={{
-          margin: "14px 0 8px",
+          margin: "10px 0 5px",
           fontSize: 11,
           fontWeight: 800,
           letterSpacing: "0.14em",
@@ -139,11 +127,11 @@ function PitchSheet({
           listStyle: "none",
           display: "grid",
           gridTemplateColumns: "1fr 1fr",
-          gap: "6px 18px",
+          gap: "3px 14px",
         }}
       >
         {ZBOUN_STORE_PITCH_BENEFITS.map((line) => (
-          <li key={line} style={{ fontSize: 12.5, lineHeight: 1.4, color: "#1e293b" }}>
+          <li key={line} style={{ fontSize: 11.5, lineHeight: 1.4, color: "#1e293b" }}>
             <span style={{ color: "#7c3aed", fontWeight: 800 }}>✓ </span>
             {line}
           </li>
@@ -152,7 +140,7 @@ function PitchSheet({
 
       <p
         style={{
-          margin: "16px 0 8px",
+          margin: "10px 0 5px",
           fontSize: 11,
           fontWeight: 800,
           letterSpacing: "0.14em",
@@ -162,11 +150,11 @@ function PitchSheet({
       >
         What you get
       </p>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px 16px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px 14px" }}>
         {ZBOUN_STORE_PITCH_FEATURES.map((item) => (
           <div key={item.title}>
-            <p style={{ margin: 0, fontSize: 13, fontWeight: 800 }}>{item.title}</p>
-            <p style={{ margin: "2px 0 0", fontSize: 12, color: "#475569", lineHeight: 1.4 }}>
+            <p style={{ margin: 0, fontSize: 12, fontWeight: 800 }}>{item.title}</p>
+            <p style={{ margin: "1px 0 0", fontSize: 11, color: "#475569", lineHeight: 1.35 }}>
               {item.body}
             </p>
           </div>
@@ -175,11 +163,11 @@ function PitchSheet({
 
       <div
         style={{
-          marginTop: 16,
+          marginTop: 20,
           display: "grid",
           gridTemplateColumns: "1.2fr 1fr",
-          gap: 16,
-          padding: "12px 14px",
+          gap: 12,
+          padding: "10px 12px",
           borderRadius: 16,
           background: "#f5f3ff",
           border: "1px solid #ddd6fe",
@@ -198,10 +186,10 @@ function PitchSheet({
           >
             Simple pricing
           </p>
-          <p style={{ margin: "6px 0 0", fontSize: 20, fontWeight: 800 }}>
+          <p style={{ margin: "4px 0 0", fontSize: 17, fontWeight: 800 }}>
             {formatPricingSummary()}
           </p>
-          <p style={{ margin: "4px 0 0", fontSize: 12, color: "#475569" }}>
+          <p style={{ margin: "3px 0 0", fontSize: 11, color: "#475569" }}>
             Zero commission. Keep 100% of every order. Yearly saves ${yearlySavings()}. Optional
             catalog setup: ${ZBOUN_PRICING.oneTimeDataEntry} one-time.
           </p>
@@ -210,7 +198,7 @@ function PitchSheet({
           <div style={{ textAlign: "center" }}>
             {siteQr ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={siteQr} alt="" width={88} height={88} style={{ display: "block" }} />
+              <img src={siteQr} alt="" width={76} height={76} style={{ display: "block" }} />
             ) : null}
             <p style={{ margin: "4px 0 0", fontSize: 9, fontWeight: 700, color: "#64748b" }}>
               zboun.net
@@ -219,7 +207,7 @@ function PitchSheet({
           <div style={{ textAlign: "center" }}>
             {whatsappQr ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={whatsappQr} alt="" width={88} height={88} style={{ display: "block" }} />
+              <img src={whatsappQr} alt="" width={76} height={76} style={{ display: "block" }} />
             ) : null}
             <p style={{ margin: "4px 0 0", fontSize: 9, fontWeight: 700, color: "#64748b" }}>
               WhatsApp us
@@ -242,7 +230,7 @@ function PitchSheet({
             alt="Zboun"
             style={{
               display: "block",
-              width: "100%",
+              width: "90%",
               maxHeight: "64mm",
               height: "auto",
               objectFit: "contain",
@@ -251,11 +239,11 @@ function PitchSheet({
         </div>
       ) : null}
 
-      <div style={{ marginTop: "auto", paddingTop: 14 }}>
+      <div style={{ marginTop: "auto", paddingTop: 8 }}>
         <p
           style={{
             margin: 0,
-            fontSize: 11,
+            fontSize: 10,
             fontWeight: 800,
             letterSpacing: "0.14em",
             textTransform: "uppercase",
@@ -266,11 +254,11 @@ function PitchSheet({
         </p>
         <div
           style={{
-            marginTop: 8,
+            marginTop: 5,
             display: "grid",
             gridTemplateColumns: "1fr 1fr",
-            gap: "5px 18px",
-            fontSize: 12.5,
+            gap: "3px 14px",
+            fontSize: 12,
             color: "#1e293b",
           }}
         >
@@ -281,7 +269,7 @@ function PitchSheet({
           <p style={{ margin: 0 }}>🎵 TikTok: {p.tiktokHost}</p>
           <p style={{ margin: 0 }}>▶️ YouTube: {p.youtubeHost}</p>
         </div>
-        <p style={{ margin: "10px 0 0", fontSize: 11, color: "#64748b" }}>
+        <p style={{ margin: "6px 0 0", fontSize: 11, color: "#64748b" }}>
           Scan a QR, call, or message — we can have your store page live quickly.
         </p>
       </div>
