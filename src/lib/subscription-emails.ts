@@ -3,6 +3,11 @@ import {
   contractPdfFilename,
   generateContractPdfBuffer,
 } from "@/lib/contract-pdf";
+import {
+  merchantTermsPdfFilename,
+  generateMerchantTermsPdfBuffer,
+} from "@/lib/merchant-terms-pdf";
+import { MERCHANT_TERMS_ACCEPTANCE_NOTICE } from "@/lib/merchant-terms-content";
 import { formatDateLong } from "@/lib/subscription-billing";
 import {
   billingCycleLabel,
@@ -113,6 +118,10 @@ export async function sendRestaurantOnboardingEmail(params: {
     ...(params.publicUrl ? [`Store: ${params.publicUrl}`] : []),
     `Email: ${params.to}`,
     ``,
+    `IMPORTANT — TERMS OF SERVICE:`,
+    MERCHANT_TERMS_ACCEPTANCE_NOTICE,
+    `Please download the attached PDF “Zboun Merchant Terms of Service” and keep a copy for your records.`,
+    ``,
     `— Zboun`,
   ].join("\n");
 
@@ -130,16 +139,34 @@ export async function sendRestaurantOnboardingEmail(params: {
       </p>
       ${
         safeStore
-          ? `<p style="margin:0 0 8px;font-size:14px;color:#52525b;"><span style="color:#18181b;">Store</span> · <a href="${safeStore}" style="color:#18181b;">${safeStore}</a></p>`
+          ? `<p style="margin:0 0 16px;font-size:14px;color:#52525b;"><span style="color:#18181b;">Store</span> · <a href="${safeStore}" style="color:#18181b;">${safeStore}</a></p>`
           : ""
       }
+      <p style="margin:16px 0 0;padding:14px 16px;background:#f4f4f5;border-radius:8px;border:1px solid #e4e4e7;font-size:13px;color:#3f3f46;line-height:1.55;">
+        <strong style="color:#18181b;">Terms of Service</strong><br>
+        ${escapeHtml(MERCHANT_TERMS_ACCEPTANCE_NOTICE)}
+        <br><br>
+        Please download the attached PDF <strong>Zboun Merchant Terms of Service</strong> and keep it for your records.
+      </p>
   `);
+
+  const termsPdf = await generateMerchantTermsPdfBuffer({
+    merchantName: name,
+    adminEmail: params.to,
+  });
 
   await sendMail({
     to: params.to,
     subject: `Welcome to Zboun — ${name}`,
     text,
     html,
+    attachments: [
+      {
+        filename: merchantTermsPdfFilename(name),
+        content: termsPdf,
+        contentType: "application/pdf",
+      },
+    ],
   });
 }
 
@@ -373,6 +400,10 @@ export async function sendAdminInviteEmail(params: {
     `Click the link below to set your password and access your dashboard:`,
     params.inviteLink,
     ``,
+    `IMPORTANT — TERMS OF SERVICE:`,
+    MERCHANT_TERMS_ACCEPTANCE_NOTICE,
+    `The attached PDF “Zboun Merchant Terms of Service” forms part of your agreement with Zboun. Please download and keep a copy for your records.`,
+    ``,
     `This link will expire soon, so please use it shortly. If it expires, ask your administrator to resend the invite.`,
     ``,
     `— Zboun Team`,
@@ -393,19 +424,37 @@ export async function sendAdminInviteEmail(params: {
       }
       <table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0;">
         <tr><td style="background:#18181b;border-radius:6px;">
-          <a href="${safeLink}" style="display:inline-block;padding:12px 20px;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;">Login</a>
+          <a href="${safeLink}" style="display:inline-block;padding:12px 20px;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;">Set password &amp; log in</a>
         </td></tr>
       </table>
+      <p style="margin:0 0 16px;padding:14px 16px;background:#f4f4f5;border-radius:8px;border:1px solid #e4e4e7;font-size:13px;color:#3f3f46;line-height:1.55;">
+        <strong style="color:#18181b;">Terms of Service</strong><br>
+        ${escapeHtml(MERCHANT_TERMS_ACCEPTANCE_NOTICE)}
+        <br><br>
+        Please download the attached PDF <strong>Zboun Merchant Terms of Service</strong> and keep it for your records.
+      </p>
       <p style="margin:0 0 8px;font-size:13px;color:#71717a;">
         This link will expire soon, so please use it shortly. If it expires, ask your administrator to resend the invite.
       </p>
   `);
+
+  const termsPdf = await generateMerchantTermsPdfBuffer({
+    merchantName: params.businessName,
+    adminEmail: params.to,
+  });
 
   await sendMail({
     to: params.to,
     subject: `Welcome to Zboun — ${params.businessName}`,
     text,
     html,
+    attachments: [
+      {
+        filename: merchantTermsPdfFilename(params.businessName),
+        content: termsPdf,
+        contentType: "application/pdf",
+      },
+    ],
   });
 }
 
