@@ -71,7 +71,7 @@ export const BROWSE_SUB_FILTERS_BY_SECTION = {
     "Gaming",
     "Audio & TV",
     "Smart Home",
-    "Accessories",
+    "Tech Accessories",
   ],
   "Beauty & Pharmacy": [
     "Pharmacy",
@@ -239,6 +239,7 @@ export const BROWSE_SUB_FILTER_ACCENTS: Record<string, string> = {
   Gaming: "#7c3aed",
   "Audio & TV": "#0284c7",
   "Smart Home": "#0891b2",
+  "Tech Accessories": "#475569",
   Cosmetics: "#ec4899",
   "Personal Care": "#2dd4bf",
   Supplements: "#84cc16",
@@ -341,6 +342,7 @@ export const BROWSE_SUB_FILTER_ICONS: Record<string, string> = {
   Gaming: "🎮",
   "Audio & TV": "📺",
   "Smart Home": "🏠",
+  "Tech Accessories": "🎧",
   // Beauty & Pharmacy
   Pharmacy: "💊",
   Cosmetics: "💄",
