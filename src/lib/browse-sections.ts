@@ -71,6 +71,7 @@ export const BROWSE_SUB_FILTERS_BY_SECTION = {
     "Gaming",
     "Audio & TV",
     "Smart Home",
+    "Accessories",
   ],
   "Beauty & Pharmacy": [
     "Pharmacy",
