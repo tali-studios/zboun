@@ -22,6 +22,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFavorites } from "@/hooks/use-favorites";
 import { SHOW_NUTRITION_AI } from "@/lib/nutrition-analysis";
 import {
+  DEFAULT_HOME_HERO_SLIDES,
+  type HomeHeroSlideView,
+} from "@/lib/home-hero-slides";
+import {
   BROWSE_SECTION_ACCENTS,
   BROWSE_SECTION_OPTIONS,
   BROWSE_SUB_FILTER_ACCENTS,
@@ -116,24 +120,7 @@ const CATEGORY_CARD_META: Record<
   },
 };
 
-const HERO_SLIDES = [
-  {
-    title: "Support local.",
-    subtitle: "Your favorite stores, now on WhatsApp.",
-  },
-  {
-    title: "Order in one tap.",
-    subtitle: "Clear WhatsApp orders — no app needed.",
-  },
-  {
-    title: "FREE & FAST delivery.",
-    subtitle: "🎁 FREE = No delivery fee • ⚡ FAST = Express delivery available.",
-  },
-  {
-    title: "Discover nearby.",
-    subtitle: "Browse menus from stores around you.",
-  },
-] as const;
+const HERO_SLIDES_FALLBACK = DEFAULT_HOME_HERO_SLIDES;
 
 /** Suggested stores list on home when no category is selected. */
 const SHOW_POPULAR_STORES = true;
@@ -204,6 +191,7 @@ type Props = {
   isLoggedIn?: boolean;
   customerName?: string;
   initialQuery?: string;
+  heroSlides?: HomeHeroSlideView[];
 };
 
 function storeSubtitle(restaurant: RestaurantCard): string {
@@ -219,7 +207,10 @@ export function RestaurantDirectory({
   isLoggedIn = false,
   customerName: _customerName = "",
   initialQuery,
+  heroSlides,
 }: Props) {
+  const slides =
+    heroSlides && heroSlides.length > 0 ? heroSlides : HERO_SLIDES_FALLBACK;
   const [query, setQuery] = useState((initialQuery ?? "").slice(0, 50));
   const [activeSection, setActiveSection] = useState<string>("all");
   const [activeSub, setActiveSub] = useState<string>("all");
@@ -241,15 +232,25 @@ export function RestaurantDirectory({
   const { location, openSheet, radiusKm, isResolvingLocation } = useDeliveryLocation();
 
   useEffect(() => {
+    if (slides.length === 0) return;
+    setHeroIndex((i) => (i >= slides.length ? 0 : i));
+  }, [slides.length]);
+
+  useEffect(() => {
+    if (slides.length <= 1) return;
     const id = window.setInterval(() => {
-      setHeroIndex((i) => (i + 1) % HERO_SLIDES.length);
+      setHeroIndex((i) => (i + 1) % slides.length);
     }, 5000);
     return () => window.clearInterval(id);
-  }, [heroIndex]);
+  }, [heroIndex, slides.length]);
 
-  const goHero = useCallback((dir: -1 | 1) => {
-    setHeroIndex((i) => (i + dir + HERO_SLIDES.length) % HERO_SLIDES.length);
-  }, []);
+  const goHero = useCallback(
+    (dir: -1 | 1) => {
+      if (slides.length === 0) return;
+      setHeroIndex((i) => (i + dir + slides.length) % slides.length);
+    },
+    [slides.length],
+  );
 
   const onHeroTouchStart = useCallback((e: React.TouchEvent) => {
     heroTouchStartX.current = e.changedTouches[0]?.clientX ?? null;
@@ -399,7 +400,7 @@ export function RestaurantDirectory({
     ? "Finding location…"
     : (location?.label ?? "Set your location");
 
-  const hero = HERO_SLIDES[heroIndex];
+  const hero = slides[heroIndex] ?? slides[0];
 
   return (
     <>
@@ -607,25 +608,51 @@ export function RestaurantDirectory({
           />
           <div className="relative flex items-center justify-between gap-3 md:gap-6">
             <div className="min-w-0 flex-1 max-w-xl">
-              <p className="text-xl font-bold leading-tight md:text-3xl">{hero.title}</p>
-              <p className="mt-2 text-sm text-violet-100 md:text-base">{hero.subtitle}</p>
+              {hero ? (
+                hero.href ? (
+                  <Link href={hero.href} className="block rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-white/80">
+                    <p className="text-xl font-bold leading-tight md:text-3xl">{hero.title}</p>
+                    <p className="mt-2 text-sm text-violet-100 md:text-base">{hero.subtitle}</p>
+                    <p className="mt-2 text-xs font-semibold text-white/80 underline-offset-2 hover:underline">
+                      View offer →
+                    </p>
+                  </Link>
+                ) : (
+                  <>
+                    <p className="text-xl font-bold leading-tight md:text-3xl">{hero.title}</p>
+                    <p className="mt-2 text-sm text-violet-100 md:text-base">{hero.subtitle}</p>
+                  </>
+                )
+              ) : null}
             </div>
-            <div className="relative h-[4.75rem] w-[4.75rem] shrink-0 sm:h-28 sm:w-28 md:h-36 md:w-36" aria-hidden>
+            <div
+              className={`relative h-[4.75rem] w-[4.75rem] shrink-0 sm:h-28 sm:w-28 md:h-36 md:w-36 ${
+                hero?.imageUrl
+                  ? "overflow-hidden rounded-2xl bg-white/95 p-1.5 shadow-lg shadow-violet-950/20 ring-1 ring-white/40 sm:rounded-3xl sm:p-2"
+                  : ""
+              }`}
+              aria-hidden
+            >
               <Image
-                src="/hero-bag.png"
+                key={hero?.imageUrl ?? "hero-bag"}
+                src={hero?.imageUrl || "/hero-bag.png"}
                 alt=""
                 fill
                 priority
                 unoptimized
-                className="object-contain drop-shadow-[0_12px_24px_rgba(40,10,90,0.35)]"
+                className={
+                  hero?.imageUrl
+                    ? "object-contain"
+                    : "object-contain drop-shadow-[0_12px_24px_rgba(40,10,90,0.35)]"
+                }
                 sizes="(max-width:640px) 76px, (max-width:768px) 112px, 144px"
               />
             </div>
           </div>
           <div className="relative mt-5 flex items-center justify-center gap-2">
-            {HERO_SLIDES.map((_, i) => (
+            {slides.map((slide, i) => (
               <button
-                key={i}
+                key={slide.id ?? `${slide.title}-${i}`}
                 type="button"
                 onClick={() => setHeroIndex(i)}
                 aria-label={`Show promo ${i + 1}`}

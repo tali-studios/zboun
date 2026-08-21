@@ -333,6 +333,9 @@ export default async function SuperAdminPage({ searchParams }: Props) {
             </div>
             <form action={signOutAction}>
               <div className="flex flex-wrap items-center gap-2">
+                <Link href="/dashboard/super-admin/banners" className="btn btn-secondary">
+                  Home banners
+                </Link>
                 <Link href="/dashboard/super-admin/visit-kit" className="btn btn-secondary">
                   Visit kit
                 </Link>

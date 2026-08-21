@@ -1,23 +1,23 @@
 // import Link from "next/link";
 import { getHomeRestaurants } from "@/lib/data";
-// import { formatPricingSummary } from "@/lib/pricing";
-// import { FOR_STORE_OWNERS_LABEL } from "@/lib/browse-sections";
 import { RestaurantDirectory } from "@/components/restaurant-directory";
 import { SiteFooter } from "@/components/site-footer";
 import { DeliveryLocationProvider } from "@/components/delivery-location-provider";
 import { getCustomerOrderContext } from "@/lib/customer-order-context";
 import { CustomerMobileFooterNav } from "@/components/customer-mobile-footer-nav";
 import { BackToTopButton } from "@/components/back-to-top-button";
+import { getActiveHomeHeroSlides } from "@/lib/home-hero-slides";
 
 export default async function HomePage({
   searchParams,
 }: {
   searchParams: Promise<{ q?: string }>;
 }) {
-  const [restaurants, customerCtx, params] = await Promise.all([
+  const [restaurants, customerCtx, params, heroSlides] = await Promise.all([
     getHomeRestaurants(),
     getCustomerOrderContext(),
     searchParams,
+    getActiveHomeHeroSlides(),
   ]);
 
   return (
@@ -31,6 +31,7 @@ export default async function HomePage({
               isLoggedIn={customerCtx.isLoggedIn}
               customerName={customerCtx.defaultCustomerName}
               initialQuery={params.q}
+              heroSlides={heroSlides}
             />
           </section>
         </DeliveryLocationProvider>
