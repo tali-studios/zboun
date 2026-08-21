@@ -64,19 +64,11 @@ class MerchantTermsPdfDocument {
     return { w, h };
   }
 
-  private footerLabel() {
-    return `Zboun — ${MERCHANT_TERMS.shortTitle} v${MERCHANT_TERMS.version} — Confidential`;
-  }
-
   private addFooterRule() {
     const y = this.pageHeight - FOOTER_Y_OFFSET;
     this.doc.setDrawColor(...RULE);
     this.doc.setLineWidth(0.2);
     this.doc.line(MARGIN, y - 4, this.pageWidth - MARGIN, y - 4);
-    this.doc.setFont("helvetica", "normal");
-    this.doc.setFontSize(7.5);
-    this.doc.setTextColor(...INK_FAINT);
-    this.doc.text(this.footerLabel(), MARGIN, y);
   }
 
   private startBodyPage() {

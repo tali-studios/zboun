@@ -30,7 +30,7 @@ export const MERCHANT_TERMS_SECTIONS: MerchantTermsSection[] = [
     number: 1,
     title: "Parties and Scope",
     clauses: [
-      "These Merchant Terms of Service (the “Terms”) form a binding agreement between Zboun (“Operator”, “we”, “us”, or “our”) and the business, restaurant, shop, brand, or other commercial entity that is granted a store account on the Zboun platform (the “Merchant”, “you”, or “your”).",
+      "These Merchant Terms of Service (the “Terms”) form a binding agreement between Zboun, operated by [Wissam Walid Baaklini] (“Zboun”, “we”, “us”, or “our”) and the business, restaurant, shop, brand, or other commercial entity that is granted a store account on the Zboun platform (the “Merchant”, “you”, or “your”).",
       "These Terms govern your access to and use of the Zboun website, software, dashboard, storefront pages, ordering tools, QR and flyer features, messaging helpers, marketplace listing (where applicable), and related services (collectively, the “Platform”).",
       "Zboun provides technology tools that enable Merchants to publish digital storefronts and receive customer orders. Except where expressly stated otherwise, Zboun is a technology intermediary and is not the seller of your products, not a party to transactions between you and your customers, and not responsible for product quality, fulfilment, delivery, payments collected outside the Platform, or customer service for your goods or services.",
     ],
@@ -56,6 +56,7 @@ export const MERCHANT_TERMS_SECTIONS: MerchantTermsSection[] = [
       "If Operator reasonably believes you have provided incorrect, incomplete, or unauthorised information (including someone else’s phone number), Operator may immediately suspend or permanently deactivate your account, remove your storefront, refuse reactivation, and report the matter to competent authorities where required or appropriate.",
       "You must notify Operator without undue delay of any unauthorised access, credential compromise, or security incident relating to your account.",
       "Operator may suspend or restrict access where we reasonably suspect unauthorised use, identity misuse, abuse, legal risk, non-payment, or breach of these Terms.",
+      "You represent and warrant that you are duly established and authorized to conduct your business and that you have obtained, and will maintain throughout your use of the Platform, all licenses, permits, registrations, approvals, and authorizations required under applicable law for your business and for the advertising, offering, sale, delivery, and fulfilment of your products and services.",
     ],
   },
   {
@@ -108,6 +109,7 @@ export const MERCHANT_TERMS_SECTIONS: MerchantTermsSection[] = [
       "Where WhatsApp or other third-party messaging tools are used, you are responsible for obtaining any required consents and for lawful messaging practices.",
       "Operator does not guarantee uninterrupted service, specific order volumes, rankings, or sales outcomes.",
       "Operator is not responsible for the content of third-party websites or social networks linked from your storefront. Links you publish are at your sole risk and responsibility.",
+      "Any contract for the purchase or supply of products or services through a Merchant storefront is solely between the Merchant and the relevant customer. Operator is not the seller, supplier, distributor, agent, or representative of the Merchant and assumes no responsibility for the Merchant’s products or services, their quality, safety, legality, description, delivery, fulfilment, refunds, warranties, or after-sales service.",
     ],
   },
   {
@@ -120,6 +122,8 @@ export const MERCHANT_TERMS_SECTIONS: MerchantTermsSection[] = [
       "Deactivation for non-payment or expiry may occur automatically upon the end of the paid period. Operator is not liable for lost orders, lost visibility, or business interruption resulting from such deactivation.",
       "Reactivation after deactivation may require payment of outstanding fees and any applicable reactivation or setup charges, and is subject to Operator’s approval.",
       "You are responsible for taxes applicable to your sales and business. Platform subscription fees are exclusive of taxes unless stated otherwise.",
+      "Unless otherwise expressly agreed in writing, all subscription fees are payable in advance and are non-refundable once the applicable subscription period has commenced, except where a refund is required by applicable law.",
+      "Operator may revise its subscription fees or introduce new fees from time to time upon reasonable prior notice to the Merchant. Any revised fees shall apply from the Merchant’s next renewal period unless otherwise stated in the notice.",
     ],
   },
   {
@@ -160,6 +164,7 @@ export const MERCHANT_TERMS_SECTIONS: MerchantTermsSection[] = [
     clauses: [
       "Each party shall handle personal data in accordance with applicable privacy and data-protection laws and Operator’s Privacy Policy as published on zboun.net.",
       "You are responsible for informing your customers, as required by law, about how you use their data in connection with orders placed through your storefront.",
+      "The Merchant acknowledges and agrees that Operator may collect, access, store, process, use, and otherwise handle Merchant, account, transaction, order, customer, and Platform usage data as reasonably necessary to provide, operate, maintain, secure, support, troubleshoot, analyze, develop, and improve the Platform; prevent fraud and misuse; comply with applicable law; and exercise or defend legal rights, in each case subject to applicable data-protection laws and Operator’s Privacy Policy.",
     ],
   },
   {
@@ -175,7 +180,7 @@ export const MERCHANT_TERMS_SECTIONS: MerchantTermsSection[] = [
     title: "Governing Law and Disputes",
     clauses: [
       "These Terms are governed by the laws of Lebanon, without regard to conflict-of-law principles.",
-      "The courts of Lebanon shall have exclusive jurisdiction over disputes arising out of or relating to these Terms, subject to any mandatory consumer or other protections that cannot be waived.",
+      "The courts of Beirut shall have exclusive jurisdiction over disputes arising out of or relating to these Terms, subject to any mandatory consumer or other protections that cannot be waived.",
       "Before filing a claim, the parties shall attempt in good faith to resolve the dispute by written notice to the contact email below.",
     ],
   },
@@ -185,6 +190,8 @@ export const MERCHANT_TERMS_SECTIONS: MerchantTermsSection[] = [
     clauses: [
       "If any provision of these Terms is held unenforceable, the remaining provisions remain in full force. Failure to enforce a provision is not a waiver. You may not assign these Terms without Operator’s prior written consent; Operator may assign to an affiliate or successor. These Terms, together with any applicable service agreement and policies published on zboun.net, constitute the entire agreement regarding the subject matter herein and supersede conflicting prior understandings on the same subject, except that a signed written service agreement expressly stating it controls shall prevail to the extent of conflict.",
       "For notices relating to these Terms: " + ZBOUN_OPS_EMAIL + " · Website: https://zboun.net",
+      "Nothing in these Terms creates or shall be construed as creating any partnership, joint venture, agency, franchise, employment, fiduciary, or other similar relationship between Operator and the Merchant. The Merchant has no authority to bind Operator or incur any obligation on Operator’s behalf.",
+      "Operator shall not be liable for any delay, interruption, suspension, or failure in the performance or availability of the Platform resulting from circumstances beyond its reasonable control, including internet or telecommunications failures, hosting or cloud service failures, power outages, cyberattacks, acts of government or public authorities, changes in law, natural disasters, war, civil unrest, strikes, epidemics, or other force majeure events.",
     ],
   },
 ];
