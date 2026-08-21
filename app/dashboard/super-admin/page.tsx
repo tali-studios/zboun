@@ -323,8 +323,8 @@ export default async function SuperAdminPage({ searchParams }: Props) {
   };
 
   return (
-    <main className="min-h-screen bg-[#f8f8ff] p-3 sm:p-4 md:p-8">
-      <div className="mx-auto max-w-6xl space-y-6">
+    <main className="min-h-screen overflow-x-hidden bg-[#f8f8ff] p-3 sm:p-4 md:p-8">
+      <div className="mx-auto w-full min-w-0 max-w-6xl space-y-6">
         <header className="panel p-5 md:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>

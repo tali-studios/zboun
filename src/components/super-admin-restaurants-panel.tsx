@@ -507,7 +507,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
   }
 
   return (
-    <section className="panel p-5">
+    <section className="panel min-w-0 overflow-hidden p-5">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-bold text-slate-900">Businesses</h2>
         <div className="text-xs text-slate-500">{filtered.length} results</div>
@@ -730,7 +730,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
         ))}
       </div>
 
-      <div className="mt-4 hidden overflow-x-auto lg:block">
+      <div className="mt-4 hidden min-w-0 overflow-x-auto lg:block">
         <table className="w-full min-w-[1320px] border-separate border-spacing-0 text-xs">
           <colgroup>
             <col className="w-[min(14rem,16%)]" />
