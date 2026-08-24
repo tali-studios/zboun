@@ -16,26 +16,26 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const restaurant = await getRestaurantBySlug(slug);
   if (!restaurant || !restaurant.is_active) {
-    return { title: "Menu" };
+    return { title: { absolute: "Store" } };
   }
   const base = getSiteUrl();
   const path = `/${restaurant.slug}/menu`;
   const food = isFoodMenuBusiness(restaurant.browse_sections);
-  const title = food ? `${restaurant.name} — menu` : `${restaurant.name} — store`;
+  const title = restaurant.name;
   const description =
     restaurant.description?.trim() ||
     (food
-      ? `Browse the ${restaurant.name} menu — items and prices for in-restaurant reference.`
+      ? `Browse ${restaurant.name} — items and prices for in-restaurant reference.`
       : `Browse ${restaurant.name} — products and prices for in-store reference.`);
   const shareImage = restaurant.logo_url || restaurant.banner_url;
   return {
-    title,
+    title: { absolute: title },
     description,
     alternates: { canonical: path },
     robots: { index: true, follow: true },
     ...storePwaMetadata(restaurant),
     openGraph: {
-      title: food ? `${restaurant.name} menu` : `${restaurant.name} store`,
+      title,
       description,
       url: `${base}${path}`,
       type: "website",
@@ -55,7 +55,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     },
     twitter: {
       card: "summary",
-      title: food ? `${restaurant.name} menu` : `${restaurant.name} store`,
+      title,
       description,
       ...(restaurant.logo_url
         ? { images: [storeIconUrl(restaurant.slug, 512)] }
