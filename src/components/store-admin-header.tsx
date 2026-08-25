@@ -15,6 +15,7 @@ export type StoreAdminNavPage =
   | "sales"
   | "coupons"
   | "hours"
+  | "how-to"
   | "billing"
   | "password";
 
@@ -138,6 +139,9 @@ export function StoreAdminHeader({
               */}
             </>
           ) : null}
+          <Link href="/dashboard/business/how-to" className={navClass(currentPage === "how-to")}>
+            How To
+          </Link>
           <Link href="/dashboard/billing" className={navClass(currentPage === "billing")}>
             Billing
           </Link>
