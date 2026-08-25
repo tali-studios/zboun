@@ -121,14 +121,18 @@ function HoursDayTableCells({
   );
 }
 
+function resolveInitialHours(openingHours: DayHours[]): DayHours[] {
+  const parsed = parseOpeningHours(openingHours, { fallbackToDefault: false });
+  return parsed.length > 0 ? parsed : DEFAULT_OPENING_HOURS;
+}
+
 export function RestaurantHoursPanel({ openingHours, isTemporarilyClosed }: Props) {
-  const [hours, setHours] = useState<DayHours[]>(() => parseOpeningHours(openingHours));
+  const [hours, setHours] = useState<DayHours[]>(() => resolveInitialHours(openingHours));
   const [tempClosed, setTempClosed] = useState(isTemporarilyClosed);
   const [alwaysOpen, setAlwaysOpen] = useState(() => {
-    // Check if openingHours is empty (always open) or if parsed hours is empty
+    // Explicit empty array = Always open (24/7)
     if (Array.isArray(openingHours) && openingHours.length === 0) return true;
-    const parsed = parseOpeningHours(openingHours);
-    return parsed.length === 0;
+    return parseOpeningHours(openingHours, { fallbackToDefault: false }).length === 0;
   });
 
   const serialized = useMemo(() => alwaysOpen ? "[]" : serializeOpeningHoursForForm(hours), [hours, alwaysOpen]);
@@ -156,9 +160,19 @@ export function RestaurantHoursPanel({ openingHours, isTemporarilyClosed }: Prop
   }, [isTemporarilyClosed, openingHours]);
 
   function updateDay(day: number, patch: Partial<DayHours>) {
-    setHours((prev) =>
-      prev.map((row) => (row.day === day ? { ...row, ...patch } : row)),
-    );
+    setHours((prev) => {
+      const base = prev.length > 0 ? prev : DEFAULT_OPENING_HOURS;
+      return base.map((row) => (row.day === day ? { ...row, ...patch } : row));
+    });
+  }
+
+  function selectAlwaysOpen() {
+    setAlwaysOpen(true);
+  }
+
+  function selectWeeklyHours() {
+    setAlwaysOpen(false);
+    setHours((prev) => (prev.length > 0 ? prev : DEFAULT_OPENING_HOURS));
   }
 
   function handleEmergencyToggle() {
@@ -210,39 +224,59 @@ export function RestaurantHoursPanel({ openingHours, isTemporarilyClosed }: Prop
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-3">
         <div className="min-w-0">
           <h2 className="panel-title">Opening hours</h2>
           <p className="mt-1 text-sm text-slate-500">
-            {alwaysOpen 
+            {alwaysOpen
               ? "Your store appears as always open. Perfect for online stores that don't have physical hours."
-              : "Customers can schedule delivery up to 5 days ahead, only during these hours."
-            }
+              : "Customers can schedule delivery up to 5 days ahead, only during these hours."}
           </p>
         </div>
-        <div className="flex w-full shrink-0 gap-2 sm:w-auto">
-          <button
-            type="button"
-            onClick={() => setAlwaysOpen(!alwaysOpen)}
-            className={`flex-1 rounded-full px-4 py-2.5 text-sm font-bold shadow-sm transition sm:flex-none ${
-              alwaysOpen
-                ? "bg-blue-600 text-white shadow-blue-500/25 hover:bg-blue-700"
-                : "border-2 border-blue-500 bg-white text-blue-700 hover:bg-blue-50"
-            }`}
+
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+          <div
+            role="group"
+            aria-label="Opening hours mode"
+            className="grid w-full gap-2 sm:w-auto sm:grid-cols-2"
           >
-            {alwaysOpen ? "🕐 Always open (24/7)" : "Set as always open"}
-          </button>
+            <button
+              type="button"
+              onClick={selectAlwaysOpen}
+              aria-pressed={alwaysOpen}
+              className={`rounded-full px-4 py-2.5 text-sm font-bold shadow-sm transition ${
+                alwaysOpen
+                  ? "bg-blue-600 text-white shadow-blue-500/25 ring-2 ring-blue-600 ring-offset-2"
+                  : "border border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-800"
+              }`}
+            >
+              Always open (24/7)
+            </button>
+            <button
+              type="button"
+              onClick={selectWeeklyHours}
+              aria-pressed={!alwaysOpen}
+              className={`rounded-full px-4 py-2.5 text-sm font-bold shadow-sm transition ${
+                !alwaysOpen
+                  ? "bg-violet-600 text-white shadow-violet-500/25 ring-2 ring-violet-600 ring-offset-2"
+                  : "border border-slate-200 bg-white text-slate-700 hover:border-violet-300 hover:bg-violet-50 hover:text-violet-800"
+              }`}
+            >
+              Set weekly hours
+            </button>
+          </div>
           <button
             type="button"
             onClick={handleEmergencyToggle}
-            className={`flex-1 shrink-0 rounded-full px-4 py-2.5 text-sm font-bold transition sm:flex-none ${
+            aria-pressed={tempClosed}
+            className={`w-full rounded-full px-4 py-2.5 text-sm font-bold transition sm:w-auto ${
               tempClosed
-                ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                ? "bg-emerald-600 text-white hover:bg-emerald-700 ring-2 ring-emerald-600 ring-offset-2"
                 : "border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
             }`}
             title={tempClosed ? "Click to mark as open (remember to save)" : "Mark store as closed (remember to save)"}
           >
-            {tempClosed ? "✓ Re-open store" : "Emergency closed"}
+            {tempClosed ? "Re-open store" : "Emergency closed"}
           </button>
         </div>
       </div>
