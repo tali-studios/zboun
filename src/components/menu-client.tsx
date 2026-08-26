@@ -289,6 +289,10 @@ export function MenuClient({
   const [sheetDragging, setSheetDragging] = useState(false);
   const sheetStartYRef = useRef(0);
   const sheetDragYRef = useRef(0);
+  const [cartSheetDragY, setCartSheetDragY] = useState(0);
+  const [cartSheetDragging, setCartSheetDragging] = useState(false);
+  const cartSheetStartYRef = useRef(0);
+  const cartSheetDragYRef = useRef(0);
   /** Color chosen on the menu card (updates thumb + preselects in the picker). */
   const [listColorByItemId, setListColorByItemId] = useState<Record<string, string>>({});
   /** Size/volume chosen on the menu card (updates price + preselects in the picker). */
@@ -677,6 +681,38 @@ export function MenuClient({
     }
     setSheetDragY(0);
     sheetDragYRef.current = 0;
+  }
+
+  function closeMobileCart() {
+    setCartSheetDragY(0);
+    cartSheetDragYRef.current = 0;
+    setCartSheetDragging(false);
+    setShowMobileCart(false);
+  }
+
+  function onCartSheetTouchStart(e: React.TouchEvent) {
+    cartSheetStartYRef.current = e.touches[0].clientY;
+    cartSheetDragYRef.current = 0;
+    setCartSheetDragging(true);
+  }
+
+  function onCartSheetTouchMove(e: React.TouchEvent) {
+    if (!cartSheetDragging) return;
+    const dy = e.touches[0].clientY - cartSheetStartYRef.current;
+    const next = Math.max(0, dy);
+    cartSheetDragYRef.current = next;
+    setCartSheetDragY(next);
+  }
+
+  function onCartSheetTouchEnd() {
+    if (!cartSheetDragging) return;
+    setCartSheetDragging(false);
+    if (cartSheetDragYRef.current >= 110) {
+      closeMobileCart();
+      return;
+    }
+    setCartSheetDragY(0);
+    cartSheetDragYRef.current = 0;
   }
 
   function addCustomizedItem(overrides?: { selectedOptions?: OptionSelections }) {
@@ -2407,13 +2443,43 @@ export function MenuClient({
 
       {/* ── Mobile cart sheet ──────────────────────────────────────────── */}
       {canShop && showMobileCart ? (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <div
-            className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
-            onClick={() => setShowMobileCart(false)}
+        <div
+          className="fixed inset-0 z-50 lg:hidden"
+          style={{
+            backgroundColor: `rgba(15, 23, 42, ${Math.max(0.15, 0.5 * (1 - cartSheetDragY / 320))})`,
+          }}
+        >
+          <button
+            type="button"
+            className="absolute inset-0 backdrop-blur-sm"
+            aria-label="Close cart"
+            onClick={closeMobileCart}
           />
-          <div className="absolute bottom-0 left-0 right-0 max-h-[90dvh] overflow-y-auto rounded-t-3xl bg-white px-5 pb-8 pt-5 shadow-2xl">
-            {renderCartPanel({ onClose: () => setShowMobileCart(false) })}
+          <div
+            className="absolute bottom-0 left-0 right-0 z-[1] flex max-h-[90dvh] flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl"
+            style={{
+              transform: `translateY(${cartSheetDragY}px)`,
+              transition: cartSheetDragging ? "none" : "transform 200ms ease-out",
+            }}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Your cart"
+          >
+            <div
+              className="flex shrink-0 touch-none flex-col items-center pt-2.5 pb-1"
+              onTouchStart={onCartSheetTouchStart}
+              onTouchMove={onCartSheetTouchMove}
+              onTouchEnd={onCartSheetTouchEnd}
+              onTouchCancel={onCartSheetTouchEnd}
+              role="button"
+              tabIndex={0}
+              aria-label="Swipe down to close"
+            >
+              <span className="h-1 w-10 rounded-full bg-slate-300" aria-hidden />
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-[max(2rem,env(safe-area-inset-bottom))] pt-2">
+              {renderCartPanel({ onClose: closeMobileCart })}
+            </div>
           </div>
         </div>
       ) : null}
