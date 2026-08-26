@@ -11,7 +11,9 @@ import {
   isCouponCodeActive,
   type MenuCouponCode,
 } from "@/lib/menu-coupon-codes";
+import { ConfirmDeleteForm } from "@/components/confirm-delete-form";
 import { OptionalDateTimeField } from "@/components/optional-datetime-field";
+import { ValidatedActionForm } from "@/components/validated-action-form";
 
 type Props = {
   coupons: MenuCouponCode[];
@@ -22,6 +24,27 @@ function formatDateRange(coupon: MenuCouponCode) {
   const start = coupon.starts_at ? new Date(coupon.starts_at).toLocaleString() : "Now";
   const end = coupon.ends_at ? new Date(coupon.ends_at).toLocaleString() : "No end date";
   return `${start} → ${end}`;
+}
+
+function validateCouponForm(formData: FormData): string | null {
+  const code = String(formData.get("code") ?? "").trim();
+  if (code.length < 3) return "Enter a coupon code with at least 3 characters.";
+  if (code.length > 32) return "Coupon codes can be at most 32 characters.";
+  if (!/^[A-Z0-9_-]+$/i.test(code)) {
+    return "Coupon codes can only use letters, numbers, - or _.";
+  }
+  const percent = Number(formData.get("percent_off") ?? "");
+  if (!Number.isFinite(percent) || percent < 1 || percent > 100) {
+    return "Enter a discount between 1% and 100%.";
+  }
+  const maxUsesRaw = String(formData.get("max_uses") ?? "").trim();
+  if (maxUsesRaw) {
+    const maxUses = Number(maxUsesRaw);
+    if (!Number.isFinite(maxUses) || maxUses < 1) {
+      return "Max uses must be a whole number of 1 or more (or leave blank for unlimited).";
+    }
+  }
+  return null;
 }
 
 export function MenuCouponCodesPanel({ coupons }: Props) {
@@ -40,7 +63,12 @@ export function MenuCouponCodesPanel({ coupons }: Props) {
         checkout.
       </p>
 
-      <form action={createMenuCouponCodeAction} className="mt-5 space-y-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+      <ValidatedActionForm
+        action={createMenuCouponCodeAction}
+        className="mt-5 space-y-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4"
+        alertHeading="Couldn’t create coupon"
+        validate={validateCouponForm}
+      >
         <p className="text-sm font-semibold text-slate-900">New coupon code</p>
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block">
@@ -92,7 +120,7 @@ export function MenuCouponCodesPanel({ coupons }: Props) {
         >
           Create coupon
         </button>
-      </form>
+      </ValidatedActionForm>
 
       {coupons.length === 0 ? (
         <p className="mt-5 text-sm text-slate-500">No coupon codes yet. Create one above to share with customers.</p>
@@ -133,15 +161,17 @@ export function MenuCouponCodesPanel({ coupons }: Props) {
                       {coupon.is_active ? "Pause" : "Resume"}
                     </button>
                   </form>
-                  <form action={deleteMenuCouponCodeAction}>
-                    <input type="hidden" name="id" value={coupon.id} />
-                    <button
-                      type="submit"
-                      className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50"
-                    >
-                      Delete
-                    </button>
-                  </form>
+                  <ConfirmDeleteForm
+                    action={deleteMenuCouponCodeAction}
+                    heading="Delete coupon?"
+                    message={`Please confirm deleting code “${coupon.code}”. Customers will no longer be able to use it.`}
+                    confirmLabel="Yes, delete"
+                    triggerClassName="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50"
+                    triggerAriaLabel={`Delete coupon ${coupon.code}`}
+                    hiddenFields={<input type="hidden" name="id" value={coupon.id} />}
+                  >
+                    Delete
+                  </ConfirmDeleteForm>
                 </div>
               </li>
             );

@@ -11,8 +11,8 @@ export type ProductOptionHints = {
   typeSecondary: string;
   value: string;
   addAnother: string;
-  /** Enables one-tap Size/Color presets for fashion stores. */
-  presetMode?: "fashion";
+  /** One-tap presets: fashion Size/Color, or electronics Storage/Color + price matrix. */
+  presetMode?: "fashion" | "electronics";
 };
 
 export type StoreItemProfile = {
@@ -34,6 +34,8 @@ export type StoreItemProfile = {
   isFoodLike: boolean;
   /** Fashion stores — materials/fabric labeling + branding emphasis. */
   isFashionLike: boolean;
+  /** Electronics — flexible variants (storage/size/model × color), photos, price matrix. */
+  isElectronicsLike: boolean;
   /** Require choosing a brand when brands exist (e.g. fashion boutique). */
   brandRequired: boolean;
   /** Men / Women / Kids audience tag + filters. */
@@ -51,10 +53,11 @@ const FASHION_OPTION_HINTS: ProductOptionHints = {
 };
 
 const ELECTRONICS_OPTION_HINTS: ProductOptionHints = {
-  typePrimary: "e.g. Storage, Color",
+  typePrimary: "e.g. Storage, Size, Model",
   typeSecondary: "e.g. Color",
-  value: "Value (e.g. 128GB, 256GB, Black)",
-  addAnother: "+ Add another option type (e.g. Color)",
+  value: "e.g. 128GB, 55\", Black",
+  addAnother: "+ Add colors",
+  presetMode: "electronics",
 };
 
 const SMOKE_OPTION_HINTS: ProductOptionHints = {
@@ -153,15 +156,16 @@ const NO_EXTRAS_PROFILE: StoreItemProfile = {
   optionHints: DEFAULT_OPTION_HINTS,
   isFoodLike: false,
   isFashionLike: false,
+  isElectronicsLike: false,
   brandRequired: false,
   audienceTag: false,
-  namePlaceholder: "e.g. iPhone 15 Case – Black",
+  namePlaceholder: "e.g. Product name",
 };
 
 function resolveNamePlaceholder(sections: readonly BrowseSection[]): string {
   if (sections.includes("Fashion & Apparel")) return "e.g. Linen Midi Skirt – Blue Stripe";
   if (sections.includes("Food & Restaurants")) return "e.g. Grilled Chicken Burger";
-  if (sections.includes("Electronics & Tech")) return "e.g. iPhone 15 Case – Black";
+  if (sections.includes("Electronics & Tech")) return "e.g. iPhone 17, 55\" TV, USB-C cable";
   return "e.g. Product name";
 }
 
@@ -170,6 +174,7 @@ export function resolveStoreItemProfile(sections: readonly BrowseSection[]): Sto
 
   const has = (set: Set<BrowseSection>) => sections.some((section) => set.has(section));
   const isFashionLike = sections.includes("Fashion & Apparel");
+  const isElectronicsLike = sections.includes("Electronics & Tech");
 
   return {
     weightPricing: has(WEIGHT_PRICING_SECTIONS),
@@ -181,6 +186,7 @@ export function resolveStoreItemProfile(sections: readonly BrowseSection[]): Sto
     optionHints: resolveOptionHints(sections),
     isFoodLike: sections.includes("Food & Restaurants"),
     isFashionLike,
+    isElectronicsLike,
     brandRequired: isFashionLike,
     audienceTag:
       isFashionLike || sections.includes("Sports & Outdoors"),

@@ -5,6 +5,7 @@ import { resolveColorSwatch } from "@/lib/color-swatches";
 import { getItemBudgetPriceUsd } from "@/lib/budget-mode";
 import {
   findColorOptionGroup,
+  findSizeLikeOptionGroup,
   normalizeOptionGroups,
   type MenuOptionGroup,
 } from "@/lib/menu-item-options";
@@ -53,12 +54,8 @@ type CatalogItem = {
 const LETTER_SIZE_ORDER = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL", "3XL", "4XL"];
 const PREVIEW_COUNT = 7;
 
-function isSizeLikeOptionLabel(label: string) {
-  return /\b(size|sizes|taille|talla|fit)\b/i.test(label.trim());
-}
-
 function findSizeOptionGroup(groups: MenuOptionGroup[]): MenuOptionGroup | null {
-  return groups.find((g) => isSizeLikeOptionLabel(g.label)) ?? null;
+  return findSizeLikeOptionGroup(groups);
 }
 
 function itemGroups(item: CatalogItem): MenuOptionGroup[] {

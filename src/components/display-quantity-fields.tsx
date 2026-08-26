@@ -33,14 +33,14 @@ export function DisplayQuantityFields({
         <input
           id={`${idPrefix}-quantity`}
           name={quantityName}
-          type="number"
-          min={0}
-          step="any"
+          type="text"
+          inputMode="decimal"
+          autoComplete="off"
           placeholder={unit === "l" || unit === "kg" ? "1.5" : "330"}
           defaultValue={
             defaultQuantity !== null && defaultQuantity !== "" ? String(defaultQuantity) : undefined
           }
-          className="ui-input ui-input-quantity box-border h-11 min-w-0 w-full !py-0 text-[0.9375rem] leading-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          className="ui-input ui-input-quantity box-border h-11 min-w-0 w-full !py-0 text-[0.9375rem] leading-none"
         />
         <select
           id={`${idPrefix}-unit`}

@@ -13,7 +13,9 @@ import {
   type MenuPromotion,
   type PromotionScope,
 } from "@/lib/menu-promotions";
+import { ConfirmDeleteForm } from "@/components/confirm-delete-form";
 import { OptionalDateTimeField } from "@/components/optional-datetime-field";
+import { ValidatedActionForm } from "@/components/validated-action-form";
 
 type Section = { id: string; name: string };
 type Brand = { id: string; name: string };
@@ -95,9 +97,28 @@ export function MenuPromotionsPanel({ promotions, sections, brands, menuItems }:
         the sale price on your store page; original prices stay in your admin for when the sale ends.
       </p>
 
-      <form
+      <ValidatedActionForm
         action={createMenuPromotionAction}
         className="mt-4 min-w-0 overflow-x-hidden rounded-2xl border border-violet-100 bg-violet-50/40 p-4 sm:p-5"
+        alertHeading="Couldn’t create sale"
+        validate={(formData) => {
+          if (scopeType === "item" && selectedItemIds.length === 0) {
+            return "Select at least one item for this sale.";
+          }
+          if (scopeType === "category" || scopeType === "brand") {
+            const scopeId = String(formData.get("scope_id") ?? "").trim();
+            if (!scopeId) {
+              return scopeType === "category"
+                ? "Choose a section for this sale."
+                : "Choose a brand for this sale.";
+            }
+          }
+          const percent = Number(formData.get("percent_off") ?? "");
+          if (!Number.isFinite(percent) || percent < 1 || percent > 100) {
+            return "Enter a discount between 1% and 100%.";
+          }
+          return null;
+        }}
       >
         <h3 className="text-sm font-bold text-slate-900">Create sale</h3>
         <div className="mt-3 grid min-w-0 gap-3 md:grid-cols-2">
@@ -298,12 +319,11 @@ export function MenuPromotionsPanel({ promotions, sections, brands, menuItems }:
 
         <button
           type="submit"
-          disabled={scopeType === "item" && selectedItemIds.length === 0}
-          className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-violet-500/25 transition hover:brightness-105 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-violet-500/25 transition hover:brightness-105 active:scale-[0.99]"
         >
           Create sale{scopeType === "item" && selectedItemIds.length > 1 ? ` (${selectedItemIds.length} items)` : ""}
         </button>
-      </form>
+      </ValidatedActionForm>
 
       {promotions.length > 0 ? (
         <div className="mt-5 space-y-3">
@@ -348,15 +368,17 @@ export function MenuPromotionsPanel({ promotions, sections, brands, menuItems }:
                         {promotion.is_active ? "Pause" : "Activate"}
                       </button>
                     </form>
-                    <form action={deleteMenuPromotionAction}>
-                      <input type="hidden" name="id" value={promotion.id} />
-                      <button
-                        type="submit"
-                        className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50"
-                      >
-                        Delete
-                      </button>
-                    </form>
+                    <ConfirmDeleteForm
+                      action={deleteMenuPromotionAction}
+                      heading="Delete sale?"
+                      message="Please confirm deleting this sale. Customers will stop seeing the discounted prices."
+                      confirmLabel="Yes, delete"
+                      triggerClassName="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50"
+                      triggerAriaLabel="Delete sale"
+                      hiddenFields={<input type="hidden" name="id" value={promotion.id} />}
+                    >
+                      Delete
+                    </ConfirmDeleteForm>
                   </div>
                 </div>
               </article>

@@ -33,8 +33,10 @@ import {
   buildVariantKey,
   firstColorOptionImageUrl,
   listVariantCombinations,
+  minVariantPrice,
   normalizeOptionGroups,
   parseOptionGroupsFromForm,
+  parseVariantPricesFromForm,
   parseVariantStockFromForm,
   parseVariantStockMap,
   primaryOptionLabel,
@@ -342,7 +344,7 @@ export async function createCategoryAction(formData: FormData) {
     ),
   ];
   if (names.length === 0) {
-    redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=section_name_required`);
+    redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=section_name_required&jump=sections`);
   }
 
   const supabase = await createServerSupabaseClient();
@@ -363,14 +365,15 @@ export async function createCategoryAction(formData: FormData) {
 
   await supabase.from("categories").insert(inserts);
   revalidatePath(MENU_ITEMS_ADMIN_PATH);
-  revalidatePath("/dashboard/business");
 
   if (names.length === 1) {
     redirect(
-      `${MENU_ITEMS_ADMIN_PATH}?toast=section_created&section_name=${encodeURIComponent(names[0]!)}`,
+      `${MENU_ITEMS_ADMIN_PATH}?toast=section_created&section_name=${encodeURIComponent(names[0]!)}&jump=sections`,
     );
   }
-  redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=sections_created&sections_count=${names.length}`);
+  redirect(
+    `${MENU_ITEMS_ADMIN_PATH}?toast=sections_created&sections_count=${names.length}&jump=sections`,
+  );
 }
 
 export async function updateCategoryAction(formData: FormData) {
@@ -518,7 +521,7 @@ export async function createMenuItemAction(
       error: "Choose a section and enter an item name before saving.",
     };
   }
-  if (!Number.isFinite(price) || price < 0) {
+  if (Number.isFinite(price) && price < 0) {
     return { ok: false, error: "Enter a valid price (0 or more)." };
   }
   if (soldByWeight) {
@@ -552,6 +555,9 @@ export async function createMenuItemAction(
   const optionLabel = primaryOptionLabel(optionGroups);
   const optionValues = optionGroups;
   let optionVariantStock = parseVariantStockFromForm(formData.get("option_variant_stock"));
+  const optionVariantPrices = parseVariantPricesFromForm(formData.get("option_variant_prices"));
+  const variantFromPriceRaw = String(formData.get("variant_from_price") ?? "").trim();
+  const variantFromPrice = variantFromPriceRaw ? Number(variantFromPriceRaw) : null;
   const stock = buildMenuItemStockPayload(formData);
   if ("error" in stock) {
     return {
@@ -564,6 +570,35 @@ export async function createMenuItemAction(
     stock.is_available = stock.stock_quantity > 0;
   } else if (!stock.track_stock) {
     optionVariantStock = {};
+  }
+
+  // Electronics price matrix: catalog "from" price = lowest combo (or keep form price).
+  let resolvedPrice = Number.isFinite(price) && price >= 0 ? price : 0;
+  if (!soldByWeight && Object.keys(optionVariantPrices).length > 0) {
+    const fromMatrix =
+      variantFromPrice != null && Number.isFinite(variantFromPrice) && variantFromPrice >= 0
+        ? variantFromPrice
+        : minVariantPrice(optionVariantPrices);
+    if (fromMatrix != null) resolvedPrice = fromMatrix;
+  }
+
+  // Allow missing starting price when combo prices fill the catalog "from" amount.
+  if (
+    !soldByWeight &&
+    Object.keys(optionVariantPrices).length === 0 &&
+    (!Number.isFinite(price) || price < 0)
+  ) {
+    return { ok: false, error: "Enter a valid price (0 or more)." };
+  }
+  if (
+    !soldByWeight &&
+    Object.keys(optionVariantPrices).length > 0 &&
+    (!Number.isFinite(resolvedPrice) || resolvedPrice < 0)
+  ) {
+    return {
+      ok: false,
+      error: "Enter a full price for at least one storage × color combination.",
+    };
   }
 
   const description = String(formData.get("description") ?? "").trim() || null;
@@ -599,7 +634,7 @@ export async function createMenuItemAction(
     brand_id: brandId,
     brand_name: brandName,
     description,
-    price,
+    price: resolvedPrice,
     image_url: imageUrl,
     grams: displayQty.grams,
     display_quantity: displayQty.display_quantity,
@@ -612,6 +647,7 @@ export async function createMenuItemAction(
     option_label: optionLabel,
     option_values: optionValues,
     option_variant_stock: optionVariantStock,
+    option_variant_prices: optionVariantPrices,
     audience,
     ...stock,
     is_available: stock.track_stock ? stock.is_available! : true,
@@ -619,6 +655,40 @@ export async function createMenuItemAction(
     price_per_kg: soldByWeight ? pricePerKg : null,
     weight_step_kg: soldByWeight ? weightStepKg : 0.1,
   }).select("id").single();
+
+  if (error && /option_variant_prices/i.test(error.message ?? "")) {
+    const retry = await supabase.from("menu_items").insert({
+      restaurant_id: user.restaurant_id,
+      category_id: categoryId,
+      name,
+      brand_id: brandId,
+      brand_name: brandName,
+      description,
+      price: resolvedPrice,
+      image_url: imageUrl,
+      grams: displayQty.grams,
+      display_quantity: displayQty.display_quantity,
+      display_unit: displayQty.display_unit,
+      calories,
+      protein_g: proteinG,
+      contents: String(formData.get("contents") ?? "").trim() || null,
+      removable_ingredients: removableIngredients,
+      add_ingredients: addIngredients,
+      option_label: optionLabel,
+      option_values: optionValues,
+      option_variant_stock: optionVariantStock,
+      audience,
+      ...stock,
+      is_available: stock.track_stock ? stock.is_available! : true,
+      sold_by_weight: soldByWeight,
+      price_per_kg: soldByWeight ? pricePerKg : null,
+      weight_step_kg: soldByWeight ? weightStepKg : 0.1,
+    }).select("id").single();
+    if (!retry.error && retry.data?.id) {
+      revalidatePath(MENU_ITEMS_ADMIN_PATH);
+      redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_created&item_name=${encodeURIComponent(name)}&jump=items`);
+    }
+  }
 
   if (error && isAudienceColumnMigrationError(error.message, error.code)) {
     const retry = await supabase.from("menu_items").insert({
@@ -649,7 +719,7 @@ export async function createMenuItemAction(
     }).select("id").single();
     if (!retry.error && retry.data?.id) {
       revalidatePath(MENU_ITEMS_ADMIN_PATH);
-      redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_created&item_name=${encodeURIComponent(name)}`);
+      redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_created&item_name=${encodeURIComponent(name)}&jump=items`);
     }
   }
 
@@ -733,7 +803,7 @@ export async function createMenuItemAction(
 
   // Menu items page is force-dynamic; revalidate only this route for a faster redirect.
   revalidatePath(MENU_ITEMS_ADMIN_PATH);
-  redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_created&item_name=${encodeURIComponent(name)}`);
+  redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_created&item_name=${encodeURIComponent(name)}&jump=items`);
 }
 
 export async function updateMenuItemAction(formData: FormData) {
@@ -780,6 +850,9 @@ export async function updateMenuItemAction(formData: FormData) {
   const optionLabel = primaryOptionLabel(optionGroups);
   const optionValues = optionGroups;
   let optionVariantStock = parseVariantStockFromForm(formData.get("option_variant_stock"));
+  const optionVariantPrices = parseVariantPricesFromForm(formData.get("option_variant_prices"));
+  const variantFromPriceRaw = String(formData.get("variant_from_price") ?? "").trim();
+  const variantFromPrice = variantFromPriceRaw ? Number(variantFromPriceRaw) : null;
   const stock = buildMenuItemStockPayload(formData);
   if ("error" in stock) {
     redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_stock_alerts_invalid`);
@@ -789,6 +862,15 @@ export async function updateMenuItemAction(formData: FormData) {
     stock.is_available = stock.stock_quantity > 0;
   } else if (!stock.track_stock) {
     optionVariantStock = {};
+  }
+
+  let resolvedUpdatePrice = price;
+  if (!soldByWeight && Object.keys(optionVariantPrices).length > 0) {
+    const fromMatrix =
+      variantFromPrice != null && Number.isFinite(variantFromPrice) && variantFromPrice >= 0
+        ? variantFromPrice
+        : minVariantPrice(optionVariantPrices);
+    if (fromMatrix != null) resolvedUpdatePrice = fromMatrix;
   }
 
   if (!name || !categoryId) {
@@ -802,7 +884,7 @@ export async function updateMenuItemAction(formData: FormData) {
     if (!Number.isFinite(weightStepKg) || weightStepKg < 0.01) {
       redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_update_invalid`);
     }
-  } else if (!Number.isFinite(price) || price < 0) {
+  } else if (!Number.isFinite(resolvedUpdatePrice) || resolvedUpdatePrice < 0) {
     redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_update_invalid`);
   }
 
@@ -839,7 +921,7 @@ export async function updateMenuItemAction(formData: FormData) {
     brand_id: brandId,
     brand_name: brandName,
     description: description || null,
-    price,
+    price: resolvedUpdatePrice,
     category_id: categoryId,
     image_url: nextImageUrl,
     grams: displayQty.grams,
@@ -853,6 +935,7 @@ export async function updateMenuItemAction(formData: FormData) {
     option_label: optionLabel,
     option_values: optionValues,
     option_variant_stock: optionVariantStock,
+    option_variant_prices: optionVariantPrices,
     audience,
     ...stock,
     ...(stock.track_stock ? { is_available: stock.is_available! } : {}),
@@ -866,6 +949,22 @@ export async function updateMenuItemAction(formData: FormData) {
     .update(updatePayload)
     .eq("id", id)
     .eq("restaurant_id", user.restaurant_id);
+
+  if (error && /option_variant_prices/i.test(error.message ?? "")) {
+    const { option_variant_prices: _ovp, ...withoutVariantPrices } = updatePayload;
+    const retry = await supabase
+      .from("menu_items")
+      .update(withoutVariantPrices)
+      .eq("id", id)
+      .eq("restaurant_id", user.restaurant_id);
+    if (!retry.error) {
+      void notifyStockAlertsForMenuItem(supabase, id, user.restaurant_id);
+      void pushOutboundStockUpdate(user.restaurant_id, id);
+      revalidateMenuAdminPaths();
+      redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_updated&item_name=${encodeURIComponent(name)}`);
+    }
+    error = retry.error;
+  }
 
   if (error && /option_variant_stock/i.test(error.message ?? "")) {
     const { option_variant_stock: _ovs, ...withoutVariantStock } = updatePayload;

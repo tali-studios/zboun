@@ -21,6 +21,11 @@ type Props = {
   showWeightPricing?: boolean;
   /** Store dollar rate for USD ↔ LBP sync. */
   lbpRate?: number;
+  /**
+   * Electronics: this field is only for simple single-SKU items.
+   * Combo prices in Options override the catalog "from" price.
+   */
+  electronicsPricing?: boolean;
 };
 
 /**
@@ -40,6 +45,7 @@ export function MenuItemPricingFields({
   showDisplayQuantity = true,
   showWeightPricing = true,
   lbpRate = 89500,
+  electronicsPricing = false,
 }: Props) {
   const [soldByWeight, setSoldByWeight] = useState(
     showWeightPricing ? defaultSoldByWeight : false,
@@ -75,16 +81,47 @@ export function MenuItemPricingFields({
       {/* ── Flat price — hidden when sold by weight ── */}
       {!soldByWeight ? (
         <>
-          <div className="md:col-span-2">
+          <div className="md:col-span-2 space-y-2">
+            {electronicsPricing ? (
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                <p className="text-sm font-semibold text-slate-900">How pricing works</p>
+                <ul className="mt-2 space-y-1.5 text-xs leading-relaxed text-slate-600">
+                  <li>
+                    <strong className="font-semibold text-slate-800">Product with options</strong>
+                    {" "}(storage, size, color…): set each selling price in{" "}
+                    <strong className="font-semibold text-slate-800">Options</strong> below.
+                    The catalog shows “from $…” using the lowest combo automatically — you can leave
+                    this field blank.
+                  </li>
+                  <li>
+                    <strong className="font-semibold text-slate-800">Simple one-price item</strong>
+                    {" "}(no options): enter the price here.
+                  </li>
+                </ul>
+              </div>
+            ) : null}
             <LinkedCurrencyPriceInput
               lbpRate={lbpRate}
               id={`${idPrefix}-price`}
               name="price"
-              required
+              required={!electronicsPricing}
               value={price}
               onChange={setPrice}
-              usdLabel="Price (USD)"
-              lbpLabel="Price (LBP)"
+              usdLabel={
+                electronicsPricing
+                  ? "Price for simple items (USD)"
+                  : "Price (USD)"
+              }
+              lbpLabel={
+                electronicsPricing
+                  ? "Price for simple items (LBP)"
+                  : "Price (LBP)"
+              }
+              hint={
+                electronicsPricing
+                  ? `Linked by your store rate: $1 = ${Number(lbpRate || 89500).toLocaleString("en-US")} LBP. Only USD is saved. Not used when combo prices are set below.`
+                  : undefined
+              }
             />
           </div>
           {showDisplayQuantity ? (

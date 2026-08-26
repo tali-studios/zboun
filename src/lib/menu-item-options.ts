@@ -115,8 +115,98 @@ export function isColorLikeOptionLabel(label: string) {
   return /\b(color|colour|colors|colours|shade|tone)\b/i.test(label.trim());
 }
 
+/** Size, storage, capacity, model — primary dimension for fashion & electronics matrices. */
+export function isSizeLikeOptionLabel(label: string) {
+  return /\b(size|sizes|taille|talla|fit|storage|capacity|memory|ram|model|version|config|configuration|wattage|length|screen|inch|inches|variant|option)\b/i.test(
+    label.trim(),
+  );
+}
+
 export function findColorOptionGroup(groups: MenuOptionGroup[]): MenuOptionGroup | null {
   return groups.find((g) => isColorLikeOptionLabel(g.label)) ?? null;
+}
+
+export function findSizeLikeOptionGroup(groups: MenuOptionGroup[]): MenuOptionGroup | null {
+  return groups.find((g) => isSizeLikeOptionLabel(g.label)) ?? null;
+}
+
+function asAbsolutePrice(raw: unknown): number | null {
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 0) return null;
+  return Math.round(n * 100) / 100;
+}
+
+export function parseVariantPriceMap(raw: unknown): Record<string, number> {
+  if (!isPlainObject(raw)) return {};
+  const out: Record<string, number> = {};
+  for (const [key, value] of Object.entries(raw)) {
+    const k = String(key).trim();
+    if (!k) continue;
+    const price = asAbsolutePrice(value);
+    if (price == null) continue;
+    out[k] = price;
+  }
+  return out;
+}
+
+export function parseVariantPricesFromForm(raw: FormDataEntryValue | null): Record<string, number> {
+  const text = String(raw ?? "").trim();
+  if (!text) return {};
+  try {
+    return parseVariantPriceMap(JSON.parse(text));
+  } catch {
+    return {};
+  }
+}
+
+export function itemUsesVariantPrices(prices: Record<string, number> | null | undefined): boolean {
+  return Boolean(prices && Object.keys(prices).length > 0);
+}
+
+export function getVariantAbsolutePrice(
+  prices: Record<string, number> | null | undefined,
+  variantKey: string | null | undefined,
+): number | null {
+  if (!variantKey || !prices) return null;
+  if (!(variantKey in prices)) return null;
+  return asAbsolutePrice(prices[variantKey]);
+}
+
+/**
+ * When an item has a price matrix, only combos with an entered price are offered.
+ * Empty cells = not sold (e.g. Silver 1TB missing while Orange 1TB exists).
+ */
+export function isVariantComboOffered(
+  prices: Record<string, number> | null | undefined,
+  groups: MenuOptionGroup[],
+  selections: OptionSelections,
+): boolean {
+  if (!itemUsesVariantPrices(prices)) return true;
+  const key = buildVariantKey(groups, selections);
+  return getVariantAbsolutePrice(prices, key) != null;
+}
+
+export function minVariantPrice(prices: Record<string, number>): number | null {
+  const values = Object.values(prices).filter((n) => Number.isFinite(n) && n >= 0);
+  if (values.length === 0) return null;
+  return Math.min(...values);
+}
+
+/**
+ * Unit list price for a selected combo.
+ * Prefer absolute variant price when set; otherwise base + additive option extras.
+ */
+export function resolveOptionListUnitPrice(
+  basePrice: number,
+  groups: MenuOptionGroup[],
+  selections: OptionSelections,
+  variantPrices?: Record<string, number> | null,
+): number {
+  const key = buildVariantKey(groups, selections);
+  const absolute = getVariantAbsolutePrice(variantPrices, key);
+  if (absolute != null) return absolute;
+  const base = Math.max(0, Number(basePrice) || 0);
+  return Math.round((base + getCombinedOptionExtraPrice(groups, selections)) * 100) / 100;
 }
 
 /** Resolve the photo for a selected color (falls back to item default image). */

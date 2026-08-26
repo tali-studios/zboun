@@ -33,6 +33,14 @@ function sanitizeLbpDigits(raw: string): string {
   return raw.replace(/[^\d]/g, "");
 }
 
+/** Allow typed USD amounts without browser number spinners. */
+function sanitizeUsdInput(raw: string): string {
+  const cleaned = raw.replace(/[^\d.]/g, "");
+  const firstDot = cleaned.indexOf(".");
+  if (firstDot === -1) return cleaned;
+  return cleaned.slice(0, firstDot + 1) + cleaned.slice(firstDot + 1).replace(/\./g, "");
+}
+
 type Props = {
   lbpRate: number;
   /** Submitted field name — always USD for the server. */
@@ -114,10 +122,11 @@ export function LinkedCurrencyPriceInput({
   function updateUsd(next: string) {
     editingLbpRef.current = false;
     skipNextLbpSyncRef.current = false;
-    setUsd(next);
-    onChange?.(next);
-    const n = Number(next);
-    if (next.trim() === "" || !Number.isFinite(n)) {
+    const sanitized = sanitizeUsdInput(next);
+    setUsd(sanitized);
+    onChange?.(sanitized);
+    const n = Number(sanitized);
+    if (sanitized.trim() === "" || !Number.isFinite(n)) {
       setLbp("");
       return;
     }
@@ -189,12 +198,12 @@ export function LinkedCurrencyPriceInput({
               name={name}
               required={required}
               placeholder={usdPlaceholder}
-              type="number"
-              step="0.01"
-              min={0}
+              type="text"
+              inputMode="decimal"
+              autoComplete="off"
               value={usd}
               onChange={(event) => updateUsd(event.target.value)}
-              className="min-w-0 flex-1 border-0 bg-transparent py-0 text-[0.9375rem] leading-none text-slate-900 outline-none placeholder:text-slate-400 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              className="min-w-0 flex-1 border-0 bg-transparent py-0 text-[0.9375rem] leading-none text-slate-900 outline-none placeholder:text-slate-400"
             />
           </div>
         </label>

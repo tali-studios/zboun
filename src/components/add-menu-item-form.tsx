@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { createMenuItemAction } from "@/app-actions/restaurant";
+import { DashboardAlertModal } from "@/components/dashboard-alert-modal";
 import { IngredientListField } from "@/components/ingredient-list-field";
 import { ImageUploadField } from "@/components/image-upload-field";
 import { DisplayQuantityFields } from "@/components/display-quantity-fields";
@@ -11,7 +12,7 @@ import { MenuItemOptionsFields } from "@/components/menu-item-options-fields";
 import { MenuItemStockFields } from "@/components/menu-item-stock-fields";
 import { LinkedCurrencyPriceInput } from "@/components/linked-currency-price-input";
 import { ITEM_AUDIENCES, ITEM_AUDIENCE_LABELS } from "@/lib/item-audience";
-import { buildMenuItemStockPayload } from "@/lib/menu-item-stock";
+import { validateMenuItemFormClient } from "@/lib/menu-item-form-validation";
 import type { StoreItemProfile } from "@/lib/store-item-profile";
 
 type Category = { id: string; name: string };
@@ -32,6 +33,7 @@ const DEFAULT_PROFILE: StoreItemProfile = {
   },
   isFoodLike: false,
   isFashionLike: false,
+  isElectronicsLike: false,
   brandRequired: false,
   audienceTag: false,
   namePlaceholder: "e.g. Product name",
@@ -168,10 +170,9 @@ export function AddMenuItemForm({
   const [soldByWeight, setSoldByWeight] = useState(false);
   const [price, setPrice] = useState("");
   const [pricePerKg, setPricePerKg] = useState("");
-  const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [alert, setAlert] = useState<{ heading: string; message: string } | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
-  const errorRef = useRef<HTMLDivElement>(null);
   const submittingRef = useRef(false);
 
   function toggleSoldByWeight() {
@@ -186,67 +187,67 @@ export function AddMenuItemForm({
   }
   const isFood = profile.isFoodLike;
   const isFashion = profile.isFashionLike;
+  const isElectronics = profile.isElectronicsLike;
   const canWeighByWeight = profile.weightPricing;
   const canShowQty = profile.displayQuantity;
   const canShowNutritionSection = profile.nutrition || (profile.contents && !isFashion);
   const canShowMaterials = profile.contents && isFashion;
   const canCustomizeIngredients = profile.ingredientCustomization;
   const canUseProductOptions = profile.productOptions;
+  const photosInOptions = canUseProductOptions && (isFashion || isElectronics);
   const brandRequired = profile.brandRequired && brands.length > 0;
+
+  function showMissingFieldsAlert(message: string) {
+    setAlert({
+      heading: "Couldn’t save yet",
+      message,
+    });
+  }
 
   async function handleCreate(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (submittingRef.current) return;
-    submittingRef.current = true;
-    setPending(true);
-    setFormError(null);
-    const formData = new FormData(event.currentTarget);
-    const stock = buildMenuItemStockPayload(formData);
-    if ("error" in stock) {
-      submittingRef.current = false;
-      setPending(false);
-      setFormError(
-        "Check stock alerts: warning must be greater than urgent, and urgent greater than very urgent.",
-      );
-      queueMicrotask(() => {
-        errorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-      });
+
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+
+    const clientError = validateMenuItemFormClient(formData, {
+      brandRequired,
+      isElectronics,
+      photosInOptions,
+    });
+    if (clientError) {
+      showMissingFieldsAlert(clientError);
       return;
     }
+
+    submittingRef.current = true;
+    setPending(true);
     try {
       const result = await createMenuItemAction(formData);
       // Success redirects; failures return so the filled form is kept.
       if (result && result.ok === false) {
-        setFormError(result.error);
+        showMissingFieldsAlert(result.error);
         submittingRef.current = false;
         setPending(false);
-        queueMicrotask(() => {
-          errorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-        });
       }
     } catch (error) {
       if (isRedirectError(error)) throw error;
       submittingRef.current = false;
       setPending(false);
-      setFormError("Something went wrong. Your fields were kept — please try again.");
-      queueMicrotask(() => {
-        errorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-      });
+      showMissingFieldsAlert("Something went wrong. Your fields were kept — please try again.");
     }
   }
 
   return (
-    <form ref={formRef} onSubmit={handleCreate} id="add-item" className="space-y-3">
-      {formError ? (
-        <div
-          ref={errorRef}
-          role="alert"
-          className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800"
-        >
-          <p className="font-semibold">Couldn’t save yet</p>
-          <p className="mt-0.5">{formError}</p>
-        </div>
-      ) : null}
+    <>
+    <form
+      ref={formRef}
+      onSubmit={handleCreate}
+      id="add-item"
+      className="space-y-3"
+      noValidate
+    >
       {/* ─── STEP 1: Essentials (always shown, fast-fill) ─────────────────── */}
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <p className="mb-4 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400">
@@ -338,16 +339,39 @@ export function AddMenuItemForm({
           {!soldByWeight && (
             <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
               <div>
+                {isElectronics ? (
+                  <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                    <p className="text-sm font-semibold text-slate-900">How pricing works</p>
+                    <ul className="mt-2 space-y-1.5 text-xs leading-relaxed text-slate-600">
+                      <li>
+                        <strong className="font-semibold text-slate-800">Product with options</strong>
+                        {" "}(storage, size, color…): set each selling price in{" "}
+                        <strong className="font-semibold text-slate-800">Options</strong> below.
+                        The catalog shows “from $…” using the lowest combo automatically — you can
+                        leave this field blank.
+                      </li>
+                      <li>
+                        <strong className="font-semibold text-slate-800">Simple one-price item</strong>
+                        {" "}(no options): enter the price here.
+                      </li>
+                    </ul>
+                  </div>
+                ) : null}
                 <LinkedCurrencyPriceInput
                   lbpRate={lbpRate}
                   id="add-price"
                   name="price"
-                  required
+                  required={!isElectronics}
                   value={price}
                   onChange={setPrice}
-                  usdLabel="Price (USD)"
-                  lbpLabel="Price (LBP)"
-                  usdPlaceholder="30"
+                  usdLabel={isElectronics ? "Price for simple items (USD)" : "Price (USD)"}
+                  lbpLabel={isElectronics ? "Price for simple items (LBP)" : "Price (LBP)"}
+                  usdPlaceholder={isElectronics ? "799" : "30"}
+                  hint={
+                    isElectronics
+                      ? `Linked by your store rate: $1 = ${Number(lbpRate || 89500).toLocaleString("en-US")} LBP. Only USD is saved. Not used when combo prices are set below.`
+                      : undefined
+                  }
                 />
                 <input type="hidden" name="price_per_kg" value="" />
                 <input type="hidden" name="weight_step_kg" value="0.1" />
@@ -430,7 +454,7 @@ export function AddMenuItemForm({
 
       {/* ─── STEP 2: Photo & Description ──────────────────────────────────── */}
       <ExpandSection
-        label={canUseProductOptions && isFashion ? "Description" : "Photo & description"}
+        label={photosInOptions ? "Description" : "Photo & description"}
         color="blue"
         icon={
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5" aria-hidden>
@@ -438,7 +462,7 @@ export function AddMenuItemForm({
           </svg>
         }
       >
-        <div className={canUseProductOptions && isFashion ? "" : "grid gap-4 sm:grid-cols-2"}>
+        <div className={photosInOptions ? "" : "grid gap-4 sm:grid-cols-2"}>
           <div className="min-w-0">
             <FieldLabel htmlFor="add-description" optional>Description</FieldLabel>
             <textarea
@@ -447,15 +471,17 @@ export function AddMenuItemForm({
               placeholder={
                 isFashion
                   ? "Fit, length, occasion, care tips…"
-                  : isFood
-                    ? "Describe this dish…"
-                    : "Describe this product…"
+                    : isElectronics
+                      ? "Key specs, what’s in the box, warranty…"
+                      : isFood
+                        ? "Describe this dish…"
+                        : "Describe this product…"
               }
               rows={3}
               className="ui-textarea w-full max-w-full resize-none"
             />
           </div>
-          {!canUseProductOptions || !isFashion ? (
+          {!photosInOptions ? (
             <div className="min-w-0">
               <ImageUploadField name="image_file" />
             </div>
@@ -506,7 +532,13 @@ export function AddMenuItemForm({
       {/* ─── Product options + inventory (sizes, grind, variants) ──────────── */}
       {canUseProductOptions ? (
         <ExpandSection
-          label={isFashion ? "Sizes, colors & inventory" : "Variants & inventory"}
+          label={
+            isFashion
+              ? "Sizes, colors & inventory"
+              : isElectronics
+                ? "Options, colors, prices & photos"
+                : "Variants & inventory"
+          }
           defaultOpen
           color="purple"
           icon={
@@ -573,5 +605,13 @@ export function AddMenuItemForm({
       {/* ─── Submit ───────────────────────────────────────────────────────── */}
       <AddItemSubmitButton isFood={isFood} pending={pending} />
     </form>
+    <DashboardAlertModal
+      open={alert != null}
+      heading={alert?.heading ?? ""}
+      message={alert?.message ?? ""}
+      variant="warning"
+      onClose={() => setAlert(null)}
+    />
+    </>
   );
 }

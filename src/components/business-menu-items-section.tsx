@@ -7,8 +7,10 @@ import {
 } from "@/app-actions/restaurant";
 import { AddMenuItemForm } from "@/components/add-menu-item-form";
 import { BusinessMenuItemsToolbar } from "@/components/business-menu-items-toolbar";
+import { ConfirmDeleteForm } from "@/components/confirm-delete-form";
 import { ImageUploadField } from "@/components/image-upload-field";
 import { IngredientListField } from "@/components/ingredient-list-field";
+import { MenuItemEditForm } from "@/components/menu-item-edit-form";
 import { MenuItemOptionsFields } from "@/components/menu-item-options-fields";
 import { MenuItemPricingFields } from "@/components/menu-item-pricing-fields";
 import { MenuItemStockFields } from "@/components/menu-item-stock-fields";
@@ -382,7 +384,12 @@ export function BusinessMenuItemsSection({
                                   </span>
                                 </label>
                               </div>
-                              <form action={updateMenuItemAction} className="mt-4 grid gap-3 md:grid-cols-2">
+                              <MenuItemEditForm
+                                action={updateMenuItemAction}
+                                className="mt-4 grid gap-3 md:grid-cols-2"
+                                itemProfile={itemProfile}
+                                brandRequired={itemProfile.brandRequired && menuBrands.length > 0}
+                              >
                                 <input type="hidden" name="id" value={item.id} />
                                 <input type="hidden" name="current_image_url" value={item.image_url ?? ""} />
 
@@ -455,6 +462,7 @@ export function BusinessMenuItemsSection({
                                     showDisplayQuantity={itemProfile.displayQuantity}
                                     showWeightPricing={itemProfile.weightPricing}
                                     lbpRate={lbpRate}
+                                    electronicsPricing={itemProfile.isElectronicsLike}
                                   />
                                 </div>
 
@@ -509,7 +517,9 @@ export function BusinessMenuItemsSection({
                                       </span>
                                       {itemProfile.isFashionLike
                                         ? "Sizes, colors & inventory"
-                                        : "Variants & inventory"}
+                                        : itemProfile.isElectronicsLike
+                                          ? "Options, colors, prices & photos"
+                                          : "Variants & inventory"}
                                     </p>
                                     <MenuItemOptionsFields
                                       idPrefix={`edit-${actionId}-`}
@@ -522,6 +532,12 @@ export function BusinessMenuItemsSection({
                                       defaultVariantStock={parseVariantStockMap(
                                         item.option_variant_stock,
                                       )}
+                                      defaultVariantPrices={
+                                        item.option_variant_prices &&
+                                        typeof item.option_variant_prices === "object"
+                                          ? item.option_variant_prices
+                                          : {}
+                                      }
                                       defaultTrackStock={Boolean(item.track_stock)}
                                       defaultStockQuantity={item.stock_quantity}
                                       defaultWarningQty={item.stock_alert_warning_qty}
@@ -591,7 +607,8 @@ export function BusinessMenuItemsSection({
                                 )}
 
                                 {/* — Image — */}
-                                {!itemProfile.productOptions || !itemProfile.isFashionLike ? (
+                                {!itemProfile.productOptions ||
+                                !(itemProfile.isFashionLike || itemProfile.isElectronicsLike) ? (
                                   <div className="md:col-span-2">
                                     <ImageUploadField
                                       name="image_file"
@@ -612,44 +629,25 @@ export function BusinessMenuItemsSection({
                                     Close
                                   </label>
                                 </div>
-                              </form>
+                              </MenuItemEditForm>
                             </div>
                           </div>
                         </div>
 
-                        <div className="relative">
-                          <input id={`delete-${actionId}`} type="checkbox" className="peer hidden" />
-                          <label
-                            htmlFor={`delete-${actionId}`}
-                            aria-label="Delete item"
-                            title="Delete this item"
-                            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-500 transition hover:bg-red-100 hover:text-red-700"
-                          >
-                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                            </svg>
-                          </label>
-                          <div className="pointer-events-none fixed inset-0 z-40 hidden items-center justify-center bg-slate-900/50 p-4 peer-checked:flex peer-checked:pointer-events-auto">
-                            <label htmlFor={`delete-${actionId}`} className="absolute inset-0 cursor-pointer" />
-                            <div className="relative z-10 w-full max-w-md rounded-2xl bg-white p-4 shadow-xl sm:p-5">
-                              <h3 className="text-lg font-bold text-slate-900">Delete item?</h3>
-                              <p className="mt-2 text-sm text-slate-600">
-                                Please confirm deleting <span className="font-semibold">{item.name}</span>. This cannot be undone.
-                              </p>
-                              <div className="mt-4 flex justify-end gap-2">
-                                <label htmlFor={`delete-${actionId}`} className="inline-flex cursor-pointer rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-                                  Cancel
-                                </label>
-                                <form action={deleteMenuItemAction}>
-                                  <input type="hidden" name="id" value={item.id} />
-                                  <button className="inline-flex rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700">
-                                    Yes, delete
-                                  </button>
-                                </form>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
+                        <ConfirmDeleteForm
+                          action={deleteMenuItemAction}
+                          heading="Delete item?"
+                          message={`Please confirm deleting “${item.name}”. This cannot be undone.`}
+                          confirmLabel="Yes, delete"
+                          triggerTitle="Delete this item"
+                          triggerAriaLabel="Delete item"
+                          triggerClassName="flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-500 transition hover:bg-red-100 hover:text-red-700"
+                          hiddenFields={<input type="hidden" name="id" value={item.id} />}
+                        >
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                          </svg>
+                        </ConfirmDeleteForm>
 
                         <div className="relative">
                           <input id={`stock-${actionId}`} type="checkbox" className="peer hidden" />

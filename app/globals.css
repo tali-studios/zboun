@@ -193,10 +193,41 @@ input[type="date"].ui-input::-webkit-calendar-picker-indicator {
   }
 }
 
+/* Number fields are typed values — never native spinner arrows */
+input[type="number"] {
+  appearance: textfield !important;
+  -moz-appearance: textfield !important;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  margin: 0;
+  display: none;
+}
+
 input[type="number"].ui-input {
   min-width: 0;
   max-width: 100%;
   box-sizing: border-box;
+}
+
+/* Search inputs often shrink under browser defaults — keep them aligned with other fields */
+input[type="search"].ui-input {
+  appearance: none;
+  -webkit-appearance: none;
+  height: 2.75rem;
+  min-height: 2.75rem;
+  box-sizing: border-box;
+}
+
+input[type="search"].ui-input::-webkit-search-decoration,
+input[type="search"].ui-input::-webkit-search-cancel-button,
+input[type="search"].ui-input::-webkit-search-results-button,
+input[type="search"].ui-input::-webkit-search-results-decoration {
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 select.ui-input,

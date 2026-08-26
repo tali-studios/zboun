@@ -52,13 +52,20 @@ import {
 } from "@/lib/item-audience";
 import {
   findColorOptionGroup,
+  findSizeLikeOptionGroup,
   formatOptionLabelsDisplay,
   getCombinedOptionExtraPrice,
+  getVariantAbsolutePrice,
   getVariantStockQty,
+  isColorLikeOptionLabel,
+  isSizeLikeOptionLabel,
+  isVariantComboOffered,
   itemUsesVariantStock,
+  itemUsesVariantPrices,
   normalizeOptionGroups,
   optionHasRemainingStock,
   resolveOptionColorImageUrl,
+  resolveOptionListUnitPrice,
   selectionsComplete,
   selectionsFromDisplayString,
   snapshotSelectedOptions,
@@ -155,18 +162,10 @@ function itemHasOptions(item: MenuItemRow) {
   return getItemOptionGroups(item).length > 0;
 }
 
-function isSizeLikeOptionLabel(label: string) {
-  return /\b(size|sizes|taille|talla|fit)\b/i.test(label.trim());
-}
-
-function isColorLikeOptionLabel(label: string) {
-  return /\b(color|colour|colors|colours|shade|tone)\b/i.test(label.trim());
-}
-
 function findSizeOptionGroup(
   groups: ReturnType<typeof getItemOptionGroups>,
 ): ReturnType<typeof getItemOptionGroups>[number] | null {
-  return groups.find((g) => isSizeLikeOptionLabel(g.label)) ?? null;
+  return findSizeLikeOptionGroup(groups);
 }
 
 /** Options/variants only — no food extras or weight. Opens as a fashion-style picker. */
@@ -211,6 +210,20 @@ function getCartQtyForVariant(
 
 function getOptionExtraPrice(item: MenuItemRow, selections: OptionSelections) {
   return getCombinedOptionExtraPrice(getItemOptionGroups(item), selections);
+}
+
+/** Effective unit price for a selected combo (absolute matrix or base + extras), after sales. */
+function getSelectedOptionUnitPrice(item: MenuItemRow, selections: OptionSelections) {
+  const groups = getItemOptionGroups(item);
+  const variantKey = snapshotSelectedOptions(groups, selections).variantKey;
+  const absolute = getVariantAbsolutePrice(item.option_variant_prices, variantKey);
+  if (absolute != null) {
+    if (item.percent_off != null && item.percent_off > 0) {
+      return Math.max(0, Math.round(absolute * (1 - item.percent_off / 100) * 100) / 100);
+    }
+    return absolute;
+  }
+  return Math.max(0, getEffectiveFlatPrice(item) + getOptionExtraPrice(item, selections));
 }
 
 function getVariantMaxQty(item: MenuItemRow, variantKey: string | null) {
@@ -673,6 +686,9 @@ export function MenuClient({
     if (itemHasOptions(customizing.item) && !selectionsComplete(groups, selectedOptions)) {
       return;
     }
+    if (!isVariantComboOffered(customizing.item.option_variant_prices, groups, selectedOptions)) {
+      return;
+    }
 
     const stock = getMenuItemStockState(customizing.item);
     if (!stock.available) return;
@@ -689,10 +705,11 @@ export function MenuClient({
       .filter((option): option is AddIngredientOption & { qty: number } => Boolean(option));
     const addCost = selectedAdd.reduce((sum, option) => sum + option.price * option.qty, 0);
     const soldByWeight = isSoldByWeight(customizing.item);
-    const baseUnitPrice = soldByWeight ? getEffectivePricePerKg(customizing.item) : getEffectiveFlatPrice(customizing.item);
     const unitPrice = Math.max(
       0,
-      baseUnitPrice + addCost + getCombinedOptionExtraPrice(groups, selectedOptions),
+      (soldByWeight
+        ? getEffectivePricePerKg(customizing.item)
+        : getSelectedOptionUnitPrice(customizing.item, selectedOptions)) + addCost,
     );
     const lineImageUrl =
       resolveOptionColorImageUrl(groups, selectedOptions, customizing.item.image_url) ??
@@ -787,16 +804,20 @@ export function MenuClient({
         if (!isSizeLikeOptionLabel(group.label)) continue;
         const sizeVal = String(nextSelections[group.label] ?? "").trim();
         if (!sizeVal) continue;
-        if (
-          !optionHasRemainingStock(
-            groups,
-            stocks,
-            customizing.item.track_stock,
-            group.label,
-            sizeVal,
-            nextSelections,
-          )
-        ) {
+        const stockOk = optionHasRemainingStock(
+          groups,
+          stocks,
+          customizing.item.track_stock,
+          group.label,
+          sizeVal,
+          nextSelections,
+        );
+        const priceOk = isVariantComboOffered(
+          customizing.item.option_variant_prices,
+          groups,
+          nextSelections,
+        );
+        if (!stockOk || !priceOk) {
           delete nextSelections[group.label];
         }
       }
@@ -808,16 +829,6 @@ export function MenuClient({
     }
     if (isSizeLikeOptionLabel(groupLabel)) {
       setListSizeByItemId((prev) => ({ ...prev, [customizing.item.id]: valueName }));
-    }
-
-    const fashionQuickAdd =
-      isOptionsOnlyItem(customizing.item) &&
-      !customizing.editingKey &&
-      selectionsComplete(groups, nextSelections);
-
-    if (fashionQuickAdd) {
-      addCustomizedItem({ selectedOptions: nextSelections });
-      return;
     }
 
     setCustomizing((prev) =>
@@ -1978,9 +1989,27 @@ export function MenuClient({
                     optionGroups,
                     listOptionSelections,
                   );
-                  const cardPriceUsd = Math.round((budgetPriceUsd + listOptionExtra) * 100) / 100;
-                  const cardListPriceUsd =
-                    Math.round((listBudgetPriceUsd + listOptionExtra) * 100) / 100;
+                  const listAbsolute = resolveOptionListUnitPrice(
+                    Number(item.price ?? 0),
+                    optionGroups,
+                    listOptionSelections,
+                    item.option_variant_prices,
+                  );
+                  const hasListAbsolute =
+                    Boolean(item.option_variant_prices) &&
+                    Object.keys(listOptionSelections).length > 0 &&
+                    getVariantAbsolutePrice(
+                      item.option_variant_prices,
+                      snapshotSelectedOptions(optionGroups, listOptionSelections).variantKey,
+                    ) != null;
+                  const cardPriceUsd = hasListAbsolute
+                    ? item.percent_off != null && item.percent_off > 0
+                      ? Math.round(listAbsolute * (1 - item.percent_off / 100) * 100) / 100
+                      : listAbsolute
+                    : Math.round((budgetPriceUsd + listOptionExtra) * 100) / 100;
+                  const cardListPriceUsd = hasListAbsolute
+                    ? listAbsolute
+                    : Math.round((listBudgetPriceUsd + listOptionExtra) * 100) / 100;
                   const showListSizes = Boolean(sizeGroup && sizeGroup.values.length >= 1);
                   const cardImageUrl =
                     resolveOptionColorImageUrl(
@@ -2439,13 +2468,17 @@ export function MenuClient({
             aria-label={customizing.item.name}
           >
             <div
-              className="h-3 shrink-0 touch-none sm:hidden"
+              className="flex shrink-0 touch-none flex-col items-center pt-2.5 pb-1 sm:hidden"
               onTouchStart={onCustomizationSheetTouchStart}
               onTouchMove={onCustomizationSheetTouchMove}
               onTouchEnd={onCustomizationSheetTouchEnd}
               onTouchCancel={onCustomizationSheetTouchEnd}
-              aria-hidden
-            />
+              role="button"
+              tabIndex={0}
+              aria-label="Swipe down to close"
+            >
+              <span className="h-1 w-10 rounded-full bg-slate-300" aria-hidden />
+            </div>
             <div
               className={`min-h-0 flex-1 overflow-y-auto ${
                 isOptionsOnlyItem(customizing.item)
@@ -2463,6 +2496,23 @@ export function MenuClient({
                   customizing.item.image_url,
                 ) ?? customizing.item.image_url;
               const fashionSheet = isOptionsOnlyItem(customizing.item);
+              const sheetUnitPrice = isSoldByWeight(customizing.item)
+                ? getEffectivePricePerKg(customizing.item)
+                : getSelectedOptionUnitPrice(
+                    customizing.item,
+                    customizing.selectedOptions,
+                  );
+              const sheetListPrice = isSoldByWeight(customizing.item)
+                ? getListPricePerKg(customizing.item)
+                : (() => {
+                    const groups = getItemOptionGroups(customizing.item);
+                    const absolute = getVariantAbsolutePrice(
+                      customizing.item.option_variant_prices,
+                      snapshotSelectedOptions(groups, customizing.selectedOptions).variantKey,
+                    );
+                    if (absolute != null) return absolute;
+                    return getListFlatPrice(customizing.item);
+                  })();
 
               const titleBlock = (
                 <>
@@ -2470,22 +2520,20 @@ export function MenuClient({
                     {customizing.item.name}
                   </h3>
                   <div className="mt-1.5 flex flex-wrap items-baseline gap-2">
-                    {itemHasActiveSale(customizing.item) ? (
+                    {itemHasActiveSale(customizing.item) && sheetListPrice > sheetUnitPrice ? (
                       <span className="text-sm font-semibold text-slate-400 line-through">
                         {isSoldByWeight(customizing.item)
-                          ? `${formatUsd(getListPricePerKg(customizing.item))} / kg`
-                          : formatUsd(getListFlatPrice(customizing.item))}
+                          ? `${formatUsd(sheetListPrice)} / kg`
+                          : formatUsd(sheetListPrice)}
                       </span>
                     ) : null}
                     <span className="text-lg font-bold" style={{ color: theme.primary }}>
                       {isSoldByWeight(customizing.item)
-                        ? `${formatUsd(getEffectivePricePerKg(customizing.item))} / kg`
-                        : formatUsd(getEffectiveFlatPrice(customizing.item))}
+                        ? `${formatUsd(sheetUnitPrice)} / kg`
+                        : formatUsd(sheetUnitPrice)}
                     </span>
                     <span className="text-sm text-slate-400">
-                      {isSoldByWeight(customizing.item)
-                        ? ""
-                        : formatLbp(getEffectiveFlatPrice(customizing.item))}
+                      {isSoldByWeight(customizing.item) ? "" : formatLbp(sheetUnitPrice)}
                     </span>
                   </div>
                   {customizing.item.description ? (
@@ -2618,6 +2666,9 @@ export function MenuClient({
                   const stocks = customizing.item.option_variant_stock ?? {};
                   const usesVariantStock =
                     Boolean(customizing.item.track_stock) && itemUsesVariantStock(stocks);
+                  const usesVariantPrices = itemUsesVariantPrices(
+                    customizing.item.option_variant_prices,
+                  );
                   const colorGroups = allGroups.filter((g) => isColorLikeOptionLabel(g.label));
                   const hasColorGroup = colorGroups.length > 0;
                   const colorSelectionReady =
@@ -2625,21 +2676,90 @@ export function MenuClient({
                     colorGroups.every((g) =>
                       Boolean(String(customizing.selectedOptions[g.label] ?? "").trim()),
                     );
+                  const waitForColor =
+                    sizeLike &&
+                    hasColorGroup &&
+                    !colorSelectionReady &&
+                    (usesVariantStock || usesVariantPrices);
 
-                  if (sizeLike && usesVariantStock && hasColorGroup && !colorSelectionReady) {
+                  if (waitForColor) {
                     return (
                       <div key={group.label}>
                         <h4 className="text-sm font-bold uppercase tracking-wide text-slate-900">
                           {group.label}
                         </h4>
-                        <p className="mt-2 text-sm text-slate-500">Select a color to see available sizes.</p>
+                        <p className="mt-2 text-sm text-slate-500">
+                          Select a color to see available {group.label.toLowerCase()} options.
+                        </p>
                       </div>
                     );
                   }
 
                   const visibleValues = group.values.filter((option) => {
-                    if (!usesVariantStock) return true;
+                    const preview = {
+                      ...customizing.selectedOptions,
+                      [group.label]: option.name,
+                    };
+
+                    // Hide options that aren't sold (no price) once other choices are complete enough.
+                    if (usesVariantPrices && selectionsComplete(allGroups, preview)) {
+                      if (
+                        !isVariantComboOffered(
+                          customizing.item.option_variant_prices,
+                          allGroups,
+                          preview,
+                        )
+                      ) {
+                        return false;
+                      }
+                    }
+
+                    // Size/storage with color: only show units available for the selected color.
                     if (sizeLike && hasColorGroup && colorSelectionReady) {
+                      if (
+                        usesVariantPrices &&
+                        !isVariantComboOffered(
+                          customizing.item.option_variant_prices,
+                          allGroups,
+                          preview,
+                        )
+                      ) {
+                        return false;
+                      }
+                      if (usesVariantStock) {
+                        return optionHasRemainingStock(
+                          allGroups,
+                          stocks,
+                          customizing.item.track_stock,
+                          group.label,
+                          option.name,
+                          customizing.selectedOptions,
+                        );
+                      }
+                      return true;
+                    }
+
+                    // Color with size already chosen: hide colors that don't have stock/price for that size.
+                    if (colorLike && usesVariantStock) {
+                      const sizeGroups = allGroups.filter((g) => isSizeLikeOptionLabel(g.label));
+                      const sizeReady =
+                        sizeGroups.length === 0 ||
+                        sizeGroups.every((g) =>
+                          Boolean(String(customizing.selectedOptions[g.label] ?? "").trim()),
+                        );
+                      if (sizeReady && sizeGroups.length > 0) {
+                        return optionHasRemainingStock(
+                          allGroups,
+                          stocks,
+                          customizing.item.track_stock,
+                          group.label,
+                          option.name,
+                          customizing.selectedOptions,
+                        );
+                      }
+                    }
+
+                    if (usesVariantStock && !(sizeLike && hasColorGroup)) {
                       return optionHasRemainingStock(
                         allGroups,
                         stocks,
@@ -2652,6 +2772,11 @@ export function MenuClient({
                     return true;
                   });
 
+                  const filterByAvailability =
+                    (sizeLike && hasColorGroup && (usesVariantStock || usesVariantPrices)) ||
+                    usesVariantStock ||
+                    usesVariantPrices;
+
                   return (
                     <div key={group.label}>
                       <h4 className="text-sm font-bold uppercase tracking-wide text-slate-900">
@@ -2662,12 +2787,16 @@ export function MenuClient({
                           <span className="ml-1 text-red-500">*</span>
                         ) : null}
                       </h4>
-                      {sizeLike && usesVariantStock && colorSelectionReady && visibleValues.length === 0 ? (
-                        <p className="mt-2 text-sm font-semibold text-red-600">Out of stock</p>
+                      {sizeLike &&
+                      hasColorGroup &&
+                      (usesVariantStock || usesVariantPrices) &&
+                      colorSelectionReady &&
+                      visibleValues.length === 0 ? (
+                        <p className="mt-2 text-sm font-semibold text-red-600">
+                          {usesVariantStock ? "Out of stock" : "Not available in this color"}
+                        </p>
                       ) : null}
-                      {(sizeLike && usesVariantStock && hasColorGroup
-                        ? visibleValues.length > 0
-                        : true) ? (
+                      {(filterByAvailability ? visibleValues.length > 0 : true) ? (
                       <div
                         className={
                           sizeLike
@@ -2677,45 +2806,41 @@ export function MenuClient({
                               : "mt-2.5 flex flex-wrap gap-2"
                         }
                       >
-                        {(sizeLike && usesVariantStock && hasColorGroup ? visibleValues : group.values).map(
+                        {(filterByAvailability ? visibleValues : group.values).map(
                           (option) => {
                           const selected = customizing.selectedOptions[group.label] === option.name;
                           const extra = Number(option.price ?? 0);
-                          const available = optionHasRemainingStock(
-                            allGroups,
-                            stocks,
-                            customizing.item.track_stock,
-                            group.label,
-                            option.name,
-                            customizing.selectedOptions,
-                          );
-                          const soldOut = usesVariantStock && !available;
+                          const previewSelections = {
+                            ...customizing.selectedOptions,
+                            [group.label]: option.name,
+                          };
 
                           if (sizeLike) {
+                            const absolute = getVariantAbsolutePrice(
+                              customizing.item.option_variant_prices,
+                              snapshotSelectedOptions(allGroups, previewSelections).variantKey,
+                            );
+                            const priceLabel =
+                              absolute != null
+                                ? formatUsd(absolute)
+                                : extra > 0
+                                  ? `+${formatUsd(extra)}`
+                                  : selected
+                                    ? "Selected"
+                                    : "";
                             return (
                               <button
                                 key={`${group.label}-${option.name}`}
                                 type="button"
-                                disabled={soldOut}
                                 onClick={() => selectOptionValue(group.label, option.name)}
                                 className={`flex w-full items-center justify-between px-4 py-3.5 text-left text-sm transition ${
-                                  soldOut
-                                    ? "cursor-not-allowed bg-slate-50 text-slate-300 line-through"
-                                    : selected
-                                      ? "bg-slate-900 text-white"
-                                      : "bg-white text-slate-800 hover:bg-slate-50"
+                                  selected
+                                    ? "bg-slate-900 text-white"
+                                    : "bg-white text-slate-800 hover:bg-slate-50"
                                 }`}
                               >
                                 <span className="font-semibold tracking-wide">{option.name}</span>
-                                <span className="text-xs opacity-70">
-                                  {soldOut
-                                    ? "Out of stock"
-                                    : extra > 0
-                                      ? `+${formatUsd(extra)}`
-                                      : selected
-                                        ? "Selected"
-                                        : ""}
-                                </span>
+                                <span className="text-xs opacity-70">{priceLabel}</span>
                               </button>
                             );
                           }
@@ -2726,21 +2851,15 @@ export function MenuClient({
                               <button
                                 key={`${group.label}-${option.name}`}
                                 type="button"
-                                disabled={soldOut}
-                                title={soldOut ? `${option.name} · out of stock` : option.name}
+                                title={option.name}
                                 onClick={() => selectOptionValue(group.label, option.name)}
                                 className={`relative h-9 w-9 shrink-0 overflow-hidden rounded-[4px] border transition ${
-                                  soldOut
-                                    ? "cursor-not-allowed opacity-35"
-                                    : selected
-                                      ? "border-2 border-slate-900 ring-1 ring-slate-900 ring-offset-2"
-                                      : "border border-slate-300 hover:border-slate-500"
+                                  selected
+                                    ? "border-2 border-slate-900 ring-1 ring-slate-900 ring-offset-2"
+                                    : "border border-slate-300 hover:border-slate-500"
                                 }`}
-                                aria-label={
-                                  soldOut ? `${option.name}, out of stock` : option.name
-                                }
+                                aria-label={option.name}
                                 aria-pressed={selected}
-                                aria-disabled={soldOut}
                               >
                                 <span
                                   className="absolute inset-0"
@@ -2751,11 +2870,6 @@ export function MenuClient({
                                     {option.name.slice(0, 1)}
                                   </span>
                                 ) : null}
-                                {soldOut ? (
-                                  <span className="absolute inset-0 flex items-center justify-center">
-                                    <span className="h-px w-full rotate-[-28deg] bg-slate-500" />
-                                  </span>
-                                ) : null}
                               </button>
                             );
                           }
@@ -2764,19 +2878,15 @@ export function MenuClient({
                             <button
                               key={`${group.label}-${option.name}`}
                               type="button"
-                              disabled={soldOut}
                               onClick={() => selectOptionValue(group.label, option.name)}
                               className={`rounded-full border px-3 py-1.5 text-sm font-semibold transition ${
-                                soldOut
-                                  ? "cursor-not-allowed border-slate-100 bg-slate-50 text-slate-300"
-                                  : selected
-                                    ? "border-violet-500 bg-violet-50 text-violet-800"
-                                    : "border-slate-200 bg-white text-slate-700 hover:border-violet-200"
+                                selected
+                                  ? "border-violet-500 bg-violet-50 text-violet-800"
+                                  : "border-slate-200 bg-white text-slate-700 hover:border-violet-200"
                               }`}
                             >
                               {option.name}
                               {extra > 0 ? ` +${formatUsd(extra)}` : ""}
-                              {soldOut ? " · out of stock" : ""}
                             </button>
                           );
                         })}
@@ -2787,7 +2897,7 @@ export function MenuClient({
                 })}
                 {isOptionsOnlyItem(customizing.item) && !customizing.editingKey ? (
                   <p className="text-xs text-slate-400">
-                    Tap an available size to add it to your cart.
+                    Choose your options, then add to cart.
                   </p>
                 ) : null}
               </div>
@@ -2900,8 +3010,7 @@ export function MenuClient({
               </div>
             ) : null}
 
-            {/* Quantity + Add to cart — hidden when tapping a size already adds */}
-            {!(isOptionsOnlyItem(customizing.item) && !customizing.editingKey) ? (
+            {/* Quantity + Add to cart */}
             <div className="mt-5 flex items-center justify-between gap-3 border-t border-slate-100 pt-4">
               {isSoldByWeight(customizing.item) ? (
                 <div className="flex items-center gap-3">
@@ -2990,8 +3099,13 @@ export function MenuClient({
                 type="button"
                 onClick={() => addCustomizedItem()}
                 disabled={
-                  itemHasOptions(customizing.item) &&
-                  !selectionsComplete(
+                  (itemHasOptions(customizing.item) &&
+                    !selectionsComplete(
+                      getItemOptionGroups(customizing.item),
+                      customizing.selectedOptions,
+                    )) ||
+                  !isVariantComboOffered(
+                    customizing.item.option_variant_prices,
                     getItemOptionGroups(customizing.item),
                     customizing.selectedOptions,
                   )
@@ -3004,19 +3118,21 @@ export function MenuClient({
                     const addCost = normalizeAddIngredients(customizing.item.add_ingredients)
                       .reduce((s, o) => s + (customizing.add[o.name] ?? 0) * o.price, 0);
                     const soldByWeight = isSoldByWeight(customizing.item);
-                    const base = soldByWeight
-                      ? Number((customizing.item as { price_per_kg?: number | null }).price_per_kg ?? 0)
-                      : Number(customizing.item.price);
-                    const optionExtra = getOptionExtraPrice(
+                    if (soldByWeight) {
+                      const base = Number(
+                        (customizing.item as { price_per_kg?: number | null }).price_per_kg ?? 0,
+                      );
+                      return Math.max(0, base + addCost) * customizing.qty;
+                    }
+                    const unit = getSelectedOptionUnitPrice(
                       customizing.item,
                       customizing.selectedOptions,
                     );
-                    return Math.max(0, base + addCost + optionExtra) * customizing.qty;
+                    return Math.max(0, unit + addCost) * customizing.qty;
                   })()
                 )}
               </button>
             </div>
-            ) : null}
             </div>
             </div>
           </div>

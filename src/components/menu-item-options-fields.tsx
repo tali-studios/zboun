@@ -1,12 +1,15 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { ElectronicsOptionsEditor, ElectronicsStockEditor } from "@/components/electronics-options-editor";
 import { ImageUploadField } from "@/components/image-upload-field";
 import { MenuItemStockFields } from "@/components/menu-item-stock-fields";
 import {
   buildVariantKey,
   formatSelectedOptionsDisplay,
+  isSizeLikeOptionLabel,
   listVariantCombinations,
+  minVariantPrice,
   sumVariantStock,
   type MenuOptionGroup,
   type MenuOptionValue,
@@ -18,6 +21,8 @@ type Props = {
   idPrefix?: string;
   defaultGroups?: MenuOptionGroup[];
   defaultVariantStock?: Record<string, number>;
+  /** Absolute USD price per variant key (Storage×Color). */
+  defaultVariantPrices?: Record<string, number>;
   /**
    * @deprecated Prefer includeStockPanel — keeps a separate always-on matrix.
    * When includeStockPanel is true, this is ignored.
@@ -148,18 +153,19 @@ function FashionStockEditor({
   tooMany: boolean;
   totalCombinations: number;
 }) {
-  const sizeGroup = groups.find((g) => /^size$/i.test(g.label));
+  const sizeGroup = groups.find((g) => isSizeLikeOptionLabel(g.label));
   const colorGroup = groups.find((g) => /^colou?r$/i.test(g.label));
   const useMatrix = Boolean(sizeGroup && colorGroup && sizeGroup.values.length && colorGroup.values.length);
+  const rowLabel = sizeGroup?.label?.trim() || "Size";
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-3">
       <p className="text-xs text-slate-500">
-        Use × to remove a size or color added by mistake.
+        Use × to remove a {rowLabel.toLowerCase()} or color added by mistake.
       </p>
       {tooMany ? (
         <p className="mt-2 text-xs font-semibold text-red-700">
-          Too many combinations ({totalCombinations}). Reduce sizes or colors.
+          Too many combinations ({totalCombinations}). Reduce {rowLabel.toLowerCase()}s or colors.
         </p>
       ) : null}
 
@@ -169,7 +175,7 @@ function FashionStockEditor({
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/80">
                 <th className="sticky left-0 z-10 bg-slate-50 px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">
-                  Size
+                  {rowLabel}
                 </th>
                 {colorGroup!.values.map((color) => (
                   <th
@@ -280,6 +286,7 @@ export function MenuItemOptionsFields({
   idPrefix = "",
   defaultGroups = [],
   defaultVariantStock = {},
+  defaultVariantPrices = {},
   showStock = false,
   includeStockPanel = false,
   defaultTrackStock = false,
@@ -290,12 +297,21 @@ export function MenuItemOptionsFields({
   hints = DEFAULT_HINTS,
 }: Props) {
   const isFashion = hints.presetMode === "fashion";
-  const [groups, setGroups] = useState<MenuOptionGroup[]>(() =>
-    isFashion ? fashionInitialGroups(defaultGroups) : defaultGroups.length > 0 ? defaultGroups : [emptyGroup()],
-  );
+  const isElectronics = hints.presetMode === "electronics";
+  const [groups, setGroups] = useState<MenuOptionGroup[]>(() => {
+    if (isFashion) return fashionInitialGroups(defaultGroups);
+    if (isElectronics) {
+      // Start empty so simple single-SKU products don't force Storage.
+      return defaultGroups.length > 0 ? defaultGroups : [];
+    }
+    return defaultGroups.length > 0 ? defaultGroups : [emptyGroup()];
+  });
   const [draftNames, setDraftNames] = useState<Record<number, string>>({});
   const [draftPrices, setDraftPrices] = useState<Record<number, string>>({});
+  const [draftPrimary, setDraftPrimary] = useState("");
+  const [draftColor, setDraftColor] = useState("");
   const [stocks, setStocks] = useState<Record<string, number>>(defaultVariantStock);
+  const [prices, setPrices] = useState<Record<string, number>>(defaultVariantPrices);
   const [trackStock, setTrackStock] = useState(defaultTrackStock);
 
   const cleanGroups = useMemo(
@@ -328,10 +344,37 @@ export function MenuItemOptionsFields({
     for (const combo of combinations) {
       const key = buildVariantKey(cleanGroups, combo);
       if (!key) continue;
+      // Electronics: only track stock for combos that have a selling price.
+      if (isElectronics && !(key in prices)) continue;
       next[key] = Math.max(0, Math.floor(Number(stocks[key] ?? 0)));
     }
     return JSON.stringify(next);
-  }, [stockEnabled, hasVariants, cleanGroups, combinations, stocks]);
+  }, [stockEnabled, hasVariants, cleanGroups, combinations, stocks, isElectronics, prices]);
+
+  const priceJson = useMemo(() => {
+    if (!hasVariants || !isElectronics) return "{}";
+    const next: Record<string, number> = {};
+    for (const combo of combinations) {
+      const key = buildVariantKey(cleanGroups, combo);
+      if (!key) continue;
+      if (!(key in prices)) continue;
+      const n = Number(prices[key]);
+      if (!Number.isFinite(n) || n < 0) continue;
+      next[key] = Math.round(n * 100) / 100;
+    }
+    return JSON.stringify(next);
+  }, [hasVariants, isElectronics, cleanGroups, combinations, prices]);
+
+  const suggestedFromPrice = useMemo(() => {
+    if (!isElectronics) return null;
+    const map: Record<string, number> = {};
+    try {
+      Object.assign(map, JSON.parse(priceJson) as Record<string, number>);
+    } catch {
+      return null;
+    }
+    return minVariantPrice(map);
+  }, [isElectronics, priceJson]);
 
   const variantTotal = useMemo(() => {
     if (!hasVariants) return 0;
@@ -339,16 +382,26 @@ export function MenuItemOptionsFields({
     for (const combo of combinations) {
       const key = buildVariantKey(cleanGroups, combo);
       if (!key) continue;
+      if (isElectronics && !(key in prices)) continue;
       next[key] = Math.max(0, Math.floor(Number(stocks[key] ?? 0)));
     }
     return sumVariantStock(next);
-  }, [hasVariants, cleanGroups, combinations, stocks]);
+  }, [hasVariants, cleanGroups, combinations, stocks, isElectronics, prices]);
 
   const fieldId = (name: string) => `${idPrefix}${name}`;
-  const sizeGroupIndex = groups.findIndex((g) => /^size$/i.test(g.label.trim()));
+  const sizeGroupIndex = groups.findIndex((g) => isSizeLikeOptionLabel(g.label.trim()));
   const colorGroupIndex = groups.findIndex((g) => /^colou?r$/i.test(g.label.trim()));
   const sizeGroup = sizeGroupIndex >= 0 ? groups[sizeGroupIndex] : null;
   const colorGroup = colorGroupIndex >= 0 ? groups[colorGroupIndex] : null;
+  // Prefer size-like labels; otherwise first non-color group for electronics.
+  const primaryGroupIndex = (() => {
+    const sizeLike = groups.findIndex(
+      (g) => !/^colou?r$/i.test(g.label.trim()) && isSizeLikeOptionLabel(g.label.trim()),
+    );
+    if (sizeLike >= 0) return sizeLike;
+    return groups.findIndex((g) => !/^colou?r$/i.test(g.label.trim()));
+  })();
+  const primaryGroup = primaryGroupIndex >= 0 ? groups[primaryGroupIndex] : null;
 
   function purgeStockKeys(predicate: (key: string) => boolean) {
     setStocks((prev) => {
@@ -487,9 +540,10 @@ export function MenuItemOptionsFields({
 
   function applySizePreset(names: readonly string[]) {
     setGroups((prev) => {
-      const idx = prev.findIndex((g) => /^size$/i.test(g.label.trim()));
+      const idx = prev.findIndex((g) => isSizeLikeOptionLabel(g.label.trim()));
       if (idx >= 0) {
-        return prev.map((g, i) => (i === idx ? setExactValues({ ...g, label: "Size" }, names) : g));
+        const label = /^storage$/i.test(prev[idx]!.label.trim()) ? "Storage" : "Size";
+        return prev.map((g, i) => (i === idx ? setExactValues({ ...g, label }, names) : g));
       }
       if (prev.length === 1 && !prev[0].label.trim() && prev[0].values.length === 0) {
         return [setExactValues(emptyGroup("Size"), names)];
@@ -500,14 +554,128 @@ export function MenuItemOptionsFields({
 
   function toggleSize(name: string) {
     setGroups((prev) => {
-      const idx = prev.findIndex((g) => /^size$/i.test(g.label.trim()));
+      const idx = prev.findIndex((g) => isSizeLikeOptionLabel(g.label.trim()));
       if (idx >= 0) {
-        return prev.map((g, i) => (i === idx ? toggleValue({ ...g, label: "Size" }, name) : g));
+        const label = /^storage$/i.test(prev[idx]!.label.trim()) ? "Storage" : "Size";
+        return prev.map((g, i) => (i === idx ? toggleValue({ ...g, label }, name) : g));
       }
       if (prev.length === 1 && !prev[0].label.trim() && prev[0].values.length === 0) {
         return [toggleValue(emptyGroup("Size"), name)];
       }
       return [...prev, toggleValue(emptyGroup("Size"), name)];
+    });
+  }
+
+  function toggleStorage(name: string) {
+    setGroups((prev) => {
+      const idx = prev.findIndex(
+        (g) => !/^colou?r$/i.test(g.label.trim()) && (isSizeLikeOptionLabel(g.label.trim()) || Boolean(g.label.trim())),
+      );
+      const resolvedIdx =
+        idx >= 0
+          ? idx
+          : prev.findIndex((g) => !/^colou?r$/i.test(g.label.trim()));
+      if (resolvedIdx >= 0) {
+        const label = prev[resolvedIdx]!.label.trim() || "Option";
+        return prev.map((g, i) => (i === resolvedIdx ? toggleValue({ ...g, label }, name) : g));
+      }
+      return [...prev, toggleValue(emptyGroup("Option"), name)];
+    });
+  }
+
+  function setPrimaryPreset(label: string, values: readonly string[]) {
+    setGroups((prev) => {
+      const color = prev.find((g) => /^colou?r$/i.test(g.label.trim()));
+      const existing = prev.find((g) => !/^colou?r$/i.test(g.label.trim()));
+      
+      // If clicking the same template that's already active, keep existing values
+      if (existing && existing.label === label) {
+        return prev;
+      }
+      
+      const nextPrimary = emptyGroup(label);
+      return color ? [nextPrimary, color] : [nextPrimary];
+    });
+    setDraftPrimary("");
+  }
+
+  function renamePrimaryLabel(label: string) {
+    if (primaryGroupIndex < 0) return;
+    setGroups((prev) =>
+      prev.map((g, i) => (i === primaryGroupIndex ? { ...g, label } : g)),
+    );
+  }
+
+  function clearPrimaryGroup() {
+    if (primaryGroupIndex < 0) return;
+    setGroups((prev) => prev.filter((_, i) => i !== primaryGroupIndex));
+  }
+
+  function addCustomStorage(name: string) {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    setGroups((prev) => {
+      const idx =
+        prev.findIndex(
+          (g) =>
+            !/^colou?r$/i.test(g.label.trim()) &&
+            (isSizeLikeOptionLabel(g.label.trim()) || Boolean(g.label.trim())),
+        ) >= 0
+          ? prev.findIndex(
+              (g) =>
+                !/^colou?r$/i.test(g.label.trim()) &&
+                (isSizeLikeOptionLabel(g.label.trim()) || Boolean(g.label.trim())),
+            )
+          : prev.findIndex((g) => !/^colou?r$/i.test(g.label.trim()));
+      if (idx >= 0) {
+        return prev.map((g, i) => {
+          if (i !== idx) return g;
+          const label = g.label.trim() || "Option";
+          if (g.values.some((v) => v.name === trimmed)) return { ...g, label };
+          return { ...g, label, values: [...g.values, { name: trimmed, price: 0 }] };
+        });
+      }
+      return [...prev, { label: "Option", values: [{ name: trimmed, price: 0 }] }];
+    });
+    setDraftPrimary("");
+  }
+
+  function addCustomColor(name: string) {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    setGroups((prev) => {
+      const idx = prev.findIndex((g) => /^colou?r$/i.test(g.label.trim()));
+      if (idx >= 0) {
+        return prev.map((g, i) => {
+          if (i !== idx) return g;
+          if (g.values.some((v) => v.name === trimmed)) return g;
+          return { ...g, values: [...g.values, { name: trimmed, price: 0 }] };
+        });
+      }
+      return [...prev, { label: "Color", values: [{ name: trimmed, price: 0 }] }];
+    });
+    setDraftColor("");
+  }
+
+  function setVariantPrice(key: string, price: number) {
+    setPrices((prev) => {
+      const next = { ...prev };
+      if (!Number.isFinite(price) || price < 0) {
+        delete next[key];
+        return next;
+      }
+      next[key] = Math.round(price * 100) / 100;
+      return next;
+    });
+  }
+
+  function purgePriceKeys(predicate: (key: string) => boolean) {
+    setPrices((prev) => {
+      const next = { ...prev };
+      for (const key of Object.keys(next)) {
+        if (predicate(key)) delete next[key];
+      }
+      return next;
     });
   }
 
@@ -530,7 +698,119 @@ export function MenuItemOptionsFields({
 
   function removeColorGroup() {
     if (colorGroupIndex < 0) return;
-    removeGroup(colorGroupIndex);
+    setGroups((prev) => prev.filter((_, i) => i !== colorGroupIndex));
+  }
+
+  if (isElectronics) {
+    return (
+      <div className="space-y-4">
+        <input type="hidden" name="option_label" value={primaryLabel} />
+        <input type="hidden" name="option_values" value={optionValuesJson} />
+        <input type="hidden" name="option_variant_stock" value={stockJson} />
+        <input type="hidden" name="option_variant_prices" value={priceJson} />
+        {suggestedFromPrice != null ? (
+          <input type="hidden" name="variant_from_price" value={String(suggestedFromPrice)} />
+        ) : null}
+
+        <ElectronicsOptionsEditor
+          primaryGroup={primaryGroup}
+          colorGroup={colorGroup}
+          groups={cleanGroups}
+          prices={prices}
+          draftPrimary={draftPrimary}
+          draftColor={draftColor}
+          onDraftPrimaryChange={setDraftPrimary}
+          onDraftColorChange={setDraftColor}
+          onSetPrimaryPreset={setPrimaryPreset}
+          onTogglePrimaryValue={toggleStorage}
+          onAddCustomPrimary={addCustomStorage}
+          onRemovePrimary={(name) => {
+            if (primaryGroupIndex < 0) return;
+            removeValue(primaryGroupIndex, name);
+            purgeStockKeys(
+              (key) =>
+                key === name ||
+                key.startsWith(`${name}||`) ||
+                key.endsWith(`||${name}`) ||
+                key.includes(`||${name}||`),
+            );
+            purgePriceKeys(
+              (key) =>
+                key === name ||
+                key.startsWith(`${name}||`) ||
+                key.endsWith(`||${name}`) ||
+                key.includes(`||${name}||`),
+            );
+          }}
+          onRenamePrimaryLabel={renamePrimaryLabel}
+          onClearPrimaryGroup={clearPrimaryGroup}
+          onToggleColor={toggleColor}
+          onAddCustomColor={addCustomColor}
+          onRemoveColor={(name) => {
+            if (colorGroupIndex < 0) return;
+            removeValue(colorGroupIndex, name);
+            purgeStockKeys(
+              (key) =>
+                key === name ||
+                key.startsWith(`${name}||`) ||
+                key.endsWith(`||${name}`) ||
+                key.includes(`||${name}||`),
+            );
+            purgePriceKeys(
+              (key) =>
+                key === name ||
+                key.startsWith(`${name}||`) ||
+                key.endsWith(`||${name}`) ||
+                key.includes(`||${name}||`),
+            );
+          }}
+          onEnsureColors={ensureColorGroup}
+          onRemoveColorGroup={removeColorGroup}
+          onPriceChange={setVariantPrice}
+          catalogFromPrice={suggestedFromPrice}
+        />
+
+        {includeStockPanel ? (
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            <p className="mb-1 text-sm font-semibold text-slate-900">Inventory tracking</p>
+            <p className="mb-3 text-xs text-slate-500">
+              Enter stock for each priced option × color below. Combinations left blank in Selling
+              prices stay “Not sold” and are not offered.
+            </p>
+            <MenuItemStockFields
+              idPrefix={idPrefix}
+              defaultTrackStock={defaultTrackStock}
+              trackStock={trackStock}
+              onTrackStockChange={setTrackStock}
+              defaultStockQuantity={defaultStockQuantity}
+              defaultWarningQty={defaultWarningQty}
+              defaultUrgentQty={defaultUrgentQty}
+              defaultCriticalQty={defaultCriticalQty}
+              variantMode={variantMode && trackStock}
+              variantTotal={variantTotal}
+            >
+              {trackStock && hasVariants ? (
+                <ElectronicsStockEditor
+                  primaryGroup={primaryGroup}
+                  colorGroup={colorGroup}
+                  groups={cleanGroups}
+                  prices={prices}
+                  stocks={stocks}
+                  onStockChange={(key, qty) => setStocks((prev) => ({ ...prev, [key]: qty }))}
+                />
+              ) : null}
+            </MenuItemStockFields>
+          </div>
+        ) : null}
+
+        {suggestedFromPrice != null ? (
+          <p className="text-xs text-slate-500">
+            Catalog &quot;from&quot; price will use the lowest combo price:{" "}
+            <span className="font-semibold text-slate-800">${suggestedFromPrice.toFixed(2)}</span>
+          </p>
+        ) : null}
+      </div>
+    );
   }
 
   if (isFashion) {
@@ -545,6 +825,7 @@ export function MenuItemOptionsFields({
         <input type="hidden" name="option_label" value={primaryLabel} />
         <input type="hidden" name="option_values" value={optionValuesJson} />
         <input type="hidden" name="option_variant_stock" value={stockJson} />
+        <input type="hidden" name="option_variant_prices" value="{}" />
 
         {/* ─── Consolidated Image Management ───────────────────────────────── */}
         <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4">
@@ -907,6 +1188,7 @@ export function MenuItemOptionsFields({
       <input type="hidden" name="option_label" value={primaryLabel} />
       <input type="hidden" name="option_values" value={optionValuesJson} />
       <input type="hidden" name="option_variant_stock" value={stockJson} />
+      <input type="hidden" name="option_variant_prices" value="{}" />
 
       {groups.map((group, groupIndex) => (
         <div

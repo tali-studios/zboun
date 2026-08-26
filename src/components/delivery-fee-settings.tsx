@@ -182,7 +182,7 @@ export function DeliveryFeeSettings({
                   : String(env.defaultDeliveryRadiusKm)
               }
               placeholder="5"
-              className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm font-medium text-slate-900 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm font-medium text-slate-900 outline-none"
             />
             <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
               km
@@ -211,9 +211,9 @@ export function DeliveryFeeSettings({
               </span>
               <input
                 name="delivery_fee_usd"
-                type="number"
-                step="0.01"
-                min={0.01}
+                type="text"
+                inputMode="decimal"
+                autoComplete="off"
                 required
                 defaultValue={deliveryFeeDefault > 0 ? String(deliveryFeeDefault) : ""}
                 placeholder="2.50"
@@ -223,7 +223,7 @@ export function DeliveryFeeSettings({
                     ? "Saved but not charged while free delivery is on."
                     : "Standard delivery fee (USD)"
                 }
-                className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm font-medium text-slate-900 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm font-medium text-slate-900 outline-none"
               />
             </FieldShell>
             {!freeDelivery && (
@@ -259,15 +259,15 @@ export function DeliveryFeeSettings({
               </span>
               <input
                 name="fast_delivery_fee_usd"
-                type="number"
-                step="0.01"
-                min={0.01}
+                type="text"
+                inputMode="decimal"
+                autoComplete="off"
                 required={fastDeliveryEnabled}
                 defaultValue={fastDeliveryFeeDefault > 0 ? String(fastDeliveryFeeDefault) : ""}
                 placeholder="5.00"
                 aria-label="Fast delivery fee (USD)"
                 title="Fast delivery fee (USD)"
-                className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm font-medium text-slate-900 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm font-medium text-slate-900 outline-none"
               />
             </FieldShell>
             {fastDeliveryEnabled && (

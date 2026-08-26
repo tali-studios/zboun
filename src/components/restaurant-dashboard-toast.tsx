@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 
 type Props = {
@@ -21,7 +21,6 @@ export function RestaurantDashboardToast({
   brandName,
   itemsLabel = "menu",
 }: Props) {
-  const router = useRouter();
   const pathname = usePathname();
   const [open, setOpen] = useState(Boolean(toast));
   const collection = itemsLabel === "catalog" ? "catalog" : "menu";
@@ -36,9 +35,12 @@ export function RestaurantDashboardToast({
     params.delete("sections_count");
     params.delete("item_name");
     params.delete("brand_name");
+    params.delete("jump");
     const qs = params.toString();
-    router.replace(qs ? `${pathname}?${qs}` : pathname);
-  }, [pathname, router]);
+    const next = qs ? `${pathname}?${qs}` : pathname;
+    // Avoid router.replace — it triggers a second RSC refresh and scrolls to top.
+    window.history.replaceState(window.history.state, "", next);
+  }, [pathname]);
 
   useEffect(() => {
     if (!toast) return;

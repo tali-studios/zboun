@@ -117,6 +117,51 @@ export function StoreSettingsForm({
     const form = event.currentTarget;
     const formData = new FormData(form);
 
+    const phone = String(formData.get("phone") ?? "").trim();
+    if (!phone) {
+      setAlert({
+        heading: "WhatsApp / phone required",
+        message: "Enter the WhatsApp or phone number customers use to reach you.",
+        variant: "warning",
+      });
+      return;
+    }
+
+    const logoFile = formData.get("logo_file");
+    const bannerFile = formData.get("banner_file");
+    const currentLogo = String(formData.get("current_logo_url") ?? "").trim();
+    const currentBanner = String(formData.get("current_banner_url") ?? "").trim();
+    const hasLogo = currentLogo || (logoFile instanceof File && logoFile.size > 0);
+    const hasBanner = currentBanner || (bannerFile instanceof File && bannerFile.size > 0);
+    if (!hasLogo || !hasBanner) {
+      setAlert({
+        heading: "Logo & banner required",
+        message: "Upload a store logo and banner image, then save again.",
+        variant: "warning",
+      });
+      return;
+    }
+
+    const lbpRate = Number(formData.get("lbp_rate") ?? "");
+    if (!Number.isFinite(lbpRate) || lbpRate <= 0) {
+      setAlert({
+        heading: "Invalid exchange rate",
+        message: "Enter a valid dollar rate greater than zero.",
+        variant: "warning",
+      });
+      return;
+    }
+
+    const deliveryFee = Number(formData.get("delivery_fee_usd") ?? "");
+    if (!Number.isFinite(deliveryFee) || deliveryFee <= 0) {
+      setAlert({
+        heading: "Invalid delivery fee",
+        message: "Enter a delivery fee greater than $0.00 (for example $2.50).",
+        variant: "warning",
+      });
+      return;
+    }
+
     startTransition(async () => {
       const result = await updateRestaurantSettingsAction(formData);
       const nextAlert = resultToAlert(result);

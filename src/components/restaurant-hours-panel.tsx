@@ -12,6 +12,7 @@ import {
 import {
   updateRestaurantHoursAction,
 } from "@/app-actions/restaurant";
+import { ValidatedActionForm } from "@/components/validated-action-form";
 
 type Props = {
   openingHours: DayHours[];
@@ -179,6 +180,24 @@ export function RestaurantHoursPanel({ openingHours, isTemporarilyClosed }: Prop
     setTempClosed(!tempClosed);
   }
 
+  function validateHoursBeforeSave(): string | null {
+    if (alwaysOpen) return null;
+    for (const row of rows) {
+      if (row.closed) continue;
+      const [oh, om] = row.open.split(":").map(Number);
+      const [ch, cm] = row.close.split(":").map(Number);
+      if (![oh, om, ch, cm].every((n) => Number.isFinite(n))) {
+        return `Check opening hours for ${WEEKDAY_LABELS[row.day]} — use valid open and close times.`;
+      }
+      const openMin = oh! * 60 + om!;
+      const closeMin = ch! * 60 + cm!;
+      if (closeMin < openMin) {
+        return `${WEEKDAY_LABELS[row.day]}: close time must be after open time (or mark the day Closed).`;
+      }
+    }
+    return null;
+  }
+
   return (
     <div className="panel min-w-0 overflow-x-hidden p-4 sm:p-5">
       {/* Status indicator */}
@@ -321,7 +340,12 @@ export function RestaurantHoursPanel({ openingHours, isTemporarilyClosed }: Prop
         </div>
       ) : null}
 
-      <form action={updateRestaurantHoursAction} className="mt-4 min-w-0 space-y-3">
+      <ValidatedActionForm
+        action={updateRestaurantHoursAction}
+        className="mt-4 min-w-0 space-y-3"
+        alertHeading="Couldn’t save hours"
+        validate={() => validateHoursBeforeSave()}
+      >
         <input type="hidden" name="opening_hours" value={serialized} />
         <input type="hidden" name="is_temporarily_closed" value={tempClosed ? "true" : "false"} />
 
@@ -400,7 +424,7 @@ export function RestaurantHoursPanel({ openingHours, isTemporarilyClosed }: Prop
         </div>
         </>
         )}
-      </form>
+      </ValidatedActionForm>
     </div>
   );
 }

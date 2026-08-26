@@ -61,7 +61,7 @@ export function SectionManagePanel({ categories }: Props) {
   }
 
   return (
-    <section className="panel overflow-x-hidden p-5">
+    <section id="sections" className="panel overflow-x-hidden p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="panel-title">Sections</h2>
@@ -84,7 +84,7 @@ export function SectionManagePanel({ categories }: Props) {
             <h3 className="shrink-0 text-xs font-bold uppercase tracking-widest text-slate-400">Your sections</h3>
             <div className="h-px flex-1 bg-slate-100" />
           </div>
-          <div className="mt-3 max-w-md">
+          <div className="mt-3">
             <label htmlFor="section-search" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
               Search sections
             </label>
@@ -94,7 +94,7 @@ export function SectionManagePanel({ categories }: Props) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by section name…"
-              className="ui-input w-full max-w-full"
+              className="ui-input h-11 w-full"
             />
           </div>
 

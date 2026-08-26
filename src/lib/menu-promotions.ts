@@ -28,6 +28,7 @@ export type MenuItemPricingFields = {
   promotion_label?: string | null;
   option_values?: unknown;
   option_label?: string | null;
+  option_variant_prices?: Record<string, number> | null;
   add_ingredients?: Array<{ name: string; price: number }>;
 };
 
@@ -175,8 +176,12 @@ export function itemHasActiveSale(item: MenuItemPricingFields): boolean {
 }
 
 import {
+  buildVariantKey,
   getCombinedOptionExtraPrice,
+  getVariantAbsolutePrice,
+  itemUsesVariantPrices,
   normalizeOptionGroups,
+  resolveOptionListUnitPrice,
   selectionsFromDisplayString,
 } from "@/lib/menu-item-options";
 
@@ -220,6 +225,36 @@ export function computeExpectedLineUnitPrice(
   item: MenuItemPricingFields,
   line: Pick<OrderLineInput, "unit" | "selectedOption" | "addedIngredients">,
 ): number {
+  const groups = normalizeOptionGroups(item.option_label, item.option_values);
+  const display = String(line.selectedOption ?? "").trim();
+  const selections =
+    groups.length > 0 && display
+      ? groups.length === 1 && groups[0]!.values.some((v) => v.name === display)
+        ? { [groups[0]!.label]: display }
+        : selectionsFromDisplayString(groups, display)
+      : {};
+
+  const hasAbsoluteKey =
+    groups.length > 0 &&
+    display &&
+    Object.keys(selections).length > 0 &&
+    getVariantAbsolutePrice(item.option_variant_prices, buildVariantKey(groups, selections)) != null;
+
+  if (hasAbsoluteKey && line.unit !== "kg" && !item.sold_by_weight) {
+    const listUnit = resolveOptionListUnitPrice(
+      Number(item.price ?? 0),
+      groups,
+      selections,
+      item.option_variant_prices,
+    );
+    const effective =
+      item.percent_off != null && item.percent_off > 0
+        ? applyPercentOff(listUnit, item.percent_off)
+        : listUnit;
+    const total = effective + getAddOnCost(item, line.addedIngredients);
+    return Math.max(0, Math.round(total * 100) / 100);
+  }
+
   const base =
     line.unit === "kg" || item.sold_by_weight
       ? getEffectivePricePerKg(item)
@@ -260,6 +295,26 @@ export function validateOrderLinesPricing(
     }
     if (!item) {
       return { ok: false, error: "One or more items are no longer available. Please refresh and try again." };
+    }
+
+    if (itemUsesVariantPrices(item.option_variant_prices) && line.unit !== "kg" && !item.sold_by_weight) {
+      const groups = normalizeOptionGroups(item.option_label, item.option_values);
+      const display = String(line.selectedOption ?? "").trim();
+      const selections =
+        groups.length > 0 && display
+          ? groups.length === 1 && groups[0]!.values.some((v) => v.name === display)
+            ? { [groups[0]!.label]: display }
+            : selectionsFromDisplayString(groups, display)
+          : {};
+      if (
+        Object.keys(selections).length > 0 &&
+        getVariantAbsolutePrice(item.option_variant_prices, buildVariantKey(groups, selections)) == null
+      ) {
+        return {
+          ok: false,
+          error: `“${item.name}” is not available in that option combination. Please choose another.`,
+        };
+      }
     }
 
     const expected = computeExpectedLineUnitPrice(item, line);
