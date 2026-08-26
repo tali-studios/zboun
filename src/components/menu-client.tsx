@@ -62,6 +62,7 @@ import {
   isVariantComboOffered,
   itemUsesVariantStock,
   itemUsesVariantPrices,
+  minVariantPrice,
   normalizeOptionGroups,
   optionHasRemainingStock,
   resolveOptionColorImageUrl,
@@ -2038,14 +2039,25 @@ export function MenuClient({
                       item.option_variant_prices,
                       snapshotSelectedOptions(optionGroups, listOptionSelections).variantKey,
                     ) != null;
+                  const variantPriceCount = Object.keys(item.option_variant_prices ?? {}).length;
+                  const catalogFromMin = minVariantPrice(item.option_variant_prices ?? {});
+                  const showFromPrice =
+                    soldByWeight ||
+                    (!hasListAbsolute && variantPriceCount >= 2);
                   const cardPriceUsd = hasListAbsolute
                     ? item.percent_off != null && item.percent_off > 0
                       ? Math.round(listAbsolute * (1 - item.percent_off / 100) * 100) / 100
                       : listAbsolute
-                    : Math.round((budgetPriceUsd + listOptionExtra) * 100) / 100;
+                    : catalogFromMin != null && variantPriceCount >= 1
+                      ? item.percent_off != null && item.percent_off > 0
+                        ? Math.round(catalogFromMin * (1 - item.percent_off / 100) * 100) / 100
+                        : catalogFromMin
+                      : Math.round((budgetPriceUsd + listOptionExtra) * 100) / 100;
                   const cardListPriceUsd = hasListAbsolute
                     ? listAbsolute
-                    : Math.round((listBudgetPriceUsd + listOptionExtra) * 100) / 100;
+                    : catalogFromMin != null && variantPriceCount >= 1
+                      ? catalogFromMin
+                      : Math.round((listBudgetPriceUsd + listOptionExtra) * 100) / 100;
                   const showListSizes = Boolean(sizeGroup && sizeGroup.values.length >= 1);
                   const cardImageUrl =
                     resolveOptionColorImageUrl(
@@ -2150,11 +2162,11 @@ export function MenuClient({
                           <div className="mt-auto flex flex-wrap items-end gap-x-2 pt-2">
                             {hasSale ? (
                               <span className="text-sm font-semibold text-slate-400 line-through">
-                                {soldByWeight ? `From ${formatUsd(cardListPriceUsd)}` : formatUsd(cardListPriceUsd)}
+                                {showFromPrice ? `From ${formatUsd(cardListPriceUsd)}` : formatUsd(cardListPriceUsd)}
                               </span>
                             ) : null}
                             <span className="text-base font-bold" style={{ color: theme.primary }}>
-                              {soldByWeight ? `From ${formatUsd(cardPriceUsd)}` : formatUsd(cardPriceUsd)}
+                              {showFromPrice ? `From ${formatUsd(cardPriceUsd)}` : formatUsd(cardPriceUsd)}
                             </span>
                             <span className="text-xs text-slate-400">{formatLbp(cardPriceUsd)}</span>
                             {soldByWeight ? (
@@ -2215,11 +2227,11 @@ export function MenuClient({
                       <div className="mt-auto flex flex-wrap items-end gap-x-2 pt-2">
                         {hasSale ? (
                           <span className="text-sm font-semibold text-slate-400 line-through">
-                            {soldByWeight ? `From ${formatUsd(cardListPriceUsd)}` : formatUsd(cardListPriceUsd)}
+                            {showFromPrice ? `From ${formatUsd(cardListPriceUsd)}` : formatUsd(cardListPriceUsd)}
                           </span>
                         ) : null}
                         <span className="text-base font-bold" style={{ color: theme.primary }}>
-                          {soldByWeight ? `From ${formatUsd(cardPriceUsd)}` : formatUsd(cardPriceUsd)}
+                          {showFromPrice ? `From ${formatUsd(cardPriceUsd)}` : formatUsd(cardPriceUsd)}
                         </span>
                         <span className="text-xs text-slate-400">{formatLbp(cardPriceUsd)}</span>
                         {soldByWeight ? (

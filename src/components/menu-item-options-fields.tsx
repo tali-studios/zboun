@@ -66,6 +66,15 @@ function emptyGroup(label = ""): MenuOptionGroup {
   return { label, values: [] };
 }
 
+const MAX_ELECTRONICS_OPTION_TYPES = 3;
+
+/** Keep non-color option types first, Color last (stable variant keys). */
+function electronicsOrderGroups(groups: MenuOptionGroup[]): MenuOptionGroup[] {
+  const nonColor = groups.filter((g) => !/^colou?r$/i.test(g.label.trim()));
+  const color = groups.find((g) => /^colou?r$/i.test(g.label.trim()));
+  return color ? [...nonColor, color] : [...nonColor];
+}
+
 function fashionInitialGroups(defaultGroups: MenuOptionGroup[]): MenuOptionGroup[] {
   if (defaultGroups.length > 0) return defaultGroups;
   return [emptyGroup("Size")];
@@ -302,7 +311,7 @@ export function MenuItemOptionsFields({
     if (isFashion) return fashionInitialGroups(defaultGroups);
     if (isElectronics) {
       // Start empty so simple single-SKU products don't force Storage.
-      return defaultGroups.length > 0 ? defaultGroups : [];
+      return defaultGroups.length > 0 ? electronicsOrderGroups(defaultGroups) : [];
     }
     return defaultGroups.length > 0 ? defaultGroups : [emptyGroup()];
   });
@@ -314,22 +323,21 @@ export function MenuItemOptionsFields({
   const [prices, setPrices] = useState<Record<string, number>>(defaultVariantPrices);
   const [trackStock, setTrackStock] = useState(defaultTrackStock);
 
-  const cleanGroups = useMemo(
-    () =>
-      groups
-        .map((g) => ({
-          label: g.label.trim(),
-          values: g.values
-            .filter((v) => v.name.trim())
-            .map((v) => ({
-              name: v.name.trim(),
-              price: v.price,
-              ...(v.image_url?.trim() ? { image_url: v.image_url.trim() } : {}),
-            })),
-        }))
-        .filter((g) => g.label && g.values.length > 0),
-    [groups],
-  );
+  const cleanGroups = useMemo(() => {
+    const cleaned = groups
+      .map((g) => ({
+        label: g.label.trim(),
+        values: g.values
+          .filter((v) => v.name.trim())
+          .map((v) => ({
+            name: v.name.trim(),
+            price: v.price,
+            ...(v.image_url?.trim() ? { image_url: v.image_url.trim() } : {}),
+          })),
+      }))
+      .filter((g) => g.label && g.values.length > 0);
+    return isElectronics ? electronicsOrderGroups(cleaned) : cleaned;
+  }, [groups, isElectronics]);
 
   const optionValuesJson = useMemo(() => JSON.stringify(cleanGroups), [cleanGroups]);
   const primaryLabel = cleanGroups[0]?.label ?? "";
@@ -376,6 +384,15 @@ export function MenuItemOptionsFields({
     return minVariantPrice(map);
   }, [isElectronics, priceJson]);
 
+  const pricedComboCount = useMemo(() => {
+    if (!isElectronics) return 0;
+    try {
+      return Object.keys(JSON.parse(priceJson) as Record<string, number>).length;
+    } catch {
+      return 0;
+    }
+  }, [isElectronics, priceJson]);
+
   const variantTotal = useMemo(() => {
     if (!hasVariants) return 0;
     const next: Record<string, number> = {};
@@ -393,15 +410,9 @@ export function MenuItemOptionsFields({
   const colorGroupIndex = groups.findIndex((g) => /^colou?r$/i.test(g.label.trim()));
   const sizeGroup = sizeGroupIndex >= 0 ? groups[sizeGroupIndex] : null;
   const colorGroup = colorGroupIndex >= 0 ? groups[colorGroupIndex] : null;
-  // Prefer size-like labels; otherwise first non-color group for electronics.
-  const primaryGroupIndex = (() => {
-    const sizeLike = groups.findIndex(
-      (g) => !/^colou?r$/i.test(g.label.trim()) && isSizeLikeOptionLabel(g.label.trim()),
-    );
-    if (sizeLike >= 0) return sizeLike;
-    return groups.findIndex((g) => !/^colou?r$/i.test(g.label.trim()));
-  })();
-  const primaryGroup = primaryGroupIndex >= 0 ? groups[primaryGroupIndex] : null;
+  const electronicsOptionGroups = isElectronics
+    ? groups.filter((g) => !/^colou?r$/i.test(g.label.trim()))
+    : [];
 
   function purgeStockKeys(predicate: (key: string) => boolean) {
     setStocks((prev) => {
@@ -566,78 +577,91 @@ export function MenuItemOptionsFields({
     });
   }
 
-  function toggleStorage(name: string) {
-    setGroups((prev) => {
-      const idx = prev.findIndex(
-        (g) => !/^colou?r$/i.test(g.label.trim()) && (isSizeLikeOptionLabel(g.label.trim()) || Boolean(g.label.trim())),
-      );
-      const resolvedIdx =
-        idx >= 0
-          ? idx
-          : prev.findIndex((g) => !/^colou?r$/i.test(g.label.trim()));
-      if (resolvedIdx >= 0) {
-        const label = prev[resolvedIdx]!.label.trim() || "Option";
-        return prev.map((g, i) => (i === resolvedIdx ? toggleValue({ ...g, label }, name) : g));
-      }
-      return [...prev, toggleValue(emptyGroup("Option"), name)];
-    });
-  }
-
-  function setPrimaryPreset(label: string, values: readonly string[]) {
-    setGroups((prev) => {
-      const color = prev.find((g) => /^colou?r$/i.test(g.label.trim()));
-      const existing = prev.find((g) => !/^colou?r$/i.test(g.label.trim()));
-      
-      // If clicking the same template that's already active, keep existing values
-      if (existing && existing.label === label) {
-        return prev;
-      }
-      
-      const nextPrimary = emptyGroup(label);
-      return color ? [nextPrimary, color] : [nextPrimary];
-    });
-    setDraftPrimary("");
-  }
-
-  function renamePrimaryLabel(label: string) {
-    if (primaryGroupIndex < 0) return;
-    setGroups((prev) =>
-      prev.map((g, i) => (i === primaryGroupIndex ? { ...g, label } : g)),
-    );
-  }
-
-  function clearPrimaryGroup() {
-    if (primaryGroupIndex < 0) return;
-    setGroups((prev) => prev.filter((_, i) => i !== primaryGroupIndex));
-  }
-
-  function addCustomStorage(name: string) {
-    const trimmed = name.trim();
+  function addOptionType(label: string) {
+    const trimmed = label.trim();
     if (!trimmed) return;
     setGroups((prev) => {
-      const idx =
-        prev.findIndex(
-          (g) =>
-            !/^colou?r$/i.test(g.label.trim()) &&
-            (isSizeLikeOptionLabel(g.label.trim()) || Boolean(g.label.trim())),
-        ) >= 0
-          ? prev.findIndex(
-              (g) =>
-                !/^colou?r$/i.test(g.label.trim()) &&
-                (isSizeLikeOptionLabel(g.label.trim()) || Boolean(g.label.trim())),
-            )
-          : prev.findIndex((g) => !/^colou?r$/i.test(g.label.trim()));
-      if (idx >= 0) {
-        return prev.map((g, i) => {
-          if (i !== idx) return g;
-          const label = g.label.trim() || "Option";
-          if (g.values.some((v) => v.name === trimmed)) return { ...g, label };
-          return { ...g, label, values: [...g.values, { name: trimmed, price: 0 }] };
-        });
+      const ordered = electronicsOrderGroups(prev);
+      const nonColor = ordered.filter((g) => !/^colou?r$/i.test(g.label.trim()));
+      const color = ordered.find((g) => /^colou?r$/i.test(g.label.trim()));
+      if (nonColor.some((g) => g.label === trimmed)) {
+        return ordered;
       }
-      return [...prev, { label: "Option", values: [{ name: trimmed, price: 0 }] }];
+      if (nonColor.length >= MAX_ELECTRONICS_OPTION_TYPES) {
+        return ordered;
+      }
+      const next = [...nonColor, emptyGroup(trimmed)];
+      return color ? [...next, color] : next;
     });
     setDraftPrimary("");
+  }
+
+  function removeOptionType(label: string) {
+    setGroups((prev) =>
+      electronicsOrderGroups(prev.filter((g) => g.label !== label)),
+    );
+    setPrices({});
+    setStocks({});
+  }
+
+  function clearAllOptionTypes() {
+    setGroups((prev) => prev.filter((g) => /^colou?r$/i.test(g.label.trim())));
+    setPrices({});
+    setStocks({});
+  }
+
+  function toggleOptionValue(groupLabel: string, name: string) {
+    setGroups((prev) => {
+      const idx = prev.findIndex((g) => g.label === groupLabel);
+      if (idx >= 0) {
+        return electronicsOrderGroups(
+          prev.map((g, i) => (i === idx ? toggleValue({ ...g, label: groupLabel }, name) : g)),
+        );
+      }
+      return electronicsOrderGroups([...prev, toggleValue(emptyGroup(groupLabel), name)]);
+    });
+  }
+
+  function addCustomOptionValue(groupLabel: string, name: string) {
+    const trimmed = name.trim();
+    if (!trimmed || !groupLabel.trim()) return;
+    setGroups((prev) => {
+      const idx = prev.findIndex((g) => g.label === groupLabel);
+      if (idx >= 0) {
+        return electronicsOrderGroups(
+          prev.map((g, i) => {
+            if (i !== idx) return g;
+            if (g.values.some((v) => v.name === trimmed)) return g;
+            return { ...g, values: [...g.values, { name: trimmed, price: 0 }] };
+          }),
+        );
+      }
+      return electronicsOrderGroups([
+        ...prev,
+        { label: groupLabel, values: [{ name: trimmed, price: 0 }] },
+      ]);
+    });
+    setDraftPrimary("");
+  }
+
+  function removeOptionValue(groupLabel: string, name: string) {
+    const idx = groups.findIndex((g) => g.label === groupLabel);
+    if (idx < 0) return;
+    removeValue(idx, name);
+    purgeStockKeys(
+      (key) =>
+        key === name ||
+        key.startsWith(`${name}||`) ||
+        key.endsWith(`||${name}`) ||
+        key.includes(`||${name}||`),
+    );
+    purgePriceKeys(
+      (key) =>
+        key === name ||
+        key.startsWith(`${name}||`) ||
+        key.endsWith(`||${name}`) ||
+        key.includes(`||${name}||`),
+    );
   }
 
   function addCustomColor(name: string) {
@@ -681,8 +705,8 @@ export function MenuItemOptionsFields({
 
   function ensureColorGroup() {
     setGroups((prev) => {
-      if (prev.some((g) => /^colou?r$/i.test(g.label.trim()))) return prev;
-      return [...prev, emptyGroup("Color")];
+      if (prev.some((g) => /^colou?r$/i.test(g.label.trim()))) return electronicsOrderGroups(prev);
+      return electronicsOrderGroups([...prev, emptyGroup("Color")]);
     });
   }
 
@@ -713,7 +737,7 @@ export function MenuItemOptionsFields({
         ) : null}
 
         <ElectronicsOptionsEditor
-          primaryGroup={primaryGroup}
+          optionGroups={electronicsOptionGroups}
           colorGroup={colorGroup}
           groups={cleanGroups}
           prices={prices}
@@ -721,29 +745,12 @@ export function MenuItemOptionsFields({
           draftColor={draftColor}
           onDraftPrimaryChange={setDraftPrimary}
           onDraftColorChange={setDraftColor}
-          onSetPrimaryPreset={setPrimaryPreset}
-          onTogglePrimaryValue={toggleStorage}
-          onAddCustomPrimary={addCustomStorage}
-          onRemovePrimary={(name) => {
-            if (primaryGroupIndex < 0) return;
-            removeValue(primaryGroupIndex, name);
-            purgeStockKeys(
-              (key) =>
-                key === name ||
-                key.startsWith(`${name}||`) ||
-                key.endsWith(`||${name}`) ||
-                key.includes(`||${name}||`),
-            );
-            purgePriceKeys(
-              (key) =>
-                key === name ||
-                key.startsWith(`${name}||`) ||
-                key.endsWith(`||${name}`) ||
-                key.includes(`||${name}||`),
-            );
-          }}
-          onRenamePrimaryLabel={renamePrimaryLabel}
-          onClearPrimaryGroup={clearPrimaryGroup}
+          onAddOptionType={addOptionType}
+          onRemoveOptionType={removeOptionType}
+          onClearAllOptionTypes={clearAllOptionTypes}
+          onToggleOptionValue={toggleOptionValue}
+          onAddCustomOptionValue={addCustomOptionValue}
+          onRemoveOptionValue={removeOptionValue}
           onToggleColor={toggleColor}
           onAddCustomColor={addCustomColor}
           onRemoveColor={(name) => {
@@ -774,7 +781,7 @@ export function MenuItemOptionsFields({
           <div className="rounded-2xl border border-slate-200 bg-white p-4">
             <p className="mb-1 text-sm font-semibold text-slate-900">Inventory tracking</p>
             <p className="mb-3 text-xs text-slate-500">
-              Enter stock for each priced option × color below. Combinations left blank in Selling
+              Enter stock for each priced combination below. Combinations left blank in Selling
               prices stay “Not sold” and are not offered.
             </p>
             <MenuItemStockFields
@@ -791,7 +798,7 @@ export function MenuItemOptionsFields({
             >
               {trackStock && hasVariants ? (
                 <ElectronicsStockEditor
-                  primaryGroup={primaryGroup}
+                  optionGroups={electronicsOptionGroups}
                   colorGroup={colorGroup}
                   groups={cleanGroups}
                   prices={prices}
@@ -805,8 +812,12 @@ export function MenuItemOptionsFields({
 
         {suggestedFromPrice != null ? (
           <p className="text-xs text-slate-500">
-            Catalog &quot;from&quot; price will use the lowest combo price:{" "}
-            <span className="font-semibold text-slate-800">${suggestedFromPrice.toFixed(2)}</span>
+            Catalog shows{" "}
+            <span className="font-semibold text-slate-800">
+              {pricedComboCount >= 2 ? "From " : ""}
+              ${suggestedFromPrice.toFixed(2)}
+            </span>{" "}
+            (lowest combo price).
           </p>
         ) : null}
       </div>

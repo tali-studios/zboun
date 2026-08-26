@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ImageUploadField } from "@/components/image-upload-field";
 import {
   buildVariantKey,
@@ -57,6 +57,8 @@ const COLOR_SUGGESTIONS = [
   "Midnight",
 ] as const;
 
+const MAX_OPTION_TYPES = 3;
+
 function PresetChip({
   label,
   selected,
@@ -82,37 +84,37 @@ function PresetChip({
 }
 
 type Props = {
-  /** Primary non-color group (Storage, Size, RAM, Model, …). */
-  primaryGroup: MenuOptionGroup | null;
+  /** Non-color option groups (Storage, RAM, Size, …) — may include empty groups being edited. */
+  optionGroups: MenuOptionGroup[];
   colorGroup: MenuOptionGroup | null;
+  /** Clean groups used for price keys (values only). */
   groups: MenuOptionGroup[];
   prices: Record<string, number>;
   draftPrimary: string;
   draftColor: string;
   onDraftPrimaryChange: (value: string) => void;
   onDraftColorChange: (value: string) => void;
-  onSetPrimaryPreset: (label: string, values: readonly string[]) => void;
-  onTogglePrimaryValue: (name: string) => void;
-  onAddCustomPrimary: (name: string) => void;
-  onRemovePrimary: (name: string) => void;
-  onRenamePrimaryLabel: (label: string) => void;
-  onClearPrimaryGroup: () => void;
+  onAddOptionType: (label: string) => void;
+  onRemoveOptionType: (label: string) => void;
+  onClearAllOptionTypes: () => void;
+  onToggleOptionValue: (groupLabel: string, name: string) => void;
+  onAddCustomOptionValue: (groupLabel: string, name: string) => void;
+  onRemoveOptionValue: (groupLabel: string, name: string) => void;
   onToggleColor: (name: string) => void;
   onAddCustomColor: (name: string) => void;
   onRemoveColor: (name: string) => void;
   onEnsureColors: () => void;
   onRemoveColorGroup: () => void;
   onPriceChange: (key: string, price: number) => void;
-  /** Lowest combo price — shown as what the catalog will list as “from”. */
   catalogFromPrice?: number | null;
 };
 
 /**
- * Guided variants editor for electronics stores — phones, laptops, TVs,
+ * Guided variants editor for electronics stores — phones, laptops, PCs, TVs,
  * cables, chargers, accessories, and simple single-SKU products.
  */
 export function ElectronicsOptionsEditor({
-  primaryGroup,
+  optionGroups,
   colorGroup,
   groups,
   prices,
@@ -120,12 +122,12 @@ export function ElectronicsOptionsEditor({
   draftColor,
   onDraftPrimaryChange,
   onDraftColorChange,
-  onSetPrimaryPreset,
-  onTogglePrimaryValue,
-  onAddCustomPrimary,
-  onRemovePrimary,
-  onRenamePrimaryLabel,
-  onClearPrimaryGroup,
+  onAddOptionType,
+  onRemoveOptionType,
+  onClearAllOptionTypes,
+  onToggleOptionValue,
+  onAddCustomOptionValue,
+  onRemoveOptionValue,
   onToggleColor,
   onAddCustomColor,
   onRemoveColor,
@@ -135,24 +137,63 @@ export function ElectronicsOptionsEditor({
   catalogFromPrice = null,
 }: Props) {
   const [customTypeInput, setCustomTypeInput] = useState("");
-  const primaryLabel = primaryGroup?.label?.trim() || "Option";
-  const selectedPrimary = new Set((primaryGroup?.values ?? []).map((v) => v.name));
+  const [focusedLabel, setFocusedLabel] = useState<string | null>(
+    () => optionGroups[0]?.label ?? null,
+  );
+
+  useEffect(() => {
+    if (optionGroups.length === 0) {
+      setFocusedLabel(null);
+      return;
+    }
+    if (!focusedLabel || !optionGroups.some((g) => g.label === focusedLabel)) {
+      setFocusedLabel(optionGroups[0]!.label);
+    }
+  }, [optionGroups, focusedLabel]);
+
+  const focusedGroup =
+    optionGroups.find((g) => g.label === focusedLabel) ?? optionGroups[0] ?? null;
+  const focusedLabelSafe = focusedGroup?.label?.trim() || "Option";
+  const selectedFocused = new Set((focusedGroup?.values ?? []).map((v) => v.name));
   const selectedColors = new Set((colorGroup?.values ?? []).map((v) => v.name));
   const hasMultipleColors = (colorGroup?.values.length ?? 0) >= 2;
   const hasSingleColor = (colorGroup?.values.length ?? 0) === 1;
   const combinations = listVariantCombinations(groups);
   const tooMany = combinations.length > 80;
-  const hasPrimary = Boolean(primaryGroup && primaryGroup.values.length > 0);
+  const filledOptionGroups = optionGroups.filter((g) => g.values.length > 0);
+  const hasOptions = filledOptionGroups.length > 0;
   const hasColors = Boolean(colorGroup && colorGroup.values.length > 0);
-  const useMatrix = Boolean(hasPrimary && hasColors);
+  /** 2D grid only when exactly one option type × color; otherwise a combo list. */
+  const useMatrix = Boolean(filledOptionGroups.length === 1 && hasColors);
+  const matrixPrimary = useMatrix ? filledOptionGroups[0]! : null;
   const showPriceList = combinations.length > 0;
-  const activePreset = VARIANT_PRESETS.find((p) => p.label === primaryGroup?.label);
-  const customPrimaryValues = (primaryGroup?.values ?? []).filter(
+  const activePreset = VARIANT_PRESETS.find((p) => p.label === focusedGroup?.label);
+  const customFocusedValues = (focusedGroup?.values ?? []).filter(
     (v) => !activePreset?.values.includes(v.name),
   );
   const customColorValues = (colorGroup?.values ?? []).filter(
     (v) => !COLOR_SUGGESTIONS.includes(v.name as (typeof COLOR_SUGGESTIONS)[number]),
   );
+  const atTypeLimit = optionGroups.length >= MAX_OPTION_TYPES;
+  const comboAxesLabel = [
+    ...filledOptionGroups.map((g) => g.label),
+    ...(hasColors ? ["Color"] : []),
+  ].join(" × ");
+
+  function addType(label: string) {
+    const trimmed = label.trim();
+    if (!trimmed) return;
+    const existing = optionGroups.find((g) => g.label === trimmed);
+    if (existing) {
+      setFocusedLabel(trimmed);
+      onDraftPrimaryChange("");
+      return;
+    }
+    if (atTypeLimit) return;
+    onAddOptionType(trimmed);
+    setFocusedLabel(trimmed);
+    onDraftPrimaryChange("");
+  }
 
   return (
     <div className="space-y-4">
@@ -166,12 +207,12 @@ export function ElectronicsOptionsEditor({
           <div className="flex-1">
             <p className="text-sm font-bold text-violet-900">Product variants</p>
             <p className="mt-1.5 text-xs leading-relaxed text-violet-800">
-              Configure options for phones, laptops, TVs, cables, chargers, and accessories. For simple single-SKU items, skip this section — just set a base price and main photo above.
+              Configure options for phones, laptops, PCs, TVs, cables, chargers, consoles, and accessories. For simple single-SKU items, skip this section — just set a base price and main photo above.
             </p>
             <ul className="mt-3 space-y-1.5 text-xs leading-relaxed text-violet-800">
               <li className="flex items-start gap-2">
                 <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-violet-600/10 text-[10px] font-bold text-violet-700">1</span>
-                <span>Choose quick-start templates (storage, size, RAM, length…) or create custom options</span>
+                <span>Add option types you need (Storage, RAM, Size…) — stack up to {MAX_OPTION_TYPES} for PCs and laptops</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-violet-600/10 text-[10px] font-bold text-violet-700">2</span>
@@ -179,7 +220,7 @@ export function ElectronicsOptionsEditor({
               </li>
               <li className="flex items-start gap-2">
                 <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-violet-600/10 text-[10px] font-bold text-violet-700">3</span>
-                <span>Set the full selling price for every option combination</span>
+                <span>Set the full selling price for every combination</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-violet-600/10 text-[10px] font-bold text-violet-700">4</span>
@@ -257,19 +298,19 @@ export function ElectronicsOptionsEditor({
         )}
       </div>
 
-      {/* Primary variants */}
+      {/* Product options */}
       <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-sm font-bold text-slate-900">Product options</p>
             <p className="mt-1 text-xs leading-relaxed text-slate-500">
-              What customers choose — storage, size, RAM, screen size, cable length, etc. Leave empty if this product has no variations.
+              Add one or more option types (e.g. Storage + RAM for a PC). Leave empty if this product has no variations.
             </p>
           </div>
-          {primaryGroup ? (
+          {optionGroups.length > 0 ? (
             <button
               type="button"
-              onClick={onClearPrimaryGroup}
+              onClick={onClearAllOptionTypes}
               className="text-xs font-semibold text-slate-500 hover:text-rose-600 transition-colors"
             >
               Clear all options
@@ -277,10 +318,10 @@ export function ElectronicsOptionsEditor({
           ) : null}
         </div>
 
-        {!primaryGroup ? (
+        {optionGroups.length === 0 ? (
           <button
             type="button"
-            onClick={() => onSetPrimaryPreset("Storage", [])}
+            onClick={() => addType("Storage")}
             className="inline-flex items-center gap-2 rounded-xl border-2 border-dashed border-violet-300 bg-violet-50/50 px-4 py-3 text-sm font-semibold text-violet-700 transition-all hover:border-violet-400 hover:bg-violet-50"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -295,26 +336,83 @@ export function ElectronicsOptionsEditor({
                 Quick-start templates
               </p>
               <div className="flex flex-wrap gap-2">
-                {VARIANT_PRESETS.map((preset) => (
-                  <button
-                    key={preset.label}
-                    type="button"
-                    title={preset.hint}
-                    onClick={() => onSetPrimaryPreset(preset.label, preset.values)}
-                    className={`group relative rounded-lg border px-3.5 py-2 text-xs font-semibold transition-all ${
-                      primaryGroup?.label === preset.label
-                        ? "border-violet-600 bg-violet-600 text-white shadow-sm"
-                        : "border-slate-200 bg-white text-slate-700 hover:border-violet-300 hover:bg-violet-50"
-                    }`}
-                  >
-                    {preset.label}
-                  </button>
-                ))}
+                {VARIANT_PRESETS.map((preset) => {
+                  const added = optionGroups.some((g) => g.label === preset.label);
+                  const focused = focusedLabel === preset.label;
+                  return (
+                    <button
+                      key={preset.label}
+                      type="button"
+                      title={
+                        added
+                          ? `Edit ${preset.label} values`
+                          : atTypeLimit
+                            ? `Limit of ${MAX_OPTION_TYPES} option types — remove one first`
+                            : preset.hint
+                      }
+                      disabled={!added && atTypeLimit}
+                      onClick={() => addType(preset.label)}
+                      className={`rounded-lg border px-3.5 py-2 text-xs font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-40 ${
+                        focused
+                          ? "border-violet-600 bg-violet-600 text-white shadow-sm"
+                          : added
+                            ? "border-violet-300 bg-violet-50 text-violet-900"
+                            : "border-slate-200 bg-white text-slate-700 hover:border-violet-300 hover:bg-violet-50"
+                      }`}
+                    >
+                      {preset.label}
+                      {added && !focused ? " ✓" : ""}
+                    </button>
+                  );
+                })}
               </div>
               <p className="mt-2 text-xs text-slate-400">
-                Choose a template above, or enter a custom option type below
+                Click to add (or focus) a type. Example: Storage + RAM × Color for a PC.
+                {atTypeLimit ? ` Max ${MAX_OPTION_TYPES} option types.` : ""}
               </p>
             </div>
+
+            {optionGroups.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {optionGroups.map((g) => (
+                  <span
+                    key={g.label}
+                    className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold ${
+                      focusedLabel === g.label
+                        ? "border-violet-600 bg-violet-600 text-white"
+                        : "border-slate-200 bg-slate-50 text-slate-800"
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFocusedLabel(g.label);
+                        onDraftPrimaryChange("");
+                      }}
+                      className="hover:underline"
+                    >
+                      {g.label}
+                      <span className="ml-1 opacity-70">({g.values.length})</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onRemoveOptionType(g.label);
+                        onDraftPrimaryChange("");
+                      }}
+                      className={`ml-0.5 ${
+                        focusedLabel === g.label
+                          ? "text-violet-200 hover:text-white"
+                          : "text-slate-400 hover:text-rose-600"
+                      }`}
+                      aria-label={`Remove ${g.label}`}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            ) : null}
 
             <div className="space-y-2">
               <p className="text-xs font-semibold text-slate-700">Custom option type</p>
@@ -327,105 +425,111 @@ export function ElectronicsOptionsEditor({
                       e.preventDefault();
                       const name = customTypeInput.trim();
                       if (name) {
-                        onSetPrimaryPreset(name, []);
+                        addType(name);
                         setCustomTypeInput("");
                       }
                     }
                   }}
                   placeholder="e.g. Model, Bundle, Connector type"
                   className="ui-input"
+                  disabled={atTypeLimit}
                 />
                 <button
                   type="button"
+                  disabled={atTypeLimit}
                   onClick={() => {
                     const name = customTypeInput.trim();
                     if (name) {
-                      onSetPrimaryPreset(name, []);
+                      addType(name);
                       setCustomTypeInput("");
                     }
                   }}
-                  className="btn btn-primary rounded-xl px-6"
+                  className="btn btn-primary rounded-xl px-6 disabled:opacity-40"
                 >
                   Create
                 </button>
               </div>
             </div>
 
-            {activePreset ? (
-              <div>
-                <p className="mb-2 text-xs font-semibold text-slate-700">
-                  {primaryLabel} options
-                </p>
-                <p className="mb-2 text-xs text-slate-500">
-                  Click to add or remove. Nothing is selected until you choose it.
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {activePreset.values.map((value) => (
-                    <PresetChip
-                      key={value}
-                      label={value}
-                      selected={selectedPrimary.has(value)}
-                      onClick={() => onTogglePrimaryValue(value)}
+            {focusedGroup ? (
+              <>
+                {activePreset ? (
+                  <div>
+                    <p className="mb-2 text-xs font-semibold text-slate-700">
+                      {focusedLabelSafe} options
+                    </p>
+                    <p className="mb-2 text-xs text-slate-500">
+                      Click to add or remove. Nothing is selected until you choose it.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {activePreset.values.map((value) => (
+                        <PresetChip
+                          key={value}
+                          label={value}
+                          selected={selectedFocused.has(value)}
+                          onClick={() => onToggleOptionValue(focusedGroup.label, value)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-500">
+                    Add the {focusedLabelSafe.toLowerCase()} values customers can choose.
+                  </p>
+                )}
+
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-slate-700">
+                    {activePreset ? "Or add a custom value" : `${focusedLabelSafe} values`}
+                  </p>
+                  <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                    <input
+                      value={draftPrimary}
+                      onChange={(e) => onDraftPrimaryChange(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          const name = draftPrimary.trim();
+                          if (name) onAddCustomOptionValue(focusedGroup.label, name);
+                        }
+                      }}
+                      placeholder="e.g. 2TB, Pro Max, USB-C"
+                      className="ui-input"
                     />
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <p className="text-xs text-slate-500">
-                Add the {primaryLabel.toLowerCase()} values customers can choose.
-              </p>
-            )}
-
-            <div className="space-y-2">
-              <p className="text-xs font-semibold text-slate-700">
-                {activePreset ? "Or add a custom value" : `${primaryLabel} values`}
-              </p>
-              <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
-                <input
-                  value={draftPrimary}
-                  onChange={(e) => onDraftPrimaryChange(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      const name = draftPrimary.trim();
-                      if (name) onAddCustomPrimary(name);
-                    }
-                  }}
-                  placeholder="e.g. 2TB, Pro Max, USB-C"
-                  className="ui-input"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    const name = draftPrimary.trim();
-                    if (name) onAddCustomPrimary(name);
-                  }}
-                  className="btn btn-primary rounded-xl px-6"
-                >
-                  Add
-                </button>
-              </div>
-            </div>
-
-            {customPrimaryValues.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {customPrimaryValues.map((value) => (
-                  <span
-                    key={value.name}
-                    className="inline-flex items-center gap-2 rounded-lg border border-violet-200 bg-violet-50 px-3 py-1.5 text-sm font-medium text-violet-900"
-                  >
-                    {value.name}
                     <button
                       type="button"
-                      onClick={() => onRemovePrimary(value.name)}
-                      className="text-violet-400 hover:text-rose-600 transition-colors"
-                      aria-label={`Remove ${value.name}`}
+                      onClick={() => {
+                        const name = draftPrimary.trim();
+                        if (name) onAddCustomOptionValue(focusedGroup.label, name);
+                      }}
+                      className="btn btn-primary rounded-xl px-6"
                     >
-                      ×
+                      Add
                     </button>
-                  </span>
-                ))}
-              </div>
+                  </div>
+                </div>
+
+                {customFocusedValues.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {customFocusedValues.map((value) => (
+                      <span
+                        key={value.name}
+                        className="inline-flex items-center gap-2 rounded-lg border border-violet-200 bg-violet-50 px-3 py-1.5 text-sm font-medium text-violet-900"
+                      >
+                        {value.name}
+                        <button
+                          type="button"
+                          onClick={() => onRemoveOptionValue(focusedGroup.label, value.name)}
+                          className="text-violet-400 hover:text-rose-600 transition-colors"
+                          aria-label={`Remove ${value.name}`}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+              </>
             ) : null}
           </>
         )}
@@ -534,29 +638,24 @@ export function ElectronicsOptionsEditor({
         ) : null}
       </div>
 
-      {/* Price (+ stock) */}
+      {/* Price */}
       {showPriceList ? (
         <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5">
           <div>
             <p className="text-sm font-bold text-slate-900">Selling prices</p>
             <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
-              Enter the <strong>full price customers pay</strong> for each combination
-              {hasColors ? " (option × color)" : ""}. This replaces the simple price field above.
+              Enter the <strong>full price customers pay</strong> for each{" "}
+              <strong>{comboAxesLabel || "combination"}</strong>. This replaces the simple price
+              field above.
             </p>
             <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
-              <strong>Don&apos;t sell a combo?</strong> Leave its price empty
-              {hasColors
-                ? " — e.g. Orange in 256GB and 1TB, but Silver only in 256GB: leave Silver × 1TB blank."
-                : "."}{" "}
-              Customers will not be able to choose that combination.
+              <strong>Don&apos;t sell a combo?</strong> Leave its price empty — customers will not
+              be able to choose that combination.
             </p>
             {catalogFromPrice != null ? (
               <p className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
                 Catalog will show: from ${catalogFromPrice.toFixed(2)}
-                <span className="font-medium text-emerald-700">
-                  {" "}
-                  (lowest combination)
-                </span>
+                <span className="font-medium text-emerald-700"> (lowest combination)</span>
               </p>
             ) : (
               <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
@@ -576,14 +675,14 @@ export function ElectronicsOptionsEditor({
             </div>
           ) : null}
 
-          {useMatrix && primaryGroup && colorGroup ? (
+          {useMatrix && matrixPrimary && colorGroup ? (
             <div className="overflow-hidden rounded-xl border border-slate-200">
               <div className="max-h-[32rem] overflow-auto">
                 <table className="min-w-full border-collapse text-sm">
                   <thead className="sticky top-0 z-10">
                     <tr className="border-b border-slate-200 bg-slate-50">
                       <th className="sticky left-0 z-20 bg-slate-50 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-600 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]">
-                        {primaryLabel}
+                        {matrixPrimary.label}
                       </th>
                       {colorGroup.values.map((color) => (
                         <th
@@ -596,17 +695,19 @@ export function ElectronicsOptionsEditor({
                     </tr>
                   </thead>
                   <tbody>
-                    {primaryGroup.values.map((row, rowIndex) => (
-                      <tr 
-                        key={row.name} 
-                        className={`border-b border-slate-100 last:border-0 ${rowIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}`}
+                    {matrixPrimary.values.map((row, rowIndex) => (
+                      <tr
+                        key={row.name}
+                        className={`border-b border-slate-100 last:border-0 ${
+                          rowIndex % 2 === 0 ? "bg-white" : "bg-slate-50/30"
+                        }`}
                       >
                         <td className="sticky left-0 z-10 bg-inherit px-4 py-3 text-sm font-semibold text-slate-900 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]">
                           {row.name}
                         </td>
                         {colorGroup.values.map((color) => {
                           const combo: OptionSelections = {
-                            [primaryGroup.label]: row.name,
+                            [matrixPrimary.label]: row.name,
                             [colorGroup.label]: color.name,
                           };
                           const key = buildVariantKey(groups, combo) ?? "";
@@ -659,15 +760,25 @@ export function ElectronicsOptionsEditor({
               {combinations.slice(0, 80).map((combo, index) => {
                 const key = buildVariantKey(groups, combo) ?? "";
                 const label = formatSelectedOptionsDisplay(groups, combo);
+                const hasPrice = prices[key] != null;
                 return (
                   <div
                     key={key}
-                    className={`flex flex-wrap items-center gap-4 rounded-lg border border-slate-200 px-4 py-3.5 ${
-                      index % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'
+                    className={`flex flex-wrap items-center gap-4 rounded-lg border px-4 py-3.5 ${
+                      hasPrice
+                        ? index % 2 === 0
+                          ? "border-slate-200 bg-white"
+                          : "border-slate-200 bg-slate-50/50"
+                        : "border-dashed border-slate-200 bg-slate-50/80"
                     }`}
                   >
                     <div className="flex-1 min-w-[12rem]">
                       <p className="text-sm font-semibold text-slate-900">{label}</p>
+                      {!hasPrice ? (
+                        <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                          Not sold
+                        </p>
+                      ) : null}
                     </div>
                     <label className="flex flex-col gap-1.5">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
@@ -697,52 +808,61 @@ export function ElectronicsOptionsEditor({
             </div>
           )}
         </div>
+      ) : hasOptions || optionGroups.length > 0 ? (
+        <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-5 py-4 text-center">
+          <p className="text-xs font-medium text-slate-600">Add values to each option type</p>
+          <p className="mt-0.5 text-xs text-slate-400">
+            Pricing appears once every option type has at least one value
+            {colorGroup && colorGroup.values.length === 0
+              ? " (and colors, if you enabled them)"
+              : ""}
+            .
+          </p>
+        </div>
       ) : null}
     </div>
   );
 }
 
-/** Stock grid for Inventory tracking — only priced combinations (empty price = not sold). */
+/** Stock editor — matrix for one option × color; list for multi-axis combos. */
 export function ElectronicsStockEditor({
-  primaryGroup,
+  optionGroups,
   colorGroup,
   groups,
   prices,
   stocks,
   onStockChange,
 }: {
-  primaryGroup: MenuOptionGroup | null;
+  optionGroups: MenuOptionGroup[];
   colorGroup: MenuOptionGroup | null;
   groups: MenuOptionGroup[];
   prices: Record<string, number>;
   stocks: Record<string, number>;
   onStockChange: (key: string, qty: number) => void;
 }) {
-  const primaryLabel = primaryGroup?.label?.trim() || "Option";
+  const filled = optionGroups.filter((g) => g.values.length > 0);
   const combinations = listVariantCombinations(groups);
   const pricedCombos = combinations.filter((combo) => {
     const key = buildVariantKey(groups, combo);
     return key != null && key in prices;
   });
   const useMatrix = Boolean(
-    primaryGroup &&
-      colorGroup &&
-      primaryGroup.values.length > 0 &&
-      colorGroup.values.length > 0,
+    filled.length === 1 && colorGroup && colorGroup.values.length > 0,
   );
+  const matrixPrimary = useMatrix ? filled[0]! : null;
 
   if (pricedCombos.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-center">
         <p className="text-xs font-medium text-slate-600">No sellable combinations yet</p>
         <p className="mt-0.5 text-xs text-slate-400">
-          Set prices in the Selling prices grid above — then enter stock here per option × color.
+          Set prices in the Selling prices section above — then enter stock here per combination.
         </p>
       </div>
     );
   }
 
-  if (useMatrix && primaryGroup && colorGroup) {
+  if (useMatrix && matrixPrimary && colorGroup) {
     return (
       <div className="overflow-hidden rounded-xl border border-slate-200">
         <div className="max-h-80 overflow-auto">
@@ -750,7 +870,7 @@ export function ElectronicsStockEditor({
             <thead className="sticky top-0 z-10">
               <tr className="border-b border-slate-200 bg-slate-50">
                 <th className="sticky left-0 z-20 bg-slate-50 px-4 py-2.5 text-left text-xs font-bold uppercase tracking-wide text-slate-600">
-                  {primaryLabel}
+                  {matrixPrimary.label}
                 </th>
                 {colorGroup.values.map((color) => (
                   <th
@@ -763,7 +883,7 @@ export function ElectronicsStockEditor({
               </tr>
             </thead>
             <tbody>
-              {primaryGroup.values.map((row, rowIndex) => (
+              {matrixPrimary.values.map((row, rowIndex) => (
                 <tr
                   key={row.name}
                   className={`border-b border-slate-100 last:border-0 ${
@@ -775,7 +895,7 @@ export function ElectronicsStockEditor({
                   </td>
                   {colorGroup.values.map((color) => {
                     const combo: OptionSelections = {
-                      [primaryGroup.label]: row.name,
+                      [matrixPrimary.label]: row.name,
                       [colorGroup.label]: color.name,
                     };
                     const key = buildVariantKey(groups, combo) ?? "";

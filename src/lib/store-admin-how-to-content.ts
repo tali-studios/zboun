@@ -72,10 +72,10 @@ export function getStoreAdminHowToSections({
       id: "menu-items",
       href: "/dashboard/business/menu-items",
       title: itemsLabel,
-      summary: `Build and maintain what customers browse — for electronics, add optional variants (storage, size, model, colors) with photos and prices per combination, or keep a simple one-price item.`,
+      summary: `Build and maintain what customers browse — for electronics, add option types (storage, RAM, size…) plus optional colors with photos and prices per combination, or keep a simple one-price item.`,
       benefits: [
         "Publish updates instantly without reprinting paper menus or PDFs",
-        "Handle phones, TVs, cables, and accessories with the right options — not a one-size phone form",
+        "Handle phones, laptops, PCs, TVs, consoles, cables, and accessories with the right options — not a one-size phone form",
         "Control availability and stock so customers only order what you can fulfil",
       ],
     },
