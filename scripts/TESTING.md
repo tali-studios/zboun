@@ -38,7 +38,7 @@ TEST_BASE_URL=http://localhost:3000
 
 The script checks:
 
-- Public pages (home, contact, for-restaurants, login, menu slug)
+- Public pages (home, contact, for-stores, login, menu slug)
 - SEO routes (robots, sitemap, manifest)
 - Protected dashboard URLs redirect when logged out
 - Subscription cron API (401 without secret, 200 with `CRON_SECRET`)
@@ -52,7 +52,7 @@ The script checks:
 |---|------|----------|
 | 1 | Open `/` | Home loads, restaurant cards (if any active + show on home) |
 | 2 | Search/filter on home | Filters work |
-| 3 | Open `/for-restaurants` | Pricing ($20/mo) visible |
+| 3 | Open `/for-stores` | Pricing visible |
 | 4 | Open `/contact` | Email tab → mailto zbounlb@outlook.com; WhatsApp tab → opens chat |
 | 4b | `/dashboard/billing` | Email + WhatsApp contact buttons visible |
 | 5 | Open `/{slug}` active restaurant | Menu, categories, add to cart |

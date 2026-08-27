@@ -87,7 +87,7 @@ export async function SiteFooter({ padForMobileNav = false }: SiteFooterProps = 
               </p>
               <ul className="flex flex-col gap-1 sm:gap-0.5">
                 <li>
-                  <Link href="/for-restaurants" className={linkClass}>
+                  <Link href="/for-stores" className={linkClass}>
                     Plans &amp; pricing
                   </Link>
                 </li>

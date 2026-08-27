@@ -195,7 +195,7 @@ export default function AboutPage() {
                   <ArrowRight className="h-4 w-4" aria-hidden />
                 </Link>
                 <Link
-                  href="/for-restaurants"
+                  href="/for-stores"
                   className="inline-flex w-full items-center justify-center rounded-full border border-slate-200 bg-white px-7 py-3.5 text-sm font-semibold text-slate-700 transition hover:border-violet-200 hover:text-violet-700 sm:w-auto"
                 >
                   Plans for stores
@@ -310,7 +310,7 @@ export default function AboutPage() {
               From {formatPricingSummary()} — everything included, no commission on orders.
             </p>
             <Link
-              href="/for-restaurants"
+              href="/for-stores"
               className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-violet-700 transition hover:text-violet-900"
             >
               See full pricing &amp; plan details

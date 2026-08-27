@@ -90,9 +90,9 @@ export function SuperAdminOpsPaymentsPanel({ payments }: Props) {
   }
 
   return (
-    <section className="panel min-w-0 overflow-hidden p-5">
-      <div className="mb-4">
-        <h2 className="text-lg font-bold text-slate-900">Platform payments</h2>
+    <section className="panel min-w-0 overflow-hidden p-4 sm:p-5">
+      <div className="mb-4 border-b border-slate-100 pb-3">
+        <h2 className="panel-title">Platform payments</h2>
         <p className="mt-1 text-xs text-slate-500">
           Track your own expenses (domain, hosting, etc.). Email reminders go to your ops inbox{" "}
           <strong>30 days</strong>, <strong>7 days</strong>, and <strong>3 days</strong> before each due date.

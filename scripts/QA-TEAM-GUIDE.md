@@ -69,14 +69,14 @@ If smoke fails, **stop** and report failures before manual QA.
 | 3 | Use category/filter controls (if visible) | List updates | ☐ |
 | 4 | Click a restaurant card | Opens `/{slug}` order menu | ☐ |
 | 5 | Scroll to “For restaurant owners” CTA | Shows **$20/month** pricing | ☐ |
-| 6 | Click **Plans & pricing** | Goes to `/for-restaurants` | ☐ |
+| 6 | Click **Plans & pricing** | Goes to `/for-stores` | ☐ |
 | 7 | Click **Contact us** (footer or CTA) | Goes to `/contact` | ☐ |
 
-### TC-102 — For restaurants page
+### TC-102 — For stores page
 
 | Step | Action | Expected result | Pass |
 |------|--------|-----------------|------|
-| 1 | Open `/for-restaurants` | Page loads | ☐ |
+| 1 | Open `/for-stores` | Page loads | ☐ |
 | 2 | Check pricing card | **$20/mo** monthly plan; feature list visible | ☐ |
 | 3 | Check optional add-on | One-time data entry **$100** mentioned | ☐ |
 | 4 | Click **Get started** | Goes to `/contact` | ☐ |
@@ -607,7 +607,7 @@ Severity: Blocker / Major / Minor
 |------|-----|
 | Home | `/` |
 | Contact | `/contact` |
-| Pricing | `/for-restaurants` |
+| Pricing | `/for-stores` |
 | Login | `/dashboard/login` |
 | Super admin | `/dashboard/super-admin` |
 | Restaurant dashboard | `/dashboard/business` |

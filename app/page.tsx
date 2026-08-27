@@ -63,7 +63,7 @@ export default async function HomePage({
               </div>
               <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row">
                 <Link
-                  href="/for-restaurants"
+                  href="/for-stores"
                   className="rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 px-6 py-3 text-center text-sm font-semibold text-white transition hover:brightness-110"
                 >
                   Plans &amp; pricing

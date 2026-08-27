@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import {
@@ -6,6 +5,7 @@ import {
   type HomeBannerMenuItemOption,
   type HomeBannerRestaurantOption,
 } from "@/components/super-admin-home-banners-panel";
+import { SuperAdminHeader, SuperAdminShell } from "@/components/super-admin-chrome";
 import { getCurrentUserRole } from "@/lib/data";
 import { env } from "@/lib/env";
 import { listAllHomeHeroSlides, type HomeHeroSlideRow } from "@/lib/home-hero-slides";
@@ -49,32 +49,19 @@ export default async function SuperAdminHomeBannersPage({ searchParams }: Props)
   const menuItems = (menuItemsResult.data ?? []) as HomeBannerMenuItemOption[];
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[#f8f8ff] px-3 py-4 sm:p-8">
-      <div className="mx-auto w-full min-w-0 max-w-5xl space-y-5">
-        <header className="panel p-5">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-violet-600">
-            Super admin
-          </p>
-          <h1 className="mt-1 text-2xl font-bold text-slate-900">Home banners</h1>
-          <p className="mt-1 text-sm text-slate-600">
-            Control the home-page promo carousel — welcome new stores or promote paid placements.
-          </p>
-          <Link
-            href="/dashboard/super-admin"
-            className="mt-3 inline-flex text-sm font-semibold text-violet-700 hover:text-violet-900"
-          >
-            ← Back to super admin
-          </Link>
-        </header>
+    <SuperAdminShell>
+      <SuperAdminHeader
+        title="Home banners"
+        subtitle="Control the home-page promo carousel — welcome new stores or promote paid placements."
+      />
 
-        <SuperAdminHomeBannersPanel
-          slides={slides as HomeHeroSlideRow[]}
-          restaurants={restaurants}
-          menuItems={menuItems}
-          success={success}
-          error={error}
-        />
-      </div>
-    </main>
+      <SuperAdminHomeBannersPanel
+        slides={slides as HomeHeroSlideRow[]}
+        restaurants={restaurants}
+        menuItems={menuItems}
+        success={success}
+        error={error}
+      />
+    </SuperAdminShell>
   );
 }

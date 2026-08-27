@@ -289,13 +289,14 @@ export function SuperAdminUsersPanel({ users, currentUserId }: Props) {
         />
       )}
 
-      <section className="panel overflow-hidden">
-        {/* Header */}
+      <section id="users" className="panel scroll-mt-28 overflow-hidden">
         <div className="border-b border-slate-100 p-4 md:p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h2 className="panel-title">Users management</h2>
-              <p className="mt-0.5 text-xs text-slate-400">{stats.total} total accounts</p>
+              <h2 className="panel-title">Users</h2>
+              <p className="mt-0.5 text-xs text-slate-500">
+                {stats.total} accounts · customers, store admins, and platform operators
+              </p>
             </div>
           </div>
 
@@ -309,9 +310,9 @@ export function SuperAdminUsersPanel({ users, currentUserId }: Props) {
               { label: "Admins", value: stats.restaurantAdmins, color: "text-blue-700" },
               { label: "Super admins", value: stats.superAdmins, color: "text-violet-700" },
             ].map((s) => (
-              <div key={s.label} className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2.5">
+              <div key={s.label} className="rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5">
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{s.label}</p>
-                <p className={`mt-0.5 text-lg font-bold ${s.color}`}>{s.value}</p>
+                <p className={`mt-0.5 text-lg font-bold tabular-nums ${s.color}`}>{s.value}</p>
               </div>
             ))}
           </div>
@@ -387,8 +388,106 @@ export function SuperAdminUsersPanel({ users, currentUserId }: Props) {
           )}
         </div>
 
-        {/* Table */}
-        <div className="overflow-x-auto">
+        {/* Mobile cards */}
+        <div className="space-y-3 bg-slate-50/50 p-3 md:hidden">
+          {filtered.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-10 text-center text-sm text-slate-400">
+              No users match your filters.
+            </div>
+          ) : (
+            filtered.map((user) => {
+              const isSelf = user.id === currentUserId;
+              return (
+                <article
+                  key={user.id}
+                  className={`rounded-2xl border bg-white p-4 shadow-sm ${
+                    isSelf ? "border-violet-200 ring-2 ring-violet-100" : "border-slate-200"
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-slate-100 to-slate-200 text-sm font-bold uppercase text-slate-600">
+                      {(user.name || user.email)[0] ?? "?"}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="truncate text-sm font-bold text-slate-900">
+                          {user.name || "No name"}
+                        </h3>
+                        {isSelf ? (
+                          <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-violet-700">
+                            You
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="mt-0.5 truncate text-xs text-slate-500">{user.email}</p>
+                    </div>
+                    <span
+                      className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold ${roleBadgeClass(user.role)}`}
+                    >
+                      {roleLabel(user.role)}
+                    </span>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-2 gap-2 rounded-xl bg-slate-50 p-3">
+                    <div>
+                      <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">
+                        Status
+                      </p>
+                      <p className={`mt-1 text-xs font-semibold ${user.is_blocked ? "text-red-600" : "text-emerald-700"}`}>
+                        {user.is_blocked ? "● Blocked" : "● Active"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">
+                        Last sign in
+                      </p>
+                      <p className="mt-1 truncate text-xs font-medium text-slate-600">
+                        {formatDate(user.last_sign_in_at)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {!isSelf ? (
+                    <div className="mt-3 flex justify-end gap-2">
+                      <IconActionButton
+                        label="Set password"
+                        onClick={() => setPasswordUser(user)}
+                        className="border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100"
+                      >
+                        <KeyRound className="h-4 w-4" strokeWidth={2.25} />
+                      </IconActionButton>
+                      <IconActionButton
+                        label={user.is_blocked ? "Unblock user" : "Block user"}
+                        onClick={() => setConfirmBlock(user)}
+                        className={
+                          user.is_blocked
+                            ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                            : "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
+                        }
+                      >
+                        {user.is_blocked ? (
+                          <ShieldCheck className="h-4 w-4" strokeWidth={2.25} />
+                        ) : (
+                          <Ban className="h-4 w-4" strokeWidth={2.25} />
+                        )}
+                      </IconActionButton>
+                      <IconActionButton
+                        label="Delete user"
+                        onClick={() => setConfirmDelete(user)}
+                        className="border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
+                      >
+                        <Trash2 className="h-4 w-4" strokeWidth={2.25} />
+                      </IconActionButton>
+                    </div>
+                  ) : null}
+                </article>
+              );
+            })
+          )}
+        </div>
+
+        {/* Desktop table */}
+        <div className="hidden overflow-x-auto md:block">
           <table className="min-w-[960px] w-full text-left text-sm">
             <thead className="bg-slate-50">
               <tr>

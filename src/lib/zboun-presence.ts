@@ -4,7 +4,7 @@ import { ZBOUN_OPS_EMAIL, ZBOUN_WHATSAPP_DIGITS } from "@/lib/zboun-contact";
 export const ZBOUN_PRESENCE = {
   siteHost: "zboun.net",
   siteUrl: "https://zboun.net",
-  plansUrl: "https://zboun.net/for-restaurants",
+  plansUrl: "https://zboun.net/for-stores",
   phoneDisplay: "+961 79 036 602",
   phoneTel: `+${ZBOUN_WHATSAPP_DIGITS}`,
   email: ZBOUN_OPS_EMAIL,

@@ -1,6 +1,4 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { signOutAction } from "@/app-actions/auth";
 import { createClient } from "@supabase/supabase-js";
 import { SuperAdminContractGenerator } from "@/components/super-admin-contract-generator";
 import { SuperAdminCreateRestaurantForm } from "@/components/super-admin-create-restaurant-form";
@@ -8,6 +6,13 @@ import { SuperAdminFinancePanel } from "@/components/super-admin-finance-panel";
 import { SuperAdminOpsPaymentsPanel } from "@/components/super-admin-ops-payments-panel";
 import { SuperAdminRestaurantsPanel } from "@/components/super-admin-restaurants-panel";
 import { SuperAdminUsersPanel } from "@/components/super-admin-users-panel";
+import {
+  SuperAdminHeader,
+  SuperAdminMetric,
+  SuperAdminMetricsBlock,
+  SuperAdminSection,
+  SuperAdminShell,
+} from "@/components/super-admin-chrome";
 import { getCurrentUserRole } from "@/lib/data";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { env } from "@/lib/env";
@@ -323,90 +328,89 @@ export default async function SuperAdminPage({ searchParams }: Props) {
   };
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[#f8f8ff] p-3 sm:p-4 md:p-8">
-      <div className="mx-auto w-full min-w-0 max-w-6xl space-y-6">
-        <header className="panel p-5 md:p-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-widest text-violet-600">Platform control</p>
-              <h1 className="mt-1 text-2xl font-bold text-slate-900">Super admin</h1>
-            </div>
-            <form action={signOutAction}>
-              <div className="flex flex-wrap items-center gap-2">
-                <Link href="/dashboard/super-admin/banners" className="btn btn-secondary">
-                  Home banners
-                </Link>
-                <Link href="/dashboard/super-admin/visit-kit" className="btn btn-secondary">
-                  Visit kit
-                </Link>
-                <Link href="/dashboard/change-password" className="btn btn-secondary">
-                  Change password
-                </Link>
-                <button className="btn btn-secondary">Sign out</button>
-              </div>
-            </form>
-          </div>
-        </header>
+    <SuperAdminShell>
+        <SuperAdminHeader />
 
-        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <div className="panel p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Businesses
-            </p>
-            <p className="mt-1 text-2xl font-bold text-slate-900">{stats.totalRestaurants}</p>
-          </div>
-          <div className="panel p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Active stores
-            </p>
-            <p className="mt-1 text-2xl font-bold text-violet-700">{stats.activeRestaurants}</p>
-          </div>
-          <div className="panel p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Total users
-            </p>
-            <p className="mt-1 text-2xl font-bold text-slate-900">{platformUsers.length}</p>
-          </div>
-          <div className="panel p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Active users
-            </p>
-            <p className="mt-1 text-2xl font-bold text-emerald-700">{platformUsers.filter((u) => !u.is_blocked).length}</p>
-          </div>
-        </section>
+        <SuperAdminMetricsBlock
+          id="overview"
+          title="Platform overview"
+          description="Stores and accounts across zboun.net"
+        >
+          <SuperAdminMetric
+            label="Businesses"
+            value={stats.totalRestaurants}
+            tone="neutral"
+            icon={
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
+              </svg>
+            }
+          />
+          <SuperAdminMetric
+            label="Active stores"
+            value={stats.activeRestaurants}
+            hint={`${stats.totalRestaurants - stats.activeRestaurants} inactive`}
+            tone="accent"
+            icon={
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            }
+          />
+          <SuperAdminMetric
+            label="Total users"
+            value={platformUsers.length}
+            tone="neutral"
+            icon={
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+              </svg>
+            }
+          />
+          <SuperAdminMetric
+            label="Active users"
+            value={platformUsers.filter((u) => !u.is_blocked).length}
+            tone="success"
+            icon={
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+              </svg>
+            }
+          />
+        </SuperAdminMetricsBlock>
 
-        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-          <div className="panel p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Expected monthly
-            </p>
-            <p className="mt-1 text-2xl font-bold text-slate-900">${stats.expectedMonthlyRevenue.toFixed(2)}</p>
-          </div>
-          <div className="panel p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Collected this month
-            </p>
-            <p className="mt-1 text-2xl font-bold text-violet-700">${stats.collectedThisMonth.toFixed(2)}</p>
-          </div>
-          <div className="panel p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Overdue amount
-            </p>
-            <p className="mt-1 text-2xl font-bold text-amber-700">${stats.overdueAmount.toFixed(2)}</p>
-          </div>
-          <div className="panel p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Overdue invoices
-            </p>
-            <p className="mt-1 text-2xl font-bold text-amber-700">{stats.overdueInvoicesCount}</p>
-          </div>
-          <div className="panel p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Outstanding total
-            </p>
-            <p className="mt-1 text-2xl font-bold text-slate-900">${stats.outstandingAmount.toFixed(2)}</p>
-          </div>
-        </section>
+        <SuperAdminMetricsBlock
+          id="billing"
+          title="Billing health"
+          description="Subscription revenue and collections this month"
+          columns={5}
+        >
+          <SuperAdminMetric
+            label="Expected monthly"
+            value={`$${stats.expectedMonthlyRevenue.toFixed(2)}`}
+            tone="neutral"
+          />
+          <SuperAdminMetric
+            label="Collected this month"
+            value={`$${stats.collectedThisMonth.toFixed(2)}`}
+            tone="accent"
+          />
+          <SuperAdminMetric
+            label="Overdue amount"
+            value={`$${stats.overdueAmount.toFixed(2)}`}
+            tone={stats.overdueAmount > 0 ? "danger" : "success"}
+          />
+          <SuperAdminMetric
+            label="Overdue invoices"
+            value={stats.overdueInvoicesCount}
+            tone={stats.overdueInvoicesCount > 0 ? "warning" : "success"}
+          />
+          <SuperAdminMetric
+            label="Outstanding total"
+            value={`$${stats.outstandingAmount.toFixed(2)}`}
+            tone={stats.outstandingAmount > 0 ? "warning" : "neutral"}
+          />
+        </SuperAdminMetricsBlock>
 
         {success === "restaurant_created" && (
           <p className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-medium text-emerald-700">
@@ -580,14 +584,12 @@ export default async function SuperAdminPage({ searchParams }: Props) {
           </p>
         )}
 
-        <section className="panel p-4 md:p-5">
-          <h2 className="panel-title">Create business + admin invite</h2>
+        <SuperAdminSection
+          title="Create business + admin invite"
+          description="Create a store account and email the admin a secure set-password link."
+        >
           <SuperAdminCreateRestaurantForm />
-          {/* <p className="mt-3 text-xs text-slate-500">
-            An invitation email is sent to the admin with a secure set-password link and dashboard
-            access URL.
-          </p> */}
-        </section>
+        </SuperAdminSection>
 
         <SuperAdminRestaurantsPanel restaurants={restaurantsWithDetails} />
         <SuperAdminUsersPanel users={platformUsers} currentUserId={appUser.id} />
@@ -602,14 +604,12 @@ export default async function SuperAdminPage({ searchParams }: Props) {
           payments={payments ?? []}
         />
 
-        <section className="panel p-4 md:p-5">
-          <h2 className="panel-title">Generate contract</h2>
-          <p className="mt-1 text-sm text-slate-600">
-            Fill in the agreement details and download a signed-ready PDF for any store.
-          </p>
+        <SuperAdminSection
+          title="Generate contract"
+          description="Fill in the agreement details and download a signed-ready PDF for any store."
+        >
           <SuperAdminContractGenerator restaurants={contractPresets} />
-        </section>
-      </div>
-    </main>
+        </SuperAdminSection>
+    </SuperAdminShell>
   );
 }

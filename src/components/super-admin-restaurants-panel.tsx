@@ -507,12 +507,22 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
   }
 
   return (
-    <section className="panel min-w-0 overflow-hidden p-5">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-bold text-slate-900">Businesses</h2>
-        <div className="text-xs text-slate-500">{filtered.length} results</div>
+    <section id="businesses" className="panel min-w-0 scroll-mt-28 overflow-hidden">
+      <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50/80 to-white px-5 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="panel-title">Businesses</h2>
+            <p className="mt-0.5 text-xs text-slate-500">
+              Activate stores, billing, browse categories, and admin access
+            </p>
+          </div>
+          <div className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+            {filtered.length} results
+          </div>
+        </div>
       </div>
 
+      <div className="space-y-4 p-5">
       <div className="grid gap-2 md:grid-cols-4">
         <input
           value={q}
@@ -1247,6 +1257,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
           loading={isPending}
         />
       ) : null}
+      </div>
     </section>
   );
 }

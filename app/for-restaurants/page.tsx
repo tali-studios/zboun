@@ -32,13 +32,13 @@ const includes = [
 ];
 
 const onboardingRequirements = [
-  "Full menu items list",
-  "Ingredients / contents for each item",
+  "Full product or menu item list",
+  "Product details / contents for each item",
   "Item photos / logo files",
   "Prices and section structure",
 ];
 
-export default function ForRestaurantsPage() {
+export default function ForStoresPage() {
   return (
     <div className="flex min-h-screen flex-col bg-[#f8f8ff]">
 
@@ -204,7 +204,7 @@ export default function ForRestaurantsPage() {
               {
                 label: "Cloud & Offline POS",
                 available: true,
-                desc: "Full point-of-sale system that works online and offline, synced to your menu and inventory.",
+                desc: "Full point-of-sale system that works online and offline, synced to your catalog and inventory.",
               },
               {
                 label: "CRM",

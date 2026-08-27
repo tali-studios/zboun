@@ -101,7 +101,8 @@ async function testPublicPages(slug) {
   const pages = [
     ["/", [200]],
     ["/contact", [200]],
-    ["/for-restaurants", [200]],
+    ["/for-stores", [200]],
+    ["/for-restaurants", [307, 308]],
     ["/dashboard/login", [200]],
   ];
   for (const [path, codes] of pages) {

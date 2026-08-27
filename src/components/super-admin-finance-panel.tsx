@@ -101,10 +101,10 @@ export function SuperAdminFinancePanel({ restaurants, invoices, payments }: Prop
   }
 
   return (
-    <section className="panel min-w-0 overflow-hidden p-5">
-      <div className="mb-4">
-        <h2 className="text-lg font-bold text-slate-900">Finance management</h2>
-        <p className="text-xs text-slate-500">
+    <section id="finance" className="panel min-w-0 scroll-mt-28 overflow-hidden p-4 sm:p-5">
+      <div className="mb-4 border-b border-slate-100 pb-3">
+        <h2 className="panel-title">Finance management</h2>
+        <p className="mt-1 text-xs text-slate-500">
           Manual cash workflow: create invoice, collect cash, record payment.
         </p>
       </div>
