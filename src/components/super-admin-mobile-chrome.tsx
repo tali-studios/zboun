@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   Images,
   LayoutDashboard,
+  LockKeyhole,
   LogOut,
   ReceiptText,
   Sparkles,
@@ -22,6 +23,7 @@ const NAV_ITEMS: { href: string; label: string; icon: LucideIcon; match?: "exact
   { href: "/dashboard/super-admin#billing", label: "Billing", icon: ReceiptText },
   { href: "/dashboard/super-admin/banners", label: "Banners", icon: Images, match: "prefix" },
   { href: "/dashboard/super-admin/visit-kit", label: "Visit kit", icon: Sparkles, match: "prefix" },
+  { href: "/dashboard/change-password", label: "Password", icon: LockKeyhole, match: "prefix" },
 ];
 
 function isActive(pathname: string, href: string, match?: "exact" | "prefix") {
@@ -69,7 +71,7 @@ export function SuperAdminMobileChrome() {
       </div>
 
       <nav
-        className="mt-3 grid grid-cols-3 gap-1.5"
+        className="mt-3 grid grid-cols-4 gap-1.5"
         aria-label="Super admin navigation"
       >
         {NAV_ITEMS.map((item) => {
