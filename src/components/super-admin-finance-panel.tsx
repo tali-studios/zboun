@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   createInvoiceAction,
+  deleteInvoiceAction,
   recordCashPaymentAction,
 } from "@/app-actions/superadmin";
 
@@ -96,6 +97,24 @@ export function SuperAdminFinancePanel({ restaurants, invoices, payments }: Prop
   function submitPayment(formData: FormData) {
     startTransition(async () => {
       await recordCashPaymentAction(formData);
+      router.refresh();
+    });
+  }
+
+  function deleteInvoice(invoice: InvoiceRow) {
+    const restaurant = restaurantNameById[invoice.restaurant_id] ?? "this restaurant";
+    const amount = `$${Number(invoice.amount_due).toFixed(2)}`;
+    if (
+      !window.confirm(
+        `Delete this ${amount} invoice for ${restaurant}? Linked payments will also be removed.`,
+      )
+    ) {
+      return;
+    }
+    const formData = new FormData();
+    formData.set("invoice_id", invoice.id);
+    startTransition(async () => {
+      await deleteInvoiceAction(formData);
       router.refresh();
     });
   }
@@ -295,6 +314,14 @@ export function SuperAdminFinancePanel({ restaurants, invoices, payments }: Prop
                     </dd>
                   </div>
                 </dl>
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => deleteInvoice(invoice)}
+                  className="mt-2.5 w-full rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 disabled:opacity-60"
+                >
+                  Delete
+                </button>
               </article>
             ))}
             {filteredInvoices.length === 0 ? (
@@ -302,14 +329,15 @@ export function SuperAdminFinancePanel({ restaurants, invoices, payments }: Prop
             ) : null}
           </div>
           <div className="mt-3 hidden max-h-80 overflow-auto md:block">
-            <table className="w-full min-w-[480px] text-sm">
+            <table className="w-full min-w-[540px] text-sm">
               <thead>
                 <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
                   <th className="py-2 pr-3">Restaurant</th>
                   <th className="py-2 pr-3">Due</th>
                   <th className="py-2 pr-3">Paid</th>
                   <th className="py-2 pr-3">Status</th>
-                  <th className="py-2">Due at</th>
+                  <th className="py-2 pr-3">Due at</th>
+                  <th className="py-2 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -319,12 +347,22 @@ export function SuperAdminFinancePanel({ restaurants, invoices, payments }: Prop
                     <td className="py-2 pr-3">${Number(invoice.amount_due).toFixed(2)}</td>
                     <td className="py-2 pr-3">${Number(invoice.amount_paid).toFixed(2)}</td>
                     <td className="py-2 pr-3 capitalize">{invoice.status}</td>
-                    <td className="py-2">{new Date(invoice.due_at).toLocaleDateString()}</td>
+                    <td className="py-2 pr-3">{new Date(invoice.due_at).toLocaleDateString()}</td>
+                    <td className="py-2 text-right">
+                      <button
+                        type="button"
+                        disabled={isPending}
+                        onClick={() => deleteInvoice(invoice)}
+                        className="rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 disabled:opacity-60"
+                      >
+                        Delete
+                      </button>
+                    </td>
                   </tr>
                 ))}
                 {filteredInvoices.length === 0 ? (
                   <tr>
-                    <td className="py-3 text-xs text-slate-500" colSpan={5}>
+                    <td className="py-3 text-xs text-slate-500" colSpan={6}>
                       No invoices found.
                     </td>
                   </tr>

@@ -488,6 +488,11 @@ export default async function SuperAdminPage({ searchParams }: Props) {
             Invoice created successfully.
           </p>
         )}
+        {success === "invoice_deleted" && (
+          <p className="rounded-xl border border-violet-200 bg-violet-50 p-3 text-sm font-medium text-violet-700">
+            Invoice deleted successfully.
+          </p>
+        )}
         {success === "payment_recorded" && (
           <p className="rounded-xl border border-violet-200 bg-violet-50 p-3 text-sm font-medium text-violet-700">
             Cash payment recorded successfully.

@@ -741,6 +741,24 @@ export async function createInvoiceAction(formData: FormData) {
   redirect("/dashboard/super-admin?success=invoice_created");
 }
 
+export async function deleteInvoiceAction(formData: FormData) {
+  await requireSuperAdmin();
+  const invoiceId = String(formData.get("invoice_id") ?? "").trim();
+  if (!invoiceId) {
+    redirect("/dashboard/super-admin?error=missing_invoice_id");
+  }
+
+  const supabase = await createServerSupabaseClient();
+  const { error } = await supabase.from("invoices").delete().eq("id", invoiceId);
+  if (error) {
+    redirect(`/dashboard/super-admin?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/dashboard/super-admin");
+  revalidatePath("/dashboard/billing");
+  redirect("/dashboard/super-admin?success=invoice_deleted");
+}
+
 export async function recordCashPaymentAction(formData: FormData) {
   await requireSuperAdmin();
   const invoiceId = String(formData.get("invoice_id") ?? "").trim();
