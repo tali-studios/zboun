@@ -45,7 +45,7 @@ function roleBadgeClass(role: UserRow["role"]) {
 
 function roleLabel(role: UserRow["role"]) {
   if (role === "superadmin") return "Super Admin";
-  if (role === "restaurant_admin") return "Restaurant";
+  if (role === "restaurant_admin") return "Admin";
   if (role === "customer") return "Customer";
   return "Unknown";
 }
@@ -230,7 +230,7 @@ export function SuperAdminUsersPanel({ users, currentUserId }: Props) {
   const ROLE_FILTERS: { label: string; value: RoleFilter }[] = [
     { label: "All roles", value: "all" },
     { label: "Super Admin", value: "superadmin" },
-    { label: "Restaurant", value: "restaurant_admin" },
+    { label: "Admin", value: "restaurant_admin" },
     { label: "Customer", value: "customer" },
   ];
 
@@ -306,7 +306,7 @@ export function SuperAdminUsersPanel({ users, currentUserId }: Props) {
               { label: "Active", value: stats.active, color: "text-emerald-700" },
               { label: "Blocked", value: stats.blocked, color: "text-red-600" },
               { label: "Customers", value: stats.customers, color: "text-emerald-700" },
-              { label: "Biz admins", value: stats.restaurantAdmins, color: "text-blue-700" },
+              { label: "Admins", value: stats.restaurantAdmins, color: "text-blue-700" },
               { label: "Super admins", value: stats.superAdmins, color: "text-violet-700" },
             ].map((s) => (
               <div key={s.label} className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2.5">
