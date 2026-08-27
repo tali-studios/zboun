@@ -4,37 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import { toPng } from "html-to-image";
 import { jsPDF } from "jspdf";
 import QRCode from "qrcode";
-import { Copy, Download, Printer } from "lucide-react";
+import { Download } from "lucide-react";
 import { ZBOUN_PRICING, formatPricingSummary, yearlySavings } from "@/lib/pricing";
 import { ZBOUN_PRESENCE } from "@/lib/zboun-presence";
 import {
   ZBOUN_STORE_PITCH_BENEFITS,
   ZBOUN_STORE_PITCH_FEATURES,
-  buildStoreVisitWhatsAppHref,
-  buildStoreVisitWhatsAppMessage,
 } from "@/lib/zboun-store-pitch";
-
-async function copyText(text: string) {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    try {
-      const input = document.createElement("textarea");
-      input.value = text;
-      input.setAttribute("readonly", "");
-      input.style.position = "fixed";
-      input.style.left = "-9999px";
-      document.body.appendChild(input);
-      input.select();
-      const ok = document.execCommand("copy");
-      document.body.removeChild(input);
-      return ok;
-    } catch {
-      return false;
-    }
-  }
-}
 
 function PitchSheet({
   siteQr,
@@ -301,11 +277,8 @@ export function ZbounStoreVisitKit() {
   const [whatsappQr, setWhatsappQr] = useState("");
   const [logoSrc, setLogoSrc] = useState("");
   const [iconSrc, setIconSrc] = useState("");
-  const [copied, setCopied] = useState<"message" | null>(null);
   const [exporting, setExporting] = useState(false);
   const exportRef = useRef<HTMLDivElement>(null);
-  const message = buildStoreVisitWhatsAppMessage();
-  const whatsappHref = buildStoreVisitWhatsAppHref();
 
   useEffect(() => {
     let cancelled = false;
@@ -351,12 +324,6 @@ export function ZbounStoreVisitKit() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!copied) return;
-    const id = window.setTimeout(() => setCopied(null), 1600);
-    return () => window.clearTimeout(id);
-  }, [copied]);
-
   async function downloadPdf() {
     if (!exportRef.current) return;
     try {
@@ -372,48 +339,32 @@ export function ZbounStoreVisitKit() {
 
   return (
     <>
-      <div className="print:hidden mx-auto mb-4 w-full max-w-full lg:w-[210mm]">
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-violet-600 px-4 py-3 text-sm font-semibold text-white hover:bg-violet-700"
-          >
-            <Printer className="h-4 w-4" aria-hidden />
-            Print A4
-          </button>
-          <button
-            type="button"
-            onClick={downloadPdf}
-            disabled={!siteQr || !logoSrc || exporting}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-fuchsia-600 px-4 py-3 text-sm font-semibold text-white hover:bg-fuchsia-700 disabled:opacity-60"
-          >
-            <Download className="h-4 w-4" aria-hidden />
-            {exporting ? "Preparing…" : "Download PDF"}
-          </button>
-          <button
-            type="button"
-            onClick={async () => {
-              if (await copyText(message)) setCopied("message");
-            }}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#128C7E] px-4 py-3 text-sm font-semibold text-white hover:brightness-95"
-          >
-            <Copy className="h-4 w-4" aria-hidden />
-            {copied === "message" ? "Copied!" : "Copy WhatsApp"}
-          </button>
-          <a
-            href={whatsappHref}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#25D366] px-4 py-3 text-sm font-semibold text-white hover:brightness-95"
-          >
-            Send on WhatsApp
-          </a>
+      <header className="print:hidden overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm sm:rounded-3xl">
+        <div className="bg-gradient-to-r from-white via-white to-violet-50/70 px-4 py-3.5 sm:px-6 sm:py-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-violet-600">
+                Platform control
+              </p>
+              <h1 className="mt-1 text-lg font-bold tracking-tight text-slate-950 sm:text-2xl md:text-[1.75rem]">
+                Store visit kit
+              </h1>
+              <p className="mt-1 max-w-xl text-xs leading-relaxed text-slate-500 sm:text-sm">
+                One-page pitch sheet for store visits — download and leave a copy.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={downloadPdf}
+              disabled={!siteQr || !logoSrc || exporting}
+              className="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-violet-600 px-5 py-3 text-sm font-semibold text-white shadow-sm shadow-violet-500/25 transition hover:bg-violet-700 disabled:opacity-60 sm:w-auto"
+            >
+              <Download className="h-4 w-4" aria-hidden />
+              {exporting ? "Preparing…" : "Download PDF"}
+            </button>
+          </div>
         </div>
-        <p className="mt-2 text-xs text-slate-500">
-          Print a copy to leave at the shop, or send the WhatsApp text after you walk out.
-        </p>
-      </div>
+      </header>
 
       <div className="flyer-a4 mx-auto w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg lg:w-[210mm] print:rounded-none print:border-0 print:shadow-none">
         <PitchSheet siteQr={siteQr} whatsappQr={whatsappQr} logoSrc={logoSrc} iconSrc={iconSrc} />

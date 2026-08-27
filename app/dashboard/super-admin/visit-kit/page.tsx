@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { SuperAdminHeader, SuperAdminShell } from "@/components/super-admin-chrome";
+import { SuperAdminShell } from "@/components/super-admin-chrome";
 import { ZbounStoreVisitKit } from "@/components/zboun-store-visit-kit";
 import { getCurrentUserRole } from "@/lib/data";
 
@@ -16,11 +16,6 @@ export default async function SuperAdminVisitKitPage() {
       className="flyer-print-page"
       layoutClassName="flyer-print-wrap"
     >
-      <SuperAdminHeader
-        className="print:hidden"
-        title="Store visit kit"
-        subtitle="Leave a printed A4 at the shop, or send the WhatsApp pitch after you visit."
-      />
       <ZbounStoreVisitKit />
     </SuperAdminShell>
   );

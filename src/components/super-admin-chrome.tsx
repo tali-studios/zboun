@@ -12,6 +12,7 @@ import {
   Users,
 } from "lucide-react";
 import { signOutAction } from "@/app-actions/auth";
+import { SuperAdminMobileChrome } from "@/components/super-admin-mobile-chrome";
 
 const NAV_ITEMS = [
   { href: "/dashboard/super-admin", label: "Overview", icon: LayoutDashboard },
@@ -112,50 +113,7 @@ export function SuperAdminShell({
         </aside>
 
         <div className="min-w-0 flex-1">
-          <div className="sticky top-0 z-40 -mx-3 -mt-3 mb-4 border-b border-slate-200/80 bg-white/90 px-3 py-2.5 backdrop-blur-xl sm:-mx-4 sm:-mt-4 sm:px-4 lg:hidden print:hidden">
-            <div className="flex items-center justify-between gap-3">
-              <Link href="/dashboard/super-admin" className="flex items-center gap-2.5">
-                <span className="relative h-9 w-9 overflow-hidden rounded-xl bg-white shadow-md shadow-violet-600/20 ring-1 ring-slate-200">
-                  <Image
-                    src="/zbounlogo.png"
-                    alt="Zboun"
-                    fill
-                    sizes="36px"
-                    className="scale-110 object-cover"
-                    priority
-                  />
-                </span>
-                <span>
-                  <span className="block text-sm font-bold leading-none text-slate-950">Zboun</span>
-                  <span className="mt-1 block text-[9px] font-bold uppercase tracking-widest text-slate-400">
-                    Super admin
-                  </span>
-                </span>
-              </Link>
-              <form action={signOutAction}>
-                <button
-                  type="submit"
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm"
-                >
-                  Sign out
-                </button>
-              </form>
-            </div>
-            <nav
-              className="mt-2.5 flex gap-2 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-              aria-label="Super admin navigation"
-            >
-              {NAV_ITEMS.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="shrink-0 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-600"
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
-          </div>
+          <SuperAdminMobileChrome />
 
           <div className="space-y-4 sm:space-y-5 lg:space-y-6">{children}</div>
         </div>

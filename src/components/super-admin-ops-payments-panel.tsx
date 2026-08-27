@@ -236,23 +236,26 @@ export function SuperAdminOpsPaymentsPanel({ payments }: Props) {
                       )}
                     </td>
                     <td className="px-3 py-3">
-                      <div className="flex flex-wrap justify-end gap-1">
+                      <div className="flex w-[7.5rem] flex-col gap-1.5 sm:ml-auto">
                         {status !== "paid" ? (
                           <button
                             type="button"
                             disabled={isPending}
                             onClick={() => setPayingId(payment.id)}
-                            className="rounded-lg bg-emerald-600 px-2 py-1 text-xs font-semibold text-white hover:bg-emerald-500 disabled:opacity-60"
+                            className="w-full rounded-lg bg-emerald-600 px-2 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500 disabled:opacity-60"
                           >
                             Mark paid
                           </button>
                         ) : (
-                          <form action={(fd) => runAction(reopenPlatformOpsPaymentAction, fd)}>
+                          <form
+                            action={(fd) => runAction(reopenPlatformOpsPaymentAction, fd)}
+                            className="w-full"
+                          >
                             <input type="hidden" name="id" value={payment.id} />
                             <button
                               type="submit"
                               disabled={isPending}
-                              className="rounded-lg bg-slate-600 px-2 py-1 text-xs font-semibold text-white hover:bg-slate-500 disabled:opacity-60"
+                              className="w-full rounded-lg bg-slate-600 px-2 py-1.5 text-xs font-semibold text-white hover:bg-slate-500 disabled:opacity-60"
                             >
                               Reopen
                             </button>
@@ -262,16 +265,19 @@ export function SuperAdminOpsPaymentsPanel({ payments }: Props) {
                           type="button"
                           disabled={isPending}
                           onClick={() => setEditingId(payment.id)}
-                          className="rounded-lg bg-violet-600 px-2 py-1 text-xs font-semibold text-white hover:bg-violet-500 disabled:opacity-60"
+                          className="w-full rounded-lg bg-violet-600 px-2 py-1.5 text-xs font-semibold text-white hover:bg-violet-500 disabled:opacity-60"
                         >
                           Edit
                         </button>
-                        <form action={(fd) => runAction(deletePlatformOpsPaymentAction, fd)}>
+                        <form
+                          action={(fd) => runAction(deletePlatformOpsPaymentAction, fd)}
+                          className="w-full"
+                        >
                           <input type="hidden" name="id" value={payment.id} />
                           <button
                             type="submit"
                             disabled={isPending}
-                            className="rounded-lg bg-red-600 px-2 py-1 text-xs font-semibold text-white hover:bg-red-500 disabled:opacity-60"
+                            className="w-full rounded-lg bg-red-600 px-2 py-1.5 text-xs font-semibold text-white hover:bg-red-500 disabled:opacity-60"
                           >
                             Delete
                           </button>

@@ -262,27 +262,63 @@ export function SuperAdminFinancePanel({ restaurants, invoices, payments }: Prop
         </button>
       </div>
 
-      <div className="mt-5 grid gap-4 xl:grid-cols-2">
-        <div className="rounded-2xl border border-slate-200 p-4">
+      <div className="mt-5 grid min-w-0 gap-4 xl:grid-cols-2">
+        <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 p-4">
           <h3 className="font-semibold text-slate-900">Invoices</h3>
-          <div className="mt-3 max-h-80 overflow-auto">
-            <table className="w-full text-sm">
+          <div className="mt-3 max-h-80 space-y-2 overflow-auto md:hidden">
+            {filteredInvoices.map((invoice) => (
+              <article
+                key={invoice.id}
+                className="rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <p className="min-w-0 truncate text-sm font-semibold text-slate-900">
+                    {restaurantNameById[invoice.restaurant_id] ?? "Unknown"}
+                  </p>
+                  <span className="shrink-0 rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold capitalize text-slate-600 ring-1 ring-slate-200">
+                    {invoice.status}
+                  </span>
+                </div>
+                <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
+                  <div>
+                    <dt className="text-slate-400">Due</dt>
+                    <dd className="font-medium text-slate-800">${Number(invoice.amount_due).toFixed(2)}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-slate-400">Paid</dt>
+                    <dd className="font-medium text-slate-800">${Number(invoice.amount_paid).toFixed(2)}</dd>
+                  </div>
+                  <div className="col-span-2">
+                    <dt className="text-slate-400">Due at</dt>
+                    <dd className="font-medium text-slate-800">
+                      {new Date(invoice.due_at).toLocaleDateString()}
+                    </dd>
+                  </div>
+                </dl>
+              </article>
+            ))}
+            {filteredInvoices.length === 0 ? (
+              <p className="py-3 text-xs text-slate-500">No invoices found.</p>
+            ) : null}
+          </div>
+          <div className="mt-3 hidden max-h-80 overflow-auto md:block">
+            <table className="w-full min-w-[480px] text-sm">
               <thead>
                 <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
-                  <th className="py-2">Restaurant</th>
-                  <th className="py-2">Due</th>
-                  <th className="py-2">Paid</th>
-                  <th className="py-2">Status</th>
+                  <th className="py-2 pr-3">Restaurant</th>
+                  <th className="py-2 pr-3">Due</th>
+                  <th className="py-2 pr-3">Paid</th>
+                  <th className="py-2 pr-3">Status</th>
                   <th className="py-2">Due at</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredInvoices.map((invoice) => (
                   <tr key={invoice.id} className="border-b border-slate-100">
-                    <td className="py-2">{restaurantNameById[invoice.restaurant_id] ?? "Unknown"}</td>
-                    <td className="py-2">${Number(invoice.amount_due).toFixed(2)}</td>
-                    <td className="py-2">${Number(invoice.amount_paid).toFixed(2)}</td>
-                    <td className="py-2 capitalize">{invoice.status}</td>
+                    <td className="py-2 pr-3">{restaurantNameById[invoice.restaurant_id] ?? "Unknown"}</td>
+                    <td className="py-2 pr-3">${Number(invoice.amount_due).toFixed(2)}</td>
+                    <td className="py-2 pr-3">${Number(invoice.amount_paid).toFixed(2)}</td>
+                    <td className="py-2 pr-3 capitalize">{invoice.status}</td>
                     <td className="py-2">{new Date(invoice.due_at).toLocaleDateString()}</td>
                   </tr>
                 ))}
@@ -298,27 +334,67 @@ export function SuperAdminFinancePanel({ restaurants, invoices, payments }: Prop
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 p-4">
+        <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 p-4">
           <h3 className="font-semibold text-slate-900">Payment ledger</h3>
-          <div className="mt-3 max-h-80 overflow-auto">
-            <table className="w-full text-sm">
+          <div className="mt-3 max-h-80 space-y-2 overflow-auto md:hidden">
+            {filteredPayments.map((payment) => (
+              <article
+                key={payment.id}
+                className="rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <p className="min-w-0 truncate text-sm font-semibold text-slate-900">
+                    {restaurantNameById[payment.restaurant_id] ?? "Unknown"}
+                  </p>
+                  <p className="shrink-0 text-sm font-bold text-slate-900">
+                    ${Number(payment.amount_paid).toFixed(2)}
+                  </p>
+                </div>
+                <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
+                  <div>
+                    <dt className="text-slate-400">Method</dt>
+                    <dd className="font-medium capitalize text-slate-800">{payment.method}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-slate-400">Date</dt>
+                    <dd className="font-medium text-slate-800">
+                      {new Date(payment.paid_at).toLocaleDateString()}
+                    </dd>
+                  </div>
+                  <div className="col-span-2">
+                    <dt className="text-slate-400">Note</dt>
+                    <dd className="break-words font-medium text-slate-800">
+                      {payment.reference_note ?? "—"}
+                    </dd>
+                  </div>
+                </dl>
+              </article>
+            ))}
+            {filteredPayments.length === 0 ? (
+              <p className="py-3 text-xs text-slate-500">No payments found.</p>
+            ) : null}
+          </div>
+          <div className="mt-3 hidden max-h-80 overflow-auto md:block">
+            <table className="w-full min-w-[520px] text-sm">
               <thead>
                 <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
-                  <th className="py-2">Restaurant</th>
-                  <th className="py-2">Amount</th>
-                  <th className="py-2">Method</th>
-                  <th className="py-2">Date</th>
+                  <th className="py-2 pr-3">Restaurant</th>
+                  <th className="py-2 pr-3">Amount</th>
+                  <th className="py-2 pr-3">Method</th>
+                  <th className="py-2 pr-3">Date</th>
                   <th className="py-2">Note</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredPayments.map((payment) => (
                   <tr key={payment.id} className="border-b border-slate-100">
-                    <td className="py-2">{restaurantNameById[payment.restaurant_id] ?? "Unknown"}</td>
-                    <td className="py-2">${Number(payment.amount_paid).toFixed(2)}</td>
-                    <td className="py-2 capitalize">{payment.method}</td>
-                    <td className="py-2">{new Date(payment.paid_at).toLocaleDateString()}</td>
-                    <td className="max-w-[160px] truncate py-2 text-slate-600">{payment.reference_note ?? "—"}</td>
+                    <td className="py-2 pr-3">{restaurantNameById[payment.restaurant_id] ?? "Unknown"}</td>
+                    <td className="py-2 pr-3">${Number(payment.amount_paid).toFixed(2)}</td>
+                    <td className="py-2 pr-3 capitalize">{payment.method}</td>
+                    <td className="py-2 pr-3">{new Date(payment.paid_at).toLocaleDateString()}</td>
+                    <td className="max-w-[200px] truncate py-2 text-slate-600">
+                      {payment.reference_note ?? "—"}
+                    </td>
                   </tr>
                 ))}
                 {filteredPayments.length === 0 ? (

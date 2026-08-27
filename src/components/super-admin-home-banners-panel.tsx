@@ -47,8 +47,13 @@ function formatMoney(amount: number | null) {
 
 function formatSchedule(slide: HomeHeroSlideRow) {
   if (!slide.starts_at && !slide.ends_at) return "Always";
-  const start = slide.starts_at ? new Date(slide.starts_at).toLocaleString() : "…";
-  const end = slide.ends_at ? new Date(slide.ends_at).toLocaleString() : "…";
+  const opts: Intl.DateTimeFormatOptions = {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  };
+  const start = slide.starts_at ? new Date(slide.starts_at).toLocaleDateString(undefined, opts) : "…";
+  const end = slide.ends_at ? new Date(slide.ends_at).toLocaleDateString(undefined, opts) : "…";
   return `${start} → ${end}`;
 }
 
@@ -448,84 +453,128 @@ export function SuperAdminHomeBannersPanel({
           return (
             <article
               key={slide.id}
-              className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+              className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
             >
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs font-bold text-slate-400">#{slide.sort_order}</span>
-                    <span
-                      className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${STATUS_STYLES[status]}`}
-                    >
-                      {status}
+              <div className="border-b border-slate-100 bg-gradient-to-r from-white to-slate-50/80 px-4 py-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-lg bg-slate-100 px-1.5 text-[11px] font-bold text-slate-500">
+                    #{slide.sort_order}
+                  </span>
+                  <span
+                    className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${STATUS_STYLES[status]}`}
+                  >
+                    {status}
+                  </span>
+                  {slide.link_type !== "none" ? (
+                    <span className="rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-violet-700">
+                      {slide.link_type}
                     </span>
-                    {slide.link_type !== "none" ? (
-                      <span className="rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-violet-700">
-                        {slide.link_type}
-                      </span>
-                    ) : null}
-                  </div>
-                  <h3 className="mt-1 text-base font-bold text-slate-900">{slide.title}</h3>
-                  {slide.subtitle ? (
-                    <p className="mt-0.5 text-sm text-slate-600">{slide.subtitle}</p>
-                  ) : null}
-                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
-                    <span>Schedule: {formatSchedule(slide)}</span>
-                    <span>Fee: {formatMoney(slide.promo_fee_usd)}</span>
-                    {store ? <span>Store: {store.name}</span> : null}
-                    {item ? <span>Item: {item.name}</span> : null}
-                    {slide.use_store_logo ? <span>Logo: store</span> : null}
-                  </div>
-                  {slide.notes ? (
-                    <p className="mt-2 text-xs text-slate-500">Notes: {slide.notes}</p>
                   ) : null}
                 </div>
+                <h3 className="mt-2 text-base font-bold leading-snug tracking-tight text-slate-900 sm:text-lg">
+                  {slide.title}
+                </h3>
+                {slide.subtitle ? (
+                  <p className="mt-1 text-sm leading-relaxed text-slate-600">{slide.subtitle}</p>
+                ) : null}
+              </div>
 
-                <div className="flex flex-wrap gap-2">
-                  <form action={(fd) => runAction(reorderHomeHeroSlideAction, fd)}>
-                    <input type="hidden" name="id" value={slide.id} />
-                    <input type="hidden" name="direction" value="up" />
-                    <button
-                      type="submit"
-                      disabled={isPending || index === 0}
-                      className="btn btn-secondary px-2.5 py-1.5 text-xs"
-                    >
-                      Up
-                    </button>
-                  </form>
-                  <form action={(fd) => runAction(reorderHomeHeroSlideAction, fd)}>
-                    <input type="hidden" name="id" value={slide.id} />
-                    <input type="hidden" name="direction" value="down" />
-                    <button
-                      type="submit"
-                      disabled={isPending || index === slides.length - 1}
-                      className="btn btn-secondary px-2.5 py-1.5 text-xs"
-                    >
-                      Down
-                    </button>
-                  </form>
-                  <form action={(fd) => runAction(toggleHomeHeroSlideActiveAction, fd)}>
+              <div className="space-y-3 px-4 py-3">
+                <dl className="grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
+                  <div className="rounded-xl bg-slate-50 px-3 py-2">
+                    <dt className="font-semibold uppercase tracking-wide text-slate-400">Schedule</dt>
+                    <dd className="mt-0.5 font-medium text-slate-800">{formatSchedule(slide)}</dd>
+                  </div>
+                  <div className="rounded-xl bg-slate-50 px-3 py-2">
+                    <dt className="font-semibold uppercase tracking-wide text-slate-400">Fee</dt>
+                    <dd className="mt-0.5 font-medium text-slate-800">{formatMoney(slide.promo_fee_usd)}</dd>
+                  </div>
+                  {store ? (
+                    <div className="rounded-xl bg-slate-50 px-3 py-2">
+                      <dt className="font-semibold uppercase tracking-wide text-slate-400">Store</dt>
+                      <dd className="mt-0.5 font-medium text-slate-800">{store.name}</dd>
+                    </div>
+                  ) : null}
+                  {item ? (
+                    <div className="rounded-xl bg-slate-50 px-3 py-2">
+                      <dt className="font-semibold uppercase tracking-wide text-slate-400">Item</dt>
+                      <dd className="mt-0.5 font-medium text-slate-800">{item.name}</dd>
+                    </div>
+                  ) : null}
+                  {slide.use_store_logo ? (
+                    <div className="rounded-xl bg-slate-50 px-3 py-2">
+                      <dt className="font-semibold uppercase tracking-wide text-slate-400">Logo</dt>
+                      <dd className="mt-0.5 font-medium text-slate-800">Store logo</dd>
+                    </div>
+                  ) : null}
+                </dl>
+
+                {slide.notes ? (
+                  <p className="rounded-xl border border-dashed border-slate-200 px-3 py-2 text-xs leading-relaxed text-slate-600">
+                    <span className="font-semibold text-slate-500">Notes · </span>
+                    {slide.notes}
+                  </p>
+                ) : null}
+
+                <div className="grid grid-cols-2 gap-2 border-t border-slate-100 pt-3 sm:flex sm:flex-wrap">
+                  <div className="col-span-2 grid grid-cols-2 gap-2 sm:flex sm:w-auto">
+                    <form action={(fd) => runAction(reorderHomeHeroSlideAction, fd)} className="min-w-0 flex-1 sm:flex-none">
+                      <input type="hidden" name="id" value={slide.id} />
+                      <input type="hidden" name="direction" value="up" />
+                      <button
+                        type="submit"
+                        disabled={isPending || index === 0}
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 sm:w-auto"
+                      >
+                        Up
+                      </button>
+                    </form>
+                    <form action={(fd) => runAction(reorderHomeHeroSlideAction, fd)} className="min-w-0 flex-1 sm:flex-none">
+                      <input type="hidden" name="id" value={slide.id} />
+                      <input type="hidden" name="direction" value="down" />
+                      <button
+                        type="submit"
+                        disabled={isPending || index === slides.length - 1}
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 sm:w-auto"
+                      >
+                        Down
+                      </button>
+                    </form>
+                  </div>
+
+                  <form action={(fd) => runAction(toggleHomeHeroSlideActiveAction, fd)} className="min-w-0">
                     <input type="hidden" name="id" value={slide.id} />
                     <input type="hidden" name="is_active" value={slide.is_active ? "false" : "true"} />
-                    <button type="submit" disabled={isPending} className="btn btn-secondary px-2.5 py-1.5 text-xs">
+                    <button
+                      type="submit"
+                      disabled={isPending}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 sm:w-auto"
+                    >
                       {slide.is_active ? "Deactivate" : "Activate"}
                     </button>
                   </form>
+
                   <button
                     type="button"
                     onClick={() => (isEditing ? cancelEdit() : startEdit(slide))}
-                    className="btn btn-secondary px-2.5 py-1.5 text-xs"
+                    className="w-full rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-semibold text-violet-700 transition hover:bg-violet-100 sm:w-auto"
                   >
                     {isEditing ? "Close" : "Edit"}
                   </button>
+
                   <form
                     action={(fd) => {
                       if (!window.confirm("Delete this banner?")) return;
                       runAction(deleteHomeHeroSlideAction, fd);
                     }}
+                    className="col-span-2 min-w-0 sm:col-span-1 sm:ml-auto"
                   >
                     <input type="hidden" name="id" value={slide.id} />
-                    <button type="submit" disabled={isPending} className="btn btn-secondary px-2.5 py-1.5 text-xs text-rose-700">
+                    <button
+                      type="submit"
+                      disabled={isPending}
+                      className="w-full rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 disabled:opacity-50 sm:w-auto"
+                    >
                       Delete
                     </button>
                   </form>
@@ -538,7 +587,7 @@ export function SuperAdminHomeBannersPanel({
                     runAction(updateHomeHeroSlideAction, formData);
                     cancelEdit();
                   }}
-                  className="mt-4 rounded-xl border border-violet-200 bg-violet-50/40 p-4"
+                  className="border-t border-violet-100 bg-violet-50/40 p-4"
                 >
                   <input type="hidden" name="id" value={slide.id} />
                   <SlideFields
@@ -548,11 +597,11 @@ export function SuperAdminHomeBannersPanel({
                     menuItems={menuItems}
                     idPrefix={`edit-${slide.id}`}
                   />
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <button type="submit" disabled={isPending} className="btn btn-primary">
+                  <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                    <button type="submit" disabled={isPending} className="btn btn-primary w-full sm:w-auto">
                       {isPending ? "Saving…" : "Save changes"}
                     </button>
-                    <button type="button" onClick={cancelEdit} className="btn btn-secondary">
+                    <button type="button" onClick={cancelEdit} className="btn btn-secondary w-full sm:w-auto">
                       Cancel
                     </button>
                   </div>
