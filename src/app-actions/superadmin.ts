@@ -42,6 +42,19 @@ async function requireSuperAdmin() {
   return user;
 }
 
+const SUPER_ADMIN_BUSINESSES_PATH = "/dashboard/super-admin/businesses";
+const SUPER_ADMIN_USERS_PATH = "/dashboard/super-admin/users";
+
+function revalidateSuperAdminBusinesses() {
+  revalidatePath("/dashboard/super-admin");
+  revalidatePath(SUPER_ADMIN_BUSINESSES_PATH);
+}
+
+function revalidateSuperAdminUsers() {
+  revalidatePath("/dashboard/super-admin");
+  revalidatePath(SUPER_ADMIN_USERS_PATH);
+}
+
 function toPositiveMoney(raw: FormDataEntryValue | null): number {
   const value = Number(String(raw ?? "").trim());
   if (!Number.isFinite(value) || value <= 0) {
@@ -139,7 +152,7 @@ export async function createRestaurantAction(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const browseValidated = validateBrowseSelectionFromForm(formData, { maxSections: 1 });
   if (!browseValidated.ok) {
-    redirect(`/dashboard/super-admin?error=${encodeURIComponent(browseValidated.error)}`);
+    redirect(`${SUPER_ADMIN_BUSINESSES_PATH}?error=${encodeURIComponent(browseValidated.error)}`);
   }
   const browseSelection = browseValidated.selection;
   const browseSections = normalizeBrowseSections(browseSelection);
@@ -153,7 +166,7 @@ export async function createRestaurantAction(formData: FormData) {
     : parseSubscriptionInterval(formData.get("subscription_interval"));
 
   if (!name || !phone || !email) {
-    redirect("/dashboard/super-admin?error=missing_restaurant_fields");
+    redirect(`${SUPER_ADMIN_BUSINESSES_PATH}?error=missing_restaurant_fields`);
   }
 
   const businessType = inferBusinessTypeFromBrowseSections(browseSections);
@@ -174,7 +187,7 @@ export async function createRestaurantAction(formData: FormData) {
       (row) => String(row.name ?? "").trim().toLowerCase() === name.toLowerCase(),
     );
     if (nameTaken) {
-      redirect("/dashboard/super-admin?error=duplicate_business_name");
+      redirect(`${SUPER_ADMIN_BUSINESSES_PATH}?error=duplicate_business_name`);
     }
 
     // Email must be unique across app users + customer profiles
@@ -185,7 +198,7 @@ export async function createRestaurantAction(formData: FormData) {
       .maybeSingle();
     if (appUserLookupError) throw appUserLookupError;
     if (existingAppUser) {
-      redirect("/dashboard/super-admin?error=duplicate_business_email");
+      redirect(`${SUPER_ADMIN_BUSINESSES_PATH}?error=duplicate_business_email`);
     }
 
     const { data: existingCustomer, error: customerLookupError } = await adminClient
@@ -197,7 +210,7 @@ export async function createRestaurantAction(formData: FormData) {
       throw customerLookupError;
     }
     if (existingCustomer) {
-      redirect("/dashboard/super-admin?error=duplicate_business_email");
+      redirect(`${SUPER_ADMIN_BUSINESSES_PATH}?error=duplicate_business_email`);
     }
 
     const slug = await getUniqueSlug(name);
@@ -250,7 +263,7 @@ export async function createRestaurantAction(formData: FormData) {
       const isDuplicateEmail = /already|registered|exists|duplicate/i.test(createError.message ?? "");
       if (isDuplicateEmail) {
         await adminClient.from("restaurants").delete().eq("id", restaurantData.id);
-        redirect("/dashboard/super-admin?error=duplicate_business_email");
+        redirect(`${SUPER_ADMIN_BUSINESSES_PATH}?error=duplicate_business_email`);
       }
       await adminClient.from("restaurants").delete().eq("id", restaurantData.id);
       throw createError;
@@ -326,17 +339,17 @@ export async function createRestaurantAction(formData: FormData) {
       console.error("Failed to send invite email:", inviteEmailError);
     }
 
-    revalidatePath("/dashboard/super-admin");
+  revalidateSuperAdminBusinesses();
     if (!inviteEmailSent) {
-      redirect(`/dashboard/super-admin?success=restaurant_created_invite_email_failed&email=${encodeURIComponent(email)}&invite_link=${encodeURIComponent(inviteLinkUrl)}`);
+      redirect(`${SUPER_ADMIN_BUSINESSES_PATH}?success=restaurant_created_invite_email_failed&email=${encodeURIComponent(email)}&invite_link=${encodeURIComponent(inviteLinkUrl)}`);
     }
-    redirect("/dashboard/super-admin?success=restaurant_created");
+    redirect(`${SUPER_ADMIN_BUSINESSES_PATH}?success=restaurant_created`);
   } catch (error) {
     if (isRedirectError(error)) {
       throw error;
     }
     const message = error instanceof Error ? error.message : "unknown_error";
-    redirect(`/dashboard/super-admin?error=${encodeURIComponent(message)}`);
+    redirect(`${SUPER_ADMIN_BUSINESSES_PATH}?error=${encodeURIComponent(message)}`);
   }
 }
 
@@ -344,7 +357,7 @@ export async function resendAdminInviteAction(formData: FormData) {
   await requireSuperAdmin();
   const restaurantId = String(formData.get("restaurant_id") ?? "").trim();
   if (!restaurantId) {
-    redirect("/dashboard/super-admin?error=missing_restaurant_id");
+    redirect(`${SUPER_ADMIN_BUSINESSES_PATH}?error=missing_restaurant_id`);
   }
 
   const adminClient = getAdminClient();
@@ -355,7 +368,7 @@ export async function resendAdminInviteAction(formData: FormData) {
     .eq("id", restaurantId)
     .single();
   if (restaurantError || !restaurant) {
-    redirect("/dashboard/super-admin?error=restaurant_not_found");
+    redirect(`${SUPER_ADMIN_BUSINESSES_PATH}?error=restaurant_not_found`);
   }
 
   const { data: adminUser } = await adminClient
@@ -366,7 +379,7 @@ export async function resendAdminInviteAction(formData: FormData) {
     .maybeSingle();
 
   if (!adminUser?.email) {
-    redirect("/dashboard/super-admin?error=no_restaurant_admin");
+    redirect(`${SUPER_ADMIN_BUSINESSES_PATH}?error=no_restaurant_admin`);
   }
 
   const appUrl = getAppBaseUrl();
@@ -383,7 +396,7 @@ export async function resendAdminInviteAction(formData: FormData) {
 
   if (inviteLinkError || !inviteLinkData?.properties) {
     redirect(
-      `/dashboard/super-admin?error=${encodeURIComponent(inviteLinkError?.message ?? "invite_link_failed")}`,
+      `${SUPER_ADMIN_BUSINESSES_PATH}?error=${encodeURIComponent(inviteLinkError?.message ?? "invite_link_failed")}`,
     );
   }
 
@@ -408,13 +421,13 @@ export async function resendAdminInviteAction(formData: FormData) {
     console.error("Failed to resend invite email:", error instanceof Error ? error.message : error);
   }
 
-  revalidatePath("/dashboard/super-admin");
+  revalidateSuperAdminBusinesses();
   if (!inviteEmailSent) {
     redirect(
-      `/dashboard/super-admin?success=invite_resent_email_failed&email=${encodeURIComponent(adminUser.email)}&invite_link=${encodeURIComponent(inviteLink)}`,
+      `${SUPER_ADMIN_BUSINESSES_PATH}?success=invite_resent_email_failed&email=${encodeURIComponent(adminUser.email)}&invite_link=${encodeURIComponent(inviteLink)}`,
     );
   }
-  redirect(`/dashboard/super-admin?success=invite_resent&email=${encodeURIComponent(adminUser.email)}`);
+  redirect(`${SUPER_ADMIN_BUSINESSES_PATH}?success=invite_resent&email=${encodeURIComponent(adminUser.email)}`);
 }
 
 export async function updateRestaurantBrowseSectionsAction(formData: FormData) {
@@ -423,7 +436,7 @@ export async function updateRestaurantBrowseSectionsAction(formData: FormData) {
   if (!id) return;
   const browseValidated = validateBrowseSelectionFromForm(formData, { maxSections: 1 });
   if (!browseValidated.ok) {
-    redirect(`/dashboard/super-admin?error=${encodeURIComponent(browseValidated.error)}`);
+    redirect(`${SUPER_ADMIN_BUSINESSES_PATH}?error=${encodeURIComponent(browseValidated.error)}`);
   }
   const browseSelection = browseValidated.selection;
   const browseSections = normalizeBrowseSections(browseSelection);
@@ -452,12 +465,12 @@ export async function toggleRestaurantActiveAction(formData: FormData) {
       await deactivateRestaurantManually(id);
     } catch (error) {
       const message = error instanceof Error ? error.message : "deactivate_failed";
-      redirect(`/dashboard/super-admin?error=${encodeURIComponent(message)}`);
+      redirect(`${SUPER_ADMIN_BUSINESSES_PATH}?error=${encodeURIComponent(message)}`);
     }
   } else {
     const adminClient = getAdminClient();
     if (!adminClient) {
-      redirect("/dashboard/super-admin?error=missing_service_role");
+      redirect(`${SUPER_ADMIN_BUSINESSES_PATH}?error=missing_service_role`);
     }
 
     const sub = await getLatestSubscription(adminClient, id);
@@ -490,12 +503,12 @@ export async function grantComplimentaryBillingAction(formData: FormData) {
   const id = String(formData.get("id") ?? "").trim();
   const removeComplimentary = String(formData.get("remove_complimentary") ?? "") === "true";
   if (!id) {
-    redirect("/dashboard/super-admin?error=missing_restaurant_id");
+    redirect(`${SUPER_ADMIN_BUSINESSES_PATH}?error=missing_restaurant_id`);
   }
 
   const adminClient = getAdminClient();
   if (!adminClient) {
-    redirect("/dashboard/super-admin?error=missing_service_role");
+    redirect(`${SUPER_ADMIN_BUSINESSES_PATH}?error=missing_service_role`);
   }
 
   try {
@@ -507,7 +520,7 @@ export async function grantComplimentaryBillingAction(formData: FormData) {
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : "complimentary_billing_update_failed";
-    redirect(`/dashboard/super-admin?error=${encodeURIComponent(message)}`);
+    redirect(`${SUPER_ADMIN_BUSINESSES_PATH}?error=${encodeURIComponent(message)}`);
   }
 
   revalidatePath("/dashboard/super-admin");
@@ -536,7 +549,7 @@ export async function toggleRestaurantHomeVisibilityAction(formData: FormData) {
     .from("restaurants")
     .update({ show_on_home: !showOnHome })
     .eq("id", id);
-  revalidatePath("/dashboard/super-admin");
+  revalidateSuperAdminBusinesses();
   revalidatePath("/");
 }
 
@@ -544,7 +557,7 @@ export async function renewSubscriptionAction(formData: FormData) {
   await requireSuperAdmin();
   const id = String(formData.get("id") ?? "").trim();
   if (!id) {
-    redirect("/dashboard/super-admin?error=missing_restaurant_id");
+    redirect(`${SUPER_ADMIN_BUSINESSES_PATH}?error=missing_restaurant_id`);
   }
 
   try {
@@ -556,7 +569,7 @@ export async function renewSubscriptionAction(formData: FormData) {
       .single();
 
     if (restaurantError || !restaurant) {
-      redirect("/dashboard/super-admin?error=restaurant_not_found");
+      redirect(`${SUPER_ADMIN_BUSINESSES_PATH}?error=restaurant_not_found`);
     }
 
     const renewal = await renewRestaurantSubscription(adminClient, id);
@@ -579,23 +592,23 @@ export async function renewSubscriptionAction(formData: FormData) {
           billingInterval: "billingInterval" in renewal ? renewal.billingInterval : undefined,
         });
       } catch {
-        revalidatePath("/dashboard/super-admin");
-        redirect("/dashboard/super-admin?success=subscription_renewed_email_failed");
+  revalidateSuperAdminBusinesses();
+        redirect(`${SUPER_ADMIN_BUSINESSES_PATH}?success=subscription_renewed_email_failed`);
       }
     } else {
-      revalidatePath("/dashboard/super-admin");
-      redirect("/dashboard/super-admin?success=subscription_renewed_email_failed");
+  revalidateSuperAdminBusinesses();
+      redirect(`${SUPER_ADMIN_BUSINESSES_PATH}?success=subscription_renewed_email_failed`);
     }
 
-    revalidatePath("/dashboard/super-admin");
+  revalidateSuperAdminBusinesses();
     revalidatePath("/dashboard/billing");
-    redirect("/dashboard/super-admin?success=subscription_renewed");
+    redirect(`${SUPER_ADMIN_BUSINESSES_PATH}?success=subscription_renewed`);
   } catch (error) {
     if (isRedirectError(error)) {
       throw error;
     }
     const message = error instanceof Error ? error.message : "renew_failed";
-    redirect(`/dashboard/super-admin?error=${encodeURIComponent(message)}`);
+    redirect(`${SUPER_ADMIN_BUSINESSES_PATH}?error=${encodeURIComponent(message)}`);
   }
 }
 
@@ -605,7 +618,7 @@ export async function updateSubscriptionStatusAction(formData: FormData) {
   const status = String(formData.get("status") ?? "").trim();
   const allowed = new Set(["trial", "active", "overdue", "paused", "cancelled"]);
   if (!id || !allowed.has(status)) {
-    redirect("/dashboard/super-admin?error=invalid_subscription_update");
+    redirect(`${SUPER_ADMIN_BUSINESSES_PATH}?error=invalid_subscription_update`);
   }
 
   const supabase = await createServerSupabaseClient();
@@ -616,7 +629,7 @@ export async function updateSubscriptionStatusAction(formData: FormData) {
     .maybeSingle();
 
   if (loadError || !subscription?.restaurant_id) {
-    redirect("/dashboard/super-admin?error=invalid_subscription_update");
+    redirect(`${SUPER_ADMIN_BUSINESSES_PATH}?error=invalid_subscription_update`);
   }
 
   const nowIso = new Date().toISOString();
@@ -628,7 +641,7 @@ export async function updateSubscriptionStatusAction(formData: FormData) {
     .update({ status, ended_at: endedAt, updated_at: nowIso })
     .eq("id", id);
   if (error) {
-    redirect(`/dashboard/super-admin?error=${encodeURIComponent(error.message)}`);
+    redirect(`${SUPER_ADMIN_BUSINESSES_PATH}?error=${encodeURIComponent(error.message)}`);
   }
 
   if (status === "paused" || status === "cancelled") {
@@ -641,7 +654,7 @@ export async function updateSubscriptionStatusAction(formData: FormData) {
     }
   }
 
-  revalidatePath("/dashboard/super-admin");
+  revalidateSuperAdminBusinesses();
   revalidatePath("/dashboard/billing");
   revalidatePath("/");
 }
@@ -651,12 +664,12 @@ export async function setNextDueDateAction(formData: FormData) {
   const id = String(formData.get("id") ?? "").trim();
   const nextDueAt = parseIsoDate(formData.get("next_due_at"));
   if (!id || !nextDueAt) {
-    redirect("/dashboard/super-admin?error=invalid_due_date");
+    redirect(`${SUPER_ADMIN_BUSINESSES_PATH}?error=invalid_due_date`);
   }
 
   const adminClient = getAdminClient();
   if (!adminClient) {
-    redirect("/dashboard/super-admin?error=missing_service_role");
+    redirect(`${SUPER_ADMIN_BUSINESSES_PATH}?error=missing_service_role`);
   }
 
   const { data: subscription, error: loadError } = await adminClient
@@ -666,7 +679,7 @@ export async function setNextDueDateAction(formData: FormData) {
     .maybeSingle();
 
   if (loadError || !subscription?.restaurant_id) {
-    redirect("/dashboard/super-admin?error=invalid_subscription_update");
+    redirect(`${SUPER_ADMIN_BUSINESSES_PATH}?error=invalid_subscription_update`);
   }
 
   const nowIso = new Date().toISOString();
@@ -691,7 +704,7 @@ export async function setNextDueDateAction(formData: FormData) {
     .update(subscriptionUpdate)
     .eq("id", id);
   if (error) {
-    redirect(`/dashboard/super-admin?error=${encodeURIComponent(error.message)}`);
+    redirect(`${SUPER_ADMIN_BUSINESSES_PATH}?error=${encodeURIComponent(error.message)}`);
   }
 
   if (isFutureDue) {
@@ -839,7 +852,7 @@ export async function enableAddonAction(formData: FormData) {
   const addonKey = String(formData.get("addon_key") ?? "").trim();
   const notes = String(formData.get("notes") ?? "").trim() || null;
   if (!restaurantId || !addonKey) {
-    redirect("/dashboard/super-admin?error=missing_addon_fields");
+    redirect(`${SUPER_ADMIN_BUSINESSES_PATH}?error=missing_addon_fields`);
   }
   const supabase = await createServerSupabaseClient();
   const { error } = await supabase.from("restaurant_addons").upsert(
@@ -855,7 +868,7 @@ export async function enableAddonAction(formData: FormData) {
     { onConflict: "restaurant_id,addon_key" },
   );
   if (error) {
-    redirect(`/dashboard/super-admin?error=${encodeURIComponent(error.message)}`);
+    redirect(`${SUPER_ADMIN_BUSINESSES_PATH}?error=${encodeURIComponent(error.message)}`);
   }
   revalidatePath("/dashboard/super-admin");
 }
@@ -865,7 +878,7 @@ export async function disableAddonAction(formData: FormData) {
   const restaurantId = String(formData.get("restaurant_id") ?? "").trim();
   const addonKey = String(formData.get("addon_key") ?? "").trim();
   if (!restaurantId || !addonKey) {
-    redirect("/dashboard/super-admin?error=missing_addon_fields");
+    redirect(`${SUPER_ADMIN_BUSINESSES_PATH}?error=missing_addon_fields`);
   }
   const supabase = await createServerSupabaseClient();
   const { error } = await supabase
@@ -874,7 +887,7 @@ export async function disableAddonAction(formData: FormData) {
     .eq("restaurant_id", restaurantId)
     .eq("addon_key", addonKey);
   if (error) {
-    redirect(`/dashboard/super-admin?error=${encodeURIComponent(error.message)}`);
+    redirect(`${SUPER_ADMIN_BUSINESSES_PATH}?error=${encodeURIComponent(error.message)}`);
   }
   revalidatePath("/dashboard/super-admin");
 }
@@ -895,35 +908,35 @@ export async function deleteRestaurantAction(formData: FormData) {
   }
 
   await adminClient.from("restaurants").delete().eq("id", id);
-  revalidatePath("/dashboard/super-admin");
+  revalidateSuperAdminBusinesses();
   revalidatePath("/");
-  redirect("/dashboard/super-admin?success=restaurant_deleted");
+  redirect(`${SUPER_ADMIN_BUSINESSES_PATH}?success=restaurant_deleted`);
 }
 
 export async function togglePlatformUserBlockedAction(formData: FormData) {
   const appUser = await requireSuperAdmin();
   const id = String(formData.get("id") ?? "").trim();
   const isBlocked = String(formData.get("is_blocked") ?? "") === "true";
-  if (!id) redirect("/dashboard/super-admin?error=missing_user_id");
-  if (id === appUser.id) redirect("/dashboard/super-admin?error=cannot_block_self");
+  if (!id) redirect(`${SUPER_ADMIN_USERS_PATH}?error=missing_user_id`);
+  if (id === appUser.id) redirect(`${SUPER_ADMIN_USERS_PATH}?error=cannot_block_self`);
 
   const adminClient = getAdminClient();
   const { error } = await adminClient.auth.admin.updateUserById(id, {
     ban_duration: isBlocked ? "none" : "876000h",
   });
   if (error) {
-    redirect(`/dashboard/super-admin?error=${encodeURIComponent(error.message)}`);
+    redirect(`${SUPER_ADMIN_USERS_PATH}?error=${encodeURIComponent(error.message)}`);
   }
 
-  revalidatePath("/dashboard/super-admin");
-  redirect(`/dashboard/super-admin?success=${isBlocked ? "user_unblocked" : "user_blocked"}`);
+  revalidateSuperAdminUsers();
+  redirect(`${SUPER_ADMIN_USERS_PATH}?success=${isBlocked ? "user_unblocked" : "user_blocked"}`);
 }
 
 export async function deletePlatformUserAction(formData: FormData) {
   const appUser = await requireSuperAdmin();
   const id = String(formData.get("id") ?? "").trim();
-  if (!id) redirect("/dashboard/super-admin?error=missing_user_id");
-  if (id === appUser.id) redirect("/dashboard/super-admin?error=cannot_delete_self");
+  if (!id) redirect(`${SUPER_ADMIN_USERS_PATH}?error=missing_user_id`);
+  if (id === appUser.id) redirect(`${SUPER_ADMIN_USERS_PATH}?error=cannot_delete_self`);
 
   const adminClient = getAdminClient();
 
@@ -934,11 +947,11 @@ export async function deletePlatformUserAction(formData: FormData) {
 
   const { error } = await adminClient.auth.admin.deleteUser(id);
   if (error) {
-    redirect(`/dashboard/super-admin?error=${encodeURIComponent(error.message)}`);
+    redirect(`${SUPER_ADMIN_USERS_PATH}?error=${encodeURIComponent(error.message)}`);
   }
 
-  revalidatePath("/dashboard/super-admin");
-  redirect("/dashboard/super-admin?success=user_deleted");
+  revalidateSuperAdminUsers();
+  redirect(`${SUPER_ADMIN_USERS_PATH}?success=user_deleted`);
 }
 
 export async function setRestaurantAdminPasswordAction(formData: FormData) {
@@ -947,10 +960,10 @@ export async function setRestaurantAdminPasswordAction(formData: FormData) {
   const password = String(formData.get("password") ?? "");
   const confirmPassword = String(formData.get("confirm_password") ?? "");
 
-  if (!restaurantId) redirect("/dashboard/super-admin?error=missing_restaurant_id");
-  if (!password) redirect("/dashboard/super-admin?error=missing_password");
-  if (password.length < 8) redirect("/dashboard/super-admin?error=password_too_short");
-  if (password !== confirmPassword) redirect("/dashboard/super-admin?error=password_mismatch");
+  if (!restaurantId) redirect(`${SUPER_ADMIN_BUSINESSES_PATH}?error=missing_restaurant_id`);
+  if (!password) redirect(`${SUPER_ADMIN_BUSINESSES_PATH}?error=missing_password`);
+  if (password.length < 8) redirect(`${SUPER_ADMIN_BUSINESSES_PATH}?error=password_too_short`);
+  if (password !== confirmPassword) redirect(`${SUPER_ADMIN_BUSINESSES_PATH}?error=password_mismatch`);
 
   const adminClient = getAdminClient();
   const { data: adminUser } = await adminClient
@@ -961,7 +974,7 @@ export async function setRestaurantAdminPasswordAction(formData: FormData) {
     .maybeSingle();
 
   if (!adminUser?.id) {
-    redirect("/dashboard/super-admin?error=no_restaurant_admin");
+    redirect(`${SUPER_ADMIN_BUSINESSES_PATH}?error=no_restaurant_admin`);
   }
 
   const { error } = await adminClient.auth.admin.updateUserById(adminUser.id, {
@@ -969,11 +982,11 @@ export async function setRestaurantAdminPasswordAction(formData: FormData) {
     email_confirm: true,
   });
   if (error) {
-    redirect(`/dashboard/super-admin?error=${encodeURIComponent(error.message)}`);
+    redirect(`${SUPER_ADMIN_BUSINESSES_PATH}?error=${encodeURIComponent(error.message)}`);
   }
 
-  revalidatePath("/dashboard/super-admin");
-  redirect("/dashboard/super-admin?success=restaurant_password_updated");
+  revalidateSuperAdminBusinesses();
+  redirect(`${SUPER_ADMIN_BUSINESSES_PATH}?success=restaurant_password_updated`);
 }
 
 export async function setPlatformUserPasswordAction(formData: FormData) {
@@ -982,10 +995,10 @@ export async function setPlatformUserPasswordAction(formData: FormData) {
   const password = String(formData.get("password") ?? "");
   const confirmPassword = String(formData.get("confirm_password") ?? "");
 
-  if (!id) redirect("/dashboard/super-admin?error=missing_user_id");
-  if (!password) redirect("/dashboard/super-admin?error=missing_password");
-  if (password.length < 8) redirect("/dashboard/super-admin?error=password_too_short");
-  if (password !== confirmPassword) redirect("/dashboard/super-admin?error=password_mismatch");
+  if (!id) redirect(`${SUPER_ADMIN_USERS_PATH}?error=missing_user_id`);
+  if (!password) redirect(`${SUPER_ADMIN_USERS_PATH}?error=missing_password`);
+  if (password.length < 8) redirect(`${SUPER_ADMIN_USERS_PATH}?error=password_too_short`);
+  if (password !== confirmPassword) redirect(`${SUPER_ADMIN_USERS_PATH}?error=password_mismatch`);
 
   const adminClient = getAdminClient();
   const { error } = await adminClient.auth.admin.updateUserById(id, {
@@ -993,11 +1006,11 @@ export async function setPlatformUserPasswordAction(formData: FormData) {
     email_confirm: true,
   });
   if (error) {
-    redirect(`/dashboard/super-admin?error=${encodeURIComponent(error.message)}`);
+    redirect(`${SUPER_ADMIN_USERS_PATH}?error=${encodeURIComponent(error.message)}`);
   }
 
-  revalidatePath("/dashboard/super-admin");
-  redirect("/dashboard/super-admin?success=user_password_updated");
+  revalidateSuperAdminUsers();
+  redirect(`${SUPER_ADMIN_USERS_PATH}?success=user_password_updated`);
 }
 
 function getAdminClient() {

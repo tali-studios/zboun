@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   deleteRestaurantAction,
@@ -72,6 +72,8 @@ type RestaurantRow = {
 type Props = {
   restaurants: RestaurantRow[];
 };
+
+const PAGE_SIZE = 5;
 
 type ActionIconButtonProps = {
   /** Full label for tooltips (desktop hover) and screen readers */
@@ -232,6 +234,26 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
       return matchSearch && matchStatus;
     });
   }, [q, restaurants, status]);
+
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    setPage(1);
+  }, [q, status]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
+
+  const paginated = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return filtered.slice(start, start + PAGE_SIZE);
+  }, [currentPage, filtered]);
 
   function hasHomeCategory(restaurant: RestaurantRow) {
     return hasCatalogDashboard(
@@ -507,7 +529,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
   }
 
   return (
-    <section id="businesses" className="panel min-w-0 scroll-mt-28 overflow-hidden">
+    <section className="panel min-w-0 overflow-hidden">
       <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50/80 to-white px-5 py-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -552,7 +574,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
       </div>
 
       <div className="mt-4 space-y-3 lg:hidden">
-        {filtered.map((restaurant) => (
+        {paginated.map((restaurant) => (
           <article
             key={restaurant.id}
             className="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm sm:p-4"
@@ -768,7 +790,7 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((restaurant) => (
+            {paginated.map((restaurant) => (
               <tr key={restaurant.id} className="border-b border-slate-200/80">
                 <td className={`border-r border-white/50 px-3 py-3 font-medium text-slate-900 ${TABLE_DATA_COLUMNS[0].cell}`}>
                   <span className="block truncate" title={restaurant.name}>
@@ -964,6 +986,36 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
           </tbody>
         </table>
       </div>
+
+      {filtered.length > PAGE_SIZE ? (
+        <div className="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs text-slate-500">
+            Showing {(currentPage - 1) * PAGE_SIZE + 1}–
+            {Math.min(currentPage * PAGE_SIZE, filtered.length)} of {filtered.length}
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+              disabled={currentPage <= 1}
+              className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+            >
+              Previous
+            </button>
+            <span className="text-xs font-semibold text-slate-600">
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              type="button"
+              onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+              disabled={currentPage >= totalPages}
+              className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {modal.open && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/40 p-4">

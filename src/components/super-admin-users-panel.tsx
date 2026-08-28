@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useTransition, type ReactNode } from "react";
+import { useEffect, useState, useMemo, useTransition, type ReactNode } from "react";
 import { Ban, KeyRound, ShieldCheck, Trash2 } from "lucide-react";
 import {
   deletePlatformUserAction,
@@ -23,6 +23,8 @@ type Props = {
   users: UserRow[];
   currentUserId: string;
 };
+
+const PAGE_SIZE = 5;
 
 type SortKey = "name" | "email" | "role" | "status" | "created_at" | "last_sign_in_at";
 type SortDir = "asc" | "desc";
@@ -191,6 +193,26 @@ export function SuperAdminUsersPanel({ users, currentUserId }: Props) {
     return result;
   }, [users, search, roleFilter, statusFilter, sortKey, sortDir]);
 
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, roleFilter, statusFilter, sortKey, sortDir]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
+
+  const paginated = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return filtered.slice(start, start + PAGE_SIZE);
+  }, [currentPage, filtered]);
+
   function toggleSort(key: SortKey) {
     if (sortKey === key) {
       setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -289,7 +311,7 @@ export function SuperAdminUsersPanel({ users, currentUserId }: Props) {
         />
       )}
 
-      <section id="users" className="panel scroll-mt-28 overflow-hidden">
+      <section className="panel overflow-hidden">
         <div className="border-b border-slate-100 p-4 md:p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
@@ -395,7 +417,7 @@ export function SuperAdminUsersPanel({ users, currentUserId }: Props) {
               No users match your filters.
             </div>
           ) : (
-            filtered.map((user) => {
+            paginated.map((user) => {
               const isSelf = user.id === currentUserId;
               return (
                 <article
@@ -510,7 +532,7 @@ export function SuperAdminUsersPanel({ users, currentUserId }: Props) {
                   </td>
                 </tr>
               ) : (
-                filtered.map((user) => {
+                paginated.map((user) => {
                   const isSelf = user.id === currentUserId;
                   return (
                     <tr
@@ -594,15 +616,43 @@ export function SuperAdminUsersPanel({ users, currentUserId }: Props) {
           </table>
         </div>
 
-        {/* Footer */}
-        {filtered.length > 0 && (
+        {filtered.length > PAGE_SIZE ? (
+          <div className="flex flex-col gap-3 border-t border-slate-100 bg-slate-50/50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs text-slate-500">
+              Showing {(currentPage - 1) * PAGE_SIZE + 1}–
+              {Math.min(currentPage * PAGE_SIZE, filtered.length)} of {filtered.length}
+              {filtered.length < users.length ? ` (${users.length} total)` : ""}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                disabled={currentPage <= 1}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+              >
+                Previous
+              </button>
+              <span className="text-xs font-semibold text-slate-600">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+                disabled={currentPage >= totalPages}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        ) : filtered.length > 0 ? (
           <div className="border-t border-slate-100 bg-slate-50/50 px-4 py-2.5">
             <p className="text-xs text-slate-400">
               {filtered.length} {filtered.length === 1 ? "user" : "users"} shown
               {filtered.length < users.length && ` · ${users.length - filtered.length} hidden by filters`}
             </p>
           </div>
-        )}
+        ) : null}
       </section>
     </>
   );
