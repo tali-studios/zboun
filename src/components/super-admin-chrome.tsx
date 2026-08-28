@@ -6,7 +6,6 @@ import {
   LayoutDashboard,
   LockKeyhole,
   LogOut,
-  ReceiptText,
   Sparkles,
   Store,
   Users,
@@ -18,7 +17,6 @@ const NAV_ITEMS = [
   { href: "/dashboard/super-admin", label: "Overview", icon: LayoutDashboard },
   { href: "/dashboard/super-admin#businesses", label: "Businesses", icon: Store },
   { href: "/dashboard/super-admin#users", label: "Users", icon: Users },
-  { href: "/dashboard/super-admin#billing", label: "Billing", icon: ReceiptText },
   { href: "/dashboard/super-admin/banners", label: "Home banners", icon: Images },
   { href: "/dashboard/super-admin/visit-kit", label: "Visit kit", icon: Sparkles },
 ] as const;
