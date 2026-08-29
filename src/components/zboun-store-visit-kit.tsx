@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { toPng } from "html-to-image";
 import { jsPDF } from "jspdf";
 import QRCode from "qrcode";
-import { Download } from "lucide-react";
+import { Download, FileDown } from "lucide-react";
 import { ZBOUN_PRICING, formatPricingSummary, yearlySavings } from "@/lib/pricing";
 import { ZBOUN_PRESENCE } from "@/lib/zboun-presence";
 import {
@@ -324,6 +324,20 @@ export function ZbounStoreVisitKit() {
     };
   }, []);
 
+  async function downloadPng() {
+    if (!exportRef.current) return;
+    try {
+      setExporting(true);
+      const dataUrl = await toPng(exportRef.current, { cacheBust: true, pixelRatio: 3 });
+      const link = document.createElement("a");
+      link.href = dataUrl;
+      link.download = "zboun-store-visit-kit.png";
+      link.click();
+    } finally {
+      setExporting(false);
+    }
+  }
+
   async function downloadPdf() {
     if (!exportRef.current) return;
     try {
@@ -353,15 +367,26 @@ export function ZbounStoreVisitKit() {
                 One-page pitch sheet for store visits — download and leave a copy.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={downloadPdf}
-              disabled={!siteQr || !logoSrc || exporting}
-              className="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-violet-600 px-5 py-3 text-sm font-semibold text-white shadow-sm shadow-violet-500/25 transition hover:bg-violet-700 disabled:opacity-60 sm:w-auto"
-            >
-              <Download className="h-4 w-4" aria-hidden />
-              {exporting ? "Preparing…" : "Download PDF"}
-            </button>
+            <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row">
+              <button
+                type="button"
+                onClick={downloadPng}
+                disabled={!siteQr || !logoSrc || exporting}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-sm shadow-emerald-500/25 transition hover:bg-emerald-700 disabled:opacity-60 sm:w-auto"
+              >
+                <Download className="h-4 w-4" aria-hidden />
+                {exporting ? "Preparing…" : "Download PNG"}
+              </button>
+              <button
+                type="button"
+                onClick={downloadPdf}
+                disabled={!siteQr || !logoSrc || exporting}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-violet-600 px-5 py-3 text-sm font-semibold text-white shadow-sm shadow-violet-500/25 transition hover:bg-violet-700 disabled:opacity-60 sm:w-auto"
+              >
+                <FileDown className="h-4 w-4" aria-hidden />
+                {exporting ? "Preparing…" : "Download PDF"}
+              </button>
+            </div>
           </div>
         </div>
       </header>
