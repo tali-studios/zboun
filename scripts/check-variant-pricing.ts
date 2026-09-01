@@ -12,6 +12,7 @@ const groups: MenuOptionGroup[] = [
     values: [
       { name: "256GB", price: 0 },
       { name: "512GB", price: 0 },
+      { name: "2TB", price: 0 },
     ],
   },
   { label: "RAM", values: [{ name: "12GB", price: 0 }] },
@@ -56,6 +57,10 @@ assert(
     Color: "Black",
   }),
   "An invalid complete combination was accepted",
+);
+assert(
+  !isVariantComboOffered(prices, groups, { Storage: "2TB" }),
+  "A storage with no entered prices was offered",
 );
 
 const stocks = {

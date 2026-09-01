@@ -593,8 +593,17 @@ export function MenuClient({
 
   /** Switch size/volume on the menu card — updates shown price + preselects in the picker. */
   function pickListSize(item: MenuItemRow, sizeLabel: string, sizeName: string) {
-    setListSizeByItemId((prev) => ({ ...prev, [item.id]: sizeName }));
     const groups = getItemOptionGroups(item);
+    if (
+      itemUsesVariantPrices(item.option_variant_prices) &&
+      !isVariantComboOffered(item.option_variant_prices, groups, {
+        [sizeLabel]: sizeName,
+      })
+    ) {
+      return;
+    }
+
+    setListSizeByItemId((prev) => ({ ...prev, [item.id]: sizeName }));
     const colorGroup = findColorOptionGroup(groups);
     if (!colorGroup) return;
 
@@ -2300,10 +2309,20 @@ export function MenuClient({
                       {showListSizes && sizeGroup ? (
                         <div
                           className={`mt-2.5 flex flex-wrap gap-1.5 ${canShop ? "pr-1" : ""}`}
-                          role="list"
+                          role="group"
                           aria-label={`Sizes for ${item.name}`}
                         >
                           {sizeGroup.values.map((option) => {
+                            const offered =
+                              !itemUsesVariantPrices(item.option_variant_prices) ||
+                              isVariantComboOffered(
+                                item.option_variant_prices,
+                                optionGroups,
+                                {
+                                  ...listColorSelections,
+                                  [sizeGroup.label]: option.name,
+                                },
+                              );
                             const available = optionHasRemainingStock(
                               optionGroups,
                               item.option_variant_stock,
@@ -2316,29 +2335,35 @@ export function MenuClient({
                               Boolean(item.track_stock) &&
                               itemUsesVariantStock(item.option_variant_stock) &&
                               !available;
+                            const unavailable = !offered || soldOut;
                             const selected = listSizeName === option.name;
                             return (
                               <button
                                 key={`${item.id}-size-${option.name}`}
                                 type="button"
-                                role="listitem"
-                                disabled={soldOut || !stock.available || !canShop}
+                                disabled={unavailable || !stock.available || !canShop}
                                 title={
-                                  soldOut ? `${option.name} · out of stock` : option.name
+                                  !offered
+                                    ? `${option.name} · price not available`
+                                    : soldOut
+                                      ? `${option.name} · out of stock`
+                                      : option.name
                                 }
                                 onClick={() =>
                                   pickListSize(item, sizeGroup.label, option.name)
                                 }
                                 className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition ${
-                                  soldOut || !stock.available
+                                  unavailable || !stock.available
                                     ? "cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400 line-through opacity-50"
                                     : selected
                                       ? "border-slate-900 bg-slate-900 text-white"
                                       : "border-slate-200 bg-white text-slate-700 hover:border-slate-400"
                                 }`}
                                 aria-label={
-                                  soldOut
-                                    ? `${option.name}, out of stock`
+                                  !offered
+                                    ? `${option.name}, price not available`
+                                    : soldOut
+                                      ? `${option.name}, out of stock`
                                     : `Choose ${option.name}`
                                 }
                                 aria-pressed={selected}
@@ -2353,46 +2378,62 @@ export function MenuClient({
                       {colorGroup && colorGroup.values.length > 0 ? (
                         <div
                           className={`mt-2.5 flex flex-wrap gap-1.5 ${canShop ? "pr-1" : ""}`}
-                          role="list"
+                          role="group"
                           aria-label={`Colors for ${item.name}`}
                         >
                           {colorGroup.values.map((option) => {
+                            const offered =
+                              !itemUsesVariantPrices(item.option_variant_prices) ||
+                              isVariantComboOffered(
+                                item.option_variant_prices,
+                                optionGroups,
+                                {
+                                  ...listSizeSelections,
+                                  [colorGroup.label]: option.name,
+                                },
+                              );
                             const available = optionHasRemainingStock(
                               optionGroups,
                               item.option_variant_stock,
                               item.track_stock,
                               colorGroup.label,
                               option.name,
-                              {},
+                              listSizeSelections,
                             );
                             const soldOut =
                               Boolean(item.track_stock) &&
                               itemUsesVariantStock(item.option_variant_stock) &&
                               !available;
+                            const unavailable = !offered || soldOut;
                             const selected = listColorName === option.name;
                             const swatch = resolveColorSwatch(option.name);
                             return (
                               <button
                                 key={`${item.id}-color-${option.name}`}
                                 type="button"
-                                role="listitem"
-                                disabled={soldOut || !stock.available || !canShop}
+                                disabled={unavailable || !stock.available || !canShop}
                                 title={
-                                  soldOut ? `${option.name} · out of stock` : option.name
+                                  !offered
+                                    ? `${option.name} · price not available`
+                                    : soldOut
+                                      ? `${option.name} · out of stock`
+                                      : option.name
                                 }
                                 onClick={() =>
                                   pickListColor(item, colorGroup.label, option.name)
                                 }
                                 className={`relative h-7 w-7 shrink-0 overflow-hidden rounded-[4px] border transition ${
-                                  soldOut || !stock.available
+                                  unavailable || !stock.available
                                     ? "cursor-not-allowed opacity-35"
                                     : selected
                                       ? "border-2 border-slate-900 ring-1 ring-slate-900 ring-offset-1"
                                       : "border border-slate-300 hover:border-slate-500"
                                 }`}
                                 aria-label={
-                                  soldOut
-                                    ? `${option.name}, out of stock`
+                                  !offered
+                                    ? `${option.name}, price not available`
+                                    : soldOut
+                                      ? `${option.name}, out of stock`
                                     : `Choose ${option.name}`
                                 }
                                 aria-pressed={selected}
@@ -2406,7 +2447,7 @@ export function MenuClient({
                                     {option.name.slice(0, 1)}
                                   </span>
                                 ) : null}
-                                {soldOut ? (
+                                {unavailable ? (
                                   <span className="absolute inset-0 flex items-center justify-center">
                                     <span className="h-px w-full rotate-[-28deg] bg-slate-500" />
                                   </span>
