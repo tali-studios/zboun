@@ -176,12 +176,12 @@ export function itemHasActiveSale(item: MenuItemPricingFields): boolean {
 }
 
 import {
-  buildVariantKey,
   getCombinedOptionExtraPrice,
-  getVariantAbsolutePrice,
+  isVariantComboOffered,
   itemUsesVariantPrices,
   normalizeOptionGroups,
   resolveOptionListUnitPrice,
+  resolveVariantListPrice,
   selectionsFromDisplayString,
 } from "@/lib/menu-item-options";
 
@@ -195,11 +195,15 @@ type OrderLineInput = {
   addedIngredients?: Array<{ name: string; qty: number; price: number }>;
 };
 
+function getPricingOptionGroups(item: MenuItemPricingFields) {
+  return normalizeOptionGroups(item.option_label, item.option_values);
+}
+
 function getOptionExtraPrice(
   item: MenuItemPricingFields,
   selectedOption: string | null | undefined,
 ): number {
-  const groups = normalizeOptionGroups(item.option_label, item.option_values);
+  const groups = getPricingOptionGroups(item);
   if (groups.length === 0) return 0;
   const display = String(selectedOption ?? "").trim();
   if (!display) return 0;
@@ -225,7 +229,7 @@ export function computeExpectedLineUnitPrice(
   item: MenuItemPricingFields,
   line: Pick<OrderLineInput, "unit" | "selectedOption" | "addedIngredients">,
 ): number {
-  const groups = normalizeOptionGroups(item.option_label, item.option_values);
+  const groups = getPricingOptionGroups(item);
   const display = String(line.selectedOption ?? "").trim();
   const selections =
     groups.length > 0 && display
@@ -234,11 +238,8 @@ export function computeExpectedLineUnitPrice(
         : selectionsFromDisplayString(groups, display)
       : {};
 
-  const hasAbsoluteKey =
-    groups.length > 0 &&
-    display &&
-    Object.keys(selections).length > 0 &&
-    getVariantAbsolutePrice(item.option_variant_prices, buildVariantKey(groups, selections)) != null;
+  const resolved = resolveVariantListPrice(item.option_variant_prices, groups, selections);
+  const hasAbsoluteKey = resolved.price != null && resolved.exact;
 
   if (hasAbsoluteKey && line.unit !== "kg" && !item.sold_by_weight) {
     const listUnit = resolveOptionListUnitPrice(
@@ -298,7 +299,7 @@ export function validateOrderLinesPricing(
     }
 
     if (itemUsesVariantPrices(item.option_variant_prices) && line.unit !== "kg" && !item.sold_by_weight) {
-      const groups = normalizeOptionGroups(item.option_label, item.option_values);
+      const groups = getPricingOptionGroups(item);
       const display = String(line.selectedOption ?? "").trim();
       const selections =
         groups.length > 0 && display
@@ -306,10 +307,7 @@ export function validateOrderLinesPricing(
             ? { [groups[0]!.label]: display }
             : selectionsFromDisplayString(groups, display)
           : {};
-      if (
-        Object.keys(selections).length > 0 &&
-        getVariantAbsolutePrice(item.option_variant_prices, buildVariantKey(groups, selections)) == null
-      ) {
+      if (Object.keys(selections).length > 0 && !isVariantComboOffered(item.option_variant_prices, groups, selections)) {
         return {
           ok: false,
           error: `“${item.name}” is not available in that option combination. Please choose another.`,

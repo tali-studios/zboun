@@ -51,6 +51,7 @@ import {
   type ItemAudience,
 } from "@/lib/item-audience";
 import {
+  applySoleOptionDefaults,
   findColorOptionGroup,
   findSizeLikeOptionGroup,
   formatOptionLabelsDisplay,
@@ -66,7 +67,7 @@ import {
   normalizeOptionGroups,
   optionHasRemainingStock,
   resolveOptionColorImageUrl,
-  resolveOptionListUnitPrice,
+  resolveVariantListPrice,
   selectionsComplete,
   selectionsFromDisplayString,
   snapshotSelectedOptions,
@@ -216,13 +217,12 @@ function getOptionExtraPrice(item: MenuItemRow, selections: OptionSelections) {
 /** Effective unit price for a selected combo (absolute matrix or base + extras), after sales. */
 function getSelectedOptionUnitPrice(item: MenuItemRow, selections: OptionSelections) {
   const groups = getItemOptionGroups(item);
-  const variantKey = snapshotSelectedOptions(groups, selections).variantKey;
-  const absolute = getVariantAbsolutePrice(item.option_variant_prices, variantKey);
-  if (absolute != null) {
+  const resolved = resolveVariantListPrice(item.option_variant_prices, groups, selections);
+  if (resolved.price != null && resolved.exact) {
     if (item.percent_off != null && item.percent_off > 0) {
-      return Math.max(0, Math.round(absolute * (1 - item.percent_off / 100) * 100) / 100);
+      return Math.max(0, Math.round(resolved.price * (1 - item.percent_off / 100) * 100) / 100);
     }
-    return absolute;
+    return resolved.price;
   }
   return Math.max(0, getEffectiveFlatPrice(item) + getOptionExtraPrice(item, selections));
 }
@@ -528,21 +528,28 @@ export function MenuClient({
     const listSize = sizeGroup ? listSizeByItemId[item.id] : undefined;
     const fromList: OptionSelections = {};
 
-    // Prefer list-card picks; otherwise auto-select when only one color/size exists
-    // (popup only — list cards stay unselected until the shopper taps).
-    const soleColor =
-      colorGroup && colorGroup.values.length === 1 ? colorGroup.values[0].name : null;
-    const soleSize =
-      sizeGroup && sizeGroup.values.length === 1 ? sizeGroup.values[0].name : null;
-    const resolvedColor = listColor || soleColor;
-    const resolvedSize = listSize || soleSize;
+    for (const group of groups) {
+      if (initialSelections[group.label]) continue;
 
-    if (colorGroup && resolvedColor && !initialSelections[colorGroup.label]) {
-      fromList[colorGroup.label] = resolvedColor;
+      let value: string | null = null;
+      if (isColorLikeOptionLabel(group.label)) {
+        value =
+          listColor ?? (group.values.length === 1 ? group.values[0]!.name : null);
+      } else if (sizeGroup && group.label === sizeGroup.label) {
+        value =
+          listSize ?? (group.values.length === 1 ? group.values[0]!.name : null);
+      } else if (group.values.length === 1) {
+        value = group.values[0]!.name;
+      }
+
+      if (value) fromList[group.label] = value;
     }
-    if (sizeGroup && resolvedSize && !initialSelections[sizeGroup.label]) {
-      fromList[sizeGroup.label] = resolvedSize;
-    }
+
+    const selectedOptions = applySoleOptionDefaults(
+      groups,
+      { ...fromList, ...initialSelections },
+      item.option_variant_prices,
+    );
 
     setCustomizing({
       item,
@@ -550,7 +557,7 @@ export function MenuClient({
       add: {},
       note: "",
       qty: unitQty,
-      selectedOptions: { ...fromList, ...initialSelections },
+      selectedOptions,
     });
     setSheetDragY(0);
     sheetDragYRef.current = 0;
@@ -585,8 +592,56 @@ export function MenuClient({
   }
 
   /** Switch size/volume on the menu card — updates shown price + preselects in the picker. */
-  function pickListSize(item: MenuItemRow, _sizeLabel: string, sizeName: string) {
+  function pickListSize(item: MenuItemRow, sizeLabel: string, sizeName: string) {
     setListSizeByItemId((prev) => ({ ...prev, [item.id]: sizeName }));
+    const groups = getItemOptionGroups(item);
+    const colorGroup = findColorOptionGroup(groups);
+    if (!colorGroup) return;
+
+    const currentColor = listColorByItemId[item.id];
+    if (currentColor) {
+      const combo = { [sizeLabel]: sizeName, [colorGroup.label]: currentColor };
+      const stillOffered = isVariantComboOffered(item.option_variant_prices, groups, combo);
+      const stillInStock = optionHasRemainingStock(
+        groups,
+        item.option_variant_stock,
+        item.track_stock,
+        colorGroup.label,
+        currentColor,
+        combo,
+      );
+      if (stillOffered && stillInStock) return;
+    }
+
+    for (const option of colorGroup.values) {
+      const combo = { [sizeLabel]: sizeName, [colorGroup.label]: option.name };
+      if (
+        itemUsesVariantPrices(item.option_variant_prices) &&
+        !isVariantComboOffered(item.option_variant_prices, groups, combo)
+      ) {
+        continue;
+      }
+      if (
+        !optionHasRemainingStock(
+          groups,
+          item.option_variant_stock,
+          item.track_stock,
+          colorGroup.label,
+          option.name,
+          combo,
+        )
+      ) {
+        continue;
+      }
+      setListColorByItemId((prev) => ({ ...prev, [item.id]: option.name }));
+      return;
+    }
+
+    setListColorByItemId((prev) => {
+      const next = { ...prev };
+      delete next[item.id];
+      return next;
+    });
   }
 
   function quickAddToCart(item: MenuItemRow) {
@@ -860,6 +915,12 @@ export function MenuClient({
       }
     }
 
+    const resolvedSelections = applySoleOptionDefaults(
+      groups,
+      nextSelections,
+      customizing.item.option_variant_prices,
+    );
+
     // Keep the menu-card color preview in sync when picking in the sheet.
     if (isColorLikeOptionLabel(groupLabel)) {
       setListColorByItemId((prev) => ({ ...prev, [customizing.item.id]: valueName }));
@@ -872,7 +933,7 @@ export function MenuClient({
       prev
         ? {
             ...prev,
-            selectedOptions: nextSelections,
+            selectedOptions: resolvedSelections,
           }
         : prev,
     );
@@ -2026,38 +2087,33 @@ export function MenuClient({
                     optionGroups,
                     listOptionSelections,
                   );
-                  const listAbsolute = resolveOptionListUnitPrice(
-                    Number(item.price ?? 0),
+                  const listResolved = resolveVariantListPrice(
+                    item.option_variant_prices,
                     optionGroups,
                     listOptionSelections,
-                    item.option_variant_prices,
                   );
-                  const hasListAbsolute =
-                    Boolean(item.option_variant_prices) &&
-                    Object.keys(listOptionSelections).length > 0 &&
-                    getVariantAbsolutePrice(
-                      item.option_variant_prices,
-                      snapshotSelectedOptions(optionGroups, listOptionSelections).variantKey,
-                    ) != null;
                   const variantPriceCount = Object.keys(item.option_variant_prices ?? {}).length;
                   const catalogFromMin = minVariantPrice(item.option_variant_prices ?? {});
                   const showFromPrice =
                     soldByWeight ||
-                    (!hasListAbsolute && variantPriceCount >= 2);
-                  const cardPriceUsd = hasListAbsolute
-                    ? item.percent_off != null && item.percent_off > 0
-                      ? Math.round(listAbsolute * (1 - item.percent_off / 100) * 100) / 100
-                      : listAbsolute
-                    : catalogFromMin != null && variantPriceCount >= 1
+                    (variantPriceCount >= 2 &&
+                      (listResolved.price == null || !listResolved.exact));
+                  const cardListPriceUsd =
+                    listResolved.price != null
+                      ? listResolved.price
+                      : catalogFromMin != null && variantPriceCount >= 1
+                        ? catalogFromMin
+                        : Math.round((listBudgetPriceUsd + listOptionExtra) * 100) / 100;
+                  const cardPriceUsd =
+                    listResolved.price != null
                       ? item.percent_off != null && item.percent_off > 0
-                        ? Math.round(catalogFromMin * (1 - item.percent_off / 100) * 100) / 100
-                        : catalogFromMin
-                      : Math.round((budgetPriceUsd + listOptionExtra) * 100) / 100;
-                  const cardListPriceUsd = hasListAbsolute
-                    ? listAbsolute
-                    : catalogFromMin != null && variantPriceCount >= 1
-                      ? catalogFromMin
-                      : Math.round((listBudgetPriceUsd + listOptionExtra) * 100) / 100;
+                        ? Math.round(listResolved.price * (1 - item.percent_off / 100) * 100) / 100
+                        : listResolved.price
+                      : catalogFromMin != null && variantPriceCount >= 1
+                        ? item.percent_off != null && item.percent_off > 0
+                          ? Math.round(catalogFromMin * (1 - item.percent_off / 100) * 100) / 100
+                          : catalogFromMin
+                        : Math.round((budgetPriceUsd + listOptionExtra) * 100) / 100;
                   const showListSizes = Boolean(sizeGroup && sizeGroup.values.length >= 1);
                   const cardImageUrl =
                     resolveOptionColorImageUrl(
@@ -2574,6 +2630,15 @@ export function MenuClient({
                   customizing.item.image_url,
                 ) ?? customizing.item.image_url;
               const fashionSheet = isOptionsOnlyItem(customizing.item);
+              const sheetVariantPrice = resolveVariantListPrice(
+                customizing.item.option_variant_prices,
+                previewGroups,
+                customizing.selectedOptions,
+              );
+              const showSheetFromPrice =
+                !isSoldByWeight(customizing.item) &&
+                itemUsesVariantPrices(customizing.item.option_variant_prices) &&
+                !sheetVariantPrice.exact;
               const sheetUnitPrice = isSoldByWeight(customizing.item)
                 ? getEffectivePricePerKg(customizing.item)
                 : getSelectedOptionUnitPrice(
@@ -2602,13 +2667,13 @@ export function MenuClient({
                       <span className="text-sm font-semibold text-slate-400 line-through">
                         {isSoldByWeight(customizing.item)
                           ? `${formatUsd(sheetListPrice)} / kg`
-                          : formatUsd(sheetListPrice)}
+                          : `${showSheetFromPrice ? "From " : ""}${formatUsd(sheetListPrice)}`}
                       </span>
                     ) : null}
                     <span className="text-lg font-bold" style={{ color: theme.primary }}>
                       {isSoldByWeight(customizing.item)
                         ? `${formatUsd(sheetUnitPrice)} / kg`
-                        : formatUsd(sheetUnitPrice)}
+                        : `${showSheetFromPrice ? "From " : ""}${formatUsd(sheetUnitPrice)}`}
                     </span>
                     <span className="text-sm text-slate-400">
                       {isSoldByWeight(customizing.item) ? "" : formatLbp(sheetUnitPrice)}
@@ -2894,13 +2959,16 @@ export function MenuClient({
                           };
 
                           if (sizeLike) {
-                            const absolute = getVariantAbsolutePrice(
+                            const resolved = resolveVariantListPrice(
                               customizing.item.option_variant_prices,
-                              snapshotSelectedOptions(allGroups, previewSelections).variantKey,
+                              allGroups,
+                              previewSelections,
                             );
                             const priceLabel =
-                              absolute != null
-                                ? formatUsd(absolute)
+                              resolved.price != null
+                                ? resolved.exact
+                                  ? formatUsd(resolved.price)
+                                  : `From ${formatUsd(resolved.price)}`
                                 : extra > 0
                                   ? `+${formatUsd(extra)}`
                                   : selected

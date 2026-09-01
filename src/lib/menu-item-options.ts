@@ -182,14 +182,99 @@ export function isVariantComboOffered(
   selections: OptionSelections,
 ): boolean {
   if (!itemUsesVariantPrices(prices)) return true;
-  const key = buildVariantKey(groups, selections);
-  return getVariantAbsolutePrice(prices, key) != null;
+
+  if (selectionsComplete(groups, selections)) {
+    return getVariantAbsolutePrice(prices, buildVariantKey(groups, selections)) != null;
+  }
+
+  // Partial picks (e.g. color only) — offered if any priced combo matches.
+  return resolveVariantListPrice(prices, groups, selections).price != null;
 }
 
 export function minVariantPrice(prices: Record<string, number>): number | null {
   const values = Object.values(prices).filter((n) => Number.isFinite(n) && n >= 0);
   if (values.length === 0) return null;
   return Math.min(...values);
+}
+
+export type ResolvedVariantListPrice = {
+  price: number | null;
+  /** False when multiple distinct prices still match (show "From"). */
+  exact: boolean;
+};
+
+/**
+ * Resolve a catalog/list price from the variant matrix.
+ * Supports partial selections (e.g. storage picked, color not yet) by matching
+ * all combos that fit the current picks.
+ */
+export function resolveVariantListPrice(
+  prices: Record<string, number> | null | undefined,
+  groups: MenuOptionGroup[],
+  selections: OptionSelections,
+): ResolvedVariantListPrice {
+  if (!itemUsesVariantPrices(prices)) return { price: null, exact: false };
+
+  const fullKey = buildVariantKey(groups, selections);
+  if (fullKey) {
+    const exact = getVariantAbsolutePrice(prices, fullKey);
+    if (exact != null) return { price: exact, exact: true };
+  }
+
+  const hasAnySelection = groups.some((g) =>
+    Boolean(String(selections[g.label] ?? "").trim()),
+  );
+  if (!hasAnySelection) return { price: null, exact: false };
+
+  const matchingPrices: number[] = [];
+  for (const combo of listVariantCombinations(groups)) {
+    const fits = groups.every((g) => {
+      const selected = String(selections[g.label] ?? "").trim();
+      return !selected || combo[g.label] === selected;
+    });
+    if (!fits) continue;
+    const key = buildVariantKey(groups, combo);
+    const price = getVariantAbsolutePrice(prices, key);
+    if (price != null) matchingPrices.push(price);
+  }
+
+  if (matchingPrices.length === 0) return { price: null, exact: false };
+
+  const rounded = matchingPrices.map((p) => Math.round(p * 100) / 100);
+  const unique = [...new Set(rounded)];
+  if (unique.length === 1) return { price: unique[0]!, exact: true };
+  return { price: Math.min(...unique), exact: false };
+}
+
+/**
+ * Auto-fill option groups that only have one value (e.g. a single RAM choice).
+ * Repeats until stable so earlier picks can unlock later sole options.
+ */
+export function applySoleOptionDefaults(
+  groups: MenuOptionGroup[],
+  selections: OptionSelections,
+  variantPrices?: Record<string, number> | null,
+): OptionSelections {
+  const next: OptionSelections = { ...selections };
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const group of groups) {
+      if (String(next[group.label] ?? "").trim()) continue;
+      if (group.values.length !== 1) continue;
+      const sole = group.values[0]!.name;
+      const preview = { ...next, [group.label]: sole };
+      if (
+        itemUsesVariantPrices(variantPrices) &&
+        !isVariantComboOffered(variantPrices, groups, preview)
+      ) {
+        continue;
+      }
+      next[group.label] = sole;
+      changed = true;
+    }
+  }
+  return next;
 }
 
 /**
@@ -202,9 +287,8 @@ export function resolveOptionListUnitPrice(
   selections: OptionSelections,
   variantPrices?: Record<string, number> | null,
 ): number {
-  const key = buildVariantKey(groups, selections);
-  const absolute = getVariantAbsolutePrice(variantPrices, key);
-  if (absolute != null) return absolute;
+  const resolved = resolveVariantListPrice(variantPrices, groups, selections);
+  if (resolved.price != null) return resolved.price;
   const base = Math.max(0, Number(basePrice) || 0);
   return Math.round((base + getCombinedOptionExtraPrice(groups, selections)) * 100) / 100;
 }
