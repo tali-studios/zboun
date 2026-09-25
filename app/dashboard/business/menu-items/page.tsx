@@ -6,6 +6,7 @@ import { StoreAdminHeader } from "@/components/store-admin-header";
 import { loadStoreAdminHeaderContext } from "@/lib/store-admin-header-context";
 import { DashboardSectionJump } from "@/components/dashboard-section-jump";
 import { RestaurantDashboardToast } from "@/components/restaurant-dashboard-toast";
+import { RestoreMenuItemsScroll } from "@/components/restore-menu-items-scroll";
 import { BusinessMenuItemsSection } from "@/components/business-menu-items-section";
 import { SectionManagePanel } from "@/components/section-manage-panel";
 import { BrandManagePanel } from "@/components/brand-manage-panel";
@@ -36,6 +37,7 @@ type Props = {
     jump?: string;
     toast?: string;
     item_name?: string;
+    item_id?: string;
     section_name?: string;
     sections_count?: string;
     brand_name?: string;
@@ -59,6 +61,7 @@ export default async function BusinessMenuItemsPage({ searchParams }: Props) {
     jump,
     toast,
     item_name: itemNameRaw,
+    item_id: itemIdRaw,
     section_name: sectionNameRaw,
     sections_count: sectionsCountRaw,
     brand_name: brandNameRaw,
@@ -173,10 +176,13 @@ export default async function BusinessMenuItemsPage({ searchParams }: Props) {
         ? ["Food & Restaurants"]
         : ["Sports & Outdoors"];
   const itemProfile = resolveStoreItemProfile(itemProfileBadgeSections);
+  const jumpItemId =
+    typeof itemIdRaw === "string" && itemIdRaw.trim().length > 0 ? itemIdRaw.trim() : null;
 
   return (
     <main className="min-h-screen bg-[#f8f8ff] p-3 sm:p-4 md:p-8">
-      <DashboardSectionJump target={jump} />
+      <DashboardSectionJump target={jump} itemId={jumpItemId} />
+      <RestoreMenuItemsScroll jump={jump} />
       <RestaurantDashboardToast
         toast={toast}
         itemName={itemName}

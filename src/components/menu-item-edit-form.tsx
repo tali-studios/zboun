@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { ValidatedActionForm } from "@/components/validated-action-form";
+import { saveMenuItemsScrollPosition } from "@/components/restore-menu-items-scroll";
 import { validateMenuItemFormClient } from "@/lib/menu-item-form-validation";
 import type { StoreItemProfile } from "@/lib/store-item-profile";
 
@@ -26,7 +27,10 @@ export function MenuItemEditForm({
 
   return (
     <ValidatedActionForm
-      action={action}
+      action={async (formData) => {
+        saveMenuItemsScrollPosition();
+        await action(formData);
+      }}
       className={className}
       alertHeading="Couldn’t save yet"
       validate={(formData) =>

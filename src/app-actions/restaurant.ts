@@ -736,7 +736,7 @@ export async function createMenuItemAction(
     }).select("id").single();
     if (!retry.error && retry.data?.id) {
       revalidatePath(MENU_ITEMS_ADMIN_PATH);
-      redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_created&item_name=${encodeURIComponent(name)}&jump=items`);
+      redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_created&item_name=${encodeURIComponent(name)}&jump=add-item`);
     }
   }
 
@@ -769,7 +769,7 @@ export async function createMenuItemAction(
     }).select("id").single();
     if (!retry.error && retry.data?.id) {
       revalidatePath(MENU_ITEMS_ADMIN_PATH);
-      redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_created&item_name=${encodeURIComponent(name)}&jump=items`);
+      redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_created&item_name=${encodeURIComponent(name)}&jump=add-item`);
     }
   }
 
@@ -853,7 +853,7 @@ export async function createMenuItemAction(
 
   // Menu items page is force-dynamic; revalidate only this route for a faster redirect.
   revalidatePath(MENU_ITEMS_ADMIN_PATH);
-  redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_created&item_name=${encodeURIComponent(name)}&jump=items`);
+  redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_created&item_name=${encodeURIComponent(name)}&jump=add-item`);
 }
 
 export async function updateMenuItemAction(formData: FormData) {
@@ -1011,7 +1011,7 @@ export async function updateMenuItemAction(formData: FormData) {
       void notifyStockAlertsForMenuItem(supabase, id, user.restaurant_id);
       void pushOutboundStockUpdate(user.restaurant_id, id);
       revalidateMenuAdminPaths();
-      redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_updated&item_name=${encodeURIComponent(name)}`);
+      redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_updated&item_name=${encodeURIComponent(name)}&jump=item&item_id=${encodeURIComponent(id)}`);
     }
     error = retry.error;
   }
@@ -1027,7 +1027,7 @@ export async function updateMenuItemAction(formData: FormData) {
       void notifyStockAlertsForMenuItem(supabase, id, user.restaurant_id);
       void pushOutboundStockUpdate(user.restaurant_id, id);
       revalidateMenuAdminPaths();
-      redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_updated&item_name=${encodeURIComponent(name)}`);
+      redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_updated&item_name=${encodeURIComponent(name)}&jump=item&item_id=${encodeURIComponent(id)}`);
     }
     error = retry.error;
   }
@@ -1043,7 +1043,7 @@ export async function updateMenuItemAction(formData: FormData) {
       void notifyStockAlertsForMenuItem(supabase, id, user.restaurant_id);
       void pushOutboundStockUpdate(user.restaurant_id, id);
       revalidateMenuAdminPaths();
-      redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_updated&item_name=${encodeURIComponent(name)}`);
+      redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_updated&item_name=${encodeURIComponent(name)}&jump=item&item_id=${encodeURIComponent(id)}`);
     }
     error = retry.error;
   }
@@ -1089,7 +1089,7 @@ export async function updateMenuItemAction(formData: FormData) {
   void pushOutboundStockUpdate(user.restaurant_id, id);
 
   revalidateMenuAdminPaths();
-  redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_updated&item_name=${encodeURIComponent(name)}`);
+  redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_updated&item_name=${encodeURIComponent(name)}&jump=item&item_id=${encodeURIComponent(id)}`);
 }
 
 export async function toggleMenuItemAvailabilityAction(formData: FormData) {

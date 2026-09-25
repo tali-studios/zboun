@@ -210,7 +210,7 @@ export function BusinessMenuItemsSection({
           <div className="border-b border-slate-200 px-4 py-4 md:px-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h2 className="flex items-center gap-2.5 text-2xl font-bold text-slate-900" id="items-toolbar">
+                <h2 className="flex scroll-mt-28 items-center gap-2.5 text-2xl font-bold text-slate-900" id="items-toolbar">
                   <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden>
                       <path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z" />
@@ -301,7 +301,11 @@ export function BusinessMenuItemsSection({
                   const actionId = rowKey.replace(/[^a-zA-Z0-9_-]/g, "_");
                   const thumbUrl = isVariant ? stockRow.imageUrl : item.image_url;
                   return (
-                  <tr key={rowKey} className={`${rowBg} transition-colors hover:bg-violet-50/30`}>
+                  <tr
+                    key={rowKey}
+                    id={!isVariant ? `menu-item-${item.id}` : undefined}
+                    className={`${rowBg} scroll-mt-28 transition-colors hover:bg-violet-50/30`}
+                  >
                     <td className="px-5 py-4">
                       <div className="flex items-start gap-3">
                         <div className="relative h-10 w-10 shrink-0">

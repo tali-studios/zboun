@@ -36,6 +36,7 @@ export function RestaurantDashboardToast({
     params.delete("item_name");
     params.delete("brand_name");
     params.delete("jump");
+    params.delete("item_id");
     const qs = params.toString();
     const next = qs ? `${pathname}?${qs}` : pathname;
     // Avoid router.replace — it triggers a second RSC refresh and scrolls to top.

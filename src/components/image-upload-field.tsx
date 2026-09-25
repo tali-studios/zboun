@@ -185,7 +185,15 @@ export function ImageUploadField({
               block: "center",
             });
           }}
-          onChange={(event) => validateAndSet(event.target.files?.[0] ?? null)}
+          onChange={(event) => {
+            const y = window.scrollY;
+            validateAndSet(event.target.files?.[0] ?? null);
+            // File inputs / Next Image preview can yank the viewport — keep place.
+            requestAnimationFrame(() => {
+              window.scrollTo(0, y);
+              requestAnimationFrame(() => window.scrollTo(0, y));
+            });
+          }}
         />
       </label>
 

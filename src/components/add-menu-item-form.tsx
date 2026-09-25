@@ -11,6 +11,7 @@ import { MenuNutritionFields } from "@/components/menu-nutrition-fields";
 import { MenuItemOptionsFields } from "@/components/menu-item-options-fields";
 import { MenuItemStockFields } from "@/components/menu-item-stock-fields";
 import { LinkedCurrencyPriceInput } from "@/components/linked-currency-price-input";
+import { saveMenuItemsScrollPosition } from "@/components/restore-menu-items-scroll";
 import { ITEM_AUDIENCES, ITEM_AUDIENCE_LABELS } from "@/lib/item-audience";
 import { validateMenuItemFormClient } from "@/lib/menu-item-form-validation";
 import type { StoreItemProfile } from "@/lib/store-item-profile";
@@ -224,6 +225,7 @@ export function AddMenuItemForm({
     submittingRef.current = true;
     setPending(true);
     try {
+      saveMenuItemsScrollPosition();
       const result = await createMenuItemAction(formData);
       // Success redirects; failures return so the filled form is kept.
       if (result && result.ok === false) {
@@ -245,7 +247,7 @@ export function AddMenuItemForm({
       ref={formRef}
       onSubmit={handleCreate}
       id="add-item"
-      className="space-y-3"
+      className="scroll-mt-28 space-y-3"
       noValidate
     >
       {/* ─── STEP 1: Essentials (always shown, fast-fill) ─────────────────── */}
