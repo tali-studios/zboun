@@ -335,19 +335,36 @@ async function resolveMenuBrandForItem(
 
 export async function createCategoryAction(formData: FormData) {
   const user = await requireRestaurantAdmin();
-  const names = [
-    ...new Set(
-      formData
-        .getAll("name")
-        .map((value) => String(value ?? "").trim())
-        .filter(Boolean),
-    ),
-  ];
+  const names: string[] = [];
+  const seen = new Set<string>();
+  for (const value of formData.getAll("name")) {
+    const name = String(value ?? "").trim();
+    if (!name) continue;
+    const key = name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    names.push(name);
+  }
   if (names.length === 0) {
     redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=section_name_required&jump=sections`);
   }
 
   const supabase = await createServerSupabaseClient();
+  const { data: existing } = await supabase
+    .from("categories")
+    .select("name")
+    .eq("restaurant_id", user.restaurant_id);
+
+  const existingKeys = new Set(
+    (existing ?? []).map((row) => String(row.name ?? "").trim().toLowerCase()).filter(Boolean),
+  );
+  const duplicate = names.find((name) => existingKeys.has(name.toLowerCase()));
+  if (duplicate) {
+    redirect(
+      `${MENU_ITEMS_ADMIN_PATH}?toast=section_name_duplicate&section_name=${encodeURIComponent(duplicate)}&jump=sections`,
+    );
+  }
+
   const { data: lastCategory } = await supabase
     .from("categories")
     .select("position")
@@ -363,7 +380,15 @@ export async function createCategoryAction(formData: FormData) {
     position: position++,
   }));
 
-  await supabase.from("categories").insert(inserts);
+  const { error } = await supabase.from("categories").insert(inserts);
+  if (error) {
+    if (error.code === "23505") {
+      redirect(
+        `${MENU_ITEMS_ADMIN_PATH}?toast=section_name_duplicate&section_name=${encodeURIComponent(names[0]!)}&jump=sections`,
+      );
+    }
+    redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=section_create_failed&jump=sections`);
+  }
   revalidatePath(MENU_ITEMS_ADMIN_PATH);
 
   if (names.length === 1) {
@@ -383,11 +408,36 @@ export async function updateCategoryAction(formData: FormData) {
   if (!id || !name) return;
 
   const supabase = await createServerSupabaseClient();
-  await supabase
+  const { data: siblings } = await supabase
+    .from("categories")
+    .select("id, name")
+    .eq("restaurant_id", user.restaurant_id);
+
+  const clash = (siblings ?? []).find(
+    (row) =>
+      row.id !== id &&
+      String(row.name ?? "").trim().toLowerCase() === name.toLowerCase(),
+  );
+  if (clash) {
+    redirect(
+      `${MENU_ITEMS_ADMIN_PATH}?toast=section_name_duplicate&section_name=${encodeURIComponent(name)}&jump=sections`,
+    );
+  }
+
+  const { error } = await supabase
     .from("categories")
     .update({ name })
     .eq("id", id)
     .eq("restaurant_id", user.restaurant_id);
+
+  if (error) {
+    if (error.code === "23505") {
+      redirect(
+        `${MENU_ITEMS_ADMIN_PATH}?toast=section_name_duplicate&section_name=${encodeURIComponent(name)}&jump=sections`,
+      );
+    }
+    return;
+  }
   revalidatePath(MENU_ITEMS_ADMIN_PATH);
   revalidatePath("/dashboard/business");
 }

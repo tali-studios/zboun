@@ -75,7 +75,7 @@ export function SectionManagePanel({ categories }: Props) {
       </div>
 
       <div className="mt-4">
-        <AddSectionsForm />
+        <AddSectionsForm existingNames={categories.map((c) => c.name)} />
       </div>
 
       {categories.length > 0 ? (
@@ -131,6 +131,7 @@ export function SectionManagePanel({ categories }: Props) {
                       <SectionManageRow
                         key={category.id}
                         category={category}
+                        existingNames={categories.map((c) => c.name)}
                         rowBg={idx % 2 === 0 ? "bg-white" : "bg-slate-50/40"}
                       />
                     ))}

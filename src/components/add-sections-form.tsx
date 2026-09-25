@@ -3,12 +3,18 @@
 import { Minus, Plus } from "lucide-react";
 import { useState } from "react";
 import { createCategoryAction } from "@/app-actions/restaurant";
+import { DashboardAlertModal } from "@/components/dashboard-alert-modal";
 
 type Row = { id: number };
 
-export function AddSectionsForm() {
+type Props = {
+  existingNames?: string[];
+};
+
+export function AddSectionsForm({ existingNames = [] }: Props) {
   const [rows, setRows] = useState<Row[]>([{ id: 0 }]);
   const [nextId, setNextId] = useState(1);
+  const [alertMessage, setAlertMessage] = useState<string | null>(null);
 
   function addRow() {
     setRows((prev) => [...prev, { id: nextId }]);
@@ -19,8 +25,37 @@ export function AddSectionsForm() {
     setRows((prev) => (prev.length <= 1 ? prev : prev.filter((row) => row.id !== id)));
   }
 
+  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    const form = e.currentTarget;
+    const values = [...form.querySelectorAll<HTMLInputElement>('input[name="name"]')]
+      .map((input) => input.value.trim())
+      .filter(Boolean);
+    if (values.length === 0) return;
+
+    const seen = new Set<string>();
+    for (const name of values) {
+      const key = name.toLowerCase();
+      if (seen.has(key)) {
+        e.preventDefault();
+        setAlertMessage(`You listed “${name}” more than once. Each section needs a unique name.`);
+        return;
+      }
+      seen.add(key);
+      if (existingNames.some((other) => other.trim().toLowerCase() === key)) {
+        e.preventDefault();
+        setAlertMessage(`You already have a section named “${name}”. Use a different name.`);
+        return;
+      }
+    }
+  }
+
   return (
-    <form action={createCategoryAction} className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 sm:p-5">
+    <>
+    <form
+      action={createCategoryAction}
+      onSubmit={onSubmit}
+      className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 sm:p-5"
+    >
       <h3 className="text-sm font-bold text-slate-900">Add section</h3>
       <p className="text-xs text-slate-500">
         Examples: Burgers, Drinks, Desserts, Dairy &amp; Eggs, Grocery.
@@ -77,5 +112,13 @@ export function AddSectionsForm() {
         </button>
       </div>
     </form>
+    <DashboardAlertModal
+      open={Boolean(alertMessage)}
+      heading="Section already exists"
+      message={alertMessage ?? ""}
+      variant="warning"
+      onClose={() => setAlertMessage(null)}
+    />
+    </>
   );
 }

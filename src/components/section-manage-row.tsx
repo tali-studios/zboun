@@ -10,10 +10,11 @@ type Props = {
     id: string;
     name: string;
   };
+  existingNames: string[];
   rowBg?: string;
 };
 
-export function SectionManageRow({ category, rowBg = "bg-white" }: Props) {
+export function SectionManageRow({ category, existingNames, rowBg = "bg-white" }: Props) {
   const formId = `update-category-${category.id}`;
 
   return (
@@ -38,6 +39,14 @@ export function SectionManageRow({ category, rowBg = "bg-white" }: Props) {
             validate={(formData) => {
               const name = String(formData.get("name") ?? "").trim();
               if (!name) return "Enter a section name before saving.";
+              const taken = existingNames.some(
+                (other) =>
+                  other.trim().toLowerCase() === name.toLowerCase() &&
+                  other.trim().toLowerCase() !== category.name.trim().toLowerCase(),
+              );
+              if (taken) {
+                return `You already have a section named “${name}”. Use a different name.`;
+              }
               return null;
             }}
           >

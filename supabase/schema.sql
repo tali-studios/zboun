@@ -146,6 +146,9 @@ create table if not exists public.categories (
   created_at timestamptz not null default now()
 );
 
+create unique index if not exists idx_categories_restaurant_name_lower
+  on public.categories (restaurant_id, lower(name));
+
 create table if not exists public.menu_brands (
   id uuid primary key default gen_random_uuid(),
   restaurant_id uuid not null references public.restaurants(id) on delete cascade,

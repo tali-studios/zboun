@@ -83,6 +83,19 @@ export function RestaurantDashboardToast({
   } else if (toast === "section_name_required") {
     heading = "Name required";
     message = "Enter a section name before adding.";
+  } else if (toast === "section_name_duplicate") {
+    heading = "Section already exists";
+    message = sectionName ? (
+      <>
+        You already have a section named{" "}
+        <span className="font-semibold text-slate-900">“{sectionName}”</span>. Use a different name.
+      </>
+    ) : (
+      "You already have a section with that name. Use a different name."
+    );
+  } else if (toast === "section_create_failed") {
+    heading = "Couldn’t add section";
+    message = "Something went wrong while saving. Try again.";
   } else if (toast === "brand_created") {
     heading = "Brand added";
     message = brandName ? (
@@ -270,6 +283,9 @@ export function RestaurantDashboardToast({
             style={{
               background:
                 toast === "section_name_required" ||
+                toast === "section_name_duplicate" ||
+                toast === "section_create_failed" ||
+                toast === "brand_name_duplicate" ||
                 toast === "item_create_invalid" ||
                 toast === "item_image_required" ||
                 toast === "item_create_failed" ||
@@ -284,6 +300,9 @@ export function RestaurantDashboardToast({
             aria-hidden
           >
             {toast === "section_name_required" ||
+            toast === "section_name_duplicate" ||
+            toast === "section_create_failed" ||
+            toast === "brand_name_duplicate" ||
             toast === "item_create_invalid" ||
             toast === "item_image_required" ||
             toast === "item_create_failed" ||
