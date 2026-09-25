@@ -35,6 +35,12 @@ yarn-error.log*
 !.env.example
 env backup.txt
 *env*backup*
+.backup-db-password
+
+# local database dumps
+/backups/
+*.sql
+!supabase/**/*.sql
 
 # vercel
 .vercel
