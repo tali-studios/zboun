@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useRef, useState, type FormEvent, type ReactNode } from "react";
+import { flushSync } from "react-dom";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { DashboardAlertModal } from "@/components/dashboard-alert-modal";
 
 type Props = {
@@ -12,11 +14,13 @@ type Props = {
   alertHeading?: string;
   id?: string;
   noValidate?: boolean;
+  /** Fires as soon as a valid submit starts / ends (for parent saving UI). */
+  onPendingChange?: (pending: boolean) => void;
 };
 
 /**
  * Server-action form that shows a popup when client validation fails.
- * When valid, the default form action runs (no preventDefault).
+ * Always preventDefault + awaits the action so pending UI can paint before save.
  */
 export function ValidatedActionForm({
   children,
@@ -26,21 +30,59 @@ export function ValidatedActionForm({
   alertHeading = "Couldn’t save yet",
   id,
   noValidate = true,
+  onPendingChange,
 }: Props) {
   const [alert, setAlert] = useState<{ heading: string; message: string } | null>(null);
+  const submittingRef = useRef(false);
 
-  function onSubmit(event: FormEvent<HTMLFormElement>) {
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (submittingRef.current) return;
+
     const formData = new FormData(event.currentTarget);
     const error = validate(formData);
     if (error) {
-      event.preventDefault();
       setAlert({ heading: alertHeading, message: error });
+      return;
     }
+    if (!action) return;
+
+    submittingRef.current = true;
+    // Force React to paint "Saving…" before the server round-trip starts
+    flushSync(() => {
+      onPendingChange?.(true);
+    });
+
+    try {
+      await action(formData);
+    } catch (err) {
+      if (isRedirectError(err)) {
+        // Soft navigation keeps this component mounted — clear overlay before rethrow.
+        submittingRef.current = false;
+        flushSync(() => {
+          onPendingChange?.(false);
+        });
+        throw err;
+      }
+      submittingRef.current = false;
+      flushSync(() => {
+        onPendingChange?.(false);
+      });
+      setAlert({
+        heading: alertHeading,
+        message: err instanceof Error ? err.message : "Something went wrong. Please try again.",
+      });
+      return;
+    }
+
+    // Action returned without redirect
+    submittingRef.current = false;
+    onPendingChange?.(false);
   }
 
   return (
     <>
-      <form id={id} action={action} onSubmit={onSubmit} className={className} noValidate={noValidate}>
+      <form id={id} onSubmit={onSubmit} className={className} noValidate={noValidate}>
         {children}
       </form>
       <DashboardAlertModal

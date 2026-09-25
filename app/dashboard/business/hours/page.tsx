@@ -56,6 +56,7 @@ export default async function BusinessHoursPage({ searchParams }: Props) {
         <RestaurantHoursPanel
           openingHours={parseOpeningHours(restaurant?.opening_hours, { fallbackToDefault: false })}
           isTemporarilyClosed={restaurant?.is_temporarily_closed ?? false}
+          toast={toast}
         />
       </div>
     </main>

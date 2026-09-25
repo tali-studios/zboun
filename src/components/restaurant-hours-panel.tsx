@@ -1,7 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { isRedirectError } from "next/dist/client/components/redirect-error";
+import { useEffect, useMemo, useState } from "react";
 import {
   DEFAULT_OPENING_HOURS,
   isRestaurantOpenNow,
@@ -18,6 +17,8 @@ import { ValidatedActionForm } from "@/components/validated-action-form";
 type Props = {
   openingHours: DayHours[];
   isTemporarilyClosed: boolean;
+  /** From URL after save redirect — clears stuck saving overlay. */
+  toast?: string | null;
 };
 
 const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
@@ -128,7 +129,11 @@ function resolveInitialHours(openingHours: DayHours[]): DayHours[] {
   return parsed.length > 0 ? parsed : DEFAULT_OPENING_HOURS;
 }
 
-export function RestaurantHoursPanel({ openingHours, isTemporarilyClosed }: Props) {
+export function RestaurantHoursPanel({
+  openingHours,
+  isTemporarilyClosed,
+  toast = null,
+}: Props) {
   const [hours, setHours] = useState<DayHours[]>(() => resolveInitialHours(openingHours));
   const [tempClosed, setTempClosed] = useState(isTemporarilyClosed);
   const [alwaysOpen, setAlwaysOpen] = useState(() => {
@@ -138,6 +143,13 @@ export function RestaurantHoursPanel({ openingHours, isTemporarilyClosed }: Prop
   });
   const [saving, setSaving] = useState(false);
   const busy = saving;
+
+  // Soft redirect after save keeps this client tree mounted — clear overlay when toast arrives.
+  useEffect(() => {
+    if (toast === "hours_saved" || toast === "hours_invalid") {
+      setSaving(false);
+    }
+  }, [toast]);
 
   const serialized = useMemo(() => alwaysOpen ? "[]" : serializeOpeningHoursForForm(hours), [hours, alwaysOpen]);
 
@@ -207,14 +219,7 @@ export function RestaurantHoursPanel({ openingHours, isTemporarilyClosed }: Prop
   }
 
   async function saveHoursAction(formData: FormData) {
-    if (saving) return;
-    setSaving(true);
-    try {
-      await updateRestaurantHoursAction(formData);
-    } catch (error) {
-      if (isRedirectError(error)) throw error;
-      setSaving(false);
-    }
+    await updateRestaurantHoursAction(formData);
   }
 
   return (
@@ -390,6 +395,7 @@ export function RestaurantHoursPanel({ openingHours, isTemporarilyClosed }: Prop
         className={`mt-4 min-w-0 space-y-3 ${busy ? "pointer-events-none select-none opacity-60" : ""}`}
         alertHeading="Couldn’t save hours"
         validate={() => validateHoursBeforeSave()}
+        onPendingChange={setSaving}
       >
         <input type="hidden" name="opening_hours" value={serialized} />
         <input type="hidden" name="is_temporarily_closed" value={tempClosed ? "true" : "false"} />
