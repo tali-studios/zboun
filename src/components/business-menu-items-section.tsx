@@ -244,6 +244,7 @@ export function BusinessMenuItemsSection({
                       itemProfile.isFoodLike ? "menu items" : "catalog items"
                     } for your store (not just this page). Sections and brands stay — only products are deleted. This cannot be undone.`}
                     confirmLabel="Yes, delete all"
+                    pendingLabel="Deleting…"
                     triggerTitle={
                       itemProfile.isFoodLike ? "Delete all menu items" : "Delete all catalog items"
                     }
@@ -670,9 +671,10 @@ export function BusinessMenuItemsSection({
                           heading="Delete item?"
                           message={`Please confirm deleting “${item.name}”. This cannot be undone.`}
                           confirmLabel="Yes, delete"
+                          pendingLabel="Deleting…"
                           triggerTitle="Delete this item"
                           triggerAriaLabel="Delete item"
-                          triggerClassName="flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-500 transition hover:bg-red-100 hover:text-red-700"
+                          triggerClassName="inline-flex h-8 min-w-8 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-2 text-red-500 transition hover:bg-red-100 hover:text-red-700"
                           hiddenFields={<input type="hidden" name="id" value={item.id} />}
                         >
                           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden>

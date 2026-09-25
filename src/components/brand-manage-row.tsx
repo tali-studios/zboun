@@ -1,8 +1,9 @@
 "use client";
 
 import { Check, Trash2 } from "lucide-react";
-import { ImageUploadField } from "@/components/image-upload-field";
 import { deleteBrandAction, updateBrandAction } from "@/app-actions/restaurant";
+import { ConfirmDeleteForm } from "@/components/confirm-delete-form";
+import { ImageUploadField } from "@/components/image-upload-field";
 
 type Props = {
   brand: {
@@ -58,17 +59,19 @@ export function BrandManageRow({ brand, rowBg = "bg-white" }: Props) {
           >
             <Check className="h-4 w-4" strokeWidth={2.25} aria-hidden />
           </button>
-          <form action={deleteBrandAction}>
-            <input type="hidden" name="id" value={brand.id} />
-            <button
-              type="submit"
-              title={`Delete ${brand.name}`}
-              aria-label={`Delete ${brand.name}`}
-              className="flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-500 transition hover:bg-red-100 hover:text-red-700"
-            >
-              <Trash2 className="h-4 w-4" strokeWidth={2.25} aria-hidden />
-            </button>
-          </form>
+          <ConfirmDeleteForm
+            action={deleteBrandAction}
+            heading="Delete brand?"
+            message={`Please confirm deleting “${brand.name}”. This cannot be undone.`}
+            confirmLabel="Yes, delete"
+            pendingLabel="Deleting…"
+            triggerTitle={`Delete ${brand.name}`}
+            triggerAriaLabel={`Delete ${brand.name}`}
+            triggerClassName="inline-flex h-8 min-w-8 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-2 text-red-500 transition hover:bg-red-100 hover:text-red-700"
+            hiddenFields={<input type="hidden" name="id" value={brand.id} />}
+          >
+            <Trash2 className="h-4 w-4" strokeWidth={2.25} aria-hidden />
+          </ConfirmDeleteForm>
         </div>
       </td>
     </tr>

@@ -59,9 +59,10 @@ export function AddSectionsForm({ existingNames = [] }: Props) {
     }
 
     submittingRef.current = true;
+    // Capture before pending disables inputs (disabled fields are omitted from FormData).
+    const formData = new FormData(form);
     flushSync(() => setPending(true));
 
-    const formData = new FormData(form);
     try {
       await createCategoryAction(formData);
     } catch (err) {

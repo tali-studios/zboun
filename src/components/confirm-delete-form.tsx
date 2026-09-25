@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { DashboardAlertModal } from "@/components/dashboard-alert-modal";
 
 type Props = {
@@ -9,6 +10,8 @@ type Props = {
   heading: string;
   message: string;
   confirmLabel?: string;
+  /** Shown on the trigger while the delete is in progress. */
+  pendingLabel?: string;
   /** Fields included in the submitted FormData (hidden inputs). */
   hiddenFields?: ReactNode;
   /** Always merged into FormData (e.g. when hidden inputs are easy to miss). */
@@ -24,6 +27,7 @@ export function ConfirmDeleteForm({
   heading,
   message,
   confirmLabel = "Yes, delete",
+  pendingLabel = "Deleting…",
   hiddenFields,
   formFields,
   triggerClassName,
@@ -51,12 +55,17 @@ export function ConfirmDeleteForm({
         formData.set(key, value);
       }
     }
+    // Close modal and show pending on the trigger immediately.
+    flushSync(() => setOpen(false));
     startTransition(async () => {
-      setOpen(false);
       await action(formData);
       router.refresh();
     });
   }
+
+  const busyClass = isPending
+    ? `${triggerClassName ?? ""} pointer-events-none cursor-not-allowed opacity-70`.trim()
+    : triggerClassName;
 
   return (
     <>
@@ -65,12 +74,28 @@ export function ConfirmDeleteForm({
       </div>
       <button
         type="button"
-        title={triggerTitle}
-        aria-label={triggerAriaLabel}
-        className={triggerClassName}
-        onClick={() => setOpen(true)}
+        title={isPending ? pendingLabel : triggerTitle}
+        aria-label={isPending ? pendingLabel : triggerAriaLabel}
+        aria-busy={isPending}
+        disabled={isPending}
+        className={busyClass}
+        onClick={() => {
+          if (!isPending) setOpen(true);
+        }}
       >
-        {children}
+        {isPending ? (
+          <span className="inline-flex items-center justify-center gap-1.5">
+            <span
+              className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent opacity-80"
+              aria-hidden
+            />
+            {pendingLabel ? (
+              <span className="text-[11px] font-semibold leading-none">{pendingLabel}</span>
+            ) : null}
+          </span>
+        ) : (
+          children
+        )}
       </button>
       <DashboardAlertModal
         open={open}
@@ -80,7 +105,9 @@ export function ConfirmDeleteForm({
         confirmLabel={confirmLabel}
         confirmTone="danger"
         busy={isPending}
-        onClose={() => setOpen(false)}
+        onClose={() => {
+          if (!isPending) setOpen(false);
+        }}
         onConfirm={submitDelete}
       />
     </>

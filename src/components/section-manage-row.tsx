@@ -64,9 +64,10 @@ export function SectionManageRow({ category, existingNames, rowBg = "bg-white" }
             heading="Delete section?"
             message={`Please confirm deleting “${category.name}”. Items in this section may need to be moved first. This cannot be undone.`}
             confirmLabel="Yes, delete"
+            pendingLabel="Deleting…"
             triggerTitle="Delete section"
             triggerAriaLabel={`Delete ${category.name}`}
-            triggerClassName="flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-500 transition hover:bg-red-100 hover:text-red-700"
+            triggerClassName="inline-flex h-8 min-w-8 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-2 text-red-500 transition hover:bg-red-100 hover:text-red-700"
             hiddenFields={<input type="hidden" name="id" value={category.id} />}
           >
             <Trash2 className="h-4 w-4" strokeWidth={2.25} aria-hidden />

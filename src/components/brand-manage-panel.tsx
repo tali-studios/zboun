@@ -1,8 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState, type FormEvent } from "react";
+import { flushSync } from "react-dom";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { createBrandAction } from "@/app-actions/restaurant";
 import { BrandManageRow } from "@/components/brand-manage-row";
+import { DashboardAlertModal } from "@/components/dashboard-alert-modal";
 import { ImageUploadField } from "@/components/image-upload-field";
 import { SortableTh } from "@/components/sortable-th";
 import { BRANDS_ADMIN_PAGE_SIZE } from "@/lib/menu-brands";
@@ -23,6 +26,9 @@ export function BrandManagePanel({ brands }: Props) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortKey>("name-asc");
   const [page, setPage] = useState(0);
+  const [pending, setPending] = useState(false);
+  const [alertMessage, setAlertMessage] = useState<string | null>(null);
+  const submittingRef = useRef(false);
 
   const filteredBrands = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -49,6 +55,40 @@ export function BrandManagePanel({ brands }: Props) {
     setPage(0);
   }
 
+  async function onAddBrand(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (submittingRef.current || pending) return;
+
+    const form = e.currentTarget;
+    const name = String(new FormData(form).get("name") ?? "").trim();
+    if (!name) {
+      setAlertMessage("Enter a brand name before adding.");
+      return;
+    }
+    if (brands.some((b) => b.name.trim().toLowerCase() === name.toLowerCase())) {
+      setAlertMessage(`You already have a brand named “${name}”. Use a different name.`);
+      return;
+    }
+
+    submittingRef.current = true;
+    // Capture before pending disables inputs (disabled fields are omitted from FormData).
+    const formData = new FormData(form);
+    flushSync(() => setPending(true));
+
+    try {
+      await createBrandAction(formData);
+    } catch (err) {
+      if (isRedirectError(err)) {
+        submittingRef.current = false;
+        flushSync(() => setPending(false));
+        throw err;
+      }
+      submittingRef.current = false;
+      flushSync(() => setPending(false));
+      setAlertMessage("Something went wrong while saving. Try again.");
+    }
+  }
+
   return (
     <section className="panel overflow-x-hidden p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -62,9 +102,11 @@ export function BrandManagePanel({ brands }: Props) {
         {BRANDS_ADMIN_PAGE_SIZE} at a time so the page stays fast — use search to find others.
       </p>
 
-      <form action={createBrandAction} className="mt-4 space-y-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 sm:p-5">
+      <form onSubmit={onAddBrand} className="mt-4 space-y-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 sm:p-5">
         <h3 className="text-sm font-bold text-slate-900">Add brand</h3>
-        <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+        <div
+          className={`grid gap-4 lg:grid-cols-2 lg:items-start ${pending ? "pointer-events-none opacity-60" : ""}`}
+        >
           <div className="space-y-1.5">
             <label className="block space-y-1.5">
               <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">
@@ -74,7 +116,8 @@ export function BrandManagePanel({ brands }: Props) {
                 name="name"
                 required
                 placeholder="Brand name"
-                className="ui-input box-border h-11 !py-0 text-[0.9375rem] leading-none"
+                disabled={pending}
+                className="ui-input box-border h-11 !py-0 text-[0.9375rem] leading-none disabled:cursor-not-allowed"
               />
             </label>
             <p className="text-xs text-slate-400">
@@ -85,20 +128,55 @@ export function BrandManagePanel({ brands }: Props) {
         </div>
         <button
           type="submit"
-          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-violet-500/25 transition hover:brightness-105 active:scale-[0.99]"
+          disabled={pending}
+          aria-busy={pending}
+          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-violet-500/25 transition hover:brightness-105 active:scale-[0.99] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-70"
         >
-          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-          Add brand
+          {pending ? (
+            <span
+              className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"
+              aria-hidden
+            />
+          ) : (
+            <svg
+              className="h-4 w-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2.5}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+            >
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          )}
+          {pending ? "Adding brand…" : "Add brand"}
         </button>
       </form>
+
+      <DashboardAlertModal
+        open={Boolean(alertMessage)}
+        heading={
+          alertMessage?.startsWith("Enter a brand")
+            ? "Name required"
+            : alertMessage?.startsWith("Something went wrong")
+              ? "Couldn’t add brand"
+              : "Brand already exists"
+        }
+        message={alertMessage ?? ""}
+        variant="warning"
+        onClose={() => setAlertMessage(null)}
+      />
 
       {brands.length > 0 ? (
         <>
           <div className="mt-4 w-full">
-            <label htmlFor="brand-search" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <label
+              htmlFor="brand-search"
+              className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500"
+            >
               Search brands
             </label>
             <input
