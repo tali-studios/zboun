@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import {
   DEFAULT_OPENING_HOURS,
   isRestaurantOpenNow,
@@ -135,6 +136,8 @@ export function RestaurantHoursPanel({ openingHours, isTemporarilyClosed }: Prop
     if (Array.isArray(openingHours) && openingHours.length === 0) return true;
     return parseOpeningHours(openingHours, { fallbackToDefault: false }).length === 0;
   });
+  const [saving, setSaving] = useState(false);
+  const busy = saving;
 
   const serialized = useMemo(() => alwaysOpen ? "[]" : serializeOpeningHoursForForm(hours), [hours, alwaysOpen]);
 
@@ -161,6 +164,7 @@ export function RestaurantHoursPanel({ openingHours, isTemporarilyClosed }: Prop
   }, [isTemporarilyClosed, openingHours]);
 
   function updateDay(day: number, patch: Partial<DayHours>) {
+    if (busy) return;
     setHours((prev) => {
       const base = prev.length > 0 ? prev : DEFAULT_OPENING_HOURS;
       return base.map((row) => (row.day === day ? { ...row, ...patch } : row));
@@ -168,19 +172,23 @@ export function RestaurantHoursPanel({ openingHours, isTemporarilyClosed }: Prop
   }
 
   function selectAlwaysOpen() {
+    if (busy) return;
     setAlwaysOpen(true);
   }
 
   function selectWeeklyHours() {
+    if (busy) return;
     setAlwaysOpen(false);
     setHours((prev) => (prev.length > 0 ? prev : DEFAULT_OPENING_HOURS));
   }
 
   function handleEmergencyToggle() {
+    if (busy) return;
     setTempClosed(!tempClosed);
   }
 
   function validateHoursBeforeSave(): string | null {
+    if (busy) return "Settings are already saving. Please wait.";
     if (alwaysOpen) return null;
     for (const row of rows) {
       if (row.closed) continue;
@@ -198,8 +206,42 @@ export function RestaurantHoursPanel({ openingHours, isTemporarilyClosed }: Prop
     return null;
   }
 
+  async function saveHoursAction(formData: FormData) {
+    if (saving) return;
+    setSaving(true);
+    try {
+      await updateRestaurantHoursAction(formData);
+    } catch (error) {
+      if (isRedirectError(error)) throw error;
+      setSaving(false);
+    }
+  }
+
   return (
-    <div className="panel min-w-0 overflow-x-hidden p-4 sm:p-5">
+    <div className="panel relative min-w-0 overflow-x-hidden p-4 sm:p-5">
+      {busy ? (
+        <div
+          className="absolute inset-0 z-20 flex items-center justify-center rounded-[inherit] bg-white/70 backdrop-blur-[2px]"
+          aria-busy="true"
+          aria-live="polite"
+        >
+          <div className="flex items-center gap-3 rounded-2xl border border-violet-200 bg-white px-5 py-3.5 shadow-lg">
+            <svg className="h-5 w-5 animate-spin text-violet-600" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              />
+            </svg>
+            <div>
+              <p className="text-sm font-bold text-slate-900">Saving settings…</p>
+              <p className="text-xs text-slate-500">Please wait — don’t tap again</p>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {/* Status indicator */}
       <div className={`mb-4 flex items-center gap-3 rounded-xl border-2 px-4 py-3 ${
         currentStatus.color === "rose" ? "border-rose-300 bg-rose-50" :
@@ -243,7 +285,7 @@ export function RestaurantHoursPanel({ openingHours, isTemporarilyClosed }: Prop
         </div>
       </div>
 
-      <div className="flex flex-col gap-3">
+      <div className={`flex flex-col gap-3 ${busy ? "pointer-events-none select-none opacity-60" : ""}`}>
         <div className="min-w-0">
           <h2 className="panel-title">Opening hours</h2>
           <p className="mt-1 text-sm text-slate-500">
@@ -262,8 +304,9 @@ export function RestaurantHoursPanel({ openingHours, isTemporarilyClosed }: Prop
             <button
               type="button"
               onClick={selectAlwaysOpen}
+              disabled={busy}
               aria-pressed={alwaysOpen}
-              className={`rounded-full px-4 py-2.5 text-sm font-bold shadow-sm transition ${
+              className={`rounded-full px-4 py-2.5 text-sm font-bold shadow-sm transition disabled:cursor-not-allowed ${
                 alwaysOpen
                   ? "bg-blue-600 text-white shadow-blue-500/25 ring-2 ring-blue-600 ring-offset-2"
                   : "border border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-800"
@@ -274,8 +317,9 @@ export function RestaurantHoursPanel({ openingHours, isTemporarilyClosed }: Prop
             <button
               type="button"
               onClick={selectWeeklyHours}
+              disabled={busy}
               aria-pressed={!alwaysOpen}
-              className={`rounded-full px-4 py-2.5 text-sm font-bold shadow-sm transition ${
+              className={`rounded-full px-4 py-2.5 text-sm font-bold shadow-sm transition disabled:cursor-not-allowed ${
                 !alwaysOpen
                   ? "bg-violet-600 text-white shadow-violet-500/25 ring-2 ring-violet-600 ring-offset-2"
                   : "border border-slate-200 bg-white text-slate-700 hover:border-violet-300 hover:bg-violet-50 hover:text-violet-800"
@@ -287,8 +331,9 @@ export function RestaurantHoursPanel({ openingHours, isTemporarilyClosed }: Prop
           <button
             type="button"
             onClick={handleEmergencyToggle}
+            disabled={busy}
             aria-pressed={tempClosed}
-            className={`w-full rounded-full px-4 py-2.5 text-sm font-bold transition sm:w-auto ${
+            className={`w-full rounded-full px-4 py-2.5 text-sm font-bold transition disabled:cursor-not-allowed sm:w-auto ${
               tempClosed
                 ? "bg-emerald-600 text-white hover:bg-emerald-700 ring-2 ring-emerald-600 ring-offset-2"
                 : "border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
@@ -341,8 +386,8 @@ export function RestaurantHoursPanel({ openingHours, isTemporarilyClosed }: Prop
       ) : null}
 
       <ValidatedActionForm
-        action={updateRestaurantHoursAction}
-        className="mt-4 min-w-0 space-y-3"
+        action={saveHoursAction}
+        className={`mt-4 min-w-0 space-y-3 ${busy ? "pointer-events-none select-none opacity-60" : ""}`}
         alertHeading="Couldn’t save hours"
         validate={() => validateHoursBeforeSave()}
       >
@@ -352,9 +397,25 @@ export function RestaurantHoursPanel({ openingHours, isTemporarilyClosed }: Prop
         {/* Save button at the top for quick access */}
         <button
           type="submit"
-          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-violet-500/25 transition hover:brightness-105 active:scale-[0.99]"
+          disabled={busy}
+          aria-busy={busy}
+          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-violet-500/25 transition hover:brightness-105 active:scale-[0.99] disabled:cursor-wait disabled:opacity-80"
         >
-          Save settings
+          {busy ? (
+            <>
+              <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                />
+              </svg>
+              Saving settings…
+            </>
+          ) : (
+            "Save settings"
+          )}
         </button>
 
         {alwaysOpen ? null : (
@@ -372,8 +433,9 @@ export function RestaurantHoursPanel({ openingHours, isTemporarilyClosed }: Prop
                   <input
                     type="checkbox"
                     checked={row.closed}
+                    disabled={busy}
                     onChange={(e) => updateDay(row.day, { closed: e.target.checked })}
-                    className="h-4 w-4 accent-rose-600"
+                    className="h-4 w-4 accent-rose-600 disabled:cursor-not-allowed"
                   />
                   Closed
                 </label>
