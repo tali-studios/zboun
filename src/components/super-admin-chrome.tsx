@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   LockKeyhole,
   LogOut,
+  ShoppingBag,
   Sparkles,
   Store,
   Users,
@@ -16,6 +17,7 @@ import { SuperAdminMobileChrome } from "@/components/super-admin-mobile-chrome";
 const NAV_ITEMS = [
   { href: "/dashboard/super-admin", label: "Overview", icon: LayoutDashboard },
   { href: "/dashboard/super-admin/businesses", label: "Businesses", icon: Store },
+  { href: "/dashboard/super-admin/orders", label: "Orders", icon: ShoppingBag },
   { href: "/dashboard/super-admin/users", label: "Users", icon: Users },
   { href: "/dashboard/super-admin/banners", label: "Home banners", icon: Images },
   { href: "/dashboard/super-admin/visit-kit", label: "Visit kit", icon: Sparkles },
@@ -230,12 +232,14 @@ export function SuperAdminMetricsBlock({
   title,
   description,
   columns = 4,
+  headerAction,
   children,
 }: {
   id?: string;
   title: string;
   description?: string;
   columns?: 4 | 5;
+  headerAction?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -250,6 +254,7 @@ export function SuperAdminMetricsBlock({
             <p className="mt-0.5 text-xs text-slate-500">{description}</p>
           ) : null}
         </div>
+        {headerAction}
       </div>
       <div
         className={

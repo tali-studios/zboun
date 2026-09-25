@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 import { SuperAdminContractGenerator } from "@/components/super-admin-contract-generator";
 import { SuperAdminFinancePanel } from "@/components/super-admin-finance-panel";
@@ -15,6 +16,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { env } from "@/lib/env";
 import { loadSuperAdminRestaurantsWithDetails } from "@/lib/super-admin-restaurants-data";
 import { loadSuperAdminPlatformUsers } from "@/lib/super-admin-users-data";
+import { loadSuperAdminOrderStats } from "@/lib/super-admin-orders-data";
 import type { PlatformOpsReminderKind } from "@/lib/platform-ops-payments-shared";
 import type { PlatformOpsPaymentItem } from "@/components/super-admin-ops-payments-panel";
 
@@ -47,6 +49,8 @@ export default async function SuperAdminPage({ searchParams }: Props) {
   } catch {
     // Overview still loads if user list fails.
   }
+
+  const orderStats = await loadSuperAdminOrderStats(dataClient);
 
   const [
     { data: subscriptions },
@@ -226,6 +230,36 @@ export default async function SuperAdminPage({ searchParams }: Props) {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
               </svg>
             }
+          />
+        </SuperAdminMetricsBlock>
+
+        <SuperAdminMetricsBlock
+          id="orders"
+          title="Orders"
+          description="Customer orders placed across every store on zboun.net"
+          columns={5}
+          headerAction={
+            <Link
+              href="/dashboard/super-admin/orders"
+              className="text-xs font-semibold text-violet-700 hover:text-violet-900"
+            >
+              View by store →
+            </Link>
+          }
+        >
+          <SuperAdminMetric label="All time" value={orderStats.total} tone="accent" />
+          <SuperAdminMetric label="Today" value={orderStats.today} tone="neutral" />
+          <SuperAdminMetric label="This month" value={orderStats.thisMonth} tone="neutral" />
+          <SuperAdminMetric
+            label="Delivered"
+            value={orderStats.delivered}
+            hint={`${orderStats.inProgress} in progress`}
+            tone="success"
+          />
+          <SuperAdminMetric
+            label="Cancelled"
+            value={orderStats.cancelled}
+            tone={orderStats.cancelled > 0 ? "warning" : "neutral"}
           />
         </SuperAdminMetricsBlock>
 

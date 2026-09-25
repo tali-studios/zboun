@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   LockKeyhole,
   LogOut,
+  ShoppingBag,
   Sparkles,
   Store,
   Users,
@@ -18,6 +19,7 @@ import { signOutAction } from "@/app-actions/auth";
 const NAV_ITEMS: { href: string; label: string; icon: LucideIcon; match?: "exact" | "prefix" }[] = [
   { href: "/dashboard/super-admin", label: "Overview", icon: LayoutDashboard, match: "exact" },
   { href: "/dashboard/super-admin/businesses", label: "Businesses", icon: Store, match: "prefix" },
+  { href: "/dashboard/super-admin/orders", label: "Orders", icon: ShoppingBag, match: "prefix" },
   { href: "/dashboard/super-admin/users", label: "Users", icon: Users, match: "prefix" },
   { href: "/dashboard/super-admin/banners", label: "Banners", icon: Images, match: "prefix" },
   { href: "/dashboard/super-admin/visit-kit", label: "Visit kit", icon: Sparkles, match: "prefix" },
