@@ -53,6 +53,7 @@ export const BROWSE_SUB_FILTERS_BY_SECTION = {
     "Roastery",
     "Frozen Foods",
     "Household Staples",
+    "Mouneh & Preserves",
     "Organic",
   ],
   "Fashion & Apparel": [
@@ -160,6 +161,8 @@ const LEGACY_BROWSE_ALIASES: Record<string, BrowseSection> = {
   Desserts: "Food & Restaurants",
   Drinks: "Drinks & Beverages",
   Groceries: "Groceries",
+  Mouneh: "Groceries",
+  "Mouneh & Preserves": "Groceries",
   Fashion: "Fashion & Apparel",
   Electronics: "Electronics & Tech",
   /** Former top-level categories, folded / renamed. */
@@ -212,6 +215,7 @@ export const BROWSE_SUB_FILTER_ACCENTS: Record<string, string> = {
   Roastery: "#92400e",
   "Frozen Foods": "#38bdf8",
   "Household Staples": "#14b8a6",
+  "Mouneh & Preserves": "#c2410c",
   Organic: "#84cc16",
   Furniture: "#a78bfa",
   Kitchen: "#f472b6",
@@ -320,6 +324,7 @@ export const BROWSE_SUB_FILTER_ICONS: Record<string, string> = {
   Roastery: "☕",
   "Frozen Foods": "🧊",
   "Household Staples": "🧴",
+  "Mouneh & Preserves": "🫙",
   Organic: "🌿",
   // Fashion / sports extras
   Clothing: "👗",
