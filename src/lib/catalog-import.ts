@@ -425,6 +425,10 @@ function cellToString(value: unknown): string {
   if (typeof value === "object" && value !== null && "result" in value) {
     return String((value as { result: unknown }).result ?? "").trim();
   }
+  if (typeof value === "object" && value !== null && "richText" in value) {
+    const parts = (value as { richText: Array<{ text?: string }> }).richText;
+    return parts.map((p) => p.text ?? "").join("").trim();
+  }
   return String(value).trim();
 }
 
@@ -522,7 +526,8 @@ export function parseCatalogImportRecords(
   const errors: CatalogImportRowError[] = [];
 
   records.forEach((record, index) => {
-    const rowNumber = index + 2;
+    const rowNumber =
+      typeof record.__sheetRow === "number" ? record.__sheetRow : index + 2;
     const sectionName = cellToString(record.section_name);
     const name = cellToString(record.name);
     const soldByWeight = parseYesNo(cellToString(record.sold_by_weight), false);
@@ -531,7 +536,23 @@ export function parseCatalogImportRecords(
     const price = parseOptionalNumber(priceRaw);
     const pricePerKg = parseOptionalNumber(pricePerKgRaw);
 
+    const hasOtherData = Object.entries(record).some(
+      ([key, value]) =>
+        key !== "__sheetRow" &&
+        key !== "section_name" &&
+        key !== "name" &&
+        key !== "price" &&
+        key !== "price_per_kg" &&
+        cellToString(value),
+    );
+
     if (!sectionName && !name && !priceRaw && !pricePerKgRaw) {
+      if (!hasOtherData) return;
+      errors.push({
+        rowNumber,
+        message:
+          "Missing section_name, name, and price — fill those columns (scroll left on the Items sheet). display_quantity alone is not enough.",
+      });
       return;
     }
 

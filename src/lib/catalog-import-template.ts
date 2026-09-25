@@ -11,14 +11,7 @@ import {
   type CatalogImportRow,
   type CatalogImportRowError,
 } from "@/lib/catalog-import";
-
-type ExcelJsModule = typeof import("exceljs");
-
-async function loadExcelJS(): Promise<ExcelJsModule> {
-  const mod = await import("exceljs");
-  const resolved = (mod as { default?: ExcelJsModule }).default ?? mod;
-  return resolved as ExcelJsModule;
-}
+import { getExcelJS } from "@/lib/load-exceljs";
 
 export type CatalogTemplateOptions = {
   profile: CatalogImportProfile;
@@ -32,8 +25,8 @@ export async function buildCatalogImportTemplateBuffer(
   const columns = catalogImportColumnsForProfile(options.profile, {
     hasBrands: options.hasBrands,
   });
-  const ExcelJS = await loadExcelJS();
-  const workbook = new ExcelJS.Workbook();
+  const { Workbook } = getExcelJS();
+  const workbook = new Workbook();
   workbook.creator = "Zboun";
   workbook.created = new Date();
 
@@ -113,8 +106,8 @@ export async function buildCatalogImportTemplateBuffer(
 export async function parseCatalogImportWorkbook(
   fileBuffer: ArrayBuffer | Buffer,
 ): Promise<{ rows: CatalogImportRow[]; errors: CatalogImportRowError[] }> {
-  const ExcelJS = await loadExcelJS();
-  const workbook = new ExcelJS.Workbook();
+  const { Workbook } = getExcelJS();
+  const workbook = new Workbook();
   const bytes = Buffer.isBuffer(fileBuffer) ? fileBuffer : Buffer.from(fileBuffer);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await workbook.xlsx.load(bytes as any);
@@ -185,7 +178,10 @@ export async function parseCatalogImportWorkbook(
       if (value != null && String(value).trim() !== "") anyValue = true;
       record[col] = value;
     });
-    if (anyValue) records.push(record);
+    if (anyValue) {
+      record.__sheetRow = r;
+      records.push(record);
+    }
   }
 
   if (records.length > CATALOG_IMPORT_MAX_ROWS) {

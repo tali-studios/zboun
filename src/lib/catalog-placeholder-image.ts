@@ -61,7 +61,6 @@ export function buildCatalogPlaceholderSvg(itemName: string): string {
   <circle cx="400" cy="340" r="120" fill="rgba(255,255,255,0.18)"/>
   <text x="400" y="370" text-anchor="middle" fill="#ffffff" font-family="system-ui,Segoe UI,sans-serif" font-size="92" font-weight="700">${initials}</text>
   <text x="400" y="520" text-anchor="middle" fill="#ffffff" font-family="system-ui,Segoe UI,sans-serif" font-size="28" font-weight="600" opacity="0.92">${safeName}</text>
-  <text x="400" y="570" text-anchor="middle" fill="#ffffff" font-family="system-ui,Segoe UI,sans-serif" font-size="18" opacity="0.7">Placeholder · replace in Catalog</text>
 </svg>`;
 }
 
@@ -87,8 +86,7 @@ export function buildColorSwatchSvg(colorName: string): string {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600">
   <rect width="600" height="600" fill="${fill}"/>
-  <text x="300" y="310" text-anchor="middle" fill="${labelColor}" font-family="system-ui,Segoe UI,sans-serif" font-size="42" font-weight="700">${safe}</text>
-  <text x="300" y="360" text-anchor="middle" fill="${labelColor}" font-family="system-ui,Segoe UI,sans-serif" font-size="16" opacity="0.75">Color swatch · replace later</text>
+  <text x="300" y="320" text-anchor="middle" fill="${labelColor}" font-family="system-ui,Segoe UI,sans-serif" font-size="42" font-weight="700">${safe}</text>
 </svg>`;
 }
 

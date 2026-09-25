@@ -2,10 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import {
-  importCatalogFromExcelAction,
-  type CatalogImportActionResult,
-} from "@/app-actions/catalog-import";
+import type { CatalogImportActionResult } from "@/lib/catalog-import-run";
 import { CATALOG_IMPORT_MAX_ROWS } from "@/lib/catalog-import";
 
 type Props = {
@@ -26,7 +23,16 @@ export function CatalogExcelImportPanel({ itemsLabel = "catalog" }: Props) {
     const formData = new FormData();
     formData.set("file", file);
     startTransition(async () => {
-      const next = await importCatalogFromExcelAction(formData);
+      let next: CatalogImportActionResult;
+      try {
+        const res = await fetch("/dashboard/business/menu-items/import", {
+          method: "POST",
+          body: formData,
+        });
+        next = (await res.json()) as CatalogImportActionResult;
+      } catch {
+        next = { ok: false, error: "Import failed. Check your connection and try again." };
+      }
       setResult(next);
       if (inputRef.current) inputRef.current.value = "";
       if (next.ok) {

@@ -1193,6 +1193,31 @@ export async function deleteMenuItemAction(formData: FormData) {
   revalidateMenuAdminPaths();
 }
 
+export async function deleteAllMenuItemsAction(formData: FormData) {
+  const user = await requireRestaurantAdmin();
+  if (String(formData.get("confirm") ?? "") !== "delete-all") {
+    console.error("[deleteAllMenuItemsAction] rejected: missing confirm token");
+    return;
+  }
+
+  const admin = getStorageAdminClient();
+  const { error, count } = await admin
+    .from("menu_items")
+    .delete({ count: "exact" })
+    .eq("restaurant_id", user.restaurant_id);
+
+  if (error) {
+    console.error("[deleteAllMenuItemsAction]", error.message);
+    return;
+  }
+
+  if (count === 0) {
+    console.warn("[deleteAllMenuItemsAction] no rows deleted for restaurant", user.restaurant_id);
+  }
+
+  revalidateMenuAdminPaths();
+}
+
 export type UpdateRestaurantSettingsResult =
   | { ok: true; toast?: string; message?: string }
   | { ok: false; toast: string; message?: string };

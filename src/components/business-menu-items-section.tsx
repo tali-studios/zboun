@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import {
+  deleteAllMenuItemsAction,
   deleteMenuItemAction,
   toggleMenuItemAvailabilityAction,
   updateMenuItemAction,
@@ -221,7 +222,7 @@ export function BusinessMenuItemsSection({
                   Search, filter, and update stock directly — each size & color appears on its own row.
                 </p>
               </div>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap items-center gap-1.5">
                 <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-semibold text-slate-500">
                   {normalizedItemsCount} item{normalizedItemsCount !== 1 ? "s" : ""}
                 </span>
@@ -233,6 +234,29 @@ export function BusinessMenuItemsSection({
                     ⚠ {menuItemsLowStockCount} low stock
                   </Link>
                 )}
+                {normalizedItemsCount > 0 ? (
+                  <ConfirmDeleteForm
+                    action={deleteAllMenuItemsAction}
+                    heading={
+                      itemProfile.isFoodLike ? "Delete entire menu?" : "Delete entire catalog?"
+                    }
+                    message={`This permanently removes all ${normalizedItemsCount} ${
+                      itemProfile.isFoodLike ? "menu items" : "catalog items"
+                    } for your store (not just this page). Sections and brands stay — only products are deleted. This cannot be undone.`}
+                    confirmLabel="Yes, delete all"
+                    triggerTitle={
+                      itemProfile.isFoodLike ? "Delete all menu items" : "Delete all catalog items"
+                    }
+                    triggerAriaLabel={
+                      itemProfile.isFoodLike ? "Delete all menu items" : "Delete all catalog items"
+                    }
+                    triggerClassName="rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-[11px] font-semibold text-red-700 transition hover:bg-red-100"
+                    formFields={{ confirm: "delete-all" }}
+                    hiddenFields={<input type="hidden" name="confirm" value="delete-all" />}
+                  >
+                    Delete all
+                  </ConfirmDeleteForm>
+                ) : null}
               </div>
             </div>
           </div>

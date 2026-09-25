@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, useTransition, type ReactNode } from "react";
 import { DashboardAlertModal } from "@/components/dashboard-alert-modal";
 
@@ -10,6 +11,8 @@ type Props = {
   confirmLabel?: string;
   /** Fields included in the submitted FormData (hidden inputs). */
   hiddenFields?: ReactNode;
+  /** Always merged into FormData (e.g. when hidden inputs are easy to miss). */
+  formFields?: Record<string, string>;
   triggerClassName?: string;
   triggerTitle?: string;
   triggerAriaLabel?: string;
@@ -22,11 +25,13 @@ export function ConfirmDeleteForm({
   message,
   confirmLabel = "Yes, delete",
   hiddenFields,
+  formFields,
   triggerClassName,
   triggerTitle,
   triggerAriaLabel,
   children,
 }: Props) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [fieldsEl, setFieldsEl] = useState<HTMLDivElement | null>(null);
@@ -41,9 +46,15 @@ export function ConfirmDeleteForm({
         formData.set(input.name, input.value);
       });
     }
+    if (formFields) {
+      for (const [key, value] of Object.entries(formFields)) {
+        formData.set(key, value);
+      }
+    }
     startTransition(async () => {
       setOpen(false);
       await action(formData);
+      router.refresh();
     });
   }
 
