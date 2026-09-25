@@ -9,13 +9,13 @@ import {
   parseAddOnList,
   parseCommaList,
   type CatalogImportProfile,
-} from "../src/lib/catalog-import.ts";
+} from "../src/lib/catalog-import";
 import {
   buildCatalogImportTemplateBuffer,
   parseCatalogImportWorkbook,
-} from "../src/lib/catalog-import-template.ts";
-import { resolveStoreItemProfile } from "../src/lib/store-item-profile.ts";
-import { BROWSE_SECTION_OPTIONS, type BrowseSection } from "../src/lib/browse-sections.ts";
+} from "../src/lib/catalog-import-template";
+import { resolveStoreItemProfile } from "../src/lib/store-item-profile";
+import { BROWSE_SECTION_OPTIONS, type BrowseSection } from "../src/lib/browse-sections";
 import ExcelJS from "exceljs";
 
 type Check = { name: string; pass: boolean; detail?: string };

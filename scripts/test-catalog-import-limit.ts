@@ -3,11 +3,11 @@ import {
   CATALOG_IMPORT_MAX_ROWS,
   buildOptionGroupsFromImportRow,
   parseCommaList,
-} from "../src/lib/catalog-import.ts";
+} from "../src/lib/catalog-import";
 import {
   buildCatalogImportTemplateBuffer,
   parseCatalogImportWorkbook,
-} from "../src/lib/catalog-import-template.ts";
+} from "../src/lib/catalog-import-template";
 
 const FASHION_PROFILE = {
   weightPricing: false,
