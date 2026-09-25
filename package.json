@@ -28,6 +28,7 @@
     "@tailwindcss/node": "^4.2.2",
     "caniuse-lite": "^1.0.30001787",
     "enhanced-resolve": "^5.20.1",
+    "exceljs": "^4.4.0",
     "html-to-image": "^1.11.13",
     "jspdf": "^4.2.1",
     "lucide-react": "^1.14.0",

@@ -6,6 +6,7 @@ import {
   updateMenuItemAction,
 } from "@/app-actions/restaurant";
 import { AddMenuItemForm } from "@/components/add-menu-item-form";
+import { CatalogExcelImportPanel } from "@/components/catalog-excel-import-panel";
 import { BusinessMenuItemsToolbar } from "@/components/business-menu-items-toolbar";
 import { ConfirmDeleteForm } from "@/components/confirm-delete-form";
 import { ImageUploadField } from "@/components/image-upload-field";
@@ -173,6 +174,8 @@ export function BusinessMenuItemsSection({
 }: Props) {
   return (
     <>
+        <CatalogExcelImportPanel itemsLabel={itemProfile.isFoodLike ? "menu" : "catalog"} />
+
         <section className="rounded-2xl border border-violet-100 bg-gradient-to-br from-[#faf9ff] to-white p-5 shadow-sm">
           <div className="mb-5 flex items-start justify-between gap-3">
             <div>
