@@ -10,7 +10,15 @@ import {
   type MenuOptionGroup,
 } from "@/lib/menu-item-options";
 
+export type CatalogSortBy =
+  | "recommended"
+  | "price_asc"
+  | "price_desc"
+  | "name_asc"
+  | "name_desc";
+
 export type CatalogFilterState = {
+  sortBy: CatalogSortBy;
   brands: string[];
   sizes: string[];
   colors: string[];
@@ -20,6 +28,7 @@ export type CatalogFilterState = {
 };
 
 export const DEFAULT_CATALOG_FILTERS: CatalogFilterState = {
+  sortBy: "recommended",
   brands: [],
   sizes: [],
   colors: [],
@@ -38,6 +47,7 @@ export type CatalogFacets = {
 type CatalogBrandEmbed = { id?: string; name?: string | null; logo_url?: string | null };
 
 type CatalogItem = {
+  name?: string | null;
   option_label?: string | null;
   option_values?: unknown;
   sold_by_weight?: boolean | null;
@@ -136,6 +146,7 @@ export function catalogFiltersAreActive(
   filters: CatalogFilterState,
   facets: CatalogFacets,
 ): boolean {
+  if (filters.sortBy !== "recommended") return true;
   if (filters.brands.length > 0 || filters.sizes.length > 0 || filters.colors.length > 0) return true;
   const min = filters.priceMinUsd ?? facets.minPriceUsd;
   const max = filters.priceMaxUsd ?? facets.maxPriceUsd;
@@ -144,10 +155,33 @@ export function catalogFiltersAreActive(
 
 export function catalogFilterCount(filters: CatalogFilterState, facets: CatalogFacets): number {
   let n = filters.brands.length + filters.sizes.length + filters.colors.length;
+  if (filters.sortBy !== "recommended") n += 1;
   const min = filters.priceMinUsd ?? facets.minPriceUsd;
   const max = filters.priceMaxUsd ?? facets.maxPriceUsd;
   if (min > facets.minPriceUsd || max < facets.maxPriceUsd) n += 1;
   return n;
+}
+
+export function sortCatalogItems<T extends CatalogItem>(
+  items: T[],
+  sortBy: CatalogSortBy,
+): T[] {
+  if (sortBy === "recommended" || items.length < 2) return items;
+  const ranked = items.map((item, index) => ({ item, index, price: itemPriceSpan(item).min }));
+  ranked.sort((a, b) => {
+    if (sortBy === "price_asc") return a.price - b.price || a.index - b.index;
+    if (sortBy === "price_desc") return b.price - a.price || a.index - b.index;
+    const aName = a.item.name?.trim() ?? "";
+    const bName = b.item.name?.trim() ?? "";
+    if (sortBy === "name_asc") {
+      return aName.localeCompare(bName, undefined, { sensitivity: "base" }) || a.index - b.index;
+    }
+    if (sortBy === "name_desc") {
+      return bName.localeCompare(aName, undefined, { sensitivity: "base" }) || a.index - b.index;
+    }
+    return a.index - b.index;
+  });
+  return ranked.map((row) => row.item);
 }
 
 export function itemMatchesCatalogFilters(
@@ -302,6 +336,7 @@ export function CatalogFilterSheet({
     if (facets.brands.length >= 2) list.push("brand");
     if (facets.sizes.length > 0) list.push("size");
     if (facets.colors.length > 0) list.push("colour");
+    // Always offer price when the store has more than one distinct price point.
     if (priceCeil > priceFloor) list.push("price");
     return list;
   }, [facets.brands.length, facets.sizes.length, facets.colors.length, priceCeil, priceFloor]);
@@ -337,6 +372,7 @@ export function CatalogFilterSheet({
 
   function applyAndClose(next: CatalogFilterState) {
     const normalized: CatalogFilterState = {
+      sortBy: next.sortBy ?? "recommended",
       brands: next.brands,
       sizes: next.sizes,
       colors: next.colors,
@@ -348,6 +384,13 @@ export function CatalogFilterSheet({
   }
 
   const backdropOpacity = Math.max(0.15, 0.45 * (1 - dragY / 320));
+  const sortOptions: Array<{ id: CatalogSortBy; label: string }> = [
+    { id: "recommended", label: "Recommended" },
+    { id: "price_asc", label: "Price: low to high" },
+    { id: "price_desc", label: "Price: high to low" },
+    { id: "name_asc", label: "Name: A–Z" },
+    { id: "name_desc", label: "Name: Z–A" },
+  ];
 
   return (
     <>
@@ -366,7 +409,7 @@ export function CatalogFilterSheet({
         }}
         role="dialog"
         aria-modal="true"
-        aria-label="Product filters"
+        aria-label="Sort and filter products"
       >
         <div
           className="h-3 shrink-0 touch-none sm:hidden"
@@ -379,7 +422,7 @@ export function CatalogFilterSheet({
 
         <div className="flex items-center justify-between px-6 pb-3 pt-1 sm:px-8 sm:pt-8">
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-800">
-            Filter
+            Sort &amp; filter
           </p>
           <div className="flex items-center gap-4">
             <button
@@ -402,8 +445,48 @@ export function CatalogFilterSheet({
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-4 sm:px-8">
           <div className="space-y-10">
+            <section>
+              <h3 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-800">
+                <span className="text-slate-400">|01|</span> Sort by
+              </h3>
+              <ul className="mt-3 divide-y divide-slate-100">
+                {sortOptions.map((opt) => {
+                  const selected = draft.sortBy === opt.id;
+                  return (
+                    <li key={opt.id}>
+                      <button
+                        type="button"
+                        onClick={() => updateDraft({ ...draft, sortBy: opt.id })}
+                        className="flex w-full items-center justify-between py-3 text-left"
+                      >
+                        <span
+                          className={`text-[14px] ${
+                            selected ? "font-semibold text-slate-900" : "font-medium text-slate-600"
+                          }`}
+                        >
+                          {opt.label}
+                        </span>
+                        <span
+                          className={`flex h-5 w-5 items-center justify-center rounded-full border ${
+                            selected
+                              ? "border-violet-600 bg-violet-600 text-white"
+                              : "border-slate-300 bg-white"
+                          }`}
+                          aria-hidden
+                        >
+                          {selected ? (
+                            <span className="h-1.5 w-1.5 rounded-full bg-white" />
+                          ) : null}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+
             {sections.map((section, i) => {
-              const index = i + 1;
+              const index = i + 2;
               if (section === "brand") {
                 return (
                   <FilterSection key="brand" index={index} title="Brand">

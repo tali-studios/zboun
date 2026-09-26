@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { ArrowLeft, Filter, Gift, Minus, Plus, Trash2, Zap } from "lucide-react";
+import { ArrowLeft, Filter, Gift, Minus, Plus, SlidersHorizontal, Trash2, Zap } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { CategoryWithItems } from "@/lib/data";
@@ -79,6 +79,7 @@ import {
   catalogFilterCount,
   collectCatalogFacets,
   itemMatchesCatalogFilters,
+  sortCatalogItems,
   type CatalogFilterState,
 } from "@/components/catalog-filter-sheet";
 
@@ -393,10 +394,7 @@ export function MenuClient({
     () => collectCatalogFacets(allCatalogItems),
     [allCatalogItems],
   );
-  const showCatalogFilterButton =
-    catalogFacets.brands.length >= 2 ||
-    catalogFacets.sizes.length > 0 ||
-    catalogFacets.colors.length > 0;
+  const showCatalogFilterButton = allCatalogItems.length > 0;
   const activeCatalogFilterCount = catalogFilterCount(catalogFilters, catalogFacets);
 
   const filteredCategories = useMemo(() => {
@@ -404,18 +402,21 @@ export function MenuClient({
     return categories
       .map((category) => ({
         ...category,
-        menu_items: category.menu_items.filter((item) => {
-          if (!itemMatchesAudienceFilter(item.audience, menuAudienceFilter)) return false;
-          if (!itemMatchesCatalogFilters(item, catalogFilters, catalogFacets)) return false;
-          if (!normalized) return true;
-          const brand = getMenuItemBrand(item);
-          return (
-            item.name.toLowerCase().includes(normalized) ||
-            (brand?.name ?? "").toLowerCase().includes(normalized) ||
-            (item.description ?? "").toLowerCase().includes(normalized) ||
-            (item.contents ?? "").toLowerCase().includes(normalized)
-          );
-        }),
+        menu_items: sortCatalogItems(
+          category.menu_items.filter((item) => {
+            if (!itemMatchesAudienceFilter(item.audience, menuAudienceFilter)) return false;
+            if (!itemMatchesCatalogFilters(item, catalogFilters, catalogFacets)) return false;
+            if (!normalized) return true;
+            const brand = getMenuItemBrand(item);
+            return (
+              item.name.toLowerCase().includes(normalized) ||
+              (brand?.name ?? "").toLowerCase().includes(normalized) ||
+              (item.description ?? "").toLowerCase().includes(normalized) ||
+              (item.contents ?? "").toLowerCase().includes(normalized)
+            );
+          }),
+          catalogFilters.sortBy ?? "recommended",
+        ),
       }))
       .filter((category) => category.menu_items.length > 0);
   }, [categories, query, menuAudienceFilter, catalogFilters, catalogFacets]);
@@ -1858,62 +1859,57 @@ export function MenuClient({
             </div>
           )}
           
-          {/* Search */}
-          <div className="relative w-full min-w-0">
-            <svg
-              className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-              aria-hidden
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
-            </svg>
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search this menu"
-              className="ui-input ui-input-search box-border h-12 w-full max-w-full min-w-0 !rounded-full border border-slate-200 bg-white text-base shadow-sm"
-            />
+          {/* Search + Sort & Filter */}
+          <div className="flex min-w-0 items-center gap-2">
+            <div className="relative min-w-0 flex-1">
+              <svg
+                className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+                aria-hidden
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+              </svg>
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search this menu"
+                className="ui-input ui-input-search box-border h-12 w-full max-w-full min-w-0 !rounded-full border border-slate-200 bg-white text-base shadow-sm"
+              />
+            </div>
+            {showCatalogFilterButton ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setCatalogFilterDraft(catalogFilters);
+                  setShowCatalogFilters(true);
+                }}
+                className={`relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white shadow-sm transition hover:bg-slate-50 ${
+                  activeCatalogFilterCount > 0 ? "text-violet-700" : "text-slate-600"
+                }`}
+                aria-label="Sort and filter"
+                aria-haspopup="dialog"
+                aria-expanded={showCatalogFilters}
+              >
+                <SlidersHorizontal className="h-5 w-5" strokeWidth={2} />
+                {activeCatalogFilterCount > 0 ? (
+                  <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-violet-600" aria-hidden />
+                ) : null}
+              </button>
+            ) : null}
           </div>
 
           {/* Audience filter — Women / Men / Kids (Boys & Girls under Kids) */}
-          {audienceGroups.showFilter || showCatalogFilterButton ? (
+          {audienceGroups.showFilter ? (
             <div className="space-y-2">
               <div className="flex min-w-0 w-full max-w-full items-center gap-2">
-                {showCatalogFilterButton ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCatalogFilterDraft(catalogFilters);
-                      setShowCatalogFilters(true);
-                    }}
-                    className={`inline-flex shrink-0 items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide transition ${
-                      activeCatalogFilterCount > 0
-                        ? "text-slate-900"
-                        : "text-slate-400 hover:text-slate-700"
-                    }`}
-                    aria-haspopup="dialog"
-                    aria-expanded={showCatalogFilters}
-                  >
-                    <Filter className="h-3.5 w-3.5" aria-hidden />
-                    Filter
-                    {activeCatalogFilterCount > 0 ? (
-                      <span className="rounded-full bg-slate-900 px-1.5 py-0.5 text-[9px] font-bold leading-none text-white">
-                        {activeCatalogFilterCount}
-                      </span>
-                    ) : null}
-                  </button>
-                ) : (
-                  <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">
-                    <Filter className="h-3.5 w-3.5" aria-hidden />
-                    Filter
-                  </span>
-                )}
+                <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                  <Filter className="h-3.5 w-3.5" aria-hidden />
+                  Filter
+                </span>
                 <div className="flex min-w-0 flex-1 flex-nowrap gap-2 overflow-x-auto overflow-y-hidden touch-pan-x pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:overflow-x-visible">
-                  {audienceGroups.showFilter ? (
-                    <>
                   <button
                     type="button"
                     onClick={() => setMenuAudienceFilter("all")}
@@ -1967,8 +1963,6 @@ export function MenuClient({
                     >
                       Kids
                     </button>
-                  ) : null}
-                    </>
                   ) : null}
                 </div>
               </div>
