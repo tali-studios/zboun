@@ -227,6 +227,8 @@ export async function createRestaurantAction(formData: FormData) {
         business_type: businessType,
         browse_sections: browseSelection,
         billing_exempt: lifetimeFree,
+        // WhatsApp / guest checkout on by default for every new store.
+        allow_guest_checkout: true,
       })
       .select("id")
       .single();

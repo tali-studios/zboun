@@ -395,7 +395,7 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                     type="checkbox"
                     name="allow_guest_checkout"
                     value="true"
-                    defaultChecked={restaurant?.allow_guest_checkout ?? false}
+                    defaultChecked={restaurant?.allow_guest_checkout ?? true}
                     className="h-4 w-4 shrink-0 rounded border-slate-300 text-violet-600 focus:ring-violet-500"
                   />
                   <span className="text-sm text-slate-800">Allow orders without signing in</span>
