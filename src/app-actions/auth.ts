@@ -7,7 +7,12 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getCurrentUserRole } from "@/lib/data";
 import { env } from "@/lib/env";
 import { requireTurnstile } from "@/lib/turnstile";
-import { getSetPasswordRedirectUrl } from "@/lib/public-app-url";
+import { isSmtpConfigured, sendMail } from "@/lib/mail";
+import {
+  getPublicAppUrl,
+  getSetPasswordRedirectUrl,
+  withProductionSetPasswordRedirect,
+} from "@/lib/public-app-url";
 
 function getAdminClient() {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -192,7 +197,12 @@ export async function changeDashboardPasswordAction(formData: FormData) {
   redirect("/dashboard/change-password?success=password_changed");
 }
 
-/** Email a password-reset link (customers + store admins). Always shows success to avoid email enumeration. */
+/**
+ * Email a password-reset link (customers + store admins).
+ * Uses admin generateLink + ZeptoMail/sendMail — not Supabase Auth SMTP
+ * (Supabase/Zoho Mail hits rate limits and was blocking zboun.net outbound).
+ * Unknown emails still show success (enumeration-safe).
+ */
 export async function requestPasswordResetAction(formData: FormData) {
   const captcha = await requireTurnstile(formData);
   if (!captcha.ok) {
@@ -207,11 +217,50 @@ export async function requestPasswordResetAction(formData: FormData) {
     redirect("/forgot-password?error=missing_email");
   }
 
-  const supabase = await createServerSupabaseClient();
-  const redirectTo = getSetPasswordRedirectUrl();
-  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+  const admin = getAdminClient();
+  if (!admin || !isSmtpConfigured()) {
+    console.error("Password reset: admin client or mail not configured");
+    redirect("/forgot-password?error=reset_failed");
+  }
 
-  if (error) {
+  const redirectTo = getSetPasswordRedirectUrl();
+  const { data, error } = await admin.auth.admin.generateLink({
+    type: "recovery",
+    email,
+    options: { redirectTo },
+  });
+
+  if (error || !data?.properties) {
+    // User may not exist — pretend success
+    console.error("Password reset generateLink:", error?.message ?? "no properties");
+    redirect("/forgot-password?success=email_sent");
+  }
+
+  const appUrl = getPublicAppUrl();
+  const hashedToken = data.properties.hashed_token;
+  const resetLink = hashedToken
+    ? `${appUrl}/auth/set-password?token_hash=${encodeURIComponent(hashedToken)}&type=recovery`
+    : withProductionSetPasswordRedirect(data.properties.action_link ?? redirectTo);
+
+  try {
+    await sendMail({
+      to: email,
+      subject: "Reset your Zboun password",
+      text: [
+        "Reset your Zboun password using this link:",
+        "",
+        resetLink,
+        "",
+        "If you did not request this, you can ignore this email.",
+      ].join("\n"),
+      html: [
+        "<p>Reset your Zboun password:</p>",
+        `<p><a href="${resetLink}">Set a new password</a></p>`,
+        "<p>If you did not request this, you can ignore this email.</p>",
+      ].join(""),
+    });
+  } catch (err) {
+    console.error("Password reset sendMail failed:", err);
     redirect("/forgot-password?error=reset_failed");
   }
 
