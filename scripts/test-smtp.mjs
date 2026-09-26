@@ -1,10 +1,10 @@
 /**
- * Send a one-off SMTP test email using .env.local settings.
- * Usage: node scripts/test-smtp.mjs wissam8802@gmail.com
+ * Send a one-off mail test using .env.local (ZeptoMail token preferred, else SMTP).
+ * Usage: node scripts/test-smtp.mjs you@example.com
  */
-import nodemailer from "nodemailer";
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
+import nodemailer from "nodemailer";
 
 function loadEnvLocal() {
   const p = resolve(process.cwd(), ".env.local");
@@ -35,51 +35,82 @@ if (!to) {
   process.exit(1);
 }
 
-const smtpUser = process.env.SMTP_USER?.trim();
-const smtpPass = process.env.SMTP_PASS?.trim();
-const smtpFrom = process.env.SMTP_FROM?.trim() || smtpUser;
-const smtpFromName = process.env.SMTP_FROM_NAME?.trim();
-const smtpHost = process.env.SMTP_HOST?.trim() || "smtp.zoho.com";
-const smtpPort = Number(process.env.SMTP_PORT ?? 465);
-const replyTo = process.env.SMTP_REPLY_TO?.trim();
-
-if (!smtpUser || !smtpPass) {
-  console.error("SMTP_USER and SMTP_PASS must be set in .env.local");
-  process.exit(1);
-}
-
-const from = smtpFromName ? `${smtpFromName} <${smtpFrom}>` : smtpFrom;
-
-const transporter = nodemailer.createTransport({
-  host: smtpHost,
-  port: smtpPort,
-  secure: process.env.SMTP_SECURE !== "false",
-  auth: { user: smtpUser, pass: smtpPass },
-});
-
+const zeptoToken =
+  process.env.ZEPTOMAIL_TOKEN?.trim() || process.env.ZEPTOMAIL_SEND_MAIL_TOKEN?.trim() || "";
+const fromEmail =
+  process.env.SMTP_FROM?.trim() ||
+  (process.env.SMTP_USER?.trim() && process.env.SMTP_USER.trim() !== "emailapikey"
+    ? process.env.SMTP_USER.trim()
+    : "") ||
+  process.env.ZBOUN_OPS_EMAIL?.trim() ||
+  "admin@zboun.net";
+const fromName = process.env.SMTP_FROM_NAME?.trim() || "Zboun";
+const replyTo = process.env.SMTP_REPLY_TO?.trim() || process.env.ZBOUN_OPS_EMAIL?.trim() || fromEmail;
 const sentAt = new Date().toISOString();
 
-try {
+async function sendZepto() {
+  const apiUrl = process.env.ZEPTOMAIL_API_URL?.trim() || "https://cpaas.zoho.com/v1.1/email";
+  const res = await fetch(apiUrl, {
+    method: "POST",
+    headers: {
+      Authorization: zeptoToken.startsWith("Zoho-enczapikey")
+        ? zeptoToken
+        : `Zoho-enczapikey ${zeptoToken}`,
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({
+      from: { address: fromEmail, name: fromName },
+      to: [{ email_address: { address: to, name: to.split("@")[0] } }],
+      reply_to: [{ address: replyTo, name: "Zboun" }],
+      subject: "Zboun ZeptoMail test",
+      textbody: `ZeptoMail API test from Zboun.\nSent at: ${sentAt}\nFrom: ${fromEmail}`,
+      htmlbody: `<p>ZeptoMail API test from Zboun.</p><p>Sent at: ${sentAt}<br/>From: ${fromEmail}</p>`,
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(`ZeptoMail ${res.status}: ${await res.text()}`);
+  }
+  console.log("Test email sent via ZeptoMail API.");
+  console.log("To:", to);
+  console.log("From:", fromEmail);
+}
+
+async function sendSmtp() {
+  const smtpUser = process.env.SMTP_USER?.trim();
+  const smtpPass = process.env.SMTP_PASS?.trim();
+  const smtpHost = process.env.SMTP_HOST?.trim() || "smtp.zoho.com";
+  const smtpPort = Number(process.env.SMTP_PORT ?? 465);
+  if (!smtpUser || !smtpPass) {
+    throw new Error("Set ZEPTOMAIL_TOKEN, or SMTP_USER + SMTP_PASS in .env.local");
+  }
+  const from = `${fromName} <${fromEmail}>`;
+  const transporter = nodemailer.createTransport({
+    host: smtpHost,
+    port: smtpPort,
+    secure: process.env.SMTP_SECURE !== "false",
+    auth: { user: smtpUser, pass: smtpPass },
+  });
   const info = await transporter.sendMail({
     from,
     to,
-    ...(replyTo ? { replyTo } : {}),
+    replyTo,
     subject: "Zboun SMTP test",
-    text: [
-      "This is a test email from the Zboun app SMTP setup.",
-      "",
-      `Sent at: ${sentAt}`,
-      `From: ${from}`,
-      `SMTP host: ${smtpHost}:${smtpPort}`,
-      "",
-      "If you received this, Zoho Mail is configured correctly.",
-    ].join("\n"),
+    text: `SMTP test from Zboun.\nSent at: ${sentAt}\nHost: ${smtpHost}:${smtpPort}\nFrom: ${from}`,
   });
-  console.log("Test email sent successfully.");
+  console.log("Test email sent via SMTP.");
   console.log("Message ID:", info.messageId);
   console.log("To:", to);
-} catch (err) {
-  console.error("Failed to send test email:");
-  console.error(err instanceof Error ? err.message : err);
+  console.log("Host:", `${smtpHost}:${smtpPort}`);
+}
+
+try {
+  if (zeptoToken) {
+    await sendZepto();
+  } else {
+    await sendSmtp();
+  }
+} catch (error) {
+  console.error(error instanceof Error ? error.message : error);
   process.exit(1);
 }
