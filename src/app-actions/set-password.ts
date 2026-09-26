@@ -19,11 +19,14 @@ export async function setPasswordAction(formData: FormData) {
   }
 
   const supabase = await createServerSupabaseClient();
-  
-  // Update password
+
   const { error: updatePasswordError } = await supabase.auth.updateUser({ password });
   if (updatePasswordError) {
-    redirect(`/auth/set-password?error=${encodeURIComponent(updatePasswordError.message)}`);
+    const msg = updatePasswordError.message.toLowerCase();
+    if (msg.includes("different from the old") || msg.includes("same password")) {
+      redirect("/auth/set-password?error=same_password");
+    }
+    redirect("/auth/set-password?error=update_failed");
   }
 
   // Get user role and redirect appropriately

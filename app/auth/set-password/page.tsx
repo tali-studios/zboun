@@ -14,8 +14,19 @@ const ERROR_MESSAGES: Record<string, string> = {
   missing_fields: "Please fill in all fields.",
   password_too_short: "Password must be at least 8 characters.",
   password_mismatch: "Passwords do not match.",
+  same_password: "Choose a new password that is different from your current one.",
   update_failed: "Failed to set password. Please try again.",
 };
+
+/** Supabase Auth callback errors (not our form redirects). */
+const AUTH_LINK_ERROR_CODES = new Set([
+  "access_denied",
+  "server_error",
+  "unauthorized_client",
+  "invalid_request",
+  "otp_expired",
+  "flow_state_expired",
+]);
 
 function parseHashParams(): URLSearchParams {
   if (typeof window === "undefined") return new URLSearchParams();
@@ -116,16 +127,20 @@ function SetPasswordInner() {
   const [status, setStatus] = useState<Status>("checking");
   const [linkErrorInfo, setLinkErrorInfo] = useState<LinkErrorInfo | null>(null);
 
-  // Supabase can report a failed verify (expired/used link) via either the
-  // query string or the URL hash fragment, depending on flow type.
-  const queryLinkError = searchParams.get("error") || searchParams.get("error_code");
+  // Form redirects use ?error=<known_key>. Auth link failures use error_code / access_denied / hash.
   const formError = searchParams.get("error");
   const errorMessage =
-    formError && ERROR_MESSAGES[formError]
-      ? ERROR_MESSAGES[formError]
-      : formError && !queryLinkError
-        ? decodeURIComponent(formError).replaceAll("_", " ")
-        : null;
+    formError && ERROR_MESSAGES[formError] ? ERROR_MESSAGES[formError] : null;
+  const isFormError = Boolean(formError && formError in ERROR_MESSAGES);
+  const queryErrorCode = searchParams.get("error_code");
+  const queryError = searchParams.get("error");
+  const queryLinkError =
+    !isFormError &&
+    Boolean(
+      queryErrorCode ||
+        (queryError && AUTH_LINK_ERROR_CODES.has(queryError)) ||
+        searchParams.get("error_description"),
+    );
 
   // Newer invite links point straight at our own page with a token_hash instead
   // of Supabase's /auth/v1/verify endpoint. This is intentional: linking directly
@@ -146,8 +161,8 @@ function SetPasswordInner() {
     if (queryLinkError || hashError) {
       const info: LinkErrorInfo = {
         source: hashError ? "hash" : "query",
-        error: queryLinkError || hashParams.get("error"),
-        code: hashParams.get("error_code") || searchParams.get("error_code"),
+        error: queryError || hashParams.get("error"),
+        code: hashParams.get("error_code") || queryErrorCode,
         description: description ? decodeURIComponent(description).replaceAll("+", " ") : null,
         tokenHashPreview: tokenHash ? `${tokenHash.slice(0, 8)}…` : null,
         otpType,
@@ -160,13 +175,13 @@ function SetPasswordInner() {
     }
 
     // New-style link: wait for the user to click "Continue" before redeeming.
-    if (tokenHash) {
+    // Form errors keep an existing session — show the password form again.
+    if (tokenHash && !isFormError) {
       setStatus("confirm");
       return;
     }
 
-    // Old-style link: Supabase already redeemed the token server-side and
-    // redirected back here with session tokens in the URL hash.
+    // Old-style link / post-verify / form error with session still active.
     const supabase = createClient();
     let cancelled = false;
     let fallbackTimer: ReturnType<typeof setTimeout> | undefined;
@@ -180,6 +195,10 @@ function SetPasswordInner() {
       if (cancelled) return;
       if (data.session) {
         setStatus("ready");
+        return;
+      }
+      if (isFormError) {
+        setStatus("invalid");
         return;
       }
       fallbackTimer = setTimeout(() => {
@@ -196,7 +215,7 @@ function SetPasswordInner() {
       if (fallbackTimer) clearTimeout(fallbackTimer);
       sub.subscription.unsubscribe();
     };
-  }, [queryLinkError, searchParams, tokenHash, otpType]);
+  }, [queryLinkError, isFormError, queryError, queryErrorCode, searchParams, tokenHash, otpType]);
 
   async function handleConfirm() {
     if (!tokenHash) return;
