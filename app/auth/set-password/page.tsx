@@ -1,9 +1,10 @@
 "use client";
 
 import { Suspense, useEffect, useState, type ReactNode } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
+import { DashboardAlertModal } from "@/components/dashboard-alert-modal";
 import { PasswordInput } from "@/components/password-input";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { setPasswordAction } from "@/app-actions/set-password";
@@ -16,6 +17,14 @@ const ERROR_MESSAGES: Record<string, string> = {
   password_mismatch: "Passwords do not match.",
   same_password: "Choose a new password that is different from your current one.",
   update_failed: "Failed to set password. Please try again.",
+};
+
+const ERROR_HEADINGS: Record<string, string> = {
+  missing_fields: "Missing fields",
+  password_too_short: "Password too short",
+  password_mismatch: "Passwords don’t match",
+  same_password: "Choose a different password",
+  update_failed: "Couldn’t set password",
 };
 
 /** Supabase Auth callback errors (not our form redirects). */
@@ -123,14 +132,14 @@ export default function SetPasswordPage() {
 }
 
 function SetPasswordInner() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<Status>("checking");
   const [linkErrorInfo, setLinkErrorInfo] = useState<LinkErrorInfo | null>(null);
+  const [errorPopup, setErrorPopup] = useState<{ heading: string; message: string } | null>(null);
 
   // Form redirects use ?error=<known_key>. Auth link failures use error_code / access_denied / hash.
   const formError = searchParams.get("error");
-  const errorMessage =
-    formError && ERROR_MESSAGES[formError] ? ERROR_MESSAGES[formError] : null;
   const isFormError = Boolean(formError && formError in ERROR_MESSAGES);
   const queryErrorCode = searchParams.get("error_code");
   const queryError = searchParams.get("error");
@@ -151,6 +160,23 @@ function SetPasswordInner() {
   // automated GET request to this page (which never clicks anything) can't burn it.
   const tokenHash = searchParams.get("token_hash");
   const otpType = (searchParams.get("type") as EmailOtpType | null) ?? "magiclink";
+
+  useEffect(() => {
+    if (!formError || !(formError in ERROR_MESSAGES)) return;
+    setErrorPopup({
+      heading: ERROR_HEADINGS[formError] ?? "Couldn’t set password",
+      message: ERROR_MESSAGES[formError],
+    });
+  }, [formError]);
+
+  function dismissErrorPopup() {
+    setErrorPopup(null);
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has("error")) return;
+    url.searchParams.delete("error");
+    router.replace(`${url.pathname}${url.search}${url.hash}`);
+  }
 
   useEffect(() => {
     const hashParams = parseHashParams();
