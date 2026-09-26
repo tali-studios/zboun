@@ -29,6 +29,9 @@ export type OrderNotificationParams = {
   deliveryLng?: number | null;
   items: OrderNotificationItem[];
   notes?: string | null;
+  /** Items only (before delivery / coupon). */
+  itemsSubtotalUsd?: number | null;
+  deliveryFeeUsd?: number | null;
   totalUsd: number;
   deliverySpeed?: "standard" | "fast";
   paymentNote?: string | null;
@@ -81,8 +84,35 @@ const ICO = {
   clock: "\u{23F0}",
 } as const;
 
+function money(n: number) {
+  return `$${n.toFixed(2)}`;
+}
+
+function resolveItemsSubtotal(p: OrderNotificationParams): number {
+  if (p.itemsSubtotalUsd != null && Number.isFinite(p.itemsSubtotalUsd)) {
+    return Math.max(0, p.itemsSubtotalUsd);
+  }
+  return Math.round(
+    p.items.reduce((sum, item) => sum + item.qty * item.unitPrice, 0) * 100,
+  ) / 100;
+}
+
+function deliveryLabel(p: OrderNotificationParams): string {
+  if (p.deliverySpeed === "fast") return "Fast delivery";
+  return "Standard delivery";
+}
+
+function deliveryFeeLine(p: OrderNotificationParams): { label: string; amount: number } | null {
+  const fee = p.deliveryFeeUsd;
+  if (fee == null || !Number.isFinite(fee)) return null;
+  if (fee <= 0) return { label: deliveryLabel(p), amount: 0 };
+  return { label: deliveryLabel(p), amount: fee };
+}
+
 /** Plain-text order body for WhatsApp / SMS style messages. */
 export function buildOrderPlainText(p: OrderNotificationParams): string {
+  const itemsSubtotal = resolveItemsSubtotal(p);
+  const delivery = deliveryFeeLine(p);
   const lines: string[] = [
     `${ICO.newOrder} New Order - ${p.restaurantName}`,
     `Order #${p.orderNumber ?? p.orderId.slice(0, 8).toUpperCase()}`,
@@ -107,13 +137,21 @@ export function buildOrderPlainText(p: OrderNotificationParams): string {
       }
       if (item.specialInstructions) modParts.push(item.specialInstructions);
       const mod = modParts.length ? ` [${modParts.join(" | ")}]` : "";
-      return `  - ${formatQty(item.unit, item.qty)} ${item.name}${mod} - $${(item.qty * item.unitPrice).toFixed(2)}`;
+      return `  - ${formatQty(item.unit, item.qty)} ${item.name}${mod} - ${money(item.qty * item.unitPrice)}`;
     }),
     ``,
-    ...(p.couponCode && p.couponDiscountUsd
-      ? [`${ICO.tag} Promo (${p.couponCode}): -$${p.couponDiscountUsd.toFixed(2)}`, ``]
+    `Subtotal: ${money(itemsSubtotal)}`,
+    ...(delivery
+      ? [
+          delivery.amount > 0
+            ? `${delivery.label}: ${money(delivery.amount)}`
+            : `${delivery.label}: Free`,
+        ]
       : []),
-    `${ICO.money} Total: $${p.totalUsd.toFixed(2)}`,
+    ...(p.couponCode && p.couponDiscountUsd
+      ? [`${ICO.tag} Promo (${p.couponCode}): -${money(p.couponDiscountUsd)}`]
+      : []),
+    `${ICO.money} Total: ${money(p.totalUsd)}`,
     ...(p.paymentNote ? [`${ICO.cash} Payment: ${p.paymentNote}`] : []),
     ...(p.notes ? [`${ICO.note} Notes: ${p.notes}`] : []),
     ``,
@@ -124,6 +162,9 @@ export function buildOrderPlainText(p: OrderNotificationParams): string {
 
 /** HTML email body for restaurant notification. */
 function buildOrderEmailHtml(p: OrderNotificationParams): string {
+  const itemsSubtotal = resolveItemsSubtotal(p);
+  const delivery = deliveryFeeLine(p);
+
   const itemRows = p.items
     .map((item) => {
       const mods: string[] = [];
@@ -140,7 +181,7 @@ function buildOrderEmailHtml(p: OrderNotificationParams): string {
         : "";
       return `<tr>
         <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6">${formatQty(item.unit, item.qty)} ${item.name}${modsHtml}</td>
-        <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;text-align:right;font-weight:600">$${(item.qty * item.unitPrice).toFixed(2)}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;text-align:right;font-weight:600">${money(item.qty * item.unitPrice)}</td>
       </tr>`;
     })
     .join("");
@@ -148,6 +189,28 @@ function buildOrderEmailHtml(p: OrderNotificationParams): string {
   const mapSection =
     p.deliveryLat != null && p.deliveryLng != null
       ? `<p><strong>${ICO.pin} Location:</strong> <a href="${mapsLink(p.deliveryLat, p.deliveryLng)}" style="color:#4c1d95">Open in Google Maps</a></p>`
+      : "";
+
+  const subtotalRow = `<tr>
+        <td style="padding:8px 12px;font-size:14px;color:#6b7280">Subtotal</td>
+        <td style="padding:8px 12px;font-size:14px;text-align:right;color:#27272a">${money(itemsSubtotal)}</td>
+      </tr>`;
+
+  const deliveryRow = delivery
+    ? `<tr>
+        <td style="padding:8px 12px;font-size:14px;color:#6b7280">${delivery.label}</td>
+        <td style="padding:8px 12px;font-size:14px;text-align:right;color:#27272a">${
+          delivery.amount > 0 ? money(delivery.amount) : "Free"
+        }</td>
+      </tr>`
+    : "";
+
+  const promoRow =
+    p.couponCode && p.couponDiscountUsd
+      ? `<tr style="background:#faf9ff">
+        <td style="padding:8px 12px;font-size:14px;color:#6b7280">Promo (${p.couponCode})</td>
+        <td style="padding:8px 12px;font-size:14px;text-align:right;color:#059669">−${money(p.couponDiscountUsd)}</td>
+      </tr>`
       : "";
 
   return `<!DOCTYPE html>
@@ -173,17 +236,12 @@ function buildOrderEmailHtml(p: OrderNotificationParams): string {
       </tr></thead>
       <tbody>${itemRows}</tbody>
       <tfoot>
-        ${
-          p.couponCode && p.couponDiscountUsd
-            ? `<tr style="background:#faf9ff">
-        <td style="padding:8px 12px;font-size:14px;color:#6b7280">Promo (${p.couponCode})</td>
-        <td style="padding:8px 12px;font-size:14px;text-align:right;color:#059669">−$${p.couponDiscountUsd.toFixed(2)}</td>
-      </tr>`
-            : ""
-        }
+        ${subtotalRow}
+        ${deliveryRow}
+        ${promoRow}
         <tr style="background:#faf9ff">
         <td style="padding:12px;font-weight:700;font-size:16px">Total</td>
-        <td style="padding:12px;font-weight:700;font-size:16px;text-align:right;color:#4c1d95">$${p.totalUsd.toFixed(2)}</td>
+        <td style="padding:12px;font-weight:700;font-size:16px;text-align:right;color:#4c1d95">${money(p.totalUsd)}</td>
       </tr></tfoot>
     </table>
     ${p.paymentNote ? `<p style="margin:16px 0 0"><strong>${ICO.cash} Payment:</strong> ${p.paymentNote}</p>` : ""}

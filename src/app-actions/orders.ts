@@ -343,6 +343,8 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
     deliveryLng: input.deliveryLng,
     items: input.items,
     notes: input.notes,
+    itemsSubtotalUsd: itemsSubtotal,
+    deliveryFeeUsd,
     totalUsd: expectedTotal,
     deliverySpeed,
     paymentNote: input.paymentNote?.trim() || null,

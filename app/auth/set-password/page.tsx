@@ -22,9 +22,9 @@ const ERROR_MESSAGES: Record<string, string> = {
 const ERROR_HEADINGS: Record<string, string> = {
   missing_fields: "Missing fields",
   password_too_short: "Password too short",
-  password_mismatch: "Passwords don’t match",
+  password_mismatch: "Passwords don't match",
   same_password: "Choose a different password",
-  update_failed: "Couldn’t set password",
+  update_failed: "Couldn't set password",
 };
 
 /** Supabase Auth callback errors (not our form redirects). */
@@ -164,7 +164,7 @@ function SetPasswordInner() {
   useEffect(() => {
     if (!formError || !(formError in ERROR_MESSAGES)) return;
     setErrorPopup({
-      heading: ERROR_HEADINGS[formError] ?? "Couldn’t set password",
+      heading: ERROR_HEADINGS[formError] ?? "Couldn't set password",
       message: ERROR_MESSAGES[formError],
     });
   }, [formError]);
@@ -269,6 +269,13 @@ function SetPasswordInner() {
 
   return (
     <SetPasswordShell>
+      <DashboardAlertModal
+        open={Boolean(errorPopup)}
+        heading={errorPopup?.heading ?? ""}
+        message={errorPopup?.message ?? ""}
+        variant="warning"
+        onClose={dismissErrorPopup}
+      />
       {status === "checking" ? (
         <CheckingState />
       ) : status === "verifying" ? (
@@ -355,12 +362,6 @@ function SetPasswordInner() {
         </div>
       ) : (
         <>
-          {errorMessage ? (
-            <div className="mb-5 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-              {errorMessage}
-            </div>
-          ) : null}
-
           <form action={setPasswordAction} className="space-y-3">
             <div>
               <label htmlFor="password" className="mb-1.5 block text-xs font-semibold text-slate-600">
