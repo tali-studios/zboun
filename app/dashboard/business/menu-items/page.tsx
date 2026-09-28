@@ -182,7 +182,7 @@ export default async function BusinessMenuItemsPage({ searchParams }: Props) {
   return (
     <main className="min-h-screen bg-[#f8f8ff] p-3 sm:p-4 md:p-8">
       <DashboardSectionJump target={jump} itemId={jumpItemId} />
-      <RestoreMenuItemsScroll jump={jump} />
+      <RestoreMenuItemsScroll jump={jump} renderKey={crypto.randomUUID()} />
       <RestaurantDashboardToast
         toast={toast}
         itemName={itemName}

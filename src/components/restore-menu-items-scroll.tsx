@@ -3,6 +3,11 @@
 import { useEffect } from "react";
 
 const SCROLL_KEY = "zboun:menu-items-scroll-y";
+const HOLD_SAFETY_MS = 15000;
+const RELEASE_AFTER_RENDER_MS = 500;
+
+type ScrollHold = { y: number; release: () => void };
+let activeHold: ScrollHold | null = null;
 
 /** Call right before a menu-items save that will navigate/refresh. */
 export function saveMenuItemsScrollPosition() {
@@ -27,12 +32,70 @@ function readSavedScroll(): number | null {
 }
 
 /**
- * After create/update redirects, Next resets scroll to top.
- * Restore the pre-submit position unless a ?jump= target is handling it.
+ * Pin the window scroll position from submit until the redirected page has rendered.
+ * Scroll events fire before paint, so Next's scroll-to-top is undone without a visible jump.
+ * Released by RestoreMenuItemsScroll after the next server render, on user input, or by a safety timeout.
  */
-export function RestoreMenuItemsScroll({ jump }: { jump?: string | null }) {
+export function beginMenuItemsScrollHold() {
+  if (typeof window === "undefined") return;
+  endMenuItemsScrollHold(0);
+
+  const y = window.scrollY;
+  const onScroll = () => {
+    if (Math.abs(window.scrollY - y) > 1) window.scrollTo(0, y);
+  };
+  const release = () => {
+    window.clearTimeout(safety);
+    window.removeEventListener("scroll", onScroll);
+    window.removeEventListener("wheel", release);
+    window.removeEventListener("touchstart", release);
+    window.removeEventListener("keydown", release);
+    if (activeHold?.release === release) activeHold = null;
+  };
+  const safety = window.setTimeout(release, HOLD_SAFETY_MS);
+  window.addEventListener("scroll", onScroll, { passive: true });
+  window.addEventListener("wheel", release, { passive: true });
+  window.addEventListener("touchstart", release, { passive: true });
+  window.addEventListener("keydown", release);
+  activeHold = { y, release };
+}
+
+export function endMenuItemsScrollHold(delayMs = RELEASE_AFTER_RENDER_MS) {
+  const hold = activeHold;
+  if (!hold) return;
+  if (delayMs <= 0) {
+    hold.release();
+    return;
+  }
+  window.setTimeout(hold.release, delayMs);
+}
+
+/**
+ * After create/update redirects, Next resets scroll to top.
+ * `renderKey` changes on every server render, so this re-runs after soft navigations too.
+ * Restores the pre-submit position unless a ?jump= target is handling it.
+ */
+export function RestoreMenuItemsScroll({
+  jump,
+  renderKey,
+}: {
+  jump?: string | null;
+  renderKey?: string;
+}) {
   useEffect(() => {
-    if (jump) return;
+    if (jump) {
+      endMenuItemsScrollHold(0);
+      return;
+    }
+
+    if (activeHold) {
+      const { y } = activeHold;
+      readSavedScroll();
+      window.scrollTo(0, y);
+      endMenuItemsScrollHold();
+      return;
+    }
+
     const y = readSavedScroll();
     if (y == null) return;
 
@@ -48,7 +111,7 @@ export function RestoreMenuItemsScroll({ jump }: { jump?: string | null }) {
       window.clearTimeout(t2);
       window.clearTimeout(t3);
     };
-  }, [jump]);
+  }, [jump, renderKey]);
 
   return null;
 }

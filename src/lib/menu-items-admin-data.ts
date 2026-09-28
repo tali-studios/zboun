@@ -25,6 +25,24 @@ export function buildMenuItemsListHref(opts: {
   return qs ? `${MENU_ITEMS_ADMIN_PATH}?${qs}#items-toolbar` : `${MENU_ITEMS_ADMIN_PATH}#items-toolbar`;
 }
 
+const MENU_ITEMS_LIST_QUERY_KEYS = ["q", "category", "stock", "audience", "brand", "sort", "page"] as const;
+
+/**
+ * List filters + page the admin was viewing (sent by the edit form as `list_query`),
+ * so a save redirect returns to the same page. Returns "" or "key=value&…&".
+ */
+export function menuItemsListQueryPrefix(raw: FormDataEntryValue | null): string {
+  if (typeof raw !== "string" || !raw) return "";
+  const source = new URLSearchParams(raw.startsWith("?") ? raw.slice(1) : raw);
+  const kept = new URLSearchParams();
+  for (const key of MENU_ITEMS_LIST_QUERY_KEYS) {
+    const value = source.get(key)?.trim();
+    if (value) kept.set(key, value.slice(0, 200));
+  }
+  const qs = kept.toString();
+  return qs ? `${qs}&` : "";
+}
+
 export type AdminMenuItemRow = {
   id: string;
   name: string;

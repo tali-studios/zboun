@@ -12,7 +12,7 @@ import { BusinessMenuItemsToolbar } from "@/components/business-menu-items-toolb
 import { ConfirmDeleteForm } from "@/components/confirm-delete-form";
 import { ImageUploadField } from "@/components/image-upload-field";
 import { IngredientListField } from "@/components/ingredient-list-field";
-import { MenuItemEditForm } from "@/components/menu-item-edit-form";
+import { MenuItemEditForm, MenuItemEditSubmitButton } from "@/components/menu-item-edit-form";
 import { MenuItemOptionsFields } from "@/components/menu-item-options-fields";
 import { MenuItemPricingFields } from "@/components/menu-item-pricing-fields";
 import { MenuItemStockFields } from "@/components/menu-item-stock-fields";
@@ -421,6 +421,7 @@ export function BusinessMenuItemsSection({
                                 className="mt-4 grid gap-3 md:grid-cols-2"
                                 itemProfile={itemProfile}
                                 brandRequired={itemProfile.brandRequired && menuBrands.length > 0}
+                                modalToggleId={`edit-${actionId}`}
                               >
                                 <input type="hidden" name="id" value={item.id} />
                                 <input type="hidden" name="current_image_url" value={item.image_url ?? ""} />
@@ -650,9 +651,9 @@ export function BusinessMenuItemsSection({
                                   </div>
                                 ) : null}
                                 <div className="md:col-span-2 space-y-2 border-t border-slate-100 pt-3">
-                                  <button type="submit" className="btn btn-primary w-full rounded-xl py-3">
+                                  <MenuItemEditSubmitButton className="btn btn-primary w-full rounded-xl py-3">
                                     Save changes
-                                  </button>
+                                  </MenuItemEditSubmitButton>
                                   <label
                                     htmlFor={`edit-${actionId}`}
                                     title="Close"

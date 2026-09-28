@@ -18,7 +18,7 @@ import {
   normalizeRestaurantDeliveryRadiusKm,
 } from "@/lib/delivery-radius";
 import { deriveLocationLabelFromBranch } from "@/lib/restaurant-profile";
-import { MENU_ITEMS_ADMIN_PATH } from "@/lib/menu-items-admin-data";
+import { MENU_ITEMS_ADMIN_PATH, menuItemsListQueryPrefix } from "@/lib/menu-items-admin-data";
 import { HOURS_ADMIN_PATH } from "@/lib/hours-admin-path";
 import { parseSocialLinksFromForm, socialColumnsMissing } from "@/lib/social-links";
 
@@ -858,9 +858,10 @@ export async function createMenuItemAction(
 
 export async function updateMenuItemAction(formData: FormData) {
   const user = await requireRestaurantAdmin();
+  const listQs = menuItemsListQueryPrefix(formData.get("list_query"));
   const id = String(formData.get("id") ?? "");
   if (!id) {
-    redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_update_invalid`);
+    redirect(`${MENU_ITEMS_ADMIN_PATH}?${listQs}toast=item_update_invalid`);
   }
 
   const name = String(formData.get("name") ?? "").trim();
@@ -905,7 +906,7 @@ export async function updateMenuItemAction(formData: FormData) {
   const variantFromPrice = variantFromPriceRaw ? Number(variantFromPriceRaw) : null;
   const stock = buildMenuItemStockPayload(formData);
   if ("error" in stock) {
-    redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_stock_alerts_invalid`);
+    redirect(`${MENU_ITEMS_ADMIN_PATH}?${listQs}toast=item_stock_alerts_invalid`);
   }
   if (stock.track_stock && Object.keys(optionVariantStock).length > 0) {
     stock.stock_quantity = sumVariantStock(optionVariantStock);
@@ -924,18 +925,18 @@ export async function updateMenuItemAction(formData: FormData) {
   }
 
   if (!name || !categoryId) {
-    redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_update_invalid`);
+    redirect(`${MENU_ITEMS_ADMIN_PATH}?${listQs}toast=item_update_invalid`);
   }
 
   if (soldByWeight) {
     if (pricePerKg === null || !Number.isFinite(pricePerKg) || pricePerKg < 0) {
-      redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_update_invalid`);
+      redirect(`${MENU_ITEMS_ADMIN_PATH}?${listQs}toast=item_update_invalid`);
     }
     if (!Number.isFinite(weightStepKg) || weightStepKg < 0.01) {
-      redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_update_invalid`);
+      redirect(`${MENU_ITEMS_ADMIN_PATH}?${listQs}toast=item_update_invalid`);
     }
   } else if (!Number.isFinite(resolvedUpdatePrice) || resolvedUpdatePrice < 0) {
-    redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_update_invalid`);
+    redirect(`${MENU_ITEMS_ADMIN_PATH}?${listQs}toast=item_update_invalid`);
   }
 
   let uploadedImageUrl: string | null = null;
@@ -944,7 +945,7 @@ export async function updateMenuItemAction(formData: FormData) {
       uploadedImageUrl = await uploadMenuItemImage(imageFile, user.restaurant_id);
     } catch (error) {
       console.error("[updateMenuItemAction] image upload", error);
-      redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_update_failed`);
+      redirect(`${MENU_ITEMS_ADMIN_PATH}?${listQs}toast=item_update_failed`);
     }
   }
 
@@ -953,7 +954,7 @@ export async function updateMenuItemAction(formData: FormData) {
     (currentImageUrl || null) ??
     firstColorOptionImageUrl(optionGroups);
   if (!nextImageUrl) {
-    redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_image_required`);
+    redirect(`${MENU_ITEMS_ADMIN_PATH}?${listQs}toast=item_image_required`);
   }
 
   const supabase = await createServerSupabaseClient();
@@ -1011,7 +1012,7 @@ export async function updateMenuItemAction(formData: FormData) {
       void notifyStockAlertsForMenuItem(supabase, id, user.restaurant_id);
       void pushOutboundStockUpdate(user.restaurant_id, id);
       revalidateMenuAdminPaths();
-      redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_updated&item_name=${encodeURIComponent(name)}&jump=item&item_id=${encodeURIComponent(id)}`);
+      redirect(`${MENU_ITEMS_ADMIN_PATH}?${listQs}toast=item_updated&item_name=${encodeURIComponent(name)}`);
     }
     error = retry.error;
   }
@@ -1027,7 +1028,7 @@ export async function updateMenuItemAction(formData: FormData) {
       void notifyStockAlertsForMenuItem(supabase, id, user.restaurant_id);
       void pushOutboundStockUpdate(user.restaurant_id, id);
       revalidateMenuAdminPaths();
-      redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_updated&item_name=${encodeURIComponent(name)}&jump=item&item_id=${encodeURIComponent(id)}`);
+      redirect(`${MENU_ITEMS_ADMIN_PATH}?${listQs}toast=item_updated&item_name=${encodeURIComponent(name)}`);
     }
     error = retry.error;
   }
@@ -1043,7 +1044,7 @@ export async function updateMenuItemAction(formData: FormData) {
       void notifyStockAlertsForMenuItem(supabase, id, user.restaurant_id);
       void pushOutboundStockUpdate(user.restaurant_id, id);
       revalidateMenuAdminPaths();
-      redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_updated&item_name=${encodeURIComponent(name)}&jump=item&item_id=${encodeURIComponent(id)}`);
+      redirect(`${MENU_ITEMS_ADMIN_PATH}?${listQs}toast=item_updated&item_name=${encodeURIComponent(name)}`);
     }
     error = retry.error;
   }
@@ -1058,7 +1059,7 @@ export async function updateMenuItemAction(formData: FormData) {
       void notifyStockAlertsForMenuItem(supabase, id, user.restaurant_id);
       void pushOutboundStockUpdate(user.restaurant_id, id);
       revalidatePath("/dashboard/business");
-      redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_update_stock_alerts_migration`);
+      redirect(`${MENU_ITEMS_ADMIN_PATH}?${listQs}toast=item_update_stock_alerts_migration`);
     }
     error = retry.error;
   }
@@ -1072,7 +1073,7 @@ export async function updateMenuItemAction(formData: FormData) {
       .eq("restaurant_id", user.restaurant_id);
     if (!retry.error) {
       revalidatePath("/dashboard/business");
-      redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_update_nutrition_migration`);
+      redirect(`${MENU_ITEMS_ADMIN_PATH}?${listQs}toast=item_update_nutrition_migration`);
     }
     error = retry.error;
   }
@@ -1080,16 +1081,16 @@ export async function updateMenuItemAction(formData: FormData) {
   if (error) {
     console.error("[updateMenuItemAction]", error.message, error.code, error.details);
     if (/brand_id|brand_name|menu_brands/i.test(error.message ?? "")) {
-      redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_update_brand_migration`);
+      redirect(`${MENU_ITEMS_ADMIN_PATH}?${listQs}toast=item_update_brand_migration`);
     }
-    redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_update_failed`);
+    redirect(`${MENU_ITEMS_ADMIN_PATH}?${listQs}toast=item_update_failed`);
   }
 
   void notifyStockAlertsForMenuItem(supabase, id, user.restaurant_id);
   void pushOutboundStockUpdate(user.restaurant_id, id);
 
   revalidateMenuAdminPaths();
-  redirect(`${MENU_ITEMS_ADMIN_PATH}?toast=item_updated&item_name=${encodeURIComponent(name)}&jump=item&item_id=${encodeURIComponent(id)}`);
+  redirect(`${MENU_ITEMS_ADMIN_PATH}?${listQs}toast=item_updated&item_name=${encodeURIComponent(name)}`);
 }
 
 export async function toggleMenuItemAvailabilityAction(formData: FormData) {
