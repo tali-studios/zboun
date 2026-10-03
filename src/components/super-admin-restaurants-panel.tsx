@@ -121,16 +121,19 @@ function ActionIconButton({
 
 /** Data column tints — helps scan rows; actions stay in a neutral column. */
 const TABLE_DATA_COLUMNS = [
-  { label: "Business", header: "bg-slate-200/90 text-slate-800", cell: "bg-slate-50" },
-  { label: "Slug", header: "bg-zinc-200/90 text-zinc-800", cell: "bg-zinc-50/90" },
-  { label: "Sub status", header: "bg-emerald-200/90 text-emerald-900", cell: "bg-emerald-50/80" },
-  { label: "Next due", header: "bg-sky-200/90 text-sky-900", cell: "bg-sky-50/80" },
-  { label: "Outstanding", header: "bg-amber-200/90 text-amber-900", cell: "bg-amber-50/80" },
-  { label: "Status", header: "bg-violet-200/90 text-violet-900", cell: "bg-violet-50/80" },
-  { label: "Home", header: "bg-indigo-200/90 text-indigo-900", cell: "bg-indigo-50/80" },
-  { label: "Categories", header: "bg-fuchsia-200/90 text-fuchsia-900", cell: "bg-fuchsia-50/80" },
-  { label: "Created", header: "bg-stone-200/90 text-stone-800", cell: "bg-stone-50/90" },
+  { key: "name", label: "Business", header: "bg-slate-200/90 text-slate-800", cell: "bg-slate-50" },
+  { key: "slug", label: "Slug", header: "bg-zinc-200/90 text-zinc-800", cell: "bg-zinc-50/90" },
+  { key: "sub_status", label: "Sub status", header: "bg-emerald-200/90 text-emerald-900", cell: "bg-emerald-50/80" },
+  { key: "next_due", label: "Next due", header: "bg-sky-200/90 text-sky-900", cell: "bg-sky-50/80" },
+  { key: "outstanding", label: "Outstanding", header: "bg-amber-200/90 text-amber-900", cell: "bg-amber-50/80" },
+  { key: "status", label: "Status", header: "bg-violet-200/90 text-violet-900", cell: "bg-violet-50/80" },
+  { key: "home", label: "Home", header: "bg-indigo-200/90 text-indigo-900", cell: "bg-indigo-50/80" },
+  { key: "categories", label: "Categories", header: "bg-fuchsia-200/90 text-fuchsia-900", cell: "bg-fuchsia-50/80" },
+  { key: "created", label: "Created", header: "bg-stone-200/90 text-stone-800", cell: "bg-stone-50/90" },
 ] as const;
+
+type SortKey = (typeof TABLE_DATA_COLUMNS)[number]["key"];
+type SortState = { key: SortKey; dir: "asc" | "desc" } | null;
 
 type ModalState = {
   open: boolean;
@@ -183,6 +186,60 @@ function isRestaurantPastDue(restaurant: RestaurantRow) {
   return isSubscriptionPastDue(restaurant.next_due_at, restaurant.subscription_status);
 }
 
+function hasHomeCategory(restaurant: RestaurantRow) {
+  return hasCatalogDashboard(
+    (restaurant.business_type ?? "retail_store") as BusinessTypeKey,
+  );
+}
+
+/** Null = no value ("—" / N/A); always sorted last regardless of direction. */
+function sortValue(restaurant: RestaurantRow, key: SortKey): string | number | null {
+  switch (key) {
+    case "name":
+      return restaurant.name.toLowerCase();
+    case "slug":
+      return restaurant.slug.toLowerCase();
+    case "sub_status":
+      return subscriptionStatusLabel(restaurant).toLowerCase();
+    case "next_due":
+      if (restaurant.billing_exempt) return Number.MAX_SAFE_INTEGER;
+      return restaurant.next_due_at ? new Date(restaurant.next_due_at).getTime() : null;
+    case "outstanding":
+      return restaurantHasComplimentaryAccess(restaurant) ? null : restaurant.outstanding_balance;
+    case "status":
+      return restaurant.is_active ? 1 : 0;
+    case "home":
+      return hasHomeCategory(restaurant) ? (restaurant.show_on_home ? 1 : 0) : null;
+    case "categories":
+      return hasHomeCategory(restaurant)
+        ? formatBrowseSectionsLabel(restaurant.browse_sections).toLowerCase()
+        : null;
+    case "created":
+      return new Date(restaurant.created_at).getTime();
+  }
+}
+
+function compareRestaurants(a: RestaurantRow, b: RestaurantRow, sort: NonNullable<SortState>) {
+  const va = sortValue(a, sort.key);
+  const vb = sortValue(b, sort.key);
+  if (va === null && vb === null) return 0;
+  if (va === null) return 1;
+  if (vb === null) return -1;
+  const cmp =
+    typeof va === "number" && typeof vb === "number"
+      ? va - vb
+      : String(va).localeCompare(String(vb), undefined, { numeric: true });
+  return sort.dir === "asc" ? cmp : -cmp;
+}
+
+function SortIndicator({ dir }: { dir: "asc" | "desc" | null }) {
+  return (
+    <span aria-hidden className={`text-[10px] ${dir ? "opacity-100" : "opacity-35"}`}>
+      {dir === "asc" ? "▲" : dir === "desc" ? "▼" : "↕"}
+    </span>
+  );
+}
+
 export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -219,9 +276,19 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
     amount: 3,
   });
 
+  const [sort, setSort] = useState<SortState>(null);
+
+  function toggleSort(key: SortKey) {
+    setSort((prev) => {
+      if (!prev || prev.key !== key) return { key, dir: "asc" };
+      if (prev.dir === "asc") return { key, dir: "desc" };
+      return null;
+    });
+  }
+
   const filtered = useMemo(() => {
     const search = q.trim().toLowerCase();
-    return restaurants.filter((restaurant) => {
+    const rows = restaurants.filter((restaurant) => {
       const matchSearch =
         !search ||
         restaurant.name.toLowerCase().includes(search) ||
@@ -233,13 +300,14 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
         (status === "inactive" && !restaurant.is_active);
       return matchSearch && matchStatus;
     });
-  }, [q, restaurants, status]);
+    return sort ? [...rows].sort((a, b) => compareRestaurants(a, b, sort)) : rows;
+  }, [q, restaurants, status, sort]);
 
   const [page, setPage] = useState(1);
 
   useEffect(() => {
     setPage(1);
-  }, [q, status]);
+  }, [q, status, sort]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
@@ -254,12 +322,6 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
     const start = (currentPage - 1) * PAGE_SIZE;
     return filtered.slice(start, start + PAGE_SIZE);
   }, [currentPage, filtered]);
-
-  function hasHomeCategory(restaurant: RestaurantRow) {
-    return hasCatalogDashboard(
-      (restaurant.business_type ?? "retail_store") as BusinessTypeKey,
-    );
-  }
 
   function openDeleteModal(restaurant: RestaurantRow) {
     setModal({
@@ -566,11 +628,31 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
           onClick={() => {
             setQ("");
             setStatus("all");
+            setSort(null);
           }}
           className="btn btn-secondary rounded-xl"
         >
           Reset
         </button>
+        <select
+          aria-label="Sort businesses"
+          value={sort ? `${sort.key}:${sort.dir}` : ""}
+          onChange={(event) => {
+            const [key, dir] = event.target.value.split(":");
+            setSort(key ? { key: key as SortKey, dir: dir as "asc" | "desc" } : null);
+          }}
+          className="ui-select md:col-span-4 lg:hidden"
+        >
+          <option value="">Sort by: default</option>
+          {TABLE_DATA_COLUMNS.flatMap((col) => [
+            <option key={`${col.key}:asc`} value={`${col.key}:asc`}>
+              {col.label} ▲
+            </option>,
+            <option key={`${col.key}:desc`} value={`${col.key}:desc`}>
+              {col.label} ▼
+            </option>,
+          ])}
+        </select>
       </div>
 
       <div className="mt-4 space-y-3 lg:hidden">
@@ -778,14 +860,26 @@ export function SuperAdminRestaurantsPanel({ restaurants }: Props) {
           </colgroup>
           <thead>
             <tr className="text-left text-[11px] uppercase tracking-wide">
-              {TABLE_DATA_COLUMNS.map((col) => (
-                <th
-                  key={col.label}
-                  className={`border-r border-white/70 px-3 py-2 font-bold whitespace-nowrap ${col.header}`}
-                >
-                  {col.label}
-                </th>
-              ))}
+              {TABLE_DATA_COLUMNS.map((col) => {
+                const dir = sort?.key === col.key ? sort.dir : null;
+                return (
+                  <th
+                    key={col.key}
+                    aria-sort={dir === "asc" ? "ascending" : dir === "desc" ? "descending" : "none"}
+                    className={`border-r border-white/70 p-0 font-bold whitespace-nowrap ${col.header}`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => toggleSort(col.key)}
+                      title={`Sort by ${col.label}`}
+                      className="flex w-full items-center gap-1.5 px-3 py-2 text-left uppercase tracking-wide transition hover:brightness-95"
+                    >
+                      {col.label}
+                      <SortIndicator dir={dir} />
+                    </button>
+                  </th>
+                );
+              })}
               <th className="bg-white px-3 py-2 font-bold text-slate-600 whitespace-nowrap">Actions</th>
             </tr>
           </thead>
