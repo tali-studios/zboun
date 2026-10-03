@@ -124,6 +124,67 @@ const HERO_SLIDES_FALLBACK = DEFAULT_HOME_HERO_SLIDES;
 
 /** Suggested stores list on home when no category is selected. */
 const SHOW_POPULAR_STORES = true;
+const SUGGESTED_STORES_LIMIT = 6;
+
+function isStoreClosedNow(store: {
+  opening_hours?: unknown;
+  is_temporarily_closed?: boolean;
+}): boolean {
+  if (store.is_temporarily_closed) return true;
+  if (!hasConfiguredOpeningHours(store.opening_hours)) return false;
+  const hours = parseOpeningHours(store.opening_hours, { fallbackToDefault: false });
+  return !isRestaurantOpenNow(hours, {
+    isTemporarilyClosed: false,
+    timeZone: RESTAURANT_TIMEZONE,
+  });
+}
+
+/** Profile completeness + ratings + delivery perks. */
+function suggestedStoreScore(store: RestaurantCard): number {
+  let score = 0;
+  if (store.logo_url) score += 20;
+  if (store.banner_url) score += 5;
+  if ((store.rating_count ?? 0) > 0 && store.rating != null) {
+    score += store.rating * 4 * Math.min(store.rating_count ?? 0, 5) / 5;
+  }
+  if (store.free_delivery) score += 5;
+  if (store.fast_delivery_enabled) score += 5;
+  return score;
+}
+
+/** Stable per-day tiebreak so equally ranked stores take turns at the top. */
+function dailyRotationKey(id: string, day: string): number {
+  let h = 2166136261;
+  const s = `${day}:${id}`;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+function rankSuggestedStores<T extends RestaurantCard & { distKm: number | null }>(
+  stores: T[],
+): T[] {
+  const day = new Date().toLocaleDateString("en-CA", { timeZone: RESTAURANT_TIMEZONE });
+  return stores
+    .map((s) => ({
+      s,
+      closed: isStoreClosedNow(s),
+      score: suggestedStoreScore(s),
+      rot: dailyRotationKey(s.id, day),
+    }))
+    .sort((a, b) => {
+      if (a.closed !== b.closed) return a.closed ? 1 : -1;
+      if (a.s.distKm !== null && b.s.distKm !== null) {
+        const bucketDiff = Math.floor(a.s.distKm / 3) - Math.floor(b.s.distKm / 3);
+        if (bucketDiff !== 0) return bucketDiff;
+      }
+      if (a.score !== b.score) return b.score - a.score;
+      return a.rot - b.rot;
+    })
+    .map(({ s }) => s);
+}
 
 function subFilterAccent(sub: string, parent: BrowseSection): string {
   return BROWSE_SUB_FILTER_ACCENTS[sub] ?? BROWSE_SECTION_ACCENTS[parent];
@@ -316,6 +377,11 @@ export function RestaurantDirectory({
         return 0;
       });
   }, [restaurants, query, activeSection, activeSub, location, radiusKm]);
+
+  const suggestedStores = useMemo(() => {
+    if (query.trim()) return filtered;
+    return rankSuggestedStores(filtered).slice(0, SUGGESTED_STORES_LIMIT);
+  }, [filtered, query]);
 
   const categoryCounts = useMemo(() => {
     const counts = {} as Record<BrowseSection, number>;
@@ -930,18 +996,8 @@ export function RestaurantDirectory({
               </div>
             ) : (
               <ul className="space-y-3 md:grid md:grid-cols-2 md:gap-4 md:space-y-0">
-                {filtered.map((restaurant) => {
-                  const hasHours = hasConfiguredOpeningHours(restaurant.opening_hours);
-                  const hours = parseOpeningHours(restaurant.opening_hours, {
-                    fallbackToDefault: false,
-                  });
-                  const isClosed =
-                    restaurant.is_temporarily_closed ||
-                    (hasHours &&
-                      !isRestaurantOpenNow(hours, {
-                        isTemporarilyClosed: restaurant.is_temporarily_closed,
-                        timeZone: RESTAURANT_TIMEZONE,
-                      }));
+                {suggestedStores.map((restaurant) => {
+                  const isClosed = isStoreClosedNow(restaurant);
 
                   return (
                     <li key={restaurant.id}>
