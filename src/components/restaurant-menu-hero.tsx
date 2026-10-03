@@ -77,12 +77,8 @@ export function RestaurantMenuHero({ restaurant, tagline, menuThemeColor, modeBa
   return (
     <header className="relative z-0 w-full">
       <div
-        className={`relative w-full overflow-hidden ${
+        className={`relative h-60 w-full overflow-hidden sm:h-[280px] md:h-80 lg:h-[380px] ${
           desktop ? "rounded-2xl shadow-sm ring-1 ring-black/[0.04]" : ""
-        } ${
-          hasBanner
-            ? "min-h-[15rem] sm:min-h-[17rem] md:min-h-[18rem] lg:min-h-[20rem]"
-            : "h-[46vw] sm:h-64 md:h-72 lg:h-80"
         }`}
         style={{
           background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.accent} 48%, ${theme.deep} 100%)`,
@@ -90,14 +86,13 @@ export function RestaurantMenuHero({ restaurant, tagline, menuThemeColor, modeBa
       >
         {hasBanner && restaurant.banner_url ? (
           <>
-            {/* Height follows the image at every breakpoint — full banner, no crop, no letterbox bars */}
+            {/* Heights above are what the banner upload hint (1600×600, safe centre 800×560) in app/dashboard/business/page.tsx is based on */}
             <Image
               src={restaurant.banner_url}
               alt=""
-              width={1600}
-              height={900}
-              className="relative z-0 block h-auto w-full"
-              sizes="(max-width:768px) 100vw, (max-width:1280px) 90vw, 1200px"
+              fill
+              className="z-0 object-cover object-center"
+              sizes="(max-width:768px) 100vw, (max-width:1280px) 90vw, 1120px"
               priority
               unoptimized
             />
@@ -114,7 +109,7 @@ export function RestaurantMenuHero({ restaurant, tagline, menuThemeColor, modeBa
         )}
 
         <div className="absolute inset-0 z-20 flex flex-col justify-end">
-          <div className="flex items-end gap-3 px-4 pb-5 pt-16 sm:gap-5 sm:px-6 sm:pb-6 sm:pt-20 lg:pb-7">
+          <div className="flex items-end gap-3 px-4 pb-5 pt-6 sm:gap-5 sm:px-6 sm:pb-6 sm:pt-10 lg:pb-7">
             {restaurant.logo_url ? (
               <div className="relative z-30 h-14 w-14 shrink-0 overflow-hidden rounded-2xl border-[3px] border-white bg-white shadow-lg sm:h-16 sm:w-16 lg:h-[4.5rem] lg:w-[4.5rem]">
                 <Image
@@ -131,7 +126,7 @@ export function RestaurantMenuHero({ restaurant, tagline, menuThemeColor, modeBa
               <h1 className="text-2xl font-bold leading-tight tracking-tight text-white sm:text-3xl lg:text-4xl">
                 {restaurant.name}
               </h1>
-              <p className="mt-1 max-w-2xl text-sm font-normal leading-relaxed text-white/90 sm:text-[15px]">
+              <p className="mt-1 line-clamp-2 max-w-2xl text-sm font-normal leading-relaxed text-white/90 sm:text-[15px]">
                 {tagline}
               </p>
               {modeBadge ? (

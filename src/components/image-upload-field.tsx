@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState, type DragEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 
 type Props = {
   name: string;
@@ -19,6 +19,77 @@ type Props = {
   uploadAriaLabel?: string;
 };
 
+type PasteTarget = {
+  el: HTMLElement;
+  hovered: boolean;
+  accept: (file: File) => void;
+};
+
+/**
+ * One document-level paste listener shared by all mounted fields. Many fields can be
+ * mounted at once (hidden edit modals, logo + banner), so a paste goes to the hovered
+ * field, else the one containing focus, else the only visible one.
+ */
+const pasteTargets = new Set<PasteTarget>();
+let globalListenersInstalled = false;
+
+function isVisible(el: HTMLElement) {
+  return el.getClientRects().length > 0;
+}
+
+function isEditableElement(el: Element | null) {
+  if (!el) return false;
+  if (el instanceof HTMLTextAreaElement) return true;
+  if (el instanceof HTMLInputElement) {
+    return !["file", "checkbox", "radio", "button", "submit", "reset"].includes(el.type);
+  }
+  return (el as HTMLElement).isContentEditable;
+}
+
+function imageFromClipboard(data: DataTransfer | null): File | null {
+  if (!data) return null;
+  for (const item of Array.from(data.items ?? [])) {
+    if (item.kind === "file" && item.type.startsWith("image/")) {
+      const blob = item.getAsFile();
+      if (!blob) continue;
+      const ext = blob.type.split("/")[1]?.replace("jpeg", "jpg") || "png";
+      return new File([blob], `pasted-image-${Date.now()}.${ext}`, { type: blob.type });
+    }
+  }
+  return null;
+}
+
+function installGlobalListeners() {
+  if (globalListenersInstalled || typeof document === "undefined") return;
+  globalListenersInstalled = true;
+
+  document.addEventListener("paste", (event) => {
+    const file = imageFromClipboard(event.clipboardData);
+    if (!file) return;
+    const active = document.activeElement;
+    if (isEditableElement(active)) return;
+
+    const visible = [...pasteTargets].filter((t) => isVisible(t.el));
+    const target =
+      visible.find((t) => t.hovered) ??
+      visible.find((t) => active && t.el.contains(active)) ??
+      (visible.length === 1 ? visible[0] : undefined);
+    if (!target) return;
+
+    event.preventDefault();
+    target.accept(file);
+  });
+
+  // A file dropped just outside a drop zone would make the browser open it and lose the form.
+  const blockStrayFileDrop = (event: globalThis.DragEvent) => {
+    if (!event.dataTransfer?.types.includes("Files")) return;
+    const overZone = [...pasteTargets].some((t) => t.el.contains(event.target as Node));
+    if (!overZone) event.preventDefault();
+  };
+  window.addEventListener("dragover", blockStrayFileDrop);
+  window.addEventListener("drop", blockStrayFileDrop);
+}
+
 export function ImageUploadField({
   name,
   label = "Item image",
@@ -32,31 +103,80 @@ export function ImageUploadField({
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState("");
+  const zoneRef = useRef<HTMLLabelElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const previewUrl = useMemo(() => {
     if (file) return URL.createObjectURL(file);
     return initialImageUrl;
   }, [file, initialImageUrl]);
 
-  function validateAndSet(nextFile: File | null) {
-    if (!nextFile) return;
+  function validate(nextFile: File | null): nextFile is File {
+    if (!nextFile) return false;
     if (!nextFile.type.startsWith("image/")) {
       setError("Please select an image file.");
-      return;
+      return false;
     }
     if (nextFile.size > 5 * 1024 * 1024) {
       setError("Image must be under 5MB.");
-      return;
+      return false;
     }
     setError("");
+    return true;
+  }
+
+  /** Dropped/pasted files must be written into the real input, or the form submits without them. */
+  function applyExternalFile(nextFile: File | null) {
+    if (!validate(nextFile)) return;
+    const input = inputRef.current;
+    if (input) {
+      const transfer = new DataTransfer();
+      transfer.items.add(nextFile);
+      input.files = transfer.files;
+    }
     setFile(nextFile);
+  }
+
+  const acceptRef = useRef(applyExternalFile);
+  useEffect(() => {
+    acceptRef.current = applyExternalFile;
+  });
+
+  useEffect(() => {
+    const el = zoneRef.current;
+    if (!el) return;
+    installGlobalListeners();
+    const target: PasteTarget = {
+      el,
+      hovered: false,
+      accept: (f) => acceptRef.current(f),
+    };
+    const onEnter = () => {
+      target.hovered = true;
+    };
+    const onLeave = () => {
+      target.hovered = false;
+    };
+    el.addEventListener("mouseenter", onEnter);
+    el.addEventListener("mouseleave", onLeave);
+    pasteTargets.add(target);
+    return () => {
+      el.removeEventListener("mouseenter", onEnter);
+      el.removeEventListener("mouseleave", onLeave);
+      pasteTargets.delete(target);
+    };
+  }, []);
+
+  function clearAttachedFile() {
+    if (inputRef.current) inputRef.current.value = "";
+    setFile(null);
+    setError("");
   }
 
   function onDrop(event: DragEvent<HTMLLabelElement>) {
     event.preventDefault();
     setIsDragging(false);
-    const nextFile = event.dataTransfer.files?.[0] ?? null;
-    validateAndSet(nextFile);
+    applyExternalFile(event.dataTransfer.files?.[0] ?? null);
   }
 
   return (
@@ -78,14 +198,20 @@ export function ImageUploadField({
       ) : null}
 
       <label
+        ref={zoneRef}
         aria-label={uploadAriaLabel || label || "Upload image"}
+        title="Click, drag & drop, or paste an image (Ctrl+V)"
         onDragOver={(event) => {
           event.preventDefault();
           setIsDragging(true);
         }}
-        onDragLeave={() => setIsDragging(false)}
+        onDragLeave={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+            setIsDragging(false);
+          }
+        }}
         onDrop={onDrop}
-        className={`flex w-full min-w-0 cursor-pointer overflow-hidden transition ${
+        className={`relative flex w-full min-w-0 cursor-pointer overflow-hidden transition ${
           compact
             ? `flex-col items-center gap-2 rounded-xl border border-dashed p-2.5 text-center ${
                 error
@@ -150,14 +276,19 @@ export function ImageUploadField({
                   : "truncate text-sm font-semibold text-slate-800"
             }
           >
-            {compact
-              ? "Click to change"
-              : inline
-                ? "Click to upload photo"
-                : "Drag & drop or click to upload"}
+            {isDragging
+              ? "Drop image here"
+              : compact
+                ? "Click to change"
+                : inline
+                  ? "Click to upload photo"
+                  : "Drag & drop or click to upload"}
           </p>
           {!compact && !inline ? (
-            <p className="truncate text-xs text-slate-500">PNG/JPG/WebP, max 5MB</p>
+            <p className="truncate text-xs text-slate-500">
+              <span className="hidden md:inline">Or paste a copied image (Ctrl+V) · </span>
+              PNG/JPG/WebP, max 5MB
+            </p>
           ) : (
             <p className={`truncate leading-tight ${inline ? "text-[11px] text-slate-500" : "text-[10px] text-slate-400"}`}>
               PNG/JPG/WebP · 5MB max
@@ -168,7 +299,26 @@ export function ImageUploadField({
           ) : null}
         </div>
 
+        {file ? (
+          <button
+            type="button"
+            aria-label="Remove attached image"
+            title="Remove attached image"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              clearAttachedFile();
+            }}
+            className={`flex shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 ring-1 ring-slate-200 transition hover:bg-red-50 hover:text-red-600 hover:ring-red-200 ${
+              compact ? "absolute right-1.5 top-1.5 h-5 w-5 text-xs" : inline ? "h-6 w-6 text-sm" : "h-7 w-7 text-base"
+            }`}
+          >
+            <span aria-hidden className="leading-none">×</span>
+          </button>
+        ) : null}
+
         <input
+          ref={inputRef}
           name={name}
           type="file"
           accept="image/*"
@@ -187,7 +337,8 @@ export function ImageUploadField({
           }}
           onChange={(event) => {
             const y = window.scrollY;
-            validateAndSet(event.target.files?.[0] ?? null);
+            const next = event.target.files?.[0] ?? null;
+            if (validate(next)) setFile(next);
             // File inputs / Next Image preview can yank the viewport — keep place.
             requestAnimationFrame(() => {
               window.scrollTo(0, y);

@@ -439,7 +439,27 @@ export default async function RestaurantDashboardPage({ searchParams }: Props) {
                   label="Store banner image"
                   initialImageUrl={restaurant?.banner_url ?? null}
                 />
-                <p className="mt-1 text-xs text-slate-500">Recommended wide image (for top profile header on menu page).</p>
+                <div className="mt-2 flex flex-col gap-3 rounded-xl border border-violet-100 bg-violet-50/60 p-3 sm:flex-row sm:items-center">
+                  <div
+                    aria-hidden
+                    className="relative aspect-[8/3] w-full max-w-[200px] shrink-0 overflow-hidden rounded-lg bg-gradient-to-br from-violet-300 to-fuchsia-300"
+                  >
+                    <div className="absolute inset-y-[3%] left-1/4 right-1/4 flex items-center justify-center rounded border-2 border-dashed border-white text-[9px] font-bold uppercase tracking-wide text-white">
+                      Safe zone
+                    </div>
+                    <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/40 to-transparent" />
+                  </div>
+                  <div className="text-xs leading-relaxed text-slate-600">
+                    <p className="font-semibold text-slate-800">
+                      Banner size: 1600 × 600 px (landscape, JPG or PNG)
+                    </p>
+                    <ul className="mt-1 list-disc space-y-0.5 pl-4">
+                      <li>Keep text and logos inside the middle 800 × 560 px — the sides are cropped on phones.</li>
+                      <li>The bottom is darkened behind your store name, so avoid important details there.</li>
+                      <li>Don&apos;t use your square logo here; use a shop photo or products.</li>
+                    </ul>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

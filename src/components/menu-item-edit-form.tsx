@@ -19,7 +19,7 @@ const SAVED_TOASTS = new Set([
   "item_update_nutrition_migration",
 ]);
 
-function redirectToastFromError(err: unknown): string | null {
+export function redirectToastFromError(err: unknown): string | null {
   if (!isRedirectError(err)) return null;
   const url = err.digest.split(";").slice(2, -2).join(";");
   try {

@@ -12,6 +12,7 @@ import { MenuItemOptionsFields } from "@/components/menu-item-options-fields";
 import { MenuItemStockFields } from "@/components/menu-item-stock-fields";
 import { LinkedCurrencyPriceInput } from "@/components/linked-currency-price-input";
 import { saveMenuItemsScrollPosition } from "@/components/restore-menu-items-scroll";
+import { redirectToastFromError } from "@/components/menu-item-edit-form";
 import { ITEM_AUDIENCES, ITEM_AUDIENCE_LABELS } from "@/lib/item-audience";
 import { validateMenuItemFormClient } from "@/lib/menu-item-form-validation";
 import type { StoreItemProfile } from "@/lib/store-item-profile";
@@ -39,6 +40,13 @@ const DEFAULT_PROFILE: StoreItemProfile = {
   audienceTag: false,
   namePlaceholder: "e.g. Product name",
 };
+
+/** Redirect toasts from createMenuItemAction that mean the item was saved. */
+const ITEM_SAVED_TOASTS = new Set([
+  "item_created",
+  "item_create_stock_alerts_migration",
+  "item_create_nutrition_migration",
+]);
 
 // ─── Shared sub-components ────────────────────────────────────────────────────
 
@@ -172,6 +180,8 @@ export function AddMenuItemForm({
   const [price, setPrice] = useState("");
   const [pricePerKg, setPricePerKg] = useState("");
   const [pending, setPending] = useState(false);
+  /** Bumped after a successful add to remount the form (clears file/option field state too). */
+  const [formKey, setFormKey] = useState(0);
   const [alert, setAlert] = useState<{ heading: string; message: string } | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const submittingRef = useRef(false);
@@ -230,20 +240,35 @@ export function AddMenuItemForm({
       // Success redirects; failures return so the filled form is kept.
       if (result && result.ok === false) {
         showMissingFieldsAlert(result.error);
-        submittingRef.current = false;
-        setPending(false);
+      } else {
+        resetForNextItem();
       }
-    } catch (error) {
-      if (isRedirectError(error)) throw error;
       submittingRef.current = false;
       setPending(false);
+    } catch (error) {
+      submittingRef.current = false;
+      setPending(false);
+      if (isRedirectError(error)) {
+        // Redirect is a soft navigation: this form stays mounted, so reset it here.
+        const toast = redirectToastFromError(error);
+        if (toast && ITEM_SAVED_TOASTS.has(toast)) resetForNextItem();
+        throw error;
+      }
       showMissingFieldsAlert("Something went wrong. Your fields were kept — please try again.");
     }
+  }
+
+  function resetForNextItem() {
+    setPrice("");
+    setPricePerKg("");
+    setSoldByWeight(false);
+    setFormKey((k) => k + 1);
   }
 
   return (
     <>
     <form
+      key={formKey}
       ref={formRef}
       onSubmit={handleCreate}
       id="add-item"
